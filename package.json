@@ -1,0 +1,21 @@
+{
+  "name": "discord-casino-bot",
+  "version": "1.0.0",
+  "description": "Discord casino bot using discord.js v14 and JSON files only.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "discord",
+    "casino",
+    "economy",
+    "json",
+    "discord.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.21.0",
+    "dotenv": "^16.4.5"
+  }
+}
