@@ -178,6 +178,48 @@ function createServer() {
       return;
     }
 
+    if (req.method === 'GET' && url.pathname === '/privacy') {
+      const filePath = path.join(__dirname, 'privacy.html');
+      fs.readFile(filePath, (err, data) => {
+        if (err) {
+          res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('Privacy policy not found.');
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(data);
+      });
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/terms') {
+      const filePath = path.join(__dirname, 'terms.html');
+      fs.readFile(filePath, (err, data) => {
+        if (err) {
+          res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('Terms of service not found.');
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(data);
+      });
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/deletion') {
+      const filePath = path.join(__dirname, 'deletion.html');
+      fs.readFile(filePath, (err, data) => {
+        if (err) {
+          res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('Data deletion page not found.');
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(data);
+      });
+      return;
+    }
+
     if (req.method === 'GET' && url.pathname === '/') {
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Messenger casino bot is running.');
