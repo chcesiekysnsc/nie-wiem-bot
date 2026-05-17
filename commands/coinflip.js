@@ -112,7 +112,7 @@ module.exports = {
     );
 
     if (result.luckySave) {
-      embed.addFields({ name: 'Lucky Charm', value: '🍀 Talizman uratowal przegrana runde.', inline: false });
+      embed.addFields({ name: 'Lucky Charm', value: 'Talizman uratowal przegrana runde.', inline: false });
     }
 
     if (result.leveledUp) {

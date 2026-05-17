@@ -10,8 +10,28 @@ const {
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
-const BASE_POOL = ['🍒', '🍒', '🍋', '🍋', '🍉', '⭐', '💎', '7️⃣'];
-const LUCKY_POOL = [...BASE_POOL, '🍀', '🍀', '💎', '7️⃣'];
+const SYMBOLS = {
+  cherry: '[CHERRY]',
+  lemon: '[LEMON]',
+  watermelon: '[MELON]',
+  star: '[STAR]',
+  gem: '[GEM]',
+  seven: '[7]',
+  lucky: '[LUCK]'
+};
+
+const BASE_POOL = [
+  SYMBOLS.cherry,
+  SYMBOLS.cherry,
+  SYMBOLS.lemon,
+  SYMBOLS.lemon,
+  SYMBOLS.watermelon,
+  SYMBOLS.star,
+  SYMBOLS.gem,
+  SYMBOLS.seven
+];
+
+const LUCKY_POOL = [...BASE_POOL, SYMBOLS.lucky, SYMBOLS.lucky, SYMBOLS.gem, SYMBOLS.seven];
 
 function pullSymbol(lucky) {
   const pool = lucky ? LUCKY_POOL : BASE_POOL;
@@ -23,8 +43,8 @@ function getMultiplier(symbols, lucky) {
   const unique = new Set(symbols);
 
   if (unique.size === 1) {
-    if (first === '7️⃣') return 5;
-    if (first === '💎') return 4;
+    if (first === SYMBOLS.seven) return 5;
+    if (first === SYMBOLS.gem) return 4;
     return 3;
   }
 
@@ -32,7 +52,7 @@ function getMultiplier(symbols, lucky) {
     return lucky ? 1.6 : 1.4;
   }
 
-  if (lucky && symbols.includes('🍀')) {
+  if (lucky && symbols.includes(SYMBOLS.lucky)) {
     return 1.2;
   }
 

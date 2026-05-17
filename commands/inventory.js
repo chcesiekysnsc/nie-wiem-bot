@@ -25,7 +25,7 @@ module.exports = {
           const item = config.shopItems[itemId];
           return item
             ? `${item.emoji} **${item.name}** x${quantity}`
-            : `📦 **${itemId}** x${quantity}`;
+            : `[ITEM] **${itemId}** x${quantity}`;
         });
 
       return {

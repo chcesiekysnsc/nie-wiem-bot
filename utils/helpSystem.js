@@ -1,43 +1,35 @@
-const {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  EmbedBuilder
-} = require('discord.js');
-
+const { EmbedBuilder } = require('./embeds');
 const config = require('../config/config');
 
 const HELP_PAGE_SIZE = 7;
 
 const CATEGORY_META = {
-  ECONOMY: { emoji: '💰', label: 'ECONOMY' },
-  GAMBLING: { emoji: '🎲', label: 'GAMBLING' },
-  SOCIAL: { emoji: '💍', label: 'SOCIAL' },
-  ADMIN: { emoji: '🛡️', label: 'ADMIN' }
+  ECONOMY: { label: 'ECONOMY' },
+  GAMBLING: { label: 'GAMBLING' },
+  SOCIAL: { label: 'SOCIAL' },
+  ADMIN: { label: 'ADMIN' }
 };
 
 const helpCommands = [
   {
     id: 1,
     name: 'bal',
-    emoji: '💰',
     category: 'ECONOMY',
     shortDescription: 'pokazuje saldo',
     description: 'Pokazuje stan portfela, banku, net worth oraz podstawowe statystyki konta.',
-    usage: '!bal [@user]',
-    examples: ['!bal', '!bal @gracz'],
+    usage: '!bal [uid]',
+    examples: ['!bal', '!bal 1234567890123456'],
     cooldown: '2 sekundy',
     requirements: 'Brak. Konto tworzy sie automatycznie przy pierwszym uzyciu.',
     aliases: ['balance'],
     additionalInfo: [
-      'Mozesz sprawdzic swoje saldo albo saldo oznaczonego gracza.',
-      'Embed pokazuje portfel, bank, level i prestige.'
+      'Mozesz sprawdzic swoje saldo albo saldo innego gracza po UID z Messengera.',
+      'W odpowiedzi zobaczysz portfel, bank, level i prestige.'
     ]
   },
   {
     id: 2,
     name: 'daily',
-    emoji: '📅',
     category: 'ECONOMY',
     shortDescription: 'odbierz dzienna nagrode',
     description: 'Odbiera codzienna nagrode coins i daje dodatkowe XP za aktywnosc.',
@@ -54,7 +46,6 @@ const helpCommands = [
   {
     id: 3,
     name: 'work',
-    emoji: '💼',
     category: 'ECONOMY',
     shortDescription: 'zarob coinsy pracujac',
     description: 'Losuje prace, przyznaje coins i daje XP za regularne zarabianie.',
@@ -71,7 +62,6 @@ const helpCommands = [
   {
     id: 4,
     name: 'crime',
-    emoji: '🕶️',
     category: 'ECONOMY',
     shortDescription: 'ryzykowna kradziez NPC',
     description: 'Ryzykowna akcja przeciw NPC. Mozesz wygrac sporo coins albo zaplacic kare.',
@@ -88,24 +78,22 @@ const helpCommands = [
   {
     id: 5,
     name: 'rob',
-    emoji: '🥷',
     category: 'SOCIAL',
     shortDescription: 'okradnij gracza',
     description: 'Probujesz ukrasc coins innemu graczowi. Mozesz zgarnac lup albo zaplacic kare.',
-    usage: '!rob @user',
-    examples: ['!rob @gracz'],
+    usage: '!rob <uid>',
+    examples: ['!rob 1234567890123456'],
     cooldown: '20 sekund',
-    requirements: 'Cel musi miec minimalna ilosc coins w portfelu. Nie mozna okrasc siebie ani bota.',
+    requirements: 'Cel musi miec minimalna ilosc coins w portfelu. Nie mozna okrasc siebie.',
     aliases: [],
     additionalInfo: [
       'Rob Shield blokuje jedna udana probe kradziezy.',
-      'Komenda zmienia statystyki obu graczy i zapisuje wszystko w JSON.'
+      'Cel trzeba wskazac po Messenger UID.'
     ]
   },
   {
     id: 6,
     name: 'slots',
-    emoji: '🎰',
     category: 'GAMBLING',
     shortDescription: 'automaty kasynowe',
     description: 'Gra na automatach. Wrzucasz bet i liczysz na mnozniki za dobre symbole.',
@@ -121,26 +109,7 @@ const helpCommands = [
   },
   {
     id: 7,
-    name: 'blackjack',
-    emoji: '🎴',
-    category: 'GAMBLING',
-    shortDescription: 'blackjack przeciw botowi',
-    description: 'Gra blackjack przeciw dealerowi bota. Celem jest zdobycie 21 punktow bez przekroczenia limitu.',
-    usage: '!blackjack kwota',
-    examples: ['!blackjack 1000', '!blackjack all'],
-    cooldown: '10 sekund',
-    requirements: 'Musisz miec odpowiedni balance na rozpoczecie rozdania.',
-    aliases: ['bj'],
-    additionalInfo: [
-      'Mozesz uzywac hit, stand i double.',
-      'Dealer ma wlasne AI i dobiera karty do minimum 17.',
-      'Wygrana standardowo daje x2 coins.'
-    ]
-  },
-  {
-    id: 8,
     name: 'coinflip',
-    emoji: '🪙',
     category: 'GAMBLING',
     shortDescription: 'rzut moneta',
     description: 'Obstawiasz orla lub reszke i grasz o szybkie podwojenie stawki.',
@@ -155,9 +124,8 @@ const helpCommands = [
     ]
   },
   {
-    id: 9,
+    id: 8,
     name: 'roulette',
-    emoji: '🎡',
     category: 'GAMBLING',
     shortDescription: 'ruletka',
     description: 'Ruletka z typowaniem koloru, parzystosci albo konkretnego numeru.',
@@ -172,9 +140,8 @@ const helpCommands = [
     ]
   },
   {
-    id: 10,
+    id: 9,
     name: 'leaderboard',
-    emoji: '🏆',
     category: 'ECONOMY',
     shortDescription: 'top najbogatszych',
     description: 'Pokazuje top graczy posortowanych po balance od najbogatszych do najbiedniejszych.',
@@ -185,13 +152,12 @@ const helpCommands = [
     aliases: ['lb', 'top'],
     additionalInfo: [
       'Sortowanie odbywa sie po samym balance.',
-      'Bot probuje pobrac tagi graczy z cache lub API Discorda.'
+      'Nazwy graczy pochodza z zapamietanych profili Messenger lub z UID.'
     ]
   },
   {
-    id: 11,
+    id: 10,
     name: 'deposit',
-    emoji: '🏦',
     category: 'ECONOMY',
     shortDescription: 'wplac coinsy do banku',
     description: 'Przenosi coins z portfela do banku i pilnuje limitu pojemnosci.',
@@ -202,13 +168,12 @@ const helpCommands = [
     aliases: ['dep'],
     additionalInfo: [
       'VIP i Golden Card zwiekszaja pojemnosc banku.',
-      'Komenda obsluguje `all` i `max`.'
+      'Komenda obsluguje all i max.'
     ]
   },
   {
-    id: 12,
+    id: 11,
     name: 'withdraw',
-    emoji: '💸',
     category: 'ECONOMY',
     shortDescription: 'wyplac coinsy z banku',
     description: 'Przenosi wybrana kwote z banku do portfela.',
@@ -218,14 +183,13 @@ const helpCommands = [
     requirements: 'Musisz miec wystarczajaca ilosc coins w banku.',
     aliases: ['with'],
     additionalInfo: [
-      'Obsluguje `all` i `max`.',
+      'Obsluguje all i max.',
       'Daje niewielki bonus XP za korzystanie z banku.'
     ]
   },
   {
-    id: 13,
+    id: 12,
     name: 'shop',
-    emoji: '🛒',
     category: 'ECONOMY',
     shortDescription: 'sklep kasynowy',
     description: 'Pokazuje liste przedmiotow albo pozwala kupic itemy za coins.',
@@ -240,71 +204,67 @@ const helpCommands = [
     ]
   },
   {
-    id: 14,
+    id: 13,
     name: 'inventory',
-    emoji: '🎒',
     category: 'ECONOMY',
     shortDescription: 'twoj ekwipunek',
     description: 'Pokazuje wszystkie posiadane itemy, badges i aktualna pojemnosc banku.',
-    usage: '!inventory [@user]',
-    examples: ['!inventory', '!inventory @gracz'],
+    usage: '!inventory [uid]',
+    examples: ['!inventory', '!inventory 1234567890123456'],
     cooldown: '3 sekundy',
     requirements: 'Brak wymagan.',
     aliases: ['inv'],
     additionalInfo: [
-      'Komenda pokazuje tez aktywne badges wynikajace z itemow i statystyk.',
-      'Mozesz podejrzec inventory innego gracza.'
+      'Mozesz podejrzec inventory innego gracza po UID.',
+      'Komenda pokazuje tez aktywne badges.'
+    ]
+  },
+  {
+    id: 14,
+    name: 'marry',
+    category: 'SOCIAL',
+    shortDescription: 'slub z graczem',
+    description: 'System oswiadczyn i slubu z akceptacja lub odrzuceniem po stronie drugiego gracza.',
+    usage: '!marry <uid> | !marry accept <uid> | !marry decline <uid>',
+    examples: ['!marry 1234567890123456', '!marry accept 1234567890123456'],
+    cooldown: '12 sekund',
+    requirements: 'Obie osoby musza byc wolne. Nie mozna poslubic samego siebie.',
+    aliases: ['slub'],
+    additionalInfo: [
+      'Prosba wygasa po 2 minutach.',
+      'Drugi gracz akceptuje wpisujac komende z UID proponujacego.'
     ]
   },
   {
     id: 15,
-    name: 'marry',
-    emoji: '💍',
-    category: 'SOCIAL',
-    shortDescription: 'slub z graczem',
-    description: 'System oswiadczyn i slubu z przyciskami akceptacji lub odrzucenia.',
-    usage: '!marry @user',
-    examples: ['!marry @gracz'],
-    cooldown: '12 sekund',
-    requirements: 'Obie osoby musza byc wolne. Nie mozna poslubic siebie ani bota.',
-    aliases: ['slub'],
-    additionalInfo: [
-      'Prosba wygasa po 2 minutach.',
-      'Po zaakceptowaniu obie osoby dostaja status married.'
-    ]
-  },
-  {
-    id: 16,
     name: 'pfp',
-    emoji: '🖼️',
     category: 'SOCIAL',
     shortDescription: 'profil kasynowy',
-    description: 'Pokazuje rozbudowany profil gracza z avatarem, statystykami i badges.',
-    usage: '!pfp [@user]',
-    examples: ['!pfp', '!pfp @gracz'],
+    description: 'Pokazuje rozbudowany profil gracza ze statystykami i badges.',
+    usage: '!pfp [uid]',
+    examples: ['!pfp', '!pfp 1234567890123456'],
     cooldown: '4 sekundy',
     requirements: 'Brak wymagan.',
     aliases: ['profile'],
     additionalInfo: [
-      'Embed pokazuje avatar, balance, bank, level, xp, games played, total won, total lost, prestige i badges.',
-      'Mozesz podejrzec profil innego gracza.'
+      'Mozesz podejrzec profil innego gracza po UID.',
+      'Odpowiedz pokazuje balance, bank, level, xp, games played, total won, total lost i badges.'
     ]
   },
   {
-    id: 17,
+    id: 16,
     name: 'admadd',
-    emoji: '👑',
     category: 'ADMIN',
     shortDescription: 'dodaj coinsy adminem',
-    description: 'Admin command do dodawania coins oznaczonemu graczowi wraz z logowaniem akcji.',
-    usage: '!admadd @user kwota',
-    examples: ['!admadd @gracz 50000'],
+    description: 'Admin command do dodawania coins wskazanemu graczowi wraz z logowaniem akcji.',
+    usage: '!admadd <uid> kwota',
+    examples: ['!admadd 1234567890123456 50000'],
     cooldown: '2 sekundy',
     requirements: 'Tylko ID z config.admins moze uzyc tej komendy.',
     aliases: ['addmoney'],
     additionalInfo: [
       'Zmiana salda trafia do users.json i logs.json.',
-      'Bot moze tez wyslac log embed na kanal administracyjny.'
+      'Jesli ustawisz logRecipientId, bot wysle tam tekstowy log.'
     ]
   }
 ];
@@ -338,88 +298,63 @@ function paginateCommands(page) {
   };
 }
 
-function buildHelpShell(client) {
-  const embed = new EmbedBuilder()
+function buildHelpShell() {
+  return new EmbedBuilder()
     .setColor(config.embed.primary)
-    .setFooter({ text: `${config.casinoName} • Premium Help Center` })
+    .setFooter({ text: `${config.casinoName} | Messenger Help` })
     .setTimestamp();
-
-  if (client.user) {
-    embed.setThumbnail(client.user.displayAvatarURL({ size: 256 }));
-  }
-
-  return embed;
 }
 
 function buildHelpListEmbed(client, page = 1) {
   const { items, totalPages, page: safePage } = paginateCommands(page);
   const descriptionLines = items.map(command => (
-    `**${command.id}.** \`${config.prefix}${command.name}\` — ${command.shortDescription}`
+    `${command.id}. ${config.prefix}${command.name} - ${command.shortDescription}`
   ));
 
   const categoryLine = Object.values(CATEGORY_META)
-    .map(category => `${category.emoji} **${category.label}**`)
-    .join(' • ');
+    .map(category => category.label)
+    .join(' | ');
 
-  return buildHelpShell(client)
-    .setTitle('📚 Centrum Pomocy')
+  return buildHelpShell()
+    .setTitle('Centrum Pomocy')
     .setDescription(
       'Lista wszystkich dostepnych komend.\n'
-      + `Uzyj \`${config.prefix}help numer\` aby zobaczyc pelny opis komendy.\n\n`
+      + `Uzyj ${config.prefix}help numer albo ${config.prefix}help nazwa, aby zobaczyc szczegoly.\n`
+      + `Uzyj ${config.prefix}help page <numer>, aby zmienic strone.\n\n`
       + descriptionLines.join('\n')
     )
     .addFields(
       { name: 'Kategorie', value: categoryLine, inline: false },
-      { name: 'Paginacja', value: `Strona **${safePage}/${totalPages}**`, inline: true },
-      { name: 'Liczba komend', value: `**${helpCommands.length}**`, inline: true }
+      { name: 'Paginacja', value: `Strona ${safePage}/${totalPages}`, inline: true },
+      { name: 'Liczba komend', value: String(helpCommands.length), inline: true }
     );
 }
 
 function buildHelpDetailEmbed(client, command) {
-  const category = CATEGORY_META[command.category] || { emoji: '📦', label: command.category };
+  const category = CATEGORY_META[command.category] || { label: command.category };
 
-  return buildHelpShell(client)
-    .setTitle(`${command.emoji} Komenda: ${config.prefix}${command.name}`)
+  return buildHelpShell()
+    .setTitle(`Komenda: ${config.prefix}${command.name}`)
     .setDescription(command.description)
     .addFields(
-      { name: 'Kategoria', value: `${category.emoji} ${category.label}`, inline: true },
+      { name: 'Kategoria', value: category.label, inline: true },
       { name: 'Cooldown', value: command.cooldown, inline: true },
       { name: 'Wymagania', value: command.requirements, inline: false },
-      { name: 'Skladnia', value: `\`${command.usage}\``, inline: false },
-      { name: 'Przyklady uzycia', value: command.examples.map(example => `\`${example}\``).join('\n'), inline: false },
-      { name: 'Aliasy', value: command.aliases.length ? command.aliases.map(alias => `\`${alias}\``).join(', ') : 'Brak aliasow', inline: false },
-      { name: 'Dodatkowe informacje', value: command.additionalInfo.map(line => `• ${line}`).join('\n'), inline: false }
+      { name: 'Skladnia', value: command.usage, inline: false },
+      { name: 'Przyklady', value: command.examples.join('\n'), inline: false },
+      { name: 'Aliasy', value: command.aliases.length ? command.aliases.join(', ') : 'Brak aliasow', inline: false },
+      { name: 'Dodatkowe informacje', value: command.additionalInfo.join('\n'), inline: false }
     );
 }
 
-function buildHelpErrorEmbed(client) {
-  return buildHelpShell(client)
-    .setTitle('❌ Blad pomocy')
-    .setDescription('❌ Nie znaleziono komendy o tym numerze.');
+function buildHelpErrorEmbed() {
+  return buildHelpShell()
+    .setTitle('Blad pomocy')
+    .setDescription('Nie znaleziono komendy o tym numerze lub nazwie.');
 }
 
-function buildHelpButtons(ownerId, page) {
-  const totalPages = getTotalPages();
-  const safePage = Math.min(Math.max(1, page), totalPages);
-
-  if (totalPages <= 1) {
-    return [];
-  }
-
-  return [
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`help:list:${ownerId}:${Math.max(1, safePage - 1)}`)
-        .setLabel('Poprzednia')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(safePage <= 1),
-      new ButtonBuilder()
-        .setCustomId(`help:list:${ownerId}:${Math.min(totalPages, safePage + 1)}`)
-        .setLabel('Nastepna')
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(safePage >= totalPages)
-    )
-  ];
+function buildHelpButtons() {
+  return [];
 }
 
 module.exports = {

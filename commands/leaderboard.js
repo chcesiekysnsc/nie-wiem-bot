@@ -2,7 +2,7 @@ const { infoEmbed } = require('../utils/embeds');
 const { formatCurrency, refreshBadges, ensureInventoryRecord } = require('../utils/economy');
 const { withData } = require('../utils/storage');
 
-const PODIUM = ['🥇', '🥈', '🥉'];
+const PODIUM = ['#1', '#2', '#3'];
 
 module.exports = {
   name: 'leaderboard',
@@ -31,7 +31,7 @@ module.exports = {
     }
 
     const lines = await Promise.all(ranking.map(async entry => {
-      let label = `<@${entry.userId}>`;
+      let label = entry.userId;
       const cached = client.users.cache.get(entry.userId);
 
       if (cached) {
@@ -41,7 +41,7 @@ module.exports = {
           const fetched = await client.users.fetch(entry.userId);
           label = fetched.tag;
         } catch (error) {
-          label = `<@${entry.userId}>`;
+          label = entry.userId;
         }
       }
 

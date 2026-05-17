@@ -1,5 +1,5 @@
-const { EmbedBuilder } = require('discord.js');
 const config = require('../config/config');
+const { EmbedBuilder } = require('./messenger');
 
 function baseEmbed() {
   return new EmbedBuilder()
@@ -8,23 +8,24 @@ function baseEmbed() {
 
 function infoEmbed(title, description) {
   return baseEmbed()
-    .setTitle(`🎰 ${title}`)
+    .setTitle(`INFO | ${title}`)
     .setDescription(description);
 }
 
 function successEmbed(title, description) {
   return baseEmbed()
-    .setTitle(`✨ ${title}`)
+    .setTitle(`OK | ${title}`)
     .setDescription(description);
 }
 
 function errorEmbed(title, description) {
   return baseEmbed()
-    .setTitle(`⚠️ ${title}`)
+    .setTitle(`ERROR | ${title}`)
     .setDescription(description);
 }
 
 module.exports = {
+  EmbedBuilder,
   baseEmbed,
   infoEmbed,
   successEmbed,

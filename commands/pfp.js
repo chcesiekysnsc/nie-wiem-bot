@@ -13,6 +13,7 @@ module.exports = {
   aliases: ['profile'],
   async execute(client, message) {
     const target = message.mentions.users.first() || message.author;
+    const avatarUrl = target.displayAvatarURL({ size: 512, extension: 'png' });
 
     const profile = await withData(store => {
       const user = createUser(target.id, store.users);
@@ -34,10 +35,10 @@ module.exports = {
     });
 
     const embed = infoEmbed('Profil gracza', profile.bio || `${target.username} w systemie JSON economy.`)
-      .setAuthor({ name: target.tag, iconURL: target.displayAvatarURL({ size: 256 }) })
-      .setThumbnail(target.displayAvatarURL({ size: 256 }))
+      .setAuthor({ name: target.tag, iconURL: avatarUrl })
+      .setThumbnail(avatarUrl)
       .addFields(
-        { name: 'Avatar', value: '[Kliknij avatar](' + target.displayAvatarURL({ size: 512, extension: 'png' }) + ')', inline: false },
+        { name: 'Avatar', value: avatarUrl ? '[Kliknij avatar](' + avatarUrl + ')' : 'Brak dostepnego avataru.', inline: false },
         { name: 'Balance', value: formatCurrency(profile.balance), inline: true },
         { name: 'Bank', value: formatCurrency(profile.bank), inline: true },
         { name: 'Level', value: formatNumber(profile.level), inline: true },
@@ -50,7 +51,8 @@ module.exports = {
       );
 
     if (profile.marriedTo) {
-      embed.addFields({ name: 'Married to', value: `<@${profile.marriedTo}>`, inline: false });
+      const partner = typeof client.getUser === 'function' ? client.getUser(profile.marriedTo) : null;
+      embed.addFields({ name: 'Married to', value: partner ? partner.tag : profile.marriedTo, inline: false });
     }
 
     await message.reply({ embeds: [embed] });

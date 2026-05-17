@@ -19,7 +19,7 @@ module.exports = {
 
     if (!target) {
       await message.reply({
-        embeds: [errorEmbed('Rob', 'Uzyj: `!rob @user`')]
+        embeds: [errorEmbed('Rob', 'Uzyj: `!rob <uid>`')]
       });
       return;
     }

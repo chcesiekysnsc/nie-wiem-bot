@@ -12,7 +12,7 @@ const { createUser, withData } = require('../utils/storage');
 
 function renderShopList() {
   return Object.entries(config.shopItems)
-    .map(([itemId, item]) => `${item.emoji} **${item.name}** - \`${itemId}\`\n${formatCurrency(item.price)} • ${item.description}`)
+    .map(([itemId, item]) => `${item.emoji} **${item.name}** - \`${itemId}\`\n${formatCurrency(item.price)} - ${item.description}`)
     .join('\n\n');
 }
 

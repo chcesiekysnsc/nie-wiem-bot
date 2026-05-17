@@ -20,7 +20,7 @@ module.exports = {
 
     if (!target || !Number.isFinite(amount) || amount <= 0) {
       await message.reply({
-        embeds: [errorEmbed('Bledne uzycie', 'Uzyj: `!admadd @user 50000`')]
+        embeds: [errorEmbed('Bledne uzycie', 'Uzyj: `!admadd <uid> 50000`')]
       });
       return;
     }
@@ -36,7 +36,7 @@ module.exports = {
         adminId: message.author.id,
         targetId: target.id,
         amount,
-        guildId: message.guild.id,
+        pageId: message.guild.id,
         balanceAfter: user.balance
       });
 
@@ -55,7 +55,7 @@ module.exports = {
     const logEmbed = infoEmbed('Admin Log', `${message.author.tag} dodal srodki dla ${target.tag}.`)
       .addFields(
         { name: 'Kwota', value: formatCurrency(amount), inline: true },
-        { name: 'User', value: `${target.tag} (${target.id})`, inline: false }
+        { name: 'User', value: target.tag, inline: false }
       );
 
     await logToChannel(client, logEmbed);

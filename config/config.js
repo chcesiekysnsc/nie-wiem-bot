@@ -1,9 +1,16 @@
 module.exports = {
   prefix: '!',
   admins: ['123456789', '1368942044948594708'],
-  logChannelId: '',
+  logRecipientId: '',
   casinoName: 'Golden Dice Casino',
-  currencyEmoji: '🪙',
+  currencyEmoji: 'Coins',
+  messenger: {
+    port: 3000,
+    webhookPath: '/webhook',
+    graphVersion: 'v24.0',
+    pageId: '',
+    botAvatarUrl: ''
+  },
   embed: {
     primary: 0xD4AF37
   },
@@ -74,47 +81,47 @@ module.exports = {
   shopItems: {
     vip: {
       name: 'VIP Pass',
-      emoji: '💎',
+      emoji: '[VIP]',
       price: 30000,
       description: 'Daje bonus do !daily, !work i wieksza pojemnosc banku.',
       type: 'permanent'
     },
     luckycharm: {
       name: 'Lucky Charm',
-      emoji: '🍀',
+      emoji: '[LUCK]',
       price: 12000,
       description: 'Zwiesza szczescie w grach losowych.',
       type: 'stackable'
     },
     robshield: {
       name: 'Rob Shield',
-      emoji: '🛡️',
+      emoji: '[SHIELD]',
       price: 15000,
       description: 'Blokuje jedna udana probe kradziezy.',
       type: 'stackable'
     },
     premiumbadge: {
       name: 'Premium Badge',
-      emoji: '✨',
+      emoji: '[PREM]',
       price: 18000,
       description: 'Dodaje premium badge na profilu.',
       type: 'permanent'
     },
     goldencard: {
       name: 'Golden Card',
-      emoji: '💳',
+      emoji: '[GOLD]',
       price: 40000,
       description: 'Mocno zwieksza pojemnosc banku.',
       type: 'permanent'
     }
   },
   badges: {
-    vip: '💎 VIP',
-    rich: '👑 Rich',
-    grinder: '🎯 Grinder',
-    gambler: '🎰 Gambler',
-    married: '💍 Married',
-    premium: '✨ Premium',
-    lucky: '🍀 Lucky'
+    vip: 'VIP',
+    rich: 'Rich',
+    grinder: 'Grinder',
+    gambler: 'Gambler',
+    married: 'Married',
+    premium: 'Premium',
+    lucky: 'Lucky'
   }
 };

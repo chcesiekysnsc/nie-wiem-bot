@@ -6,6 +6,7 @@ const config = require('../config/config');
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const DATA_FILES = {
   users: path.join(DATA_DIR, 'users.json'),
+  profiles: path.join(DATA_DIR, 'profiles.json'),
   inventory: path.join(DATA_DIR, 'inventory.json'),
   cooldowns: path.join(DATA_DIR, 'cooldowns.json'),
   logs: path.join(DATA_DIR, 'logs.json')
@@ -13,6 +14,7 @@ const DATA_FILES = {
 
 const FILE_DEFAULTS = {
   users: {},
+  profiles: {},
   inventory: {},
   cooldowns: {
     commands: {},
@@ -199,6 +201,7 @@ async function withData(callback) {
 
     const store = {
       users: loadData('users'),
+      profiles: loadData('profiles'),
       inventory: loadData('inventory'),
       cooldowns: loadData('cooldowns'),
       logs: loadData('logs')
@@ -207,6 +210,7 @@ async function withData(callback) {
     const result = await callback(store);
 
     saveData('users', store.users);
+    saveData('profiles', store.profiles);
     saveData('inventory', store.inventory);
     saveData('cooldowns', store.cooldowns);
     saveData('logs', store.logs);
