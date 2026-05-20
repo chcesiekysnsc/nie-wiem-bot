@@ -7,33 +7,47 @@ module.exports = {
   async execute(client, message, args) {
     const threadId = message.guild?.id || message.rawEvent?.threadID;
 
+    let participantIDs = [];
+    if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
+      try {
+        participantIDs = await new Promise((resolve) => {
+          client.api.getThreadInfo(threadId, (err, info) => {
+            if (!err && info && info.participantIDs) {
+              resolve(info.participantIDs);
+            } else {
+              resolve([]);
+            }
+          });
+        });
+      } catch (_) {}
+    }
+
     const { globalTop, groupMembers } = await withData(store => {
       const users = Object.entries(store.users || {});
 
+      // Top 5 Globalnie (najwięcej monet ze wszystkich zarejestrowanych)
       const globalTop = users
-        .filter(([, u]) => (u.gamesPlayed || 0) > 0)
         .map(([id, u]) => ({ id, balance: (u.balance || 0) + (u.bank || 0) }))
         .sort((a, b) => b.balance - a.balance)
         .slice(0, 5);
 
-      const groupIds = new Set(
-        (store.logs || [])
-          .filter(l => l.threadID === threadId)
-          .map(l => l.userId)
-          .filter(Boolean)
-      );
-
-      const sourceIds = groupIds.size > 0 ? [...groupIds] : users.map(([id]) => id);
-
-      const groupMembers = sourceIds
-        .map(id => {
-          const u = store.users[id];
-          if (!u) return null;
+      // Top 5 Grupy (najbardziej majętni ludzie na danej grupie)
+      let groupMembers = [];
+      if (participantIDs && participantIDs.length > 0) {
+        // Mapujemy wszystkich uczestników grupy - jeśli nie ma ich w bazie, dajemy domyślny balans startowy (15 000)
+        groupMembers = participantIDs.map(id => {
+          const u = store.users[id] || { balance: 5000, bank: 10000 };
           return { id, balance: (u.balance || 0) + (u.bank || 0) };
         })
-        .filter(Boolean)
         .sort((a, b) => b.balance - a.balance)
         .slice(0, 5);
+      } else {
+        // Fallback: Pokazujemy zarejestrowanych użytkowników
+        groupMembers = users
+          .map(([id, u]) => ({ id, balance: (u.balance || 0) + (u.bank || 0) }))
+          .sort((a, b) => b.balance - a.balance)
+          .slice(0, 5);
+      }
 
       return { globalTop, groupMembers };
     });

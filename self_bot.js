@@ -60,6 +60,7 @@ const client = {
   userNames: new Map(),
   lastLotteryDraw: 0,
   lastTaxCollection: 0,
+  activeThreadIds: new Set(),
   async resolveUserName(api, userId) {
     if (this.userNames.has(userId)) {
       return this.userNames.get(userId);
@@ -105,6 +106,18 @@ function loadCommands() {
 
 loadCommands();
 
+const activeThreadsPath = path.join(__dirname, 'data', 'active_threads.json');
+try {
+  if (fs.existsSync(activeThreadsPath)) {
+    const savedThreads = JSON.parse(fs.readFileSync(activeThreadsPath, 'utf8'));
+    if (Array.isArray(savedThreads)) {
+      client.activeThreadIds = new Set(savedThreads);
+    }
+  }
+} catch (err) {
+  console.error('[SELF-BOT] Failed to load active threads:', err);
+}
+
 const appStatePath = path.join(__dirname, 'appstate.json');
 if (!fs.existsSync(appStatePath)) {
   console.error('\n======================================================');
@@ -115,6 +128,42 @@ if (!fs.existsSync(appStatePath)) {
   console.error('jako "appstate.json" w tym folderze.');
   console.error('======================================================\n');
   process.exit(1);
+}
+
+function getMsUntilNextTaxTime() {
+  const now = new Date();
+  const noon = new Date(now);
+  noon.setHours(12, 0, 0, 0);
+  
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  
+  const todayMidnight = new Date(now);
+  todayMidnight.setHours(0, 0, 0, 0);
+
+  let nextTaxDate;
+  if (now < noon && now >= todayMidnight) {
+    nextTaxDate = noon;
+  } else {
+    nextTaxDate = midnight;
+  }
+
+  return Math.max(0, nextTaxDate.getTime() - now.getTime());
+}
+
+function getLastTaxTime() {
+  const now = new Date();
+  const noon = new Date(now);
+  noon.setHours(12, 0, 0, 0);
+  
+  const todayMidnight = new Date(now);
+  todayMidnight.setHours(0, 0, 0, 0);
+
+  if (now >= noon) {
+    return noon.getTime();
+  } else {
+    return todayMidnight.getTime();
+  }
 }
 
 let appState;
@@ -193,7 +242,14 @@ login({ appState }, (loginErr, api) => {
             `Nagroda główna: **+${drawResult.totalPrize.toLocaleString()} Coins** została dodana do portfela!\n` +
             `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą \`!sklep 5\`.`;
 
-          client.api.sendMessage(announceMsg, client.lastThreadId);
+          const targets = Array.from(client.activeThreadIds);
+          if (targets.length > 0) {
+            for (const tId of targets) {
+              client.api.sendMessage(announceMsg, tId);
+            }
+          } else if (client.lastThreadId) {
+            client.api.sendMessage(announceMsg, client.lastThreadId);
+          }
         }
       } catch (err) {
         console.error('[LOTTERY] Blad podczas losowania loterii:', err);
@@ -207,8 +263,9 @@ login({ appState }, (loginErr, api) => {
   // Uruchom timer loterii
   startLotteryTimer();
 
-  // System podatków co 12 godzin
+  // System podatków co 12 godzin (zawsze o północy i w południe)
   function startTaxCollection() {
+    const delay = getMsUntilNextTaxTime();
     setTimeout(async () => {
       try {
         const result = await withData(store => {
@@ -231,15 +288,24 @@ login({ appState }, (loginErr, api) => {
           return { totalCollected, taxedUsers: taxedUsers.length };
         });
 
+        // Ustaw czas ostatniego poboru na zaokrąglony czas poboru (dokładnie 00:00 lub 12:00)
+        client.lastTaxCollection = getLastTaxTime();
+
         if (result.totalCollected > 0) {
-          client.lastTaxCollection = Date.now();
           const announceMsg = 
             `📊 **POBÓR PODATKÓW**\n` +
             `Pobrano podatek w wysokości: **2% salda**\n` +
             `Liczba opodatkowanych graczy: **${result.taxedUsers}**\n` +
             `Łączna kwota podatku: **${result.totalCollected.toLocaleString()} Coins**`;
 
-          client.api.sendMessage(announceMsg, client.lastThreadId);
+          const targets = Array.from(client.activeThreadIds);
+          if (targets.length > 0) {
+            for (const tId of targets) {
+              client.api.sendMessage(announceMsg, tId);
+            }
+          } else if (client.lastThreadId) {
+            client.api.sendMessage(announceMsg, client.lastThreadId);
+          }
         }
       } catch (err) {
         console.error('[TAX] Błąd podczas poboru podatków:', err);
@@ -247,11 +313,11 @@ login({ appState }, (loginErr, api) => {
 
       // Rekurencyjnie uruchamiaj timer od nowa
       startTaxCollection();
-    }, 12 * 60 * 60 * 1000); // 12 godzin
+    }, delay);
   }
 
   // Inicjalizuj ostatni pobór podatków i uruchom timer
-  client.lastTaxCollection = Date.now();
+  client.lastTaxCollection = getLastTaxTime();
   startTaxCollection();
 
   api.setOptions({
@@ -276,6 +342,16 @@ login({ appState }, (loginErr, api) => {
     const messageId = event.messageID;
 
     client.lastThreadId = threadId;
+    if (threadId) {
+      if (!client.activeThreadIds.has(threadId)) {
+        client.activeThreadIds.add(threadId);
+        try {
+          fs.writeFileSync(activeThreadsPath, JSON.stringify(Array.from(client.activeThreadIds), null, 2), 'utf8');
+        } catch (e) {
+          console.error('[SELF-BOT] Failed to save active threads:', e);
+        }
+      }
+    }
 
     if (client.isProcessed(messageId)) {
       return;
