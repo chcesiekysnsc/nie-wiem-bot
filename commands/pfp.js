@@ -1,60 +1,120 @@
-const { infoEmbed } = require('../utils/embeds');
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
 const {
   ensureInventoryRecord,
   formatCurrency,
   formatNumber,
-  refreshBadges,
-  xpForLevel
+  refreshBadges
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
+function downloadImage(url, dest) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(dest);
+    https.get(url, (response) => {
+      response.pipe(file);
+      file.on('finish', () => {
+        file.close(resolve);
+      });
+    }).on('error', (err) => {
+      fs.unlink(dest, () => {});
+      reject(err);
+    });
+  });
+}
+
 module.exports = {
   name: 'pfp',
-  aliases: ['profile'],
-  async execute(client, message) {
-    const target = message.mentions.users.first() || message.author;
-    const avatarUrl = target.displayAvatarURL({ size: 512, extension: 'png' });
+  aliases: ['profile', 'awatar', 'profil'],
+  async execute(client, message, args) {
+    let targetId = message.author.id;
 
-    const profile = await withData(store => {
-      const user = createUser(target.id, store.users);
-      refreshBadges(user, ensureInventoryRecord(store.inventory, target.id));
+    if (args[0]) {
+      const cleanId = args[0].replace(/[<@>]/g, '').trim();
+      if (/^\d+$/.test(cleanId)) {
+        targetId = cleanId;
+      }
+    }
+
+    let username = `Uzytkownik_${targetId.slice(-6)}`;
+    let avatarUrl = '';
+
+    if (client.api && typeof client.api.getUserInfo === 'function') {
+      try {
+        const userInfo = await new Promise((resolve) => {
+          client.api.getUserInfo(targetId, (err, ret) => {
+            if (!err && ret && ret[targetId]) {
+              const name = ret[targetId].name;
+              client.userNames.set(targetId, name);
+              resolve({ name, thumbSrc: ret[targetId].thumbSrc });
+            } else {
+              resolve(null);
+            }
+          });
+        });
+        if (userInfo) {
+          username = userInfo.name;
+          avatarUrl = userInfo.thumbSrc || '';
+        }
+      } catch (_) {}
+    }
+
+    if (!avatarUrl && client.userNames.has(targetId)) {
+      username = client.userNames.get(targetId);
+    }
+
+    const profileData = await withData(store => {
+      const user = createUser(targetId, store.users);
+      refreshBadges(user, ensureInventoryRecord(store.inventory, targetId));
 
       return {
         balance: user.balance,
         bank: user.bank,
         level: user.level,
-        xp: user.xp,
         gamesPlayed: user.gamesPlayed,
-        totalWon: user.totalWon,
-        totalLost: user.totalLost,
-        prestige: user.prestige,
         badges: user.badges,
-        bio: user.bio,
         marriedTo: user.marriedTo
       };
     });
 
-    const embed = infoEmbed('Profil gracza', profile.bio || `${target.username} w systemie JSON economy.`)
-      .setAuthor({ name: target.tag, iconURL: avatarUrl })
-      .setThumbnail(avatarUrl)
-      .addFields(
-        { name: 'Avatar', value: avatarUrl ? '[Kliknij avatar](' + avatarUrl + ')' : 'Brak dostepnego avataru.', inline: false },
-        { name: 'Balance', value: formatCurrency(profile.balance), inline: true },
-        { name: 'Bank', value: formatCurrency(profile.bank), inline: true },
-        { name: 'Level', value: formatNumber(profile.level), inline: true },
-        { name: 'XP', value: `${formatNumber(profile.xp)} / ${formatNumber(xpForLevel(profile.level, profile.prestige))}`, inline: true },
-        { name: 'Games played', value: formatNumber(profile.gamesPlayed), inline: true },
-        { name: 'Total won', value: formatCurrency(profile.totalWon), inline: true },
-        { name: 'Total lost', value: formatCurrency(profile.totalLost), inline: true },
-        { name: 'Prestige', value: formatNumber(profile.prestige), inline: true },
-        { name: 'Badges', value: profile.badges.length ? profile.badges.join(', ') : 'Brak', inline: false }
-      );
-
-    if (profile.marriedTo) {
-      const partner = typeof client.getUser === 'function' ? client.getUser(profile.marriedTo) : null;
-      embed.addFields({ name: 'Married to', value: partner ? partner.tag : profile.marriedTo, inline: false });
+    let partnerName = 'Brak';
+    if (profileData.marriedTo) {
+      partnerName = `Użytkownik_${profileData.marriedTo.slice(-6)}`;
+      if (client.userNames.has(profileData.marriedTo)) {
+        partnerName = client.userNames.get(profileData.marriedTo);
+      }
     }
 
-    await message.reply({ embeds: [embed] });
+    const response = 
+      `👤 **Profil: ${username}**\n` +
+      `👛 Portfel: ${formatCurrency(profileData.balance)} | 🏦 Bank: ${formatCurrency(profileData.bank)}\n` +
+      `🎮 Gry: ${formatNumber(profileData.gamesPlayed)} | 🏆 Poziom: ${profileData.level}\n` +
+      `💍 Małżeństwo: **${partnerName}**\n` +
+      `🎖️ Odznaki: ${profileData.badges.length ? profileData.badges.join(', ') : 'Brak'}`;
+
+    if (avatarUrl && client.api) {
+      const tempFile = path.join(__dirname, `temp_${targetId}.jpg`);
+      try {
+        await downloadImage(avatarUrl, tempFile);
+        client.api.sendMessage(
+          {
+            body: response,
+            attachment: fs.createReadStream(tempFile)
+          },
+          message.guild.id,
+          () => {
+            fs.unlink(tempFile, () => {});
+          },
+          message.rawEvent.messageID
+        );
+        return;
+      } catch (err) {
+        console.error('[PFP] Błąd wysyłania ze zdjęciem profilowym:', err);
+        fs.unlink(tempFile, () => {});
+      }
+    }
+
+    await message.reply(response);
   }
 };

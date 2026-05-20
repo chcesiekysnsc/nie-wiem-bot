@@ -7,24 +7,25 @@ const CATEGORY_META = {
   ECONOMY: { label: 'ECONOMY' },
   GAMBLING: { label: 'GAMBLING' },
   SOCIAL: { label: 'SOCIAL' },
-  ADMIN: { label: 'ADMIN' }
+  ADMIN: { label: 'ADMIN' },
+  UTILITY: { label: 'UTILITY' }
 };
 
 const helpCommands = [
+  // === ECONOMY ===
   {
     id: 1,
     name: 'bal',
     category: 'ECONOMY',
     shortDescription: 'pokazuje saldo',
-    description: 'Pokazuje stan portfela, banku, net worth oraz podstawowe statystyki konta.',
-    usage: '!bal [uid]',
-    examples: ['!bal', '!bal 1234567890123456'],
+    description: 'Pokazuje stan portfela, banku oraz podstawowe statystyki konta.',
+    usage: '!bal [@osoba | id]',
+    examples: ['!bal', '!bal @Rafal'],
     cooldown: '2 sekundy',
-    requirements: 'Brak. Konto tworzy sie automatycznie przy pierwszym uzyciu.',
-    aliases: ['balance'],
+    requirements: 'Brak.',
+    aliases: ['balance', 'kasa', 'saldo'],
     additionalInfo: [
-      'Mozesz sprawdzic swoje saldo albo saldo innego gracza po UID z Messengera.',
-      'W odpowiedzi zobaczysz portfel, bank, level i prestige.'
+      'Pokazuje portfel i bank.'
     ]
   },
   {
@@ -32,15 +33,15 @@ const helpCommands = [
     name: 'daily',
     category: 'ECONOMY',
     shortDescription: 'odbierz dzienna nagrode',
-    description: 'Odbiera codzienna nagrode coins i daje dodatkowe XP za aktywnosc.',
+    description: 'Odbiera codzienną nagrodę.',
     usage: '!daily',
     examples: ['!daily'],
-    cooldown: '5 sekund komendowego cooldownu, nagroda co 24h',
+    cooldown: 'Nagroda co 24h',
     requirements: 'Musisz odczekac 24 godziny od poprzedniego claimu.',
     aliases: [],
     additionalInfo: [
       'VIP Pass zwieksza wysokosc daily.',
-      'Komenda zapisuje czas kolejnego odbioru w users.json.'
+      'Dzienny streak dodaje bonus.'
     ]
   },
   {
@@ -48,15 +49,14 @@ const helpCommands = [
     name: 'work',
     category: 'ECONOMY',
     shortDescription: 'zarob coinsy pracujac',
-    description: 'Losuje prace, przyznaje coins i daje XP za regularne zarabianie.',
+    description: 'Zarób coins za uczciwą pracę.',
     usage: '!work',
     examples: ['!work'],
     cooldown: '10 sekund',
-    requirements: 'Brak wymagan poza cooldownem.',
+    requirements: 'Brak.',
     aliases: [],
     additionalInfo: [
-      'VIP Pass daje bonus do wyplat z pracy.',
-      'Komenda moze wbic level i dodac bonusowe coins za awans.'
+      'VIP Pass daje bonus do wyplat.'
     ]
   },
   {
@@ -64,207 +64,255 @@ const helpCommands = [
     name: 'crime',
     category: 'ECONOMY',
     shortDescription: 'ryzykowna kradziez NPC',
-    description: 'Ryzykowna akcja przeciw NPC. Mozesz wygrac sporo coins albo zaplacic kare.',
+    description: 'Napad na NPC — zysk lub strata.',
     usage: '!crime',
     examples: ['!crime'],
     cooldown: '12 sekund',
-    requirements: 'Brak wymagan poza cooldownem i odrobina odwagi.',
+    requirements: 'Brak.',
     aliases: [],
     additionalInfo: [
-      'Wynik zalezy od szansy sukcesu ustawionej w configu.',
-      'Przegrana odejmuje coins tylko z aktualnego portfela.'
+      'Ryzykowna akcja.'
     ]
   },
   {
     id: 5,
-    name: 'rob',
-    category: 'SOCIAL',
-    shortDescription: 'okradnij gracza',
-    description: 'Probujesz ukrasc coins innemu graczowi. Mozesz zgarnac lup albo zaplacic kare.',
-    usage: '!rob <uid>',
-    examples: ['!rob 1234567890123456'],
-    cooldown: '20 sekund',
-    requirements: 'Cel musi miec minimalna ilosc coins w portfelu. Nie mozna okrasc siebie.',
-    aliases: [],
+    name: 'top',
+    category: 'ECONOMY',
+    shortDescription: 'ranking top 5 global i grupy',
+    description: 'Pokazuje 5 najbogatszych graczy.',
+    usage: '!top',
+    examples: ['!top'],
+    cooldown: '8 sekund',
+    requirements: 'Brak.',
+    aliases: ['ranking'],
     additionalInfo: [
-      'Rob Shield blokuje jedna udana probe kradziezy.',
-      'Cel trzeba wskazac po Messenger UID.'
+      'Łączny majątek (portfel + bank).'
     ]
   },
   {
     id: 6,
-    name: 'slots',
-    category: 'GAMBLING',
-    shortDescription: 'automaty kasynowe',
-    description: 'Gra na automatach. Wrzucasz bet i liczysz na mnozniki za dobre symbole.',
-    usage: '!slots kwota',
-    examples: ['!slots 1000', '!slots all'],
-    cooldown: '4 sekundy',
-    requirements: 'Musisz miec wystarczajacy balance i zmiescic sie w max bet.',
-    aliases: ['slot'],
+    name: 'wplac',
+    category: 'ECONOMY',
+    shortDescription: 'wplac coinsy do banku',
+    description: 'Przenosi coins z portfela do banku.',
+    usage: '!wplac kwota',
+    examples: ['!wplac 1000', '!wplac all'],
+    cooldown: '3 sekundy',
+    requirements: 'Musisz miec miejsce w banku.',
+    aliases: ['deposit', 'dep'],
     additionalInfo: [
-      'Lucky Charm poprawia pule symboli.',
-      'Rozne uklady daja rozne mnozniki wyplat.'
+      'VIP zwieksza pojemnosc banku.'
     ]
   },
   {
     id: 7,
-    name: 'coinflip',
-    category: 'GAMBLING',
-    shortDescription: 'rzut moneta',
-    description: 'Obstawiasz orla lub reszke i grasz o szybkie podwojenie stawki.',
-    usage: '!coinflip kwota <orzel/reszka>',
-    examples: ['!coinflip 1000 orzel', '!coinflip all reszka'],
-    cooldown: '4 sekundy',
-    requirements: 'Musisz podac poprawny wybor i miec balance na bet.',
-    aliases: ['cf'],
+    name: 'wyplac',
+    category: 'ECONOMY',
+    shortDescription: 'wyplac coinsy z banku',
+    description: 'Wyjmuje coinsy z banku do portfela.',
+    usage: '!wyplac kwota',
+    examples: ['!wyplac 5000', '!wyplac all'],
+    cooldown: '3 sekundy',
+    requirements: 'Musisz miec coins w banku.',
+    aliases: ['withdraw', 'with'],
     additionalInfo: [
-      'Lucky Charm moze uratowac wybrane przegrane rundy.',
-      'Zwyciestwo wyplaca x2 bet.'
+      'Obsluguje all i max.'
     ]
   },
   {
     id: 8,
-    name: 'roulette',
-    category: 'GAMBLING',
-    shortDescription: 'ruletka',
-    description: 'Ruletka z typowaniem koloru, parzystosci albo konkretnego numeru.',
-    usage: '!roulette kwota <red|black|green|even|odd|0-36>',
-    examples: ['!roulette 1000 red', '!roulette all 17'],
-    cooldown: '5 sekund',
-    requirements: 'Musisz miec balance na bet i wybrac prawidlowy typ.',
-    aliases: ['roul'],
+    name: 'sklep',
+    category: 'ECONOMY',
+    shortDescription: 'sklep kasynowy',
+    description: 'Pozwala kupić przedmioty z oferty.',
+    usage: '!sklep <nr_itemu> [ilosc]',
+    examples: ['!sklep 3 2'],
+    cooldown: '3 sekundy',
+    requirements: 'Wystarczajacy balance.',
+    aliases: ['shop', 'sklp', 'store'],
     additionalInfo: [
-      'Green i trafienie konkretnego numeru maja wyzsze mnozniki.',
-      'Gra respektuje globalny max bet z configu.'
+      'Kupuj po numerze z listy.'
     ]
   },
   {
     id: 9,
-    name: 'leaderboard',
+    name: 'eq',
     category: 'ECONOMY',
-    shortDescription: 'top najbogatszych',
-    description: 'Pokazuje top graczy posortowanych po balance od najbogatszych do najbiedniejszych.',
-    usage: '!leaderboard',
-    examples: ['!leaderboard'],
-    cooldown: '8 sekund',
-    requirements: 'Brak wymagan.',
-    aliases: ['lb', 'top'],
+    shortDescription: 'twoj ekwipunek',
+    description: 'Pokazuje posiadane przedmioty.',
+    usage: '!eq [@osoba | id]',
+    examples: ['!eq', '!eq @Rafal'],
+    cooldown: '3 sekundy',
+    requirements: 'Brak.',
+    aliases: ['inv', 'ekwipunek', 'inventory'],
     additionalInfo: [
-      'Sortowanie odbywa sie po samym balance.',
-      'Nazwy graczy pochodza z zapamietanych profili Messenger lub z UID.'
+      'Wyświetla kupione przedmioty.'
     ]
   },
   {
     id: 10,
-    name: 'deposit',
+    name: 'use',
     category: 'ECONOMY',
-    shortDescription: 'wplac coinsy do banku',
-    description: 'Przenosi coins z portfela do banku i pilnuje limitu pojemnosci.',
-    usage: '!deposit kwota',
-    examples: ['!deposit 1000', '!deposit all'],
-    cooldown: '3 sekundy',
-    requirements: 'Musisz miec coins w portfelu i wolne miejsce w banku.',
-    aliases: ['dep'],
+    shortDescription: 'uzyj itemu z ekwipunku',
+    description: 'Sprawdz dzialanie itemu. Klodka i Piwo dzialaja automatycznie.',
+    usage: '!use <nr_itemu>',
+    examples: ['!use 1', '!use 3'],
+    cooldown: '2 sekundy',
+    requirements: 'Musisz posiadac dany item.',
+    aliases: ['uzyj'],
     additionalInfo: [
-      'VIP i Golden Card zwiekszaja pojemnosc banku.',
-      'Komenda obsluguje all i max.'
+      'Pokazuje informacje o przedmiocie.'
     ]
   },
   {
     id: 11,
-    name: 'withdraw',
+    name: 'tip',
     category: 'ECONOMY',
-    shortDescription: 'wyplac coinsy z banku',
-    description: 'Przenosi wybrana kwote z banku do portfela.',
-    usage: '!withdraw kwota',
-    examples: ['!withdraw 5000', '!withdraw all'],
+    shortDescription: 'przelej coinsy innemu graczowi',
+    description: 'Przelewa coinsy innemu graczowi.',
+    usage: '!tip <kwota> @osoba | !tip <kwota> <id>',
+    examples: ['!tip 1000 @Rafal', '!tip all 123456'],
     cooldown: '3 sekundy',
-    requirements: 'Musisz miec wystarczajaca ilosc coins w banku.',
-    aliases: ['with'],
+    requirements: 'Musisz miec odpowiedni balance.',
+    aliases: ['przelej', 'daj'],
     additionalInfo: [
-      'Obsluguje all i max.',
-      'Daje niewielki bonus XP za korzystanie z banku.'
+      'Obsługuje all.'
     ]
   },
+
+  // === GAMBLING ===
   {
     id: 12,
-    name: 'shop',
-    category: 'ECONOMY',
-    shortDescription: 'sklep kasynowy',
-    description: 'Pokazuje liste przedmiotow albo pozwala kupic itemy za coins.',
-    usage: '!shop [buy itemId ilosc]',
-    examples: ['!shop', '!shop buy vip', '!shop buy luckycharm 3'],
-    cooldown: '3 sekundy',
-    requirements: 'Przy zakupie musisz miec wystarczajacy balance.',
-    aliases: ['store'],
-    additionalInfo: [
-      'Sklep rozroznia itemy permanent i stackable.',
-      'Zakup aktualizuje inventory.json.'
-    ]
+    name: 'slots',
+    category: 'GAMBLING',
+    shortDescription: 'automaty kasynowe',
+    description: 'Zagraj na jednorękim bandycie.',
+    usage: '!slots <kwota>',
+    examples: ['!slots 1000', '!slots all'],
+    cooldown: '4 sekundy',
+    requirements: 'Balance na bet.',
+    aliases: ['slot'],
+    additionalInfo: []
   },
   {
     id: 13,
-    name: 'inventory',
-    category: 'ECONOMY',
-    shortDescription: 'twoj ekwipunek',
-    description: 'Pokazuje wszystkie posiadane itemy, badges i aktualna pojemnosc banku.',
-    usage: '!inventory [uid]',
-    examples: ['!inventory', '!inventory 1234567890123456'],
-    cooldown: '3 sekundy',
-    requirements: 'Brak wymagan.',
-    aliases: ['inv'],
-    additionalInfo: [
-      'Mozesz podejrzec inventory innego gracza po UID.',
-      'Komenda pokazuje tez aktywne badges.'
-    ]
+    name: 'coinflip',
+    category: 'GAMBLING',
+    shortDescription: 'rzut moneta',
+    description: 'Obstaw orła lub reszkę i podwój stawkowanie.',
+    usage: '!coinflip <kwota> <orzel/reszka>',
+    examples: ['!coinflip 1000 orzel'],
+    cooldown: '4 sekundy',
+    requirements: 'Balance na bet.',
+    aliases: ['cf'],
+    additionalInfo: []
   },
   {
     id: 14,
+    name: 'ruletka',
+    category: 'GAMBLING',
+    shortDescription: 'ruletka',
+    description: 'Obstaw kolor lub numer w ruletce.',
+    usage: '!ruletka <kwota> <czerwony/czarny/zielony/parzyste/nieparzyste/0-36>',
+    examples: ['!ruletka 1000 czerwony'],
+    cooldown: '5 sekund',
+    requirements: 'Balance na bet.',
+    aliases: ['roulette', 'roul'],
+    additionalInfo: [
+      'Różne mnożniki zysków.'
+    ]
+  },
+
+  {
+    id: 15,
+    name: 'bet',
+    category: 'GAMBLING',
+    shortDescription: 'zaklad liczbowy',
+    description: 'Postaw zakład na to, że wylosowana liczba 0-99 będzie mniejsza niż Twój typ.',
+    usage: '!bet <kwota> <liczba 1-90>',
+    examples: ['!bet 1000 50'],
+    cooldown: '3 sekundy',
+    requirements: 'Balance na bet.',
+    aliases: [],
+    additionalInfo: [
+      'Im mniejsza liczba, tym większy mnożnik.'
+    ]
+  },
+
+  // === SOCIAL ===
+  {
+    id: 16,
+    name: 'rob',
+    category: 'SOCIAL',
+    shortDescription: 'okradnij gracza',
+    description: 'Spróbuj okraść innego gracza.',
+    usage: '!rob @osoba | !rob <id>',
+    examples: ['!rob @Rafal'],
+    cooldown: '30 minut',
+    requirements: 'Cel musi mieć min. 1 000 Coins.',
+    aliases: ['okradnij'],
+    additionalInfo: [
+      'Kłódka broni, Piwo modyfikuje szanse.'
+    ]
+  },
+  {
+    id: 17,
     name: 'marry',
     category: 'SOCIAL',
     shortDescription: 'slub z graczem',
-    description: 'System oswiadczyn i slubu z akceptacja lub odrzuceniem po stronie drugiego gracza.',
-    usage: '!marry <uid> | !marry accept <uid> | !marry decline <uid>',
-    examples: ['!marry 1234567890123456', '!marry accept 1234567890123456'],
+    description: 'Oświadcz się innemu graczowi.',
+    usage: '!marry <id> | !marry accept <id> | !marry decline <id>',
+    examples: ['!marry 123456'],
     cooldown: '12 sekund',
-    requirements: 'Obie osoby musza byc wolne. Nie mozna poslubic samego siebie.',
+    requirements: 'Obie osoby muszą być wolne.',
     aliases: ['slub'],
     additionalInfo: [
-      'Prosba wygasa po 2 minutach.',
-      'Drugi gracz akceptuje wpisujac komende z UID proponujacego.'
+      'Oświadczyny trwają 2 minuty.'
     ]
   },
   {
-    id: 15,
+    id: 18,
     name: 'pfp',
     category: 'SOCIAL',
     shortDescription: 'profil kasynowy',
-    description: 'Pokazuje rozbudowany profil gracza ze statystykami i badges.',
-    usage: '!pfp [uid]',
-    examples: ['!pfp', '!pfp 1234567890123456'],
+    description: 'Pokazuje profil gracza z danymi.',
+    usage: '!pfp [@osoba | id]',
+    examples: ['!pfp @Rafal'],
     cooldown: '4 sekundy',
-    requirements: 'Brak wymagan.',
-    aliases: ['profile'],
+    requirements: 'Brak.',
+    aliases: ['profile', 'profil', 'awatar'],
     additionalInfo: [
-      'Mozesz podejrzec profil innego gracza po UID.',
-      'Odpowiedz pokazuje balance, bank, level, xp, games played, total won, total lost i badges.'
+      'Pokazuje stan konta i odznaki.'
     ]
   },
   {
-    id: 16,
-    name: 'admadd',
-    category: 'ADMIN',
-    shortDescription: 'dodaj coinsy adminem',
-    description: 'Admin command do dodawania coins wskazanemu graczowi wraz z logowaniem akcji.',
-    usage: '!admadd <uid> kwota',
-    examples: ['!admadd 1234567890123456 50000'],
-    cooldown: '2 sekundy',
-    requirements: 'Tylko ID z config.admins moze uzyc tej komendy.',
-    aliases: ['addmoney'],
+    id: 19,
+    name: 'rozwod',
+    category: 'SOCIAL',
+    shortDescription: 'rozwod z graczem',
+    description: 'Bierze rozwód z obecnym małżonkiem.',
+    usage: '!rozwod',
+    examples: ['!rozwod'],
+    cooldown: '3 sekundy',
+    requirements: 'Musisz być w związku.',
+    aliases: ['divorce'],
     additionalInfo: [
-      'Zmiana salda trafia do users.json i logs.json.',
-      'Jesli ustawisz logRecipientId, bot wysle tam tekstowy log.'
+      'Czyści stan małżeństwa.'
+    ]
+  },
+  {
+    id: 20,
+    name: 'duel',
+    category: 'SOCIAL',
+    shortDescription: 'pojedynek o monety',
+    description: 'Wyzywa innego gracza na pojedynek o stawkę.',
+    usage: '!duel <kwota> @osoba',
+    examples: ['!duel 1000 @Kowalski'],
+    cooldown: '3 sekundy',
+    requirements: 'Obaj gracze muszą posiadać stawkę.',
+    aliases: ['pojedynek'],
+    additionalInfo: [
+      'Akceptacja: !duel acc, Odrzucenie: !duel dec.'
     ]
   }
 ];
@@ -300,50 +348,45 @@ function paginateCommands(page) {
 
 function buildHelpShell() {
   return new EmbedBuilder()
-    .setColor(config.embed.primary)
-    .setFooter({ text: `${config.casinoName} | Messenger Help` })
-    .setTimestamp();
+    .setColor(config.embed.primary);
 }
 
-function buildHelpListEmbed(client, page = 1) {
-  const { items, totalPages, page: safePage } = paginateCommands(page);
-  const descriptionLines = items.map(command => (
-    `${command.id}. ${config.prefix}${command.name} - ${command.shortDescription}`
-  ));
-
-  const categoryLine = Object.values(CATEGORY_META)
-    .map(category => category.label)
-    .join(' | ');
-
-  return buildHelpShell()
-    .setTitle('Centrum Pomocy')
+function buildHelpListEmbed(client) {
+  const embed = buildHelpShell()
     .setDescription(
-      'Lista wszystkich dostepnych komend.\n'
-      + `Uzyj ${config.prefix}help numer albo ${config.prefix}help nazwa, aby zobaczyc szczegoly.\n`
-      + `Uzyj ${config.prefix}help page <numer>, aby zmienic strone.\n\n`
-      + descriptionLines.join('\n')
-    )
-    .addFields(
-      { name: 'Kategorie', value: categoryLine, inline: false },
-      { name: 'Paginacja', value: `Strona ${safePage}/${totalPages}`, inline: true },
-      { name: 'Liczba komend', value: String(helpCommands.length), inline: true }
+      'Wszystkie dostepne komendy bota. Uzyj `!help <nazwa_komendy>`, aby poznac szczegoly.'
     );
+
+  const categories = {
+    ECONOMY: '💰 EKONOMIA',
+    GAMBLING: '🎰 HAZARD',
+    SOCIAL: '👥 SOCJALNE'
+  };
+
+  let counter = 1;
+  for (const [catKey, catLabel] of Object.entries(categories)) {
+    const cmds = helpCommands.filter(c => c.category === catKey);
+    if (cmds.length > 0) {
+      const fieldContent = cmds.map(c => `• ${counter++}. !${c.name} - ${c.shortDescription}`).join('\n');
+      embed.addFields({
+        name: catLabel,
+        value: fieldContent,
+        inline: false
+      });
+    }
+  }
+
+  return embed;
 }
 
 function buildHelpDetailEmbed(client, command) {
-  const category = CATEGORY_META[command.category] || { label: command.category };
-
   return buildHelpShell()
     .setTitle(`Komenda: ${config.prefix}${command.name}`)
     .setDescription(command.description)
     .addFields(
-      { name: 'Kategoria', value: category.label, inline: true },
       { name: 'Cooldown', value: command.cooldown, inline: true },
-      { name: 'Wymagania', value: command.requirements, inline: false },
       { name: 'Skladnia', value: command.usage, inline: false },
-      { name: 'Przyklady', value: command.examples.join('\n'), inline: false },
-      { name: 'Aliasy', value: command.aliases.length ? command.aliases.join(', ') : 'Brak aliasow', inline: false },
-      { name: 'Dodatkowe informacje', value: command.additionalInfo.join('\n'), inline: false }
+      { name: 'Przyklady', value: command.examples.join('\n'), inline: false }
     );
 }
 

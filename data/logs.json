@@ -1,5 +1,15 @@
 [
   {
+    "id": "1779293837430-pile8i",
+    "timestamp": "2026-05-20T16:17:17.430Z",
+    "type": "admadd",
+    "adminId": "100060812419294",
+    "targetId": "100060812419294",
+    "amount": 10000,
+    "pageId": "page:page_id",
+    "balanceAfter": 15000
+  },
+  {
     "id": "1779036637507-7uplfm",
     "timestamp": "2026-05-17T16:50:37.507Z",
     "type": "admadd",

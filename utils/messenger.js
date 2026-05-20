@@ -103,7 +103,7 @@ class EmbedBuilder {
       lines.push(stripFormatting(this.data.footer.text));
     }
 
-    return lines.filter(Boolean).join('\n\n').trim();
+    return lines.filter(Boolean).join('\n').trim();
   }
 }
 

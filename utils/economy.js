@@ -118,11 +118,6 @@ function getBankCapacity(user, inventoryRecord) {
     capacity += config.economy.bankVipBonus;
   }
 
-  if (hasItem(inventoryRecord, 'goldencard')) {
-    capacity += config.economy.goldenCardBonus;
-  }
-
-  capacity += Math.max(0, user.prestige) * config.economy.bankPrestigeBonus;
   return capacity;
 }
 
@@ -133,8 +128,6 @@ function refreshBadges(user, inventoryRecord) {
     : [];
 
   if (hasItem(inventoryRecord, 'vip')) staticBadges.push(config.badges.vip);
-  if (hasItem(inventoryRecord, 'premiumbadge')) staticBadges.push(config.badges.premium);
-  if (hasItem(inventoryRecord, 'luckycharm')) staticBadges.push(config.badges.lucky);
   if (user.balance + user.bank >= 150000) staticBadges.push(config.badges.rich);
   if (user.gamesPlayed >= 100) staticBadges.push(config.badges.grinder);
   if (user.totalWon >= 50000) staticBadges.push(config.badges.gambler);

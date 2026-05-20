@@ -1,35 +1,36 @@
-const { infoEmbed } = require('../utils/embeds');
-const { formatCurrency, formatNumber, refreshBadges, ensureInventoryRecord } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 module.exports = {
   name: 'bal',
-  aliases: ['balance'],
-  async execute(client, message) {
-    const target = message.mentions.users.first() || message.author;
+  aliases: ['balance', 'kasa', 'saldo'],
+  async execute(client, message, args) {
+    let targetId = message.author.id;
+    let targetName = message.author.username || `Uzytkownik_${targetId.slice(-6)}`;
+
+    const mentioned = message.mentions.users.first();
+    if (mentioned) {
+      targetId = mentioned.id;
+      targetName = mentioned.username || `Uzytkownik_${targetId.slice(-6)}`;
+    } else if (args[0] && /^\d+$/.test(args[0])) {
+      targetId = args[0];
+      targetName = `Uzytkownik_${targetId.slice(-6)}`;
+      // Sprawdź czy mamy w cache
+      if (client.userNames.has(targetId)) {
+        targetName = client.userNames.get(targetId);
+      }
+    }
 
     const snapshot = await withData(store => {
-      const user = createUser(target.id, store.users);
-      refreshBadges(user, ensureInventoryRecord(store.inventory, target.id));
-
-      return {
-        balance: user.balance,
-        bank: user.bank,
-        level: user.level,
-        prestige: user.prestige
-      };
+      const user = createUser(targetId, store.users);
+      refreshBadges(user, ensureInventoryRecord(store.inventory, targetId));
+      return { balance: user.balance, bank: user.bank };
     });
 
-    const embed = infoEmbed('Stan konta', target.id === message.author.id ? 'Twoje aktualne saldo.' : `Saldo uzytkownika ${target}.`)
-      .setThumbnail(target.displayAvatarURL({ size: 256 }))
-      .addFields(
-        { name: 'Portfel', value: formatCurrency(snapshot.balance), inline: true },
-        { name: 'Bank', value: formatCurrency(snapshot.bank), inline: true },
-        { name: 'Net worth', value: formatCurrency(snapshot.balance + snapshot.bank), inline: true },
-        { name: 'Level', value: formatNumber(snapshot.level), inline: true },
-        { name: 'Prestige', value: formatNumber(snapshot.prestige), inline: true }
-      );
-
-    await message.reply({ embeds: [embed] });
+    await message.reply(
+      `💰 Saldo — **${targetName}**\n` +
+      `👛 Portfel: ${formatCurrency(snapshot.balance)}\n` +
+      `🏦 Bank: ${formatCurrency(snapshot.bank)}`
+    );
   }
 };

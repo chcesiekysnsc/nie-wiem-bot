@@ -8,19 +8,19 @@ function baseEmbed() {
 
 function infoEmbed(title, description) {
   return baseEmbed()
-    .setTitle(`INFO | ${title}`)
+    .setTitle(title)
     .setDescription(description);
 }
 
 function successEmbed(title, description) {
   return baseEmbed()
-    .setTitle(`OK | ${title}`)
+    .setTitle(title)
     .setDescription(description);
 }
 
 function errorEmbed(title, description) {
   return baseEmbed()
-    .setTitle(`ERROR | ${title}`)
+    .setTitle(title)
     .setDescription(description);
 }
 

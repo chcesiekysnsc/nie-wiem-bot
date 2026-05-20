@@ -1,11 +1,11 @@
-const { errorEmbed, infoEmbed, successEmbed } = require('../utils/embeds');
 const { ensureInventoryRecord, refreshBadges } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
-const { extractUserId } = require('../utils/messenger');
 
 function getPartnerLabel(client, userId) {
-  const partner = typeof client.getUser === 'function' ? client.getUser(userId) : null;
-  return partner ? partner.tag : userId;
+  if (client.userNames.has(userId)) {
+    return client.userNames.get(userId);
+  }
+  return `Użytkownik_${userId.slice(-6)}`;
 }
 
 module.exports = {
@@ -21,21 +21,19 @@ module.exports = {
         return { marriedTo: user.marriedTo };
       });
 
-      const description = status.marriedTo
-        ? `Jestes w zwiazku z ${getPartnerLabel(client, status.marriedTo)}.`
-        : 'Nie jestes jeszcze z nikim w zwiazku. Uzyj `!marry <uid>`.';
-
-      await message.reply({ embeds: [infoEmbed('Status zwiazku', description)] });
+      if (status.marriedTo) {
+        await message.reply(`💍 Status związku: Jesteś w związku z **${getPartnerLabel(client, status.marriedTo)}**.`);
+      } else {
+        await message.reply('💍 Status związku: Nie jesteś w żadnym związku. Użyj `!marry @osoba` lub `!marry <id>`.');
+      }
       return;
     }
 
     if (action === 'accept' || action === 'decline') {
-      const proposerId = extractUserId(args[1]);
+      let proposerId = args[1];
 
-      if (!proposerId || proposerId === 'me') {
-        await message.reply({
-          embeds: [errorEmbed('Slub', 'Uzyj: `!marry accept <uid>` albo `!marry decline <uid>`.')]
-        });
+      if (!proposerId) {
+        await message.reply('❌ Użyj: `!marry accept <id>` lub `!marry decline <id>`.');
         return;
       }
 
@@ -43,34 +41,27 @@ module.exports = {
       const request = client.marriageRequests.get(requestId);
 
       if (!request) {
-        await message.reply({
-          embeds: [errorEmbed('Slub', 'Nie znaleziono aktywnej propozycji od tego UID albo prosba wygasla.')]
-        });
+        await message.reply('❌ Brak aktywnej propozycji od tego użytkownika lub propozycja wygasła.');
         return;
       }
 
       client.marriageRequests.delete(requestId);
 
       if (action === 'decline') {
-        await message.reply({
-          embeds: [errorEmbed('Slub odrzucony', `Odrzuciles propozycje od ${getPartnerLabel(client, proposerId)}.`)]
-        });
-
-        await client.sendText(proposerId, {
-          embeds: [errorEmbed('Slub odrzucony', `${message.author.tag} odrzucil twoja propozycje.`)]
-        }).catch(() => null);
+        await message.reply(`💍 Odrzuciłeś propozycję ślubu od **${getPartnerLabel(client, proposerId)}**.`);
         return;
       }
 
       const result = await withData(store => {
+        if (store.profiles.blacklist && (store.profiles.blacklist.includes(proposerId) || store.profiles.blacklist.includes(message.author.id))) {
+          return { error: '❌ Jeden z użytkowników jest zablokowany i nie można wejść z nim w interakcję.' };
+        }
+
         const proposer = createUser(proposerId, store.users);
         const partner = createUser(message.author.id, store.users);
 
         if (proposer.marriedTo || partner.marriedTo) {
-          return {
-            ok: false,
-            message: 'Jedna z osob jest juz w zwiazku.'
-          };
+          return { error: '❌ Jedno z Was jest już w związku małżeńskim.' };
         }
 
         proposer.marriedTo = message.author.id;
@@ -78,99 +69,80 @@ module.exports = {
         refreshBadges(proposer, ensureInventoryRecord(store.inventory, proposerId));
         refreshBadges(partner, ensureInventoryRecord(store.inventory, message.author.id));
 
-        return { ok: true };
+        return { success: true };
       });
 
-      if (!result.ok) {
-        await message.reply({
-          embeds: [errorEmbed('Slub', result.message)]
-        });
+      if (result.error) {
+        await message.reply(result.error);
         return;
       }
 
-      await message.reply({
-        embeds: [successEmbed('Slub zawarty', `Zaakceptowales propozycje od ${getPartnerLabel(client, proposerId)}.`)]
-      });
-
-      await client.sendText(proposerId, {
-        embeds: [successEmbed('Slub zawarty', `${message.author.tag} zaakceptowal twoja propozycje.`)]
-      }).catch(() => null);
+      await message.reply(`🎉 Ślub zawarty! Jesteście teraz małżeństwem z **${getPartnerLabel(client, proposerId)}**!`);
       return;
     }
 
-    const target = message.mentions.users.first();
+    // Proponowanie ślubu: @mention lub raw ID
+    let targetId = null;
+    let targetName = 'Cel';
 
-    if (!target) {
-      await message.reply({
-        embeds: [errorEmbed('Slub', 'Uzyj: `!marry <uid>` albo `!marry accept <uid>`.')]
-      });
+    const mentioned = message.mentions.users.first();
+    if (mentioned) {
+      targetId = mentioned.id;
+      targetName = mentioned.username || `Uzytkownik_${targetId.slice(-6)}`;
+    } else if (args[0] && /^\d+$/.test(args[0])) {
+      targetId = args[0];
+      targetName = `Uzytkownik_${targetId.slice(-6)}`;
+      if (client.userNames.has(targetId)) {
+        targetName = client.userNames.get(targetId);
+      }
+    }
+
+    if (!targetId) {
+      await message.reply('❌ Użyj: `!marry @osoba` lub `!marry <id>`.');
       return;
     }
 
-    if (target.id === message.author.id) {
-      await message.reply({
-        embeds: [errorEmbed('Slub', 'Nie mozesz poslubic samego siebie.')]
-      });
+    if (targetId === message.author.id) {
+      await message.reply('❌ Nie możesz poślubić samego siebie.');
       return;
     }
 
     const validation = await withData(store => {
+      if (store.profiles.blacklist && store.profiles.blacklist.includes(targetId)) {
+        return { error: '❌ Ten użytkownik jest zablokowany i nie możesz wchodzić z nim w interakcje.' };
+      }
+
       const proposer = createUser(message.author.id, store.users);
-      const partner = createUser(target.id, store.users);
+      const partner = createUser(targetId, store.users);
       refreshBadges(proposer, ensureInventoryRecord(store.inventory, message.author.id));
-      refreshBadges(partner, ensureInventoryRecord(store.inventory, target.id));
+      refreshBadges(partner, ensureInventoryRecord(store.inventory, targetId));
 
       if (proposer.marriedTo) {
-        return {
-          error: `Juz jestes w zwiazku z ${getPartnerLabel(client, proposer.marriedTo)}.`
-        };
+        return { error: `❌ Jesteś już w związku z **${getPartnerLabel(client, proposer.marriedTo)}**.` };
       }
 
       if (partner.marriedTo) {
-        return {
-          error: `${target.tag} jest juz w zwiazku.`
-        };
+        return { error: `❌ **${targetName}** jest już w związku małżeńskim.` };
       }
 
-      return { ok: true };
+      return { success: true };
     });
 
     if (validation.error) {
-      await message.reply({ embeds: [errorEmbed('Slub', validation.error)] });
+      await message.reply(validation.error);
       return;
     }
 
-    const requestId = `${message.author.id}-${target.id}`;
+    const requestId = `${message.author.id}-${targetId}`;
     client.marriageRequests.set(requestId, {
       proposerId: message.author.id,
-      targetId: target.id
+      targetId: targetId
     });
 
     setTimeout(() => {
       client.marriageRequests.delete(requestId);
     }, 120000).unref();
 
-    const embed = infoEmbed('Propozycja slubu', `Wyslales propozycje do ${target.tag}.`)
-      .addFields(
-        {
-          name: 'Akcja dla drugiej osoby',
-          value: `Drugi gracz musi wpisac: \`${client.config.prefix}marry accept ${message.author.id}\` w ciagu 2 minut.`,
-          inline: false
-        }
-      );
-
-    await message.reply({
-      embeds: [embed]
-    });
-
-    await client.sendText(target.id, {
-      embeds: [
-        infoEmbed('Nowa propozycja slubu', `${message.author.tag} chce cie poslubic.`)
-          .addFields(
-            { name: 'Akceptacja', value: `Wpisz \`!marry accept ${message.author.id}\``, inline: false },
-            { name: 'Odrzucenie', value: `Wpisz \`!marry decline ${message.author.id}\``, inline: false }
-          )
-      ]
-    }).catch(() => null);
+    await message.reply(`💍 Wysłano propozycję ślubu do **${targetName}**. Druga osoba musi wpisać \`!marry accept ${message.author.id}\` w ciągu 2 minut.`);
   }
 };

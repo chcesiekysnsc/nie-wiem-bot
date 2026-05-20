@@ -1,17 +1,16 @@
 const config = require('../config/config');
 const { errorEmbed, successEmbed } = require('../utils/embeds');
 const {
-  addXp,
   ensureInventoryRecord,
   formatCurrency,
   hasItem,
   msToReadable,
-  randomInt,
   refreshBadges
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 const DAILY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const STREAK_GRACE_MS = 48 * 60 * 60 * 1000;
 
 module.exports = {
   name: 'daily',
@@ -24,38 +23,40 @@ module.exports = {
 
       if (user.dailyCooldown > now) {
         return {
-          error: `Wroc za **${msToReadable(user.dailyCooldown - now)}** po kolejna nagrode.`
+          error: `Zaczekaj jeszcze **${msToReadable(user.dailyCooldown - now)}**.`
         };
       }
 
-      let reward = randomInt(config.economy.dailyMin, config.economy.dailyMax);
+      const lastClaim = user.lastDailyClaim || 0;
+      if (now - lastClaim <= STREAK_GRACE_MS) {
+        user.dailyStreak = (user.dailyStreak || 0) + 1;
+      } else {
+        user.dailyStreak = 1;
+      }
+
+      const streakBonus = (user.dailyStreak - 1) * 1000;
+      let reward = 20000 + streakBonus;
+
       if (hasItem(inventory, 'vip')) {
         reward = Math.floor(reward * config.economy.dailyVipBonus);
       }
 
       user.balance += reward;
       user.dailyCooldown = now + DAILY_COOLDOWN_MS;
-      const leveledUp = addXp(user, randomInt(20, 40));
+      user.lastDailyClaim = now;
       refreshBadges(user, inventory);
 
       return {
         reward,
-        leveledUp
+        streak: user.dailyStreak
       };
     });
 
     if (result.error) {
-      await message.reply({ embeds: [errorEmbed('Daily', result.error)] });
+      await message.reply(result.error);
       return;
     }
 
-    const embed = successEmbed('Daily odebrane', `Zgarnales ${formatCurrency(result.reward)} z codziennej nagrody.`)
-      .addFields({ name: 'Nastepny claim', value: 'Za 24h', inline: true });
-
-    if (result.leveledUp) {
-      embed.addFields({ name: 'Level up', value: 'Daily wbilo ci kolejny level.', inline: false });
-    }
-
-    await message.reply({ embeds: [embed] });
+    await message.reply(`📅 Odebrano daily! **+${formatCurrency(result.reward)}** (Dzień: ${result.streak})`);
   }
 };

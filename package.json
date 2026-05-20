@@ -4,7 +4,8 @@
   "description": "Messenger casino bot using Meta webhooks and JSON files only.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "self": "node self_bot.js"
   },
   "keywords": [
     "messenger",
@@ -16,6 +17,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@dongdev/fca-unofficial": "^4.0.3",
     "dotenv": "^16.4.5"
   }
 }

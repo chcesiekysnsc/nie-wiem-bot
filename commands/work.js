@@ -41,12 +41,7 @@ module.exports = {
       };
     });
 
-    const embed = successEmbed('Work zakonczone', `${result.text}\n\nZarobiles ${formatCurrency(result.reward)}.`);
-
-    if (result.leveledUp) {
-      embed.addFields({ name: 'Level up', value: 'Praca wbila ci kolejny level.', inline: false });
-    }
-
+    const embed = successEmbed('👷 Praca — zarobek', `${result.text}\n\n+**${formatCurrency(result.reward)}**`);
     await message.reply({ embeds: [embed] });
   }
 };

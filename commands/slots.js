@@ -1,5 +1,4 @@
 const config = require('../config/config');
-const { errorEmbed, successEmbed } = require('../utils/embeds');
 const {
   ensureInventoryRecord,
   formatCurrency,
@@ -11,13 +10,13 @@ const {
 const { createUser, withData } = require('../utils/storage');
 
 const SYMBOLS = {
-  cherry: '[CHERRY]',
-  lemon: '[LEMON]',
-  watermelon: '[MELON]',
-  star: '[STAR]',
-  gem: '[GEM]',
-  seven: '[7]',
-  lucky: '[LUCK]'
+  cherry: '🍒',
+  lemon: '🍋',
+  watermelon: '🍉',
+  star: '⭐',
+  gem: '💎',
+  seven: '7️⃣',
+  lucky: '🍀'
 };
 
 const BASE_POOL = [
@@ -69,27 +68,22 @@ module.exports = {
       const bet = resolveAmount(args[0], user.balance);
 
       if (!bet) {
-        return { error: 'Uzyj: `!slots <bet>`.' };
+        return { error: '❌ Podaj poprawną kwotę betu.' };
       }
 
       if (bet > user.balance) {
-        return { error: 'Nie masz tylu coinsow w portfelu.' };
+        return { error: '❌ Brak wystarczających środków w portfelu.' };
       }
 
-      if (bet > config.economy.maxBet) {
-        return { error: `Max bet dla tej gry to ${formatCurrency(config.economy.maxBet)}.` };
-      }
-
-      const lucky = hasItem(inventory, 'luckycharm');
       user.balance -= bet;
 
-      const symbols = [pullSymbol(lucky), pullSymbol(lucky), pullSymbol(lucky)];
-      const multiplier = getMultiplier(symbols, lucky);
+      const symbols = [pullSymbol(false), pullSymbol(false), pullSymbol(false)];
+      const multiplier = getMultiplier(symbols, false);
       const payout = Math.floor(bet * multiplier);
       user.balance += payout;
 
       const net = payout - bet;
-      const leveledUp = recordGame(user, net);
+      recordGame(user, net);
       refreshBadges(user, inventory);
 
       return {
@@ -97,29 +91,17 @@ module.exports = {
         bet,
         payout,
         net,
-        leveledUp
+        balance: user.balance
       };
     });
 
     if (result.error) {
-      await message.reply({ embeds: [errorEmbed('Slots', result.error)] });
+      await message.reply(result.error);
       return;
     }
 
     const won = result.net >= 0;
-    const embed = (won ? successEmbed : errorEmbed)(
-      'Slots',
-      `${result.symbols.join(' | ')}`
-    ).addFields(
-      { name: 'Bet', value: formatCurrency(result.bet), inline: true },
-      { name: 'Wyplata', value: formatCurrency(result.payout), inline: true },
-      { name: 'Bilans rundy', value: `${result.net >= 0 ? '+' : '-'}${formatCurrency(Math.abs(result.net))}`, inline: true }
-    );
-
-    if (result.leveledUp) {
-      embed.addFields({ name: 'Level up', value: 'Sloty wbily ci kolejny level.', inline: false });
-    }
-
-    await message.reply({ embeds: [embed] });
+    const winText = won ? `Wygrana! **+${formatCurrency(result.net)}**` : `Przegrana. **-${formatCurrency(Math.abs(result.net))}**`;
+    await message.reply(`🎰 Slots: ${result.symbols.join(' | ')}. ${winText}. Twój balans: **${formatCurrency(result.balance)}**`);
   }
 };

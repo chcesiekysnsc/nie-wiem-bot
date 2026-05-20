@@ -1,116 +1,131 @@
 const config = require('../config/config');
-const { errorEmbed, successEmbed } = require('../utils/embeds');
-const {
-  addXp,
-  ensureInventoryRecord,
-  formatCurrency,
-  hasItem,
-  randomInt,
-  refreshBadges,
-  removeItem
-} = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+
+const robCooldowns = new Map();   // userId -> timestamp wolny od kiedy
+const caughtBan = new Map();      // userId -> timestamp do kiedy zbanowany
 
 module.exports = {
   name: 'rob',
-  aliases: [],
-  async execute(client, message) {
-    const target = message.mentions.users.first();
+  aliases: ['okradnij'],
+  async execute(client, message, args) {
+    const authorId = message.author.id;
+    const now = Date.now();
 
-    if (!target) {
-      await message.reply({
-        embeds: [errorEmbed('Rob', 'Uzyj: `!rob <uid>`')]
-      });
+    // Sprawdź ban po wpadce
+    const banUntil = caughtBan.get(authorId) || 0;
+    if (now < banUntil) {
+      const left = Math.ceil((banUntil - now) / 60000);
+      await message.reply(`🚔 Policja Cię obserwuje! Możesz spróbować ponownie za **${left} min**.`);
       return;
     }
 
-    if (target.bot) {
-      await message.reply({
-        embeds: [errorEmbed('Rob', 'Botow nie mozna okradac.')]
-      });
+    // Sprawdź cooldown 30min
+    const coolUntil = robCooldowns.get(authorId) || 0;
+    if (now < coolUntil) {
+      const left = Math.ceil((coolUntil - now) / 60000);
+      await message.reply(`⏱️ Musisz poczekać jeszcze **${left} min**.`);
       return;
     }
 
-    if (target.id === message.author.id) {
-      await message.reply({
-        embeds: [errorEmbed('Rob', 'Nie mozesz okrasc samego siebie.')]
-      });
+    let targetId = null;
+    let targetName = 'Cel';
+
+    const mentioned = message.mentions.users.first();
+    if (mentioned) {
+      targetId = mentioned.id;
+      targetName = mentioned.username || `Uzytkownik_${targetId.slice(-6)}`;
+    } else if (args[0] && /^\d+$/.test(args[0])) {
+      targetId = args[0];
+      targetName = `Uzytkownik_${targetId.slice(-6)}`;
+      if (client.userNames.has(targetId)) {
+        targetName = client.userNames.get(targetId);
+      }
+    }
+
+    if (!targetId) {
+      await message.reply('❌ Użyj: `!rob @osoba` lub `!rob <id>`');
+      return;
+    }
+
+    if (targetId === authorId) {
+      await message.reply('❌ Nie możesz okraść samego siebie.');
       return;
     }
 
     const result = await withData(store => {
-      const robber = createUser(message.author.id, store.users);
-      const victim = createUser(target.id, store.users);
-      const robberInventory = ensureInventoryRecord(store.inventory, message.author.id);
-      const victimInventory = ensureInventoryRecord(store.inventory, target.id);
-
-      if (victim.balance < config.economy.robMinTarget) {
-        return {
-          error: `Cel musi miec minimum ${formatCurrency(config.economy.robMinTarget)} w portfelu.`
-        };
+      if (store.profiles.blacklist && store.profiles.blacklist.includes(targetId)) {
+        return { error: '❌ Ten użytkownik jest zablokowany i nie możesz wchodzić z nim w interakcje.' };
       }
 
-      robber.gamesPlayed += 1;
+      const robber = createUser(authorId, store.users);
+      const victim = createUser(targetId, store.users);
+      const victimInv = ensureInventoryRecord(store.inventory, targetId);
+      const robberInv = ensureInventoryRecord(store.inventory, authorId);
 
-      if (hasItem(victimInventory, 'robshield')) {
-        removeItem(victimInventory, 'robshield', 1);
-        addXp(robber, 10);
-        refreshBadges(robber, robberInventory);
-        refreshBadges(victim, victimInventory);
-
-        return {
-          shield: true
-        };
+      if (victim.balance < 1000) {
+        return { error: `❌ ${targetName} ma za mało kasy (min. ${formatCurrency(1000)} w portfelu).` };
       }
 
-      if (Math.random() < config.economy.robSuccessChance) {
-        const percent = Math.random() * (config.economy.robMaxPercent - config.economy.robMinPercent) + config.economy.robMinPercent;
+      // Kłódka zablokowana (musi być ręcznie aktywowana przez ofiarę - user.klodkaActive)
+      if (victim.klodkaActive) {
+        victim.klodkaActive = false; // zużyj aktywowaną kłódkę
+        refreshBadges(victim, victimInv);
+        return { blocked: true };
+      }
+
+      // Piwo (musi być ręcznie aktywowane przez złodzieja - user.piwoActive)
+      const hasBeer = robber.piwoActive || false;
+      if (hasBeer) {
+        robber.piwoActive = false; // zużyj aktywne piwo
+      }
+
+      // Szanse: 60% sukces, 40% wpadka
+      const success = Math.random() < 0.60;
+
+      if (success) {
+        const percent = hasBeer ? 0.25 : 0.20;
         const stolen = Math.max(1, Math.floor(victim.balance * percent));
-
         victim.balance -= stolen;
         robber.balance += stolen;
-        robber.totalWon += stolen;
-        victim.totalLost += stolen;
-        addXp(robber, 28);
-        refreshBadges(robber, robberInventory);
-        refreshBadges(victim, victimInventory);
-
-        return {
-          success: true,
-          amount: stolen
-        };
+        robber.gamesPlayed += 1;
+        refreshBadges(robber, robberInv);
+        refreshBadges(victim, victimInv);
+        return { success: true, stolen, beer: hasBeer };
+      } else {
+        const losePercent = hasBeer ? 0.40 : 0.30;
+        const fine = Math.max(1, Math.floor(robber.balance * losePercent));
+        robber.balance -= fine;
+        victim.balance += fine;
+        robber.gamesPlayed += 1;
+        refreshBadges(robber, robberInv);
+        refreshBadges(victim, victimInv);
+        return { success: false, fine, beer: hasBeer };
       }
-
-      const fine = Math.min(robber.balance, randomInt(250, 1200));
-      robber.balance -= fine;
-      victim.balance += fine;
-      robber.totalLost += fine;
-      addXp(robber, 12);
-      refreshBadges(robber, robberInventory);
-      refreshBadges(victim, victimInventory);
-
-      return {
-        success: false,
-        amount: fine
-      };
     });
 
     if (result.error) {
-      await message.reply({ embeds: [errorEmbed('Rob', result.error)] });
+      await message.reply(result.error);
       return;
     }
 
-    if (result.shield) {
-      await message.reply({
-        embeds: [errorEmbed('Rob', `${target} mial aktywny **Rob Shield**. Proba kradziezy zostala zablokowana.`)]
-      });
+    if (result.blocked) {
+      await message.reply(`🔒 Kradzież zablokowana! **${targetName}** miał aktywną kłódkę.`);
       return;
     }
 
-    const embed = result.success
-      ? successEmbed('Rob udany', `Udalo ci sie ukrasc ${formatCurrency(result.amount)} od ${target}.`)
-      : errorEmbed('Rob nieudany', `${target} zlapal cie na goracym uczynku. Straciles ${formatCurrency(result.amount)}.`);
+    // Ustaw cooldowny
+    robCooldowns.set(authorId, now + 30 * 60 * 1000); // 30min
+    if (!result.success) {
+      caughtBan.set(authorId, now + 60 * 60 * 1000);    // 1h ban
+    }
 
-    await message.reply({ embeds: [embed] });
+    if (result.success) {
+      const beerNote = result.beer ? ' (Wypite Piwo +25%!)' : '';
+      await message.reply(`💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**.${beerNote}`);
+    } else {
+      const beerNote = result.beer ? ' (Wypite Piwo -40%!)' : '';
+      await message.reply(`🚔 Wpadka! Policja Cię złapała. Tracisz **${formatCurrency(result.fine)}** na rzecz **${targetName}**. Ban na okradanie: 1h.${beerNote}`);
+    }
   }
 };

@@ -26,7 +26,7 @@ async function checkSpam(userId) {
       return {
         blocked: true,
         remaining: entry.blockedUntil - now,
-        embed: errorEmbed('Anti-spam', `Zwolnij tempo. Mozesz uzyc komend znow za **${msToReadable(entry.blockedUntil - now)}**.`)
+        embed: errorEmbed('⏱️ Zbyt szybko!', `Zaczekaj jeszcze **${msToReadable(entry.blockedUntil - now)}**.`)
       };
     }
 
@@ -41,7 +41,7 @@ async function checkSpam(userId) {
       return {
         blocked: true,
         remaining: rules.muteSeconds * 1000,
-        embed: errorEmbed('Anti-spam', `Wykryto spam komend. Blokada potrwa **${rules.muteSeconds}s**.`)
+        embed: errorEmbed('⏱️ Zbyt szybko!', `Zaczekaj **${rules.muteSeconds}s**.`)
       };
     }
 
@@ -65,7 +65,7 @@ async function checkCooldown(commandName, userId) {
       return {
         active: true,
         remaining: expiresAt - now,
-        embed: errorEmbed('Cooldown aktywny', `Odczekaj jeszcze **${msToReadable(expiresAt - now)}** przed ponownym uzyciem tej komendy.`)
+        embed: errorEmbed('⏱️ Cooldown', `Zaczekaj jeszcze **${msToReadable(expiresAt - now)}**.`)
       };
     }
 
