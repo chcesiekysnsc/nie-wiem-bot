@@ -228,8 +228,8 @@ function createServer() {
 
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Not found.');
-  }).listen(port, () => {
-    console.log(`[BOT] Messenger webhook listening on http://localhost:${port}${webhookPath}`);
+  }).listen(port, '0.0.0.0', () => {
+    console.log(`[BOT] Messenger webhook listening on http://0.0.0.0:${port}${webhookPath}`);
   });
 }
 

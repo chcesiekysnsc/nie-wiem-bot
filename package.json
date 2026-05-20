@@ -4,7 +4,7 @@
   "description": "Messenger casino bot using Meta webhooks and JSON files only.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node self_bot.js",
     "self": "node self_bot.js"
   },
   "keywords": [

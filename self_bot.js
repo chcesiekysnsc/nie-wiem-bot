@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 const login = require('@dongdev/fca-unofficial');
 
 require('dotenv').config();
@@ -389,4 +390,13 @@ login({ appState }, (loginErr, api) => {
       }).catch(() => null);
     }
   });
+});
+
+// Serwer HTTP dla sprawdzenia poprawnosci działania (Railway Health Check)
+const PORT = process.env.PORT || 8080;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Messenger casino self-bot is running.');
+}).listen(PORT, '0.0.0.0', () => {
+  console.log(`[SELF-BOT] Dummy health check server listening on port ${PORT}`);
 });
