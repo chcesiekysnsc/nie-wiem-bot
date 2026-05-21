@@ -66,8 +66,10 @@ function recordGame(user, net, xpGain = randomInt(15, 35)) {
 
   if (net >= 0) {
     user.totalWon += net;
+    user.wins = (user.wins || 0) + 1;
   } else {
     user.totalLost += Math.abs(net);
+    user.losses = (user.losses || 0) + 1;
   }
 
   return addXp(user, xpGain);

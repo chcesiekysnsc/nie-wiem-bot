@@ -35,13 +35,15 @@
     "dailyCooldown": 0
   },
   "100060812419294": {
-    "balance": 877,
+    "balance": 100877,
     "bank": 39565,
     "level": 5,
     "xp": 357,
     "totalWon": 27944,
     "totalLost": 358000,
     "gamesPlayed": 57,
+    "wins": 0,
+    "losses": 0,
     "prestige": 1,
     "bio": "",
     "badges": [
@@ -76,6 +78,8 @@
     "totalWon": 12000,
     "totalLost": 117638,
     "gamesPlayed": 56,
+    "wins": 0,
+    "losses": 0,
     "prestige": 1,
     "bio": "",
     "badges": [

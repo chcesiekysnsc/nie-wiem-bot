@@ -68,6 +68,8 @@ module.exports = {
       totalWon: 12000,
       totalLost: 8000,
       gamesPlayed: 53,
+      wins: 0,
+      losses: 0,
       prestige: 1,
       bio: '',
       badges: [],

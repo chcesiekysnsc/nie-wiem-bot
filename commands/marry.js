@@ -30,10 +30,17 @@ module.exports = {
     }
 
     if (action === 'accept' || action === 'decline') {
-      let proposerId = args[1];
+      let proposerId = null;
+
+      const mentioned = message.mentions.users.first();
+      if (mentioned) {
+        proposerId = mentioned.id;
+      } else if (args[1] && /^\d+$/.test(args[1])) {
+        proposerId = args[1];
+      }
 
       if (!proposerId) {
-        await message.reply('❌ Użyj: `!marry accept <id>` lub `!marry decline <id>`.');
+        await message.reply('❌ Użyj: `!marry accept @osoba` lub `!marry accept <id>`.');
         return;
       }
 

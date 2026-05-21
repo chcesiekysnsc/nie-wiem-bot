@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const config = require('../config/config');
 const {
   ensureInventoryRecord,
   formatCurrency,
@@ -30,7 +31,10 @@ module.exports = {
   async execute(client, message, args) {
     let targetId = message.author.id;
 
-    if (args[0]) {
+    const mentioned = message.mentions.users.first();
+    if (mentioned) {
+      targetId = mentioned.id;
+    } else if (args[0]) {
       const cleanId = args[0].replace(/[<@>]/g, '').trim();
       if (/^\d+$/.test(cleanId)) {
         targetId = cleanId;
@@ -64,19 +68,44 @@ module.exports = {
       username = client.userNames.get(targetId);
     }
 
-    const profileData = await withData(store => {
+    const { globalRank, profileData } = await withData(store => {
       const user = createUser(targetId, store.users);
       refreshBadges(user, ensureInventoryRecord(store.inventory, targetId));
 
+      const sortedUsers = Object.entries(store.users || {})
+        .map(([id, u]) => ({ id, balance: (u.balance || 0) + (u.bank || 0) }))
+        .sort((a, b) => b.balance - a.balance);
+
+      const rankIndex = sortedUsers.findIndex(u => u.id === targetId);
+
       return {
-        balance: user.balance,
-        bank: user.bank,
-        level: user.level,
-        gamesPlayed: user.gamesPlayed,
-        badges: user.badges,
-        marriedTo: user.marriedTo
+        globalRank: rankIndex !== -1 ? rankIndex + 1 : null,
+        profileData: {
+          balance: user.balance,
+          bank: user.bank,
+          level: user.level,
+          gamesPlayed: user.gamesPlayed,
+          wins: user.wins || 0,
+          losses: user.losses || 0,
+          badges: [...(user.badges || [])],
+          marriedTo: user.marriedTo
+        }
       };
     });
+
+    // Dodaj odznakę ADMIN
+    if (config.admins.includes(targetId)) {
+      profileData.badges.unshift('👑 ADMIN');
+    }
+
+    // Dodaj ekskluzywne odznaki dla Top 3 globalnie
+    if (globalRank === 1) {
+      profileData.badges.unshift('🥇 Top 1');
+    } else if (globalRank === 2) {
+      profileData.badges.unshift('🥈 Top 2');
+    } else if (globalRank === 3) {
+      profileData.badges.unshift('🥉 Top 3');
+    }
 
     let partnerName = 'Brak';
     if (profileData.marriedTo) {
@@ -88,8 +117,11 @@ module.exports = {
 
     const response = 
       `👤 **Profil: ${username}**\n` +
+      `🆔 ID: \`${targetId}\`\n` +
       `👛 Portfel: ${formatCurrency(profileData.balance)} | 🏦 Bank: ${formatCurrency(profileData.bank)}\n` +
-      `🎮 Gry: ${formatNumber(profileData.gamesPlayed)} | 🏆 Poziom: ${profileData.level}\n` +
+      `🎮 Gry: ${formatNumber(profileData.gamesPlayed)}\n` +
+      `📈 Wygrane: **${formatNumber(profileData.wins)}** | 📉 Przegrane: **${formatNumber(profileData.losses)}**\n` +
+      `🏆 Poziom: ${profileData.level}\n` +
       `💍 Małżeństwo: **${partnerName}**\n` +
       `🎖️ Odznaki: ${profileData.badges.length ? profileData.badges.join(', ') : 'Brak'}`;
 
