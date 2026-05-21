@@ -238,21 +238,6 @@ const helpCommands = [
       'Im mniejsza liczba, tym większy mnożnik.'
     ]
   },
-  {
-    id: 21,
-    name: 'zdrapka',
-    category: 'GAMBLING',
-    shortDescription: 'zdrapka kasynowa za 5 000',
-    description: 'Kup zdrapkę za 5 000 Coins i sprawdź czy wylosowane liczby pasują do wygranej!',
-    usage: '!zdrapka',
-    examples: ['!zdrapka'],
-    cooldown: '4 sekundy',
-    requirements: 'Wymaga 5 000 Coins w portfelu.',
-    aliases: ['scratch'],
-    additionalInfo: [
-      'Możesz trafić jackpot aż do 500 000 Coins!'
-    ]
-  },
 
   // === SOCIAL ===
   {
