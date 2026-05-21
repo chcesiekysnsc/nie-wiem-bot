@@ -130,40 +130,68 @@ if (!fs.existsSync(appStatePath)) {
   process.exit(1);
 }
 
+function getPolandOffsetMs(date) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hour12: false
+  });
+  const parts = formatter.formatToParts(date);
+  const getVal = type => Number(parts.find(p => p.type === type).value);
+  
+  const utcDate = Date.UTC(
+    getVal('year'),
+    getVal('month') - 1,
+    getVal('day'),
+    getVal('hour'),
+    getVal('minute'),
+    getVal('second')
+  );
+  
+  return utcDate - date.getTime();
+}
+
 function getMsUntilNextTaxTime() {
   const now = new Date();
-  const noon = new Date(now);
-  noon.setHours(12, 0, 0, 0);
+  const offset = getPolandOffsetMs(now);
+  const polandTime = now.getTime() + offset;
   
-  const midnight = new Date(now);
-  midnight.setHours(24, 0, 0, 0);
+  const todayMidnight = new Date(polandTime);
+  todayMidnight.setUTCHours(0, 0, 0, 0);
   
-  const todayMidnight = new Date(now);
-  todayMidnight.setHours(0, 0, 0, 0);
-
-  let nextTaxDate;
-  if (now < noon && now >= todayMidnight) {
-    nextTaxDate = noon;
+  const noon = todayMidnight.getTime() + 12 * 60 * 60 * 1000;
+  const midnight = todayMidnight.getTime() + 24 * 60 * 60 * 1000;
+  
+  let nextTaxTime;
+  if (polandTime < noon) {
+    nextTaxTime = noon;
   } else {
-    nextTaxDate = midnight;
+    nextTaxTime = midnight;
   }
-
-  return Math.max(0, nextTaxDate.getTime() - now.getTime());
+  
+  const nextTaxTimeUTC = nextTaxTime - offset;
+  return Math.max(0, nextTaxTimeUTC - now.getTime());
 }
 
 function getLastTaxTime() {
   const now = new Date();
-  const noon = new Date(now);
-  noon.setHours(12, 0, 0, 0);
+  const offset = getPolandOffsetMs(now);
+  const polandTime = now.getTime() + offset;
   
-  const todayMidnight = new Date(now);
-  todayMidnight.setHours(0, 0, 0, 0);
-
-  if (now >= noon) {
-    return noon.getTime();
+  const todayMidnight = new Date(polandTime);
+  todayMidnight.setUTCHours(0, 0, 0, 0);
+  
+  const noon = todayMidnight.getTime() + 12 * 60 * 60 * 1000;
+  
+  let lastTaxTime;
+  if (polandTime >= noon) {
+    lastTaxTime = noon;
   } else {
-    return todayMidnight.getTime();
+    lastTaxTime = todayMidnight.getTime();
   }
+  
+  return lastTaxTime - offset;
 }
 
 let appState;
@@ -318,6 +346,7 @@ login({ appState }, (loginErr, api) => {
 
   // Inicjalizuj ostatni pobór podatków i uruchom timer
   client.lastTaxCollection = getLastTaxTime();
+  client.getMsUntilNextTaxTime = getMsUntilNextTaxTime;
   startTaxCollection();
 
   api.setOptions({

@@ -17,9 +17,9 @@ module.exports = {
   name: 'podatki',
   aliases: ['tax', 'taxes'],
   async execute(client, message) {
-    const lastTax = client.lastTaxCollection || 0;
-    const nextTax = lastTax + (12 * 60 * 60 * 1000);
-    const timeUntilTax = Math.max(0, nextTax - Date.now());
+    const timeUntilTax = typeof client.getMsUntilNextTaxTime === 'function'
+      ? client.getMsUntilNextTaxTime()
+      : Math.max(0, (client.lastTaxCollection || 0) + (12 * 60 * 60 * 1000) - Date.now());
 
     const timeText = msToReadable(timeUntilTax);
 
