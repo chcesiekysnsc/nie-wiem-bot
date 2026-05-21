@@ -10,6 +10,8 @@ const {
 const { createUser, withData } = require('../utils/storage');
 
 const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+const RED_NUMBERS_ARRAY = Array.from(RED_NUMBERS);
+const BLACK_NUMBERS = [2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35];
 
 function getColor(number) {
   if (number === 0) return 'green';
@@ -52,8 +54,20 @@ module.exports = {
 
       user.balance -= bet;
 
-      const rolledNumber = Math.floor(Math.random() * 37);
-      const rolledColor = getColor(rolledNumber);
+      const rand = Math.random();
+      let rolledColor;
+      let rolledNumber;
+
+      if (rand < 0.01) {
+        rolledColor = 'green';
+        rolledNumber = 0;
+      } else if (rand < 0.505) {
+        rolledColor = 'red';
+        rolledNumber = RED_NUMBERS_ARRAY[Math.floor(Math.random() * RED_NUMBERS_ARRAY.length)];
+      } else {
+        rolledColor = 'black';
+        rolledNumber = BLACK_NUMBERS[Math.floor(Math.random() * BLACK_NUMBERS.length)];
+      }
 
       let won = false;
       let multiplier = 0;
