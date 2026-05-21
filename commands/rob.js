@@ -62,6 +62,7 @@ module.exports = {
       const victim = createUser(targetId, store.users);
       const victimInv = ensureInventoryRecord(store.inventory, targetId);
       const robberInv = ensureInventoryRecord(store.inventory, authorId);
+      const victimLastActiveThreadId = victim.lastActiveThreadId || null;
 
       if (victim.balance < 1000) {
         return { error: `❌ ${targetName} ma za mało kasy (min. ${formatCurrency(1000)} w portfelu).` };
@@ -76,14 +77,14 @@ module.exports = {
 
         refreshBadges(robber, robberInv);
         refreshBadges(victim, victimInv);
-        return { blockedBy: 'bomba', fine };
+        return { blockedBy: 'bomba', fine, victimLastActiveThreadId };
       }
 
       // Kłódka zablokowana (musi być ręcznie aktywowana przez ofiarę - user.klodkaActive)
       if (victim.klodkaActive) {
         victim.klodkaActive = false; // zużyj aktywowaną kłódkę
         refreshBadges(victim, victimInv);
-        return { blockedBy: 'klodka' };
+        return { blockedBy: 'klodka', victimLastActiveThreadId };
       }
 
       // Piwo (musi być ręcznie aktywowane przez złodzieja - user.piwoActive)
@@ -103,7 +104,7 @@ module.exports = {
         robber.gamesPlayed += 1;
         refreshBadges(robber, robberInv);
         refreshBadges(victim, victimInv);
-        return { success: true, stolen, beer: hasBeer };
+        return { success: true, stolen, beer: hasBeer, victimLastActiveThreadId };
       } else {
         const losePercent = hasBeer ? 0.40 : 0.30;
         const fine = Math.max(1, Math.floor(robber.balance * losePercent));
@@ -112,7 +113,7 @@ module.exports = {
         robber.gamesPlayed += 1;
         refreshBadges(robber, robberInv);
         refreshBadges(victim, victimInv);
-        return { success: false, fine, beer: hasBeer };
+        return { success: false, fine, beer: hasBeer, victimLastActiveThreadId };
       }
     });
 
@@ -121,28 +122,68 @@ module.exports = {
       return;
     }
 
+    const robberName = message.author.username || `Użytkownik_${authorId.slice(-6)}`;
+    const currentThreadId = message.guild?.id || message.rawEvent?.threadID;
+
+    const sendWithMention = (body, targetName, targetId, threadId, replyToMessageId = null) => {
+      if (!client.api || !threadId) return;
+      const tag = `@${targetName}`;
+      const bodyWithTag = body.replace(targetName, tag);
+      const msgPayload = {
+        body: bodyWithTag,
+        mentions: [{
+          tag: tag,
+          id: targetId
+        }]
+      };
+      if (replyToMessageId) {
+        client.api.sendMessage(msgPayload, threadId, () => {}, replyToMessageId);
+      } else {
+        client.api.sendMessage(msgPayload, threadId);
+      }
+    };
+
+    let replyMsg = '';
+    let notifyMsg = '';
+
     if (result.blockedBy) {
       robCooldowns.set(authorId, now + 30 * 60 * 1000); // 30min cooldown
       if (result.blockedBy === 'bomba') {
-        await message.reply(`💣 **BUM!** Trafiłeś na bombę u użytkownika **${targetName}**! Straciłeś **40% swojego portfela** (**-${formatCurrency(result.fine)}**), które otrzymała ofiara. Cooldown na okradanie: 30 min.`);
+        replyMsg = `💣 **BUM!** Trafiłeś na bombę u użytkownika **${targetName}**! Straciłeś **40% swojego portfela** (**-${formatCurrency(result.fine)}**), które otrzymała ofiara. Cooldown na okradanie: 30 min.`;
+        notifyMsg = `💣 **ALARM BOMBOWY!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale trafił na Twoją bombę! Stracił **40% portfela** (**+${formatCurrency(result.fine)}**) na Twoją rzecz!`;
       } else {
-        await message.reply(`🔒 Kradzież zablokowana! **${targetName}** miał aktywną kłódkę. Cooldown na okradanie: 30 min.`);
+        replyMsg = `🔒 Kradzież zablokowana! **${targetName}** miał aktywną kłódkę. Cooldown na okradanie: 30 min.`;
+        notifyMsg = `🔒 **ALARM!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale Twoja kłódka go powstrzymała!`;
       }
-      return;
-    }
-
-    // Ustaw cooldowny
-    robCooldowns.set(authorId, now + 30 * 60 * 1000); // 30min
-    if (!result.success) {
-      caughtBan.set(authorId, now + 60 * 60 * 1000);    // 1h ban
-    }
-
-    if (result.success) {
-      const beerNote = result.beer ? ' (Wypite Piwo +25%!)' : '';
-      await message.reply(`💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**.${beerNote}`);
     } else {
-      const beerNote = result.beer ? ' (Wypite Piwo -40%!)' : '';
-      await message.reply(`🚔 Wpadka! Policja Cię złapała. Tracisz **${formatCurrency(result.fine)}** na rzecz **${targetName}**. Ban na okradanie: 1h.${beerNote}`);
+      // Ustaw cooldowny
+      robCooldowns.set(authorId, now + 30 * 60 * 1000); // 30min
+      if (!result.success) {
+        caughtBan.set(authorId, now + 60 * 60 * 1000);    // 1h ban
+      }
+
+      if (result.success) {
+        const beerNote = result.beer ? ' (Wypite Piwo +25%!)' : '';
+        replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**.${beerNote}`;
+        notifyMsg = `💰 **ALARM!** Użytkownik **${robberName}** okradł **${targetName}** na kwotę **${formatCurrency(result.stolen)}**!${beerNote}`;
+      } else {
+        const beerNote = result.beer ? ' (Wypite Piwo -40%!)' : '';
+        replyMsg = `🚔 Wpadka! Policja Cię złapała. Tracisz **${formatCurrency(result.fine)}** na rzecz **${targetName}**. Ban na okradanie: 1h.${beerNote}`;
+        notifyMsg = `🚔 **ALARM!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale wpadł i policja oddała Ci zadośćuczynienie w wysokości **+${formatCurrency(result.fine)}**!`;
+      }
+    }
+
+    // Wyślij odpowiedź w bieżącym wątku
+    if (replyMsg) {
+      sendWithMention(replyMsg, targetName, targetId, currentThreadId, message.rawEvent.messageID);
+    }
+
+    // Wyślij powiadomienie na inną grupę
+    if (notifyMsg && client.api) {
+      const targetThreadId = result.victimLastActiveThreadId;
+      if (targetThreadId && targetThreadId !== currentThreadId) {
+        sendWithMention(notifyMsg, targetName, targetId, targetThreadId);
+      }
     }
   }
 };

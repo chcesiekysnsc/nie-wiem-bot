@@ -458,6 +458,11 @@ login({ appState }, (loginErr, api) => {
       }
 
       console.log(`[SELF-BOT] Wykonanie komendy: ${commandName} przez ${senderId} w watku ${threadId}`);
+      await withData(store => {
+        const u = createUser(senderId, store.users);
+        u.commandsUsed = (u.commandsUsed || 0) + 1;
+        u.lastActiveThreadId = threadId;
+      });
       await command.execute(client, messageContext, args);
     } catch (cmdErr) {
       console.error(`[SELF-BOT] Blad komendy: ${commandName}`, cmdErr);

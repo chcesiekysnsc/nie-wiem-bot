@@ -22,8 +22,9 @@ module.exports = {
       } catch (_) {}
     }
 
-    const { globalTop, groupMembers } = await withData(store => {
+    const { globalTop, groupMembers, showIds } = await withData(store => {
       const users = Object.entries(store.users || {});
+      const showIds = store.profiles.showIds || [];
 
       // Top 5 Globalnie (najwięcej monet ze wszystkich zarejestrowanych)
       const globalTop = users
@@ -49,7 +50,7 @@ module.exports = {
           .slice(0, 5);
       }
 
-      return { globalTop, groupMembers };
+      return { globalTop, groupMembers, showIds };
     });
 
     async function getName(id) {
@@ -79,14 +80,20 @@ module.exports = {
 
     const globalLines = await Promise.all(
       globalTop.map(async (u, i) => {
-        const name = await getName(u.id);
+        let name = await getName(u.id);
+        if (showIds.includes(u.id)) {
+          name = `${name} ${u.id}`;
+        }
         return `${medals[i]} ${name} — ${formatNumber(u.balance)}`;
       })
     );
 
     const groupLines = await Promise.all(
       groupMembers.map(async (u, i) => {
-        const name = await getName(u.id);
+        let name = await getName(u.id);
+        if (showIds.includes(u.id)) {
+          name = `${name} ${u.id}`;
+        }
         return `${medals[i]} ${name} — ${formatNumber(u.balance)}`;
       })
     );

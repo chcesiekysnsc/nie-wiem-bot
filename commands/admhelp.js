@@ -7,7 +7,9 @@ const adminCommands = [
   { num: 4, cmd: '!ubl @osoba / ID', opis: 'Usuń gracza z czarnej listy bota.' },
   { num: 5, cmd: '!reset <procent>', opis: 'Usuwa dany % monet z konta każdego gracza.' },
   { num: 6, cmd: '!del <kwota> @osoba / ID', opis: 'Usuwa daną kwotę monet z portfela gracza.' },
-  { num: 7, cmd: '!admhelp', opis: 'Wyświetla tę pomoc.' }
+  { num: 7, cmd: '!global <id_konta> on/off', opis: 'Włącz/wyłącz pokazywanie ID konta w rankingu.' },
+  { num: 8, cmd: '!say <treść>', opis: 'Wysyła podaną treść na wszystkie aktywne grupy.' },
+  { num: 9, cmd: '!admhelp', opis: 'Wyświetla tę pomoc.' }
 ];
 
 module.exports = {

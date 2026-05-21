@@ -43,15 +43,35 @@ function ensureDataFiles() {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
 
+  const BACKUP_DIR = 'C:\\Users\\dupek\\.gemini\\antigravity\\db_backups';
+  let hasBackupDir = false;
+  if (process.platform === 'win32') {
+    try {
+      if (!fs.existsSync(BACKUP_DIR)) {
+        fs.mkdirSync(BACKUP_DIR, { recursive: true });
+      }
+      hasBackupDir = true;
+    } catch (_) {}
+  }
+
   for (const [key, filePath] of Object.entries(DATA_FILES)) {
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, JSON.stringify(FILE_DEFAULTS[key], null, 2));
-      continue;
+    const backupPath = hasBackupDir ? path.join(BACKUP_DIR, `${key}.json`) : null;
+    const localExists = fs.existsSync(filePath);
+    const localEmpty = localExists ? !fs.readFileSync(filePath, 'utf8').trim() : true;
+
+    if (localEmpty) {
+      if (backupPath && fs.existsSync(backupPath) && fs.readFileSync(backupPath, 'utf8').trim()) {
+        fs.writeFileSync(filePath, fs.readFileSync(backupPath, 'utf8'), 'utf8');
+      } else {
+        fs.writeFileSync(filePath, JSON.stringify(FILE_DEFAULTS[key], null, 2));
+      }
     }
 
-    const content = fs.readFileSync(filePath, 'utf8');
-    if (!content.trim()) {
-      fs.writeFileSync(filePath, JSON.stringify(FILE_DEFAULTS[key], null, 2));
+    if (backupPath && fs.existsSync(filePath)) {
+      const localContent = fs.readFileSync(filePath, 'utf8');
+      if (localContent.trim()) {
+        fs.writeFileSync(backupPath, localContent, 'utf8');
+      }
     }
   }
 }
@@ -107,7 +127,20 @@ function saveData(key, data) {
   }
 
   const normalized = normalizeData(key, data);
-  fs.writeFileSync(filePath, JSON.stringify(normalized, null, 2));
+  const content = JSON.stringify(normalized, null, 2);
+  fs.writeFileSync(filePath, content);
+
+  const BACKUP_DIR = 'C:\\Users\\dupek\\.gemini\\antigravity\\db_backups';
+  if (process.platform === 'win32') {
+    try {
+      if (!fs.existsSync(BACKUP_DIR)) {
+        fs.mkdirSync(BACKUP_DIR, { recursive: true });
+      }
+      const backupPath = path.join(BACKUP_DIR, `${key}.json`);
+      fs.writeFileSync(backupPath, content, 'utf8');
+    } catch (_) {}
+  }
+
   return normalized;
 }
 
@@ -125,6 +158,8 @@ function sanitizeUser(user) {
   merged.totalWon = Math.max(0, sanitizeInteger(merged.totalWon, base.totalWon));
   merged.totalLost = Math.max(0, sanitizeInteger(merged.totalLost, base.totalLost));
   merged.gamesPlayed = Math.max(0, sanitizeInteger(merged.gamesPlayed, base.gamesPlayed));
+  merged.commandsUsed = Math.max(0, sanitizeInteger(merged.commandsUsed, base.commandsUsed || 0));
+  merged.lastActiveThreadId = merged.lastActiveThreadId ? String(merged.lastActiveThreadId) : null;
   merged.prestige = Math.max(0, sanitizeInteger(merged.prestige, base.prestige));
   merged.dailyCooldown = Math.max(0, sanitizeInteger(merged.dailyCooldown, 0));
   merged.bio = typeof merged.bio === 'string' ? merged.bio.slice(0, 160) : '';

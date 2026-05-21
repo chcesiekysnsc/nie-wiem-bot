@@ -58,6 +58,9 @@ module.exports = {
       let updatedCount = 0;
       for (const uid of participantIDs) {
         const user = createUser(uid, store.users);
+        if ((user.commandsUsed || 0) <= 20) {
+          continue;
+        }
         const inventory = ensureInventoryRecord(store.inventory, uid);
         user.balance += amount;
         refreshBadges(user, inventory);
@@ -66,6 +69,6 @@ module.exports = {
       return updatedCount;
     });
 
-    await message.reply(`🎁 Admin rozdał po **${formatCurrency(amount)}** dla wszystkich uczestników grupy! (Rozdano do: ${count} osób)`);
+    await message.reply(`🎁 Admin rozdał po **${formatCurrency(amount)}** dla uczestników grupy mających ponad 20 użytych komend! (Rozdano do: ${count} osób)`);
   }
 };

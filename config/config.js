@@ -70,6 +70,8 @@ module.exports = {
       gamesPlayed: 53,
       wins: 0,
       losses: 0,
+      commandsUsed: 0,
+      lastActiveThreadId: null,
       prestige: 1,
       bio: '',
       badges: [],

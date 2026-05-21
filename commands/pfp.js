@@ -88,7 +88,8 @@ module.exports = {
           wins: user.wins || 0,
           losses: user.losses || 0,
           badges: [...(user.badges || [])],
-          marriedTo: user.marriedTo
+          marriedTo: user.marriedTo,
+          commandsUsed: user.commandsUsed || 0
         }
       };
     });
@@ -119,7 +120,7 @@ module.exports = {
       `👤 **Profil: ${username}**\n` +
       `🆔 ID: \`${targetId}\`\n` +
       `👛 Portfel: ${formatCurrency(profileData.balance)} | 🏦 Bank: ${formatCurrency(profileData.bank)}\n` +
-      `🎮 Gry: ${formatNumber(profileData.gamesPlayed)}\n` +
+      `🎮 Gry: ${formatNumber(profileData.gamesPlayed)} | ⌨️ Komendy: ${formatNumber(profileData.commandsUsed)}\n` +
       `📈 Wygrane: **${formatNumber(profileData.wins)}** | 📉 Przegrane: **${formatNumber(profileData.losses)}**\n` +
       `🏆 Poziom: ${profileData.level}\n` +
       `💍 Małżeństwo: **${partnerName}**\n` +
