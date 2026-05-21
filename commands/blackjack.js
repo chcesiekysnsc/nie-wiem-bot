@@ -146,8 +146,8 @@ module.exports = {
 
       await message.reply(
         `🃏 **Gra w Blackjacka rozstrzygnięta!**\n\n` +
-        `👨‍💼 Krupier: ${renderHand(dealerCards)} (Wartość: ${dealerValue})\n` +
-        `👤 Twoja Ręka: ${renderHand(playerCards)} (Wartość: 21)\n\n` +
+        `👨‍💼 Krupier: ${renderHand(dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
+        `👤 Twoja Ręka: ${renderHand(playerCards)} (Wartość: 21 pkt)\n\n` +
         `${outcome}\n` +
         `Twój balans: **${formatCurrency(dbResult)}**`
       );
@@ -168,7 +168,7 @@ module.exports = {
       `Stawka: **${formatCurrency(bet)}**\n\n` +
       `Twój ruch: wpisz \`hit\` (dobierz), \`stand\` (stop) lub \`double\` (podwój).\n\n` +
       `👨‍💼 Krupier: ${renderHand(dealerCards, true)} (Wartość: ?)\n` +
-      `👤 Twoja Ręka: ${renderHand(playerCards)} (Wartość: ${playerValue})`
+      `👤 Twoja Ręka: ${renderHand(playerCards)} (Wartość: ${playerValue} pkt)`
     );
   },
 
@@ -198,8 +198,8 @@ module.exports = {
 
         await message.reply(
           `💥 **Przegrana (Bust!)** - przekroczyłeś 21 punktów.\n\n` +
-          `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue})\n` +
-          `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue})\n\n` +
+          `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
+          `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)\n\n` +
           `Tracisz **${formatCurrency(game.bet)}**. Twój balans: **${formatCurrency(dbResult)}**`
         );
         client.activeBlackjackGames.delete(authorId);
@@ -213,7 +213,7 @@ module.exports = {
           `Stawka: **${formatCurrency(game.bet)}**\n\n` +
           `Twój ruch: wpisz \`hit\` (dobierz) lub \`stand\` (stop).\n\n` +
           `👨‍💼 Krupier: ${renderHand(game.dealerCards, true)} (Wartość: ?)\n` +
-          `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue})`
+          `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)`
         );
       }
     } else if (action === 'double' || action === 'podwoj') {
@@ -254,8 +254,8 @@ module.exports = {
 
         await message.reply(
           `💥 **Przegrana (Bust!) przy podwojeniu** - przekroczyłeś 21 punktów.\n\n` +
-          `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue})\n` +
-          `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue})\n\n` +
+          `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
+          `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)\n\n` +
           `Tracisz **${formatCurrency(game.bet)}**. Twój balans: **${formatCurrency(dbResult)}**`
         );
         client.activeBlackjackGames.delete(authorId);
@@ -315,8 +315,8 @@ module.exports = {
 
     await message.reply(
       `🃏 **Koniec gry w Blackjacka!**\n\n` +
-      `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue})\n` +
-      `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue})\n\n` +
+      `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
+      `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)\n\n` +
       `${outcome}\n` +
       `Twój balans: **${formatCurrency(dbResult)}**`
     );
