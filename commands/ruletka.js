@@ -10,13 +10,10 @@ const {
 const { createUser, withData } = require('../utils/storage');
 
 const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
-const RED_ARRAY = Array.from(RED_NUMBERS);
 
-const BLACK_NUMBERS = [];
-for (let i = 1; i <= 36; i++) {
-  if (!RED_NUMBERS.has(i)) {
-    BLACK_NUMBERS.push(i);
-  }
+function getColor(number) {
+  if (number === 0) return 'green';
+  return RED_NUMBERS.has(number) ? 'red' : 'black';
 }
 
 function parseBetTarget(input) {
@@ -55,20 +52,26 @@ module.exports = {
 
       user.balance -= bet;
 
-      // Szansa: Zielone 1%, Czerwone 49.5%, Czarne 49.5%
-      const r = Math.random() * 100;
+      const rand = Math.random();
       let rolledColor;
       let rolledNumber;
 
-      if (r < 1.0) {
+      if (rand < 0.01) {
         rolledColor = 'green';
         rolledNumber = 0;
-      } else if (r < 50.5) {
+      } else if (rand < 0.505) {
         rolledColor = 'red';
-        rolledNumber = RED_ARRAY[Math.floor(Math.random() * RED_ARRAY.length)];
+        const reds = Array.from(RED_NUMBERS);
+        rolledNumber = reds[Math.floor(Math.random() * reds.length)];
       } else {
         rolledColor = 'black';
-        rolledNumber = BLACK_NUMBERS[Math.floor(Math.random() * BLACK_NUMBERS.length)];
+        const blacks = [];
+        for (let i = 1; i <= 36; i++) {
+          if (!RED_NUMBERS.has(i)) {
+            blacks.push(i);
+          }
+        }
+        rolledNumber = blacks[Math.floor(Math.random() * blacks.length)];
       }
 
       let won = false;
