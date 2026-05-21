@@ -358,6 +358,59 @@ login({ appState }, (loginErr, api) => {
     }
     client.markProcessed(messageId);
 
+    // Interceptor dla aktywnej gry w blackjacka
+    if (!client.activeBlackjackGames) {
+      client.activeBlackjackGames = new Map();
+    }
+    const activeGame = client.activeBlackjackGames.get(senderId);
+    if (activeGame && activeGame.threadId === threadId) {
+      const cleanText = text.trim().toLowerCase().replace(/^!/, '');
+      if (['hit', 'stand', 'double', 'dobierz', 'stop', 'podwoj'].includes(cleanText)) {
+        const bjCommand = client.commands.get('blackjack');
+        if (bjCommand && typeof bjCommand.handleAction === 'function') {
+          console.log(`[SELF-BOT] Wykonanie ruchu w blackjacku: ${cleanText} przez ${senderId}`);
+          
+          await withData(store => {
+            const u = createUser(senderId, store.users);
+            u.commandsUsed = (u.commandsUsed || 0) + 1;
+            u.lastActiveThreadId = threadId;
+          });
+
+          const senderName = await client.resolveUserName(api, senderId);
+          const senderUser = {
+            id: senderId,
+            username: senderName,
+            profile: { name: senderName }
+          };
+
+          const messageContext = {
+            client,
+            author: senderUser,
+            content: text,
+            guild: { id: threadId },
+            rawEvent: event,
+            reply: async (payload) => {
+              return new Promise((resolve, reject) => {
+                const replyText = renderPayloadToText(payload);
+                if (!replyText) return resolve(null);
+                api.sendMessage(replyText, threadId, (sendErr, msgInfo) => {
+                  if (sendErr) return reject(sendErr);
+                  resolve(msgInfo);
+                }, messageId);
+              });
+            }
+          };
+
+          try {
+            await bjCommand.handleAction(client, messageContext, cleanText);
+          } catch (actionErr) {
+            console.error('[SELF-BOT] Blad ruchu w blackjacku:', actionErr);
+          }
+          return;
+        }
+      }
+    }
+
     if (!text.startsWith(client.config.prefix)) {
       return;
     }

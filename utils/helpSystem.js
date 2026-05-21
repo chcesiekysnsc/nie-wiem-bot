@@ -238,10 +238,26 @@ const helpCommands = [
       'Im mniejsza liczba, tym większy mnożnik.'
     ]
   },
+  {
+    id: 16,
+    name: 'blackjack',
+    category: 'GAMBLING',
+    shortDescription: 'gra w blackjacka (oczko)',
+    description: 'Klasyczna gra w Blackjacka przeciwko krupierowi. Dobieraj karty (hit), pasuj (stand) lub podwajaj stawke (double).',
+    usage: '!blackjack <kwota> | !bj <kwota>',
+    examples: ['!blackjack 1000', '!bj all'],
+    cooldown: '3 sekundy',
+    requirements: 'Balance na bet.',
+    aliases: ['bj'],
+    additionalInfo: [
+      'Blackjack (As + 10) placi bonus 2.5x!',
+      'Krupier dobiera do 17.'
+    ]
+  },
 
   // === SOCIAL ===
   {
-    id: 16,
+    id: 17,
     name: 'rob',
     category: 'SOCIAL',
     shortDescription: 'okradnij gracza',
@@ -256,7 +272,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 17,
+    id: 18,
     name: 'marry',
     category: 'SOCIAL',
     shortDescription: 'slub z graczem',
@@ -271,7 +287,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 18,
+    id: 19,
     name: 'pfp',
     category: 'SOCIAL',
     shortDescription: 'profil kasynowy',
@@ -286,7 +302,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 19,
+    id: 20,
     name: 'rozwod',
     category: 'SOCIAL',
     shortDescription: 'rozwod z graczem',
@@ -301,7 +317,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 20,
+    id: 21,
     name: 'duel',
     category: 'SOCIAL',
     shortDescription: 'pojedynek o monety',
@@ -363,11 +379,10 @@ function buildHelpListEmbed(client) {
     SOCIAL: '👥 SOCJALNE'
   };
 
-  let counter = 1;
   for (const [catKey, catLabel] of Object.entries(categories)) {
     const cmds = helpCommands.filter(c => c.category === catKey);
     if (cmds.length > 0) {
-      const fieldContent = cmds.map(c => `• ${counter++}. !${c.name} - ${c.shortDescription}`).join('\n');
+      const fieldContent = cmds.map(c => `• ${c.id}. !${c.name} - ${c.shortDescription}`).join('\n');
       embed.addFields({
         name: catLabel,
         value: fieldContent,
