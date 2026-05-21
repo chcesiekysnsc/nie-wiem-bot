@@ -128,6 +128,13 @@ module.exports = {
       price: 50000,
       description: 'Bilet na loterię (losowanie co 10 min, max 5 szt.).',
       type: 'stackable'
+    },
+    bomba: {
+      name: 'Bomba',
+      emoji: '💣',
+      price: 100000,
+      description: 'Pułapka na złodzieja: kradnie 40% jego portfela i nakłada na niego 30 minut cooldownu.',
+      type: 'stackable'
     }
   },
   badges: {

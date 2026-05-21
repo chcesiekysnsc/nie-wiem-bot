@@ -67,11 +67,23 @@ module.exports = {
         return { error: `❌ ${targetName} ma za mało kasy (min. ${formatCurrency(1000)} w portfelu).` };
       }
 
+      // Bomba (musi być ręcznie aktywowana przez ofiarę - user.bombaActive)
+      if (victim.bombaActive) {
+        victim.bombaActive = false; // zużyj aktywowaną bombę
+        const fine = Math.floor(robber.balance * 0.40);
+        robber.balance = Math.max(0, robber.balance - fine);
+        victim.balance += fine;
+
+        refreshBadges(robber, robberInv);
+        refreshBadges(victim, victimInv);
+        return { blockedBy: 'bomba', fine };
+      }
+
       // Kłódka zablokowana (musi być ręcznie aktywowana przez ofiarę - user.klodkaActive)
       if (victim.klodkaActive) {
         victim.klodkaActive = false; // zużyj aktywowaną kłódkę
         refreshBadges(victim, victimInv);
-        return { blocked: true };
+        return { blockedBy: 'klodka' };
       }
 
       // Piwo (musi być ręcznie aktywowane przez złodzieja - user.piwoActive)
@@ -109,8 +121,13 @@ module.exports = {
       return;
     }
 
-    if (result.blocked) {
-      await message.reply(`🔒 Kradzież zablokowana! **${targetName}** miał aktywną kłódkę.`);
+    if (result.blockedBy) {
+      robCooldowns.set(authorId, now + 30 * 60 * 1000); // 30min cooldown
+      if (result.blockedBy === 'bomba') {
+        await message.reply(`💣 **BUM!** Trafiłeś na bombę u użytkownika **${targetName}**! Straciłeś **40% swojego portfela** (**-${formatCurrency(result.fine)}**), które otrzymała ofiara. Cooldown na okradanie: 30 min.`);
+      } else {
+        await message.reply(`🔒 Kradzież zablokowana! **${targetName}** miał aktywną kłódkę. Cooldown na okradanie: 30 min.`);
+      }
       return;
     }
 

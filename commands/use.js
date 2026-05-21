@@ -56,6 +56,15 @@ module.exports = {
         return { success: true, message: '🔒 **Użyto kłódki!** Twój portfel jest teraz zabezpieczony przed najbliższą próbą kradzieży.' };
       }
 
+      if (itemId === 'bomba') {
+        if (user.bombaActive) {
+          return { error: '💣 Masz już aktywną bombę na swoim koncie.' };
+        }
+        removeItem(inv, itemId, 1);
+        user.bombaActive = true;
+        return { success: true, message: '💣 **Użyto bomby!** Twój portfel jest teraz zabezpieczony przed najbliższą próbą kradzieży (złodziej straci 40% swojego salda).' };
+      }
+
       if (itemId === 'piwo') {
         if (user.piwoActive) {
           return { error: '🍺 Masz już aktywny efekt piwa na swoim koncie.' };
