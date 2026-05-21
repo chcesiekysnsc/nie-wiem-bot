@@ -119,16 +119,6 @@ try {
 }
 
 const appStatePath = path.join(__dirname, 'appstate.json');
-if (!fs.existsSync(appStatePath)) {
-  console.error('\n======================================================');
-  console.error('BLAD: Brak pliku "appstate.json" w glownym folderze bota!');
-  console.error('Aby uruchomic bota na koncie osobistym (self-bot), musisz');
-  console.error('wyeksportowac ciasteczka ze swojej przegladarki (np. za pomoca');
-  console.error('rozszerzenia C3C FbState lub Cookie Editor) i zapisac je');
-  console.error('jako "appstate.json" w tym folderze.');
-  console.error('======================================================\n');
-  process.exit(1);
-}
 
 function getMsUntilNextTaxTime() {
   const now = new Date();
@@ -167,14 +157,26 @@ function getLastTaxTime() {
 }
 
 let appState;
-try {
-  appState = JSON.parse(fs.readFileSync(appStatePath, 'utf8'));
-} catch (e) {
-  console.error('BLAD: Plik "appstate.json" ma niepoprawny format JSON:', e.message);
+if (process.env.APPSTATE) {
+  try {
+    appState = JSON.parse(process.env.APPSTATE);
+    console.log('[SELF-BOT] Logowanie za pomoca zmiennej srodowiskowej APPSTATE...');
+  } catch (e) {
+    console.error('BLAD: Zmienna APPSTATE nie jest poprawnym JSON-em:', e.message);
+    process.exit(1);
+  }
+} else if (fs.existsSync(appStatePath)) {
+  try {
+    appState = JSON.parse(fs.readFileSync(appStatePath, 'utf8'));
+    console.log('[SELF-BOT] Logowanie za pomoca pliku appstate.json...');
+  } catch (e) {
+    console.error('BLAD: Plik appstate.json nie jest poprawnym JSON-em:', e.message);
+    process.exit(1);
+  }
+} else {
+  console.error('BLAD: Brak pliku appstate.json oraz zmiennej srodowiskowej APPSTATE!');
   process.exit(1);
 }
-
-console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
 
 login({ appState }, (loginErr, api) => {
   if (loginErr) {
