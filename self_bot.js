@@ -365,13 +365,13 @@ login({ appState }, (loginErr, api) => {
           }
 
           const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-          const prize = 5000;
 
           for (const threadId of targets) {
             let code = '';
             for (let i = 0; i < 6; i++) {
               code += chars.charAt(Math.floor(Math.random() * chars.length));
             }
+            const prize = Math.floor(Math.random() * (200000 - 20000 + 1)) + 20000;
 
             client.activeReactions.set(threadId, {
               code,
@@ -384,14 +384,14 @@ login({ appState }, (loginErr, api) => {
             
             client.api.sendMessage(announceMsg, threadId);
 
-            // Auto-cleanup po 5 minutach
+            // Auto-cleanup po 2 minutach
             setTimeout(() => {
               const game = client.activeReactions.get(threadId);
               if (game && game.code === code && game.active) {
                 client.activeReactions.delete(threadId);
                 client.api.sendMessage(`⌛ **SZYBKIE PALCE** ⌛\nCzas minął! Nikt nie przepisał kodu **\`${code}\`** na czas.`, threadId);
               }
-            }, 5 * 60 * 1000).unref();
+            }, 2 * 60 * 1000).unref();
           }
         }
       } catch (err) {

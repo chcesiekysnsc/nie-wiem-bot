@@ -21,7 +21,7 @@ module.exports = {
     for (let i = 0; i < 6; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    const prize = 5000;
+    const prize = Math.floor(Math.random() * (200000 - 20000 + 1)) + 20000;
 
     client.activeReactions.set(threadId, {
       code,
@@ -30,7 +30,7 @@ module.exports = {
       timestamp: Date.now()
     });
 
-    // Auto-cleanup after 5 minutes
+    // Auto-cleanup after 2 minutes
     setTimeout(() => {
       const game = client.activeReactions.get(threadId);
       if (game && game.code === code && game.active) {
@@ -39,7 +39,7 @@ module.exports = {
           client.api.sendMessage(`⌛ **SZYBKIE PALCE** ⌛\nCzas minął! Nikt nie przepisał kodu **\`${code}\`** na czas.`, threadId);
         }
       }
-    }, 5 * 60 * 1000).unref();
+    }, 2 * 60 * 1000).unref();
 
     await message.reply(`⚡ **SZYBKIE PALCE** ⚡\nKto pierwszy przepisze poniższy kod, wygrywa **${formatCurrency(prize)}**!\n\n👉 **\`${code}\`**`);
   }
