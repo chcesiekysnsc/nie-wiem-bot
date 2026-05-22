@@ -1,4 +1,4 @@
-const { formatNumber } = require('../utils/economy');
+const { formatNumber, formatCurrency } = require('../utils/economy');
 const { withData } = require('../utils/storage');
 
 module.exports = {
@@ -6,6 +6,61 @@ module.exports = {
   aliases: ['ranking'],
   async execute(client, message, args) {
     const threadId = message.guild?.id || message.rawEvent?.threadID;
+    const sub = String(args[0] || '').trim().toLowerCase();
+
+    async function getName(id) {
+      if (client.userNames.has(id)) {
+        return client.userNames.get(id);
+      }
+      if (client.api && typeof client.api.getUserInfo === 'function') {
+        try {
+          const info = await new Promise((resolve) => {
+            client.api.getUserInfo(id, (err, ret) => {
+              if (!err && ret && ret[id]) {
+                const name = ret[id].name;
+                client.userNames.set(id, name);
+                resolve(name);
+              } else {
+                resolve(null);
+              }
+            });
+          });
+          if (info) return info;
+        } catch (_) {}
+      }
+      return `Uzytkownik_${String(id).slice(-6)}`;
+    }
+
+    const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+
+    if (sub === 'gang' || sub === 'gangi' || sub === 'ganki') {
+      const gangsList = await withData(store => {
+        store.profiles.gangs = store.profiles.gangs || {};
+        return Object.values(store.profiles.gangs).map(g => ({
+          name: g.name,
+          bossId: g.bossId,
+          vault: g.vault || 0
+        }));
+      });
+
+      const sortedGangs = gangsList
+        .sort((a, b) => b.vault - a.vault)
+        .slice(0, 3);
+
+      const lines = await Promise.all(
+        sortedGangs.map(async (g, i) => {
+          const bossName = await getName(g.bossId);
+          return `${medals[i]} **${g.name}** (Boss: **${bossName}**) — ${formatCurrency(g.vault)}`;
+        })
+      );
+
+      const responseText = 
+        `🏆 **Ranking Gangów (Top 3)**\n` +
+        `${lines.length ? lines.join('\n') : 'Brak zarejestrowanych gangów.'}`;
+
+      await message.reply(responseText);
+      return;
+    }
 
     let participantIDs = [];
     if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
@@ -52,31 +107,6 @@ module.exports = {
 
       return { globalTop, groupMembers, showIds };
     });
-
-    async function getName(id) {
-      if (client.userNames.has(id)) {
-        return client.userNames.get(id);
-      }
-      if (client.api && typeof client.api.getUserInfo === 'function') {
-        try {
-          const info = await new Promise((resolve) => {
-            client.api.getUserInfo(id, (err, ret) => {
-              if (!err && ret && ret[id]) {
-                const name = ret[id].name;
-                client.userNames.set(id, name);
-                resolve(name);
-              } else {
-                resolve(null);
-              }
-            });
-          });
-          if (info) return info;
-        } catch (_) {}
-      }
-      return `Uzytkownik_${String(id).slice(-6)}`;
-    }
-
-    const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
 
     const globalLines = await Promise.all(
       globalTop.map(async (u, i) => {

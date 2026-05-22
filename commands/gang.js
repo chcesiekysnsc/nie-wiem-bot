@@ -413,9 +413,12 @@ module.exports = {
         }
 
         user.balance -= amount;
-        store.profiles.gangs[user.gangId].vault += amount;
+        const gangObj = store.profiles.gangs[user.gangId];
+        gangObj.vault += amount;
+        gangObj.deposits = gangObj.deposits || {};
+        gangObj.deposits[message.author.id] = (gangObj.deposits[message.author.id] || 0) + amount;
 
-        return { success: true, amount, gangName: store.profiles.gangs[user.gangId].name };
+        return { success: true, amount, gangName: gangObj.name };
       });
 
       if (depositResult.error) {
@@ -718,13 +721,80 @@ module.exports = {
     // 11. GANG INFO (DEFAULT)
     // ==========================================
     // info
+    async function getName(id) {
+      if (client.userNames.has(id)) {
+        return client.userNames.get(id);
+      }
+      if (client.api && typeof client.api.getUserInfo === 'function') {
+        try {
+          const info = await new Promise((resolve) => {
+            client.api.getUserInfo(id, (err, ret) => {
+              if (!err && ret && ret[id]) {
+                const name = ret[id].name;
+                client.userNames.set(id, name);
+                resolve(name);
+              } else {
+                resolve(null);
+              }
+            });
+          });
+          if (info) return info;
+        } catch (_) {}
+      }
+      return `Użytkownik_${String(id).slice(-6)}`;
+    }
+
+    let targetParam = null;
+    if (sub === 'info') {
+      targetParam = args.slice(1).join(' ').trim() || null;
+    } else if (!['stworz', 'zapros', 'dolacz', 'akceptuj', 'awans', 'wyrzuc', 'opusc', 'wplac', 'wyplac', 'ulepsz', 'skok'].includes(sub)) {
+      targetParam = args.join(' ').trim() || null;
+    }
+
+    const mentioned = message.mentions.users.first();
+    let targetUserId = null;
+    if (mentioned) {
+      targetUserId = mentioned.id;
+    } else if (targetParam && /^\d+$/.test(targetParam) && targetParam.length >= 8) {
+      targetUserId = targetParam;
+    }
+
     const infoResult = await withData(store => {
       store.profiles.gangs = store.profiles.gangs || {};
       const user = createUser(message.author.id, store.users);
 
-      let targetGangId = user.gangId;
-      if (args[0] && store.profiles.gangs[args[0].toLowerCase()]) {
-        targetGangId = args[0].toLowerCase();
+      let targetGangId = null;
+
+      if (targetUserId) {
+        const tgtUser = store.users[targetUserId];
+        if (tgtUser && tgtUser.gangId) {
+          targetGangId = tgtUser.gangId;
+        }
+      }
+
+      if (!targetGangId && targetParam) {
+        const cleanParam = targetParam.toLowerCase();
+        if (store.profiles.gangs[cleanParam]) {
+          targetGangId = cleanParam;
+        } else {
+          const foundGang = Object.entries(store.profiles.gangs).find(
+            ([id, g]) => g.name.toLowerCase() === cleanParam
+          );
+          if (foundGang) {
+            targetGangId = foundGang[0];
+          }
+        }
+
+        if (!targetGangId && /^\d+$/.test(targetParam)) {
+          const tgtUser = store.users[targetParam];
+          if (tgtUser && tgtUser.gangId) {
+            targetGangId = tgtUser.gangId;
+          }
+        }
+      }
+
+      if (!targetGangId) {
+        targetGangId = user.gangId;
       }
 
       if (!targetGangId || !store.profiles.gangs[targetGangId]) {
@@ -741,25 +811,27 @@ module.exports = {
         vault: gang.vault || 0,
         levelDziupla: gang.levelDziupla || 0,
         levelBiznesy: gang.levelBiznesy || 0,
-        levelFach: gang.levelFach || 0
+        levelFach: gang.levelFach || 0,
+        deposits: gang.deposits || {}
       };
     });
 
     if (infoResult.notInGang) {
-      await message.reply('❌ Nie należysz do żadnego gangu i nie podałeś istniejącej nazwy gangu do sprawdzenia.\nUżyj: `!gang stworz <Nazwa>`, aby założyć własny.');
+      await message.reply('❌ Nie znaleziono gangu dla podanej nazwy, osoby lub ID.');
       return;
     }
 
-    const bossName = client.userNames.get(infoResult.bossId) || `Użytkownik_${infoResult.bossId.slice(-6)}`;
-    const deputyNames = infoResult.deputies.map(id => {
-      return client.userNames.get(id) || `Użytkownik_${id.slice(-6)}`;
-    }).join(', ') || 'Brak';
+    const bossName = await getName(infoResult.bossId);
+    const deputyNamesList = await Promise.all(infoResult.deputies.map(async id => await getName(id)));
+    const deputyNames = deputyNamesList.join(', ') || 'Brak';
 
-    const memberNames = infoResult.members.map(id => {
+    const memberNamesList = await Promise.all(infoResult.members.map(async id => {
       const roleStr = id === infoResult.bossId ? '👑 Boss' : infoResult.deputies.includes(id) ? '⭐ Zastępca' : '👤 Członek';
-      const nameStr = client.userNames.get(id) || `Użytkownik_${id.slice(-6)}`;
-      return `• ${nameStr} (${roleStr})`;
-    }).join('\n');
+      const nameStr = await getName(id);
+      const deposited = infoResult.deposits[id] || 0;
+      return `• ${nameStr} (${roleStr}) — wpłacił: ${formatCurrency(deposited)}`;
+    }));
+    const memberNames = memberNamesList.join('\n');
 
     const maxMembers = 5 + infoResult.levelDziupla;
 

@@ -77,15 +77,16 @@ const helpCommands = [
     id: 5,
     name: 'top',
     category: 'ECONOMY',
-    shortDescription: 'ranking top 5 global i grupy',
-    description: 'Pokazuje 5 najbogatszych graczy.',
-    usage: '!top',
-    examples: ['!top'],
+    shortDescription: 'ranking top 5 graczy lub top 3 gangow',
+    description: 'Pokazuje ranking 5 najbogatszych graczy lub ranking top 3 gangów.',
+    usage: '!top [gang]',
+    examples: ['!top', '!top gang'],
     cooldown: '8 sekund',
     requirements: 'Brak.',
     aliases: ['ranking'],
     additionalInfo: [
-      'Łączny majątek (portfel + bank).'
+      'Łączny majątek (portfel + bank).',
+      'Użyj !top gang, aby zobaczyć ranking 3 najbogatszych gangów.'
     ]
   },
   {
@@ -389,8 +390,8 @@ const helpCommands = [
     category: 'SOCIAL',
     shortDescription: 'zarzadzanie i interakcje gangu',
     description: 'System gangów: zakładanie, wspólny sejf, ulepszenia Dziupli, Biznesów i Fachu, oraz skoki.',
-    usage: '!gang [stworz/zapros/dolacz/awans/wyrzuc/opusc/wplac/wyplac/ulepsz/skok/info]',
-    examples: ['!gang stworz MojaEkipa', '!gang zapros @Kowalski', '!gang wplac 5000', '!gang ulepsz dziupla', '!gang skok', '!gang info'],
+    usage: '!gang [stworz/zapros/dolacz/awans/wyrzuc/opusc/wplac/wyplac/ulepsz/skok/info] [@osoba/nazwa]',
+    examples: ['!gang stworz MojaEkipa', '!gang zapros @Kowalski', '!gang wplac 5000', '!gang ulepsz dziupla', '!gang skok', '!gang info @Kowalski'],
     cooldown: '3 sekundy',
     requirements: 'Zakładanie gangu kosztuje 1 000 000 Coins. Skok gangu wymaga min. 2 graczy.',
     aliases: ['gangi'],
