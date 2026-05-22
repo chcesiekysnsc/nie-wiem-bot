@@ -31,11 +31,15 @@ module.exports = {
       }
 
       // Zastosuj bonus gangowy: Legalne Biznesy
+      let gangBonus = 0;
       if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
         const gang = store.profiles.gangs[user.gangId];
         const bizLvl = gang.levelBiznesy || 0;
         const multipliers = [1.0, 1.10, 1.20, 1.30];
         const multiplier = multipliers[bizLvl] || 1.0;
+        if (bizLvl > 0) {
+          gangBonus = [0, 10, 20, 30][bizLvl] || 0;
+        }
         reward = Math.floor(reward * multiplier);
       }
 
@@ -45,12 +49,14 @@ module.exports = {
 
       return {
         reward,
+        gangBonus,
         leveledUp,
         text: jobs[randomInt(0, jobs.length - 1)]
       };
     });
 
-    const embed = successEmbed('👷 Praca — zarobek', `${result.text}\n\n+**${formatCurrency(result.reward)}**`);
+    const bonusText = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z biznesów gangu)` : '';
+    const embed = successEmbed('👷 Praca — zarobek', `${result.text}\n\n+**${formatCurrency(result.reward)}**${bonusText}`);
     await message.reply({ embeds: [embed] });
   }
 };

@@ -262,13 +262,13 @@ login({ appState }, (loginErr, api) => {
 
         if (drawResult) {
           client.lastLotteryDraw = Date.now();
-          const winnerName = client.userNames.get(drawResult.winnerId) || `Użytkownik_${drawResult.winnerId.slice(-6)}`;
+          const winnerName = await client.resolveUserName(client.api, drawResult.winnerId);
           const announceMsg = 
             `🎟️ **LOSOWANIE LOTERII**\n` +
             `Łączna liczba biletów w grze: **${drawResult.totalTickets}**\n` +
             `Wygrywa: **${winnerName}**! 🎉\n` +
             `Nagroda główna: **+${drawResult.totalPrize.toLocaleString()} Coins** została dodana do portfela!\n` +
-            `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą \`!sklep 5\`.`;
+            `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą \`!sklep 4\`.`;
 
           const targets = Array.from(client.activeThreadIds);
           if (targets.length > 0) {

@@ -26,11 +26,15 @@ module.exports = {
       let amount = randomInt(5000, 30000);
 
       // Zastosuj bonus gangowy: Złodziejski Fach
+      let gangBonus = 0;
       if (success && user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
         const gang = store.profiles.gangs[user.gangId];
         const fachLvl = gang.levelFach || 0;
         const multipliers = [1.0, 1.02, 1.04, 1.05];
         const multiplier = multipliers[fachLvl] || 1.0;
+        if (fachLvl > 0) {
+          gangBonus = [0, 2, 4, 5][fachLvl] || 0;
+        }
         amount = Math.floor(amount * multiplier);
       }
 
@@ -58,6 +62,7 @@ module.exports = {
           success: true,
           amount: netAmount,
           tribute,
+          gangBonus,
           text: successLines[Math.floor(Math.random() * successLines.length)]
         };
       } else {
@@ -73,10 +78,11 @@ module.exports = {
     });
 
     if (result.success) {
+      const bonusText = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z fachu gangu)` : '';
       if (result.tribute > 0) {
-        await message.reply(`🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}** (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa)`);
+        await message.reply(`🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}**${bonusText} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa)`);
       } else {
-        await message.reply(`🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}**`);
+        await message.reply(`🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}**${bonusText}`);
       }
     } else {
       await message.reply(`🚔 Wpadka: ${result.text} Strata: **-${formatCurrency(result.amount)}**`);

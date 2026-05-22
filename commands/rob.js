@@ -101,11 +101,15 @@ module.exports = {
         const baseStolen = Math.max(1, Math.floor(victim.balance * percent));
         
         let bonusPercent = 0.0;
+        let gangBonus = 0;
         if (robber.gangId && store.profiles.gangs && store.profiles.gangs[robber.gangId]) {
           const gang = store.profiles.gangs[robber.gangId];
           const fachLvl = gang.levelFach || 0;
           const multipliers = [0.0, 0.02, 0.04, 0.05];
           bonusPercent = multipliers[fachLvl] || 0.0;
+          if (fachLvl > 0) {
+            gangBonus = [0, 2, 4, 5][fachLvl] || 0;
+          }
         }
 
         const stolen = Math.floor(baseStolen * (1 + bonusPercent));
@@ -133,7 +137,7 @@ module.exports = {
         robber.gamesPlayed += 1;
         refreshBadges(robber, robberInv);
         refreshBadges(victim, victimInv);
-        return { success: true, stolen: netStolen, tribute, beer: hasBeer, victimLastActiveThreadId };
+        return { success: true, stolen: netStolen, tribute, gangBonus, beer: hasBeer, victimLastActiveThreadId };
       } else {
         const losePercent = hasBeer ? 0.40 : 0.30;
         const fine = Math.max(1, Math.floor(robber.balance * losePercent));
@@ -193,12 +197,13 @@ module.exports = {
 
       if (result.success) {
         const beerNote = result.beer ? ' (Wypite Piwo +25%!)' : '';
+        const bonusNote = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z fachu gangu)` : '';
         if (result.tribute > 0) {
-          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}** (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa).${beerNote}`;
+          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa).${beerNote}`;
         } else {
-          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**.${beerNote}`;
+          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}.${beerNote}`;
         }
-        notifyMsg = `💰 **ALARM!** Użytkownik **${robberName}** okradł **${targetName}** na kwotę **${formatCurrency(result.stolen)}**!${beerNote}`;
+        notifyMsg = `💰 **ALARM!** Użytkownik **${robberName}** okradł **${targetName}** na kwotę **${formatCurrency(result.stolen)}**!${bonusNote}${beerNote}`;
       } else {
         const beerNote = result.beer ? ' (Wypite Piwo -40%!)' : '';
         replyMsg = `🚔 Wpadka! Policja Cię złapała. Tracisz **${formatCurrency(result.fine)}** na rzecz **${targetName}**. Ban na okradanie: 1h.${beerNote}`;
