@@ -14,19 +14,6 @@ const CATEGORY_META = {
 const helpCommands = [
   {
     id: 1,
-    name: 'help',
-    category: 'UTILITY',
-    shortDescription: 'wyswietla pomoc',
-    description: 'Wyświetla listę wszystkich dostępnych komend lub szczegółowy opis wybranej komendy.',
-    usage: '!help [numer/nazwa]',
-    examples: ['!help', '!help 2', '!help bal'],
-    cooldown: 'Brak.',
-    requirements: 'Brak.',
-    aliases: ['pomoc', 'commands'],
-    additionalInfo: []
-  },
-  {
-    id: 2,
     name: 'bal',
     category: 'ECONOMY',
     shortDescription: 'pokazuje saldo',
@@ -41,7 +28,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 3,
+    id: 2,
     name: 'daily',
     category: 'ECONOMY',
     shortDescription: 'odbierz dzienna nagrode',
@@ -57,7 +44,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 4,
+    id: 3,
     name: 'work',
     category: 'ECONOMY',
     shortDescription: 'zarob coinsy pracujac',
@@ -72,7 +59,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 5,
+    id: 4,
     name: 'crime',
     category: 'ECONOMY',
     shortDescription: 'ryzykowna kradziez NPC',
@@ -87,7 +74,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 6,
+    id: 5,
     name: 'top',
     category: 'ECONOMY',
     shortDescription: 'ranking top 5 global i grupy',
@@ -102,7 +89,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 7,
+    id: 6,
     name: 'wplac',
     category: 'ECONOMY',
     shortDescription: 'wplac coinsy do banku',
@@ -117,7 +104,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 8,
+    id: 7,
     name: 'wyplac',
     category: 'ECONOMY',
     shortDescription: 'wyplac coinsy z banku',
@@ -132,7 +119,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 9,
+    id: 8,
     name: 'sklep',
     category: 'ECONOMY',
     shortDescription: 'sklep kasynowy',
@@ -147,7 +134,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 10,
+    id: 9,
     name: 'eq',
     category: 'ECONOMY',
     shortDescription: 'twoj ekwipunek',
@@ -162,7 +149,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 11,
+    id: 10,
     name: 'use',
     category: 'ECONOMY',
     shortDescription: 'uzyj itemu z ekwipunku',
@@ -177,7 +164,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 12,
+    id: 11,
     name: 'tip',
     category: 'ECONOMY',
     shortDescription: 'przelej coinsy innemu graczowi',
@@ -192,7 +179,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 13,
+    id: 12,
     name: 'reakcja',
     category: 'ECONOMY',
     shortDescription: 'informacje o szybkich palcach',
@@ -208,7 +195,33 @@ const helpCommands = [
     ]
   },
   {
+    id: 13,
+    name: 'loteria',
+    category: 'ECONOMY',
+    shortDescription: 'informacje o loterii',
+    description: 'Pokazuje informacje o loterii, pulę nagród, liczbę kupionych biletów oraz czas do następnego losowania. Bilety kupuje się w sklepie (!sklep 5).',
+    usage: '!loteria',
+    examples: ['!loteria'],
+    cooldown: '3 sekundy',
+    requirements: 'Brak.',
+    aliases: ['lottery'],
+    additionalInfo: []
+  },
+  {
     id: 14,
+    name: 'podatki',
+    category: 'ECONOMY',
+    shortDescription: 'informacje o podatkach',
+    description: 'Pokazuje informacje o podatkach w grze: podatek od salda (2% co 12h) oraz podatek od przelewów (5% przy !tip).',
+    usage: '!podatki',
+    examples: ['!podatki'],
+    cooldown: '3 sekundy',
+    requirements: 'Brak.',
+    aliases: ['tax', 'taxes'],
+    additionalInfo: []
+  },
+  {
+    id: 15,
     name: 'slots',
     category: 'GAMBLING',
     shortDescription: 'automaty kasynowe',
@@ -221,7 +234,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 15,
+    id: 16,
     name: 'coinflip',
     category: 'GAMBLING',
     shortDescription: 'rzut moneta',
@@ -234,7 +247,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 16,
+    id: 17,
     name: 'ruletka',
     category: 'GAMBLING',
     shortDescription: 'ruletka',
@@ -249,7 +262,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 17,
+    id: 18,
     name: 'bet',
     category: 'GAMBLING',
     shortDescription: 'zaklad liczbowy',
@@ -264,7 +277,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 18,
+    id: 19,
     name: 'blackjack',
     category: 'GAMBLING',
     shortDescription: 'gra w blackjacka (oczko)',
@@ -280,8 +293,8 @@ const helpCommands = [
     ]
   },
   {
-    id: 19,
-    name: 'rr',
+    id: 20,
+    name: 'rosyjska',
     category: 'GAMBLING',
     shortDescription: 'rosyjska ruletka ze stawka',
     description: 'Zagraj w rosyjską ruletkę solo przeciwko rewolwerowi (szansa na wygraną 5/6, wypłata 1.2x) lub wyzwij innego gracza na pojedynek.',
@@ -289,14 +302,14 @@ const helpCommands = [
     examples: ['!rr 1000', '!rr 5000 @Kowalski'],
     cooldown: '5 sekund',
     requirements: 'Balance na bet.',
-    aliases: ['rosyjska', 'ruletkarosyjska'],
+    aliases: ['rr', 'ruletkarosyjska'],
     additionalInfo: [
       'Wyzwanie trwa 2 minuty.',
       'Pojedynek toczy się do pierwszego strzału ze wzrastającym ryzykiem.'
     ]
   },
   {
-    id: 20,
+    id: 21,
     name: 'rob',
     category: 'SOCIAL',
     shortDescription: 'okradnij gracza',
@@ -311,7 +324,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 21,
+    id: 22,
     name: 'marry',
     category: 'SOCIAL',
     shortDescription: 'slub z graczem',
@@ -326,7 +339,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 22,
+    id: 23,
     name: 'pfp',
     category: 'SOCIAL',
     shortDescription: 'profil kasynowy',
@@ -341,7 +354,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 23,
+    id: 24,
     name: 'rozwod',
     category: 'SOCIAL',
     shortDescription: 'rozwod z graczem',
@@ -356,7 +369,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 24,
+    id: 25,
     name: 'duel',
     category: 'SOCIAL',
     shortDescription: 'pojedynek o monety',
@@ -371,7 +384,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 25,
+    id: 26,
     name: 'gang',
     category: 'SOCIAL',
     shortDescription: 'zarzadzanie i interakcje gangu',
@@ -387,7 +400,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 26,
+    id: 27,
     name: 'awans',
     category: 'SOCIAL',
     shortDescription: 'awansuj czlonka gangu',
@@ -402,29 +415,16 @@ const helpCommands = [
     ]
   },
   {
-    id: 27,
-    name: 'loteria',
-    category: 'ECONOMY',
-    shortDescription: 'informacje o loterii',
-    description: 'Pokazuje informacje o loterii, pulę nagród, liczbę kupionych biletów oraz czas do następnego losowania. Bilety kupuje się w sklepie (!sklep 5).',
-    usage: '!loteria',
-    examples: ['!loteria'],
-    cooldown: '3 sekundy',
-    requirements: 'Brak.',
-    aliases: ['lottery'],
-    additionalInfo: []
-  },
-  {
     id: 28,
-    name: 'podatki',
-    category: 'ECONOMY',
-    shortDescription: 'informacje o podatkach',
-    description: 'Pokazuje informacje o podatkach w grze: podatek od salda (2% co 12h) oraz podatek od przelewów (5% przy !tip).',
-    usage: '!podatki',
-    examples: ['!podatki'],
-    cooldown: '3 sekundy',
+    name: 'help',
+    category: 'UTILITY',
+    shortDescription: 'wyswietla pomoc',
+    description: 'Wyświetla listę wszystkich dostępnych komend lub szczegółowy opis wybranej komendy.',
+    usage: '!help [numer/nazwa]',
+    examples: ['!help', '!help 2', '!help bal'],
+    cooldown: 'Brak.',
     requirements: 'Brak.',
-    aliases: ['tax', 'taxes'],
+    aliases: ['pomoc', 'commands'],
     additionalInfo: []
   }
 ];
@@ -464,27 +464,31 @@ function buildHelpShell() {
 }
 
 function buildHelpListEmbed(client) {
-  const cols = 3;
-  const lines = [];
-  
-  for (let i = 0; i < helpCommands.length; i += cols) {
-    const rowCmds = helpCommands.slice(i, i + cols);
-    const rowParts = rowCmds.map(c => {
-      const numStr = String(c.id).padStart(2, ' ');
-      const cmdStr = `!${c.name}`;
-      return `${numStr}. ${cmdStr.padEnd(11, ' ')}`;
-    });
-    lines.push(rowParts.join(' '));
+  const embed = buildHelpShell()
+    .setDescription(
+      'Wszystkie dostepne komendy bota. Uzyj !help <nazwa_komendy>, aby poznac szczegoly.'
+    );
+
+  const categories = {
+    ECONOMY: '💰 EKONOMIA',
+    GAMBLING: '🎰 HAZARD',
+    SOCIAL: '👥 SOCJALNE',
+    UTILITY: '⚙️ INNE'
+  };
+
+  for (const [catKey, catLabel] of Object.entries(categories)) {
+    const cmds = helpCommands.filter(c => c.category === catKey);
+    if (cmds.length > 0) {
+      const fieldContent = cmds.map(c => `• ${c.id}. !${c.name} - ${c.shortDescription}`).join('\n');
+      embed.addFields({
+        name: catLabel,
+        value: fieldContent,
+        inline: false
+      });
+    }
   }
 
-  const gridText = lines.join('\n');
-
-  return buildHelpShell()
-    .setTitle('📖 SPIS KOMEND')
-    .setDescription(
-      `${gridText}\n\n` +
-      `💡 Szczegóły: !help <numer/nazwa> (np. !help 2)`
-    );
+  return embed;
 }
 
 function buildHelpDetailEmbed(client, command) {
