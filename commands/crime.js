@@ -34,13 +34,30 @@ module.exports = {
         amount = Math.floor(amount * multiplier);
       }
 
+      let tribute = 0;
+      if (success && user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
+        const gang = store.profiles.gangs[user.gangId];
+        const tributePercent = gang.tributePercent || 0;
+        const isExcluded = user.gangRole === 'boss' || user.gangRole === 'deputy';
+        if (tributePercent > 0 && !isExcluded) {
+          tribute = Math.floor(amount * (tributePercent / 100));
+        }
+      }
+
       if (success) {
-        user.balance += amount;
-        recordGame(user, amount);
+        const netAmount = amount - tribute;
+        user.balance += netAmount;
+        if (tribute > 0) {
+          const gang = store.profiles.gangs[user.gangId];
+          const bossUser = createUser(gang.bossId, store.users);
+          bossUser.balance += tribute;
+        }
+        recordGame(user, netAmount);
         refreshBadges(user, inventory);
         return {
           success: true,
-          amount,
+          amount: netAmount,
+          tribute,
           text: successLines[Math.floor(Math.random() * successLines.length)]
         };
       } else {
@@ -56,7 +73,11 @@ module.exports = {
     });
 
     if (result.success) {
-      await message.reply(`🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}**`);
+      if (result.tribute > 0) {
+        await message.reply(`🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}** (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa)`);
+      } else {
+        await message.reply(`🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}**`);
+      }
     } else {
       await message.reply(`🚔 Wpadka: ${result.text} Strata: **-${formatCurrency(result.amount)}**`);
     }

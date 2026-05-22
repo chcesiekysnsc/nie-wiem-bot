@@ -109,12 +109,31 @@ module.exports = {
         }
 
         const stolen = Math.floor(baseStolen * (1 + bonusPercent));
+
+        let tribute = 0;
+        if (robber.gangId && store.profiles.gangs && store.profiles.gangs[robber.gangId]) {
+          const gang = store.profiles.gangs[robber.gangId];
+          const tributePercent = gang.tributePercent || 0;
+          const isExcluded = robber.gangRole === 'boss' || robber.gangRole === 'deputy';
+          if (tributePercent > 0 && !isExcluded) {
+            tribute = Math.floor(stolen * (tributePercent / 100));
+          }
+        }
+
+        const netStolen = stolen - tribute;
         victim.balance -= baseStolen;
-        robber.balance += stolen;
+        robber.balance += netStolen;
+
+        if (tribute > 0) {
+          const gang = store.profiles.gangs[robber.gangId];
+          const bossUser = createUser(gang.bossId, store.users);
+          bossUser.balance += tribute;
+        }
+
         robber.gamesPlayed += 1;
         refreshBadges(robber, robberInv);
         refreshBadges(victim, victimInv);
-        return { success: true, stolen, beer: hasBeer, victimLastActiveThreadId };
+        return { success: true, stolen: netStolen, tribute, beer: hasBeer, victimLastActiveThreadId };
       } else {
         const losePercent = hasBeer ? 0.40 : 0.30;
         const fine = Math.max(1, Math.floor(robber.balance * losePercent));
@@ -174,7 +193,11 @@ module.exports = {
 
       if (result.success) {
         const beerNote = result.beer ? ' (Wypite Piwo +25%!)' : '';
-        replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**.${beerNote}`;
+        if (result.tribute > 0) {
+          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}** (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa).${beerNote}`;
+        } else {
+          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**.${beerNote}`;
+        }
         notifyMsg = `💰 **ALARM!** Użytkownik **${robberName}** okradł **${targetName}** na kwotę **${formatCurrency(result.stolen)}**!${beerNote}`;
       } else {
         const beerNote = result.beer ? ' (Wypite Piwo -40%!)' : '';

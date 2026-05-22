@@ -417,6 +417,22 @@ const helpCommands = [
   },
   {
     id: 28,
+    name: 'haracz',
+    category: 'SOCIAL',
+    shortDescription: 'ustawia haracz w gangu',
+    description: 'Ustawia procent haraczu pobieranego od kradzieży zwykłych członków gangu do portfela Bossa. Dostępne tylko dla Bossa.',
+    usage: '!haracz <procent> | !gang haracz <procent>',
+    examples: ['!haracz 15', '!gang haracz 20%'],
+    cooldown: '3 sekundy',
+    requirements: 'Musisz być Bossem gangu.',
+    aliases: [],
+    additionalInfo: [
+      'Tribute pobierany jest ze zwycięskich komend !rob i !crime zwykłych członków (z wyłączeniem zastępców).',
+      'Wartość musi być liczbą całkowitą od 0 do 100.'
+    ]
+  },
+  {
+    id: 29,
     name: 'help',
     category: 'UTILITY',
     shortDescription: 'wyswietla pomoc',

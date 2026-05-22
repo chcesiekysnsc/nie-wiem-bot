@@ -61,6 +61,7 @@ module.exports = {
           levelDziupla: 0,
           levelBiznesy: 0,
           levelFach: 0,
+          tributePercent: 0,
           lastHeistTime: 0
         };
 
@@ -481,12 +482,69 @@ module.exports = {
     }
 
     // ==========================================
+    // 8.5. HARACZ
+    // ==========================================
+    if (sub === 'haracz') {
+      const valRaw = args[1];
+
+      const tributeResult = await withData(store => {
+        store.profiles.gangs = store.profiles.gangs || {};
+        const user = createUser(message.author.id, store.users);
+
+        if (!user.gangId || !store.profiles.gangs[user.gangId]) {
+          return { error: '❌ Nie należysz do żadnego gangu.' };
+        }
+
+        const gang = store.profiles.gangs[user.gangId];
+
+        if (user.gangRole !== 'boss') {
+          return { error: '❌ Tylko Boss gangu może zarządzać haraczem.' };
+        }
+
+        if (valRaw === undefined || valRaw === '') {
+          const currentTribute = gang.tributePercent !== undefined ? gang.tributePercent : 0;
+          return { showCurrent: true, currentTribute };
+        }
+
+        const cleanVal = valRaw.replace('%', '');
+        if (!/^\d+$/.test(cleanVal)) {
+          return { error: '❌ Podaj poprawną wartość procentową od 0 do 100.' };
+        }
+
+        const percent = parseInt(cleanVal, 10);
+        if (isNaN(percent) || percent < 0 || percent > 100) {
+          return { error: '❌ Podaj poprawną wartość procentową od 0 do 100.' };
+        }
+
+        gang.tributePercent = percent;
+        return { success: true, percent, gangName: gang.name };
+      });
+
+      if (tributeResult.error) {
+        await message.reply(tributeResult.error);
+        return;
+      }
+
+      if (tributeResult.showCurrent) {
+        await message.reply(`💰 Aktualny haracz w Twoim gangu wynosi **${tributeResult.currentTribute}%**.`);
+        return;
+      }
+
+      await message.reply(`💰 Pomyślnie ustawiono haracz dla gangu **${tributeResult.gangName}** na **${tributeResult.percent}%**!\nTyle będzie trafiać do Twojego portfela z kradzieży zwykłych członków.`);
+      return;
+    }
+
+    // ==========================================
     // 9. ULEPSZ
     // ==========================================
     if (sub === 'ulepsz') {
-      const targetUpgrade = String(args[1] || '').toLowerCase();
+      let targetUpgrade = String(args[1] || '').toLowerCase();
+      if (targetUpgrade === '1') targetUpgrade = 'dziupla';
+      else if (targetUpgrade === '2') targetUpgrade = 'biznesy';
+      else if (targetUpgrade === '3') targetUpgrade = 'fach';
+
       if (!['dziupla', 'biznesy', 'fach'].includes(targetUpgrade)) {
-        await message.reply('❌ Użyj: `!gang ulepsz <dziupla/biznesy/fach>`');
+        await message.reply('❌ Użyj: `!gang ulepsz <dziupla/biznesy/fach>` lub `!gang ulepsz <1/2/3>`');
         return;
       }
 
@@ -747,7 +805,7 @@ module.exports = {
     let targetParam = null;
     if (sub === 'info') {
       targetParam = args.slice(1).join(' ').trim() || null;
-    } else if (!['stworz', 'zapros', 'dolacz', 'akceptuj', 'awans', 'wyrzuc', 'opusc', 'wplac', 'wyplac', 'ulepsz', 'skok'].includes(sub)) {
+    } else if (!['stworz', 'zapros', 'dolacz', 'akceptuj', 'awans', 'wyrzuc', 'opusc', 'wplac', 'wyplac', 'ulepsz', 'skok', 'haracz'].includes(sub)) {
       targetParam = args.join(' ').trim() || null;
     }
 
@@ -838,9 +896,9 @@ module.exports = {
     let bonusesStr = '';
     const bizPerc = [0, 10, 20, 30][infoResult.levelBiznesy];
     const fachPerc = [0, 2, 4, 5][infoResult.levelFach];
-    bonusesStr += `📈 Biznesy (Praca): **+${bizPerc}%** (Lvl ${infoResult.levelBiznesy}/3)\n`;
-    bonusesStr += `🥷 Fach (Kradzieże): **+${fachPerc}%** (Lvl ${infoResult.levelFach}/3)\n`;
-    bonusesStr += `📦 Dziupla (Pojemność): **${infoResult.members.length}/${maxMembers}** (Lvl ${infoResult.levelDziupla}/10)`;
+    bonusesStr += `1. 📦 Dziupla (Pojemność): **${infoResult.members.length}/${maxMembers}** (Lvl ${infoResult.levelDziupla}/10)\n`;
+    bonusesStr += `2. 📈 Biznesy (Praca): **+${bizPerc}%** (Lvl ${infoResult.levelBiznesy}/3)\n`;
+    bonusesStr += `3. 🥷 Fach (Kradzieże): **+${fachPerc}%** (Lvl ${infoResult.levelFach}/3)`;
 
     await message.reply(
       `👥 **GANG: ${infoResult.name.toUpperCase()}** 👥\n` +
