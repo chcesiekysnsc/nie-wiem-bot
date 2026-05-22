@@ -215,18 +215,10 @@ login({ appState }, (loginErr, api) => {
   client.lastLotteryDraw = Date.now();
 
   // Funkcja do uruchamiania losowania loterii
-  function startLotteryTimer(isRetry = false) {
-    const minCd = 9 * 60 * 60 * 1000; // 9 godzin
-    const maxCd = 24 * 60 * 60 * 1000; // 24 godziny
-    const delay = isRetry ? 30 * 1000 : (Math.floor(Math.random() * (maxCd - minCd + 1)) + minCd);
-    
-    if (!isRetry) {
-      client.nextLotteryDraw = Date.now() + delay;
-    }
-
+  function startLotteryTimer() {
     setTimeout(async () => {
       if (!client.api || !client.lastThreadId) {
-        startLotteryTimer(true); // Spróbuj ponownie za 30 sekund
+        startLotteryTimer(); // Spróbuj ponownie jeśli api nie jest gotowe
         return;
       }
 
@@ -293,7 +285,7 @@ login({ appState }, (loginErr, api) => {
 
       // Rekurencyjnie uruchamiaj timer od nowa (zawsze licząc od ostatniego losowania)
       startLotteryTimer();
-    }, delay);
+    }, 10 * 60 * 1000); // 10 minut
   }
 
   // Uruchom timer loterii
@@ -357,10 +349,10 @@ login({ appState }, (loginErr, api) => {
   client.getMsUntilNextTaxTime = getMsUntilNextTaxTime;
   startTaxCollection();
 
-  // System Szybkich Palców (reakcja) co 20-60 minut
+  // System Szybkich Palców (reakcja) co 9-24 godzin
   function startReactionTimer() {
-    const minDelay = 20 * 60 * 1000;
-    const maxDelay = 60 * 60 * 1000;
+    const minDelay = 9 * 60 * 60 * 1000;
+    const maxDelay = 24 * 60 * 60 * 1000;
     const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
 
     setTimeout(async () => {
