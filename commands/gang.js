@@ -870,6 +870,7 @@ module.exports = {
         levelDziupla: gang.levelDziupla || 0,
         levelBiznesy: gang.levelBiznesy || 0,
         levelFach: gang.levelFach || 0,
+        tributePercent: gang.tributePercent || 0,
         deposits: gang.deposits || {}
       };
     });
@@ -904,7 +905,8 @@ module.exports = {
       `👥 **GANG: ${infoResult.name.toUpperCase()}** 👥\n` +
       `👑 Boss: **${bossName}**\n` +
       `⭐ Zastępcy: **${deputyNames}**\n` +
-      `💰 Sejf gangu: **${formatCurrency(infoResult.vault)}**\n\n` +
+      `💰 Sejf gangu: **${formatCurrency(infoResult.vault)}**\n` +
+      `💸 Haracz gangu: **${infoResult.tributePercent}%**\n\n` +
       `🛡️ **Ulepszenia i bonusy:**\n${bonusesStr}\n\n` +
       `👥 **Członkowie:**\n${memberNames}`
     );
