@@ -451,12 +451,15 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
-    const isBlacklisted = await withData(store => {
+    const { isUserBlacklisted, isGroupBlacklisted } = await withData(store => {
       if (!store.profiles.blacklist) store.profiles.blacklist = [];
-      return store.profiles.blacklist.includes(senderId) && !client.config.admins.includes(senderId);
+      if (!store.profiles.blacklistedGroups) store.profiles.blacklistedGroups = [];
+      const userBl = store.profiles.blacklist.includes(senderId) && !client.config.admins.includes(senderId);
+      const groupBl = store.profiles.blacklistedGroups.includes(threadId) && !client.config.admins.includes(senderId);
+      return { isUserBlacklisted: userBl, isGroupBlacklisted: groupBl };
     });
 
-    if (isBlacklisted) {
+    if (isUserBlacklisted || isGroupBlacklisted) {
       return;
     }
 
