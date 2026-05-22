@@ -23,7 +23,16 @@ module.exports = {
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
       const success = Math.random() < 0.50;
 
-      const amount = randomInt(5000, 30000);
+      let amount = randomInt(5000, 30000);
+
+      // Zastosuj bonus gangowy: Złodziejski Fach
+      if (success && user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
+        const gang = store.profiles.gangs[user.gangId];
+        const fachLvl = gang.levelFach || 0;
+        const multipliers = [1.0, 1.02, 1.04, 1.05];
+        const multiplier = multipliers[fachLvl] || 1.0;
+        amount = Math.floor(amount * multiplier);
+      }
 
       if (success) {
         user.balance += amount;

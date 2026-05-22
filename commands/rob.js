@@ -98,8 +98,18 @@ module.exports = {
 
       if (success) {
         const percent = hasBeer ? 0.25 : 0.20;
-        const stolen = Math.max(1, Math.floor(victim.balance * percent));
-        victim.balance -= stolen;
+        const baseStolen = Math.max(1, Math.floor(victim.balance * percent));
+        
+        let bonusPercent = 0.0;
+        if (robber.gangId && store.profiles.gangs && store.profiles.gangs[robber.gangId]) {
+          const gang = store.profiles.gangs[robber.gangId];
+          const fachLvl = gang.levelFach || 0;
+          const multipliers = [0.0, 0.02, 0.04, 0.05];
+          bonusPercent = multipliers[fachLvl] || 0.0;
+        }
+
+        const stolen = Math.floor(baseStolen * (1 + bonusPercent));
+        victim.balance -= baseStolen;
         robber.balance += stolen;
         robber.gamesPlayed += 1;
         refreshBadges(robber, robberInv);

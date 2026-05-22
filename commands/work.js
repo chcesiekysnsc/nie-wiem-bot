@@ -30,6 +30,15 @@ module.exports = {
         reward = Math.floor(reward * config.economy.workVipBonus);
       }
 
+      // Zastosuj bonus gangowy: Legalne Biznesy
+      if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
+        const gang = store.profiles.gangs[user.gangId];
+        const bizLvl = gang.levelBiznesy || 0;
+        const multipliers = [1.0, 1.10, 1.20, 1.30];
+        const multiplier = multipliers[bizLvl] || 1.0;
+        reward = Math.floor(reward * multiplier);
+      }
+
       user.balance += reward;
       const leveledUp = addXp(user, randomInt(12, 24));
       refreshBadges(user, inventory);

@@ -1,5 +1,4 @@
 const {
-  buildHelpButtons,
   buildHelpDetailEmbed,
   buildHelpErrorEmbed,
   buildHelpListEmbed,
@@ -15,17 +14,7 @@ module.exports = {
 
     if (!input) {
       await message.reply({
-        embeds: [buildHelpListEmbed(client, 1)],
-        components: buildHelpButtons(message.author.id, 1)
-      });
-      return;
-    }
-
-    if (input === 'page') {
-      const page = Math.max(1, Math.floor(Number(args[1]) || 1));
-      await message.reply({
-        embeds: [buildHelpListEmbed(client, page)],
-        components: buildHelpButtons(message.author.id, page)
+        embeds: [buildHelpListEmbed(client)]
       });
       return;
     }
