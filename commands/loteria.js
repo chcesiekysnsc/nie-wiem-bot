@@ -33,8 +33,7 @@ module.exports = {
     });
 
     const totalPrize = result.totalTickets * 50000;
-    const lastDraw = client.lastLotteryDraw || 0;
-    const nextDraw = lastDraw + (10 * 60 * 1000);
+    const nextDraw = client.nextLotteryDraw || (Date.now() + (9 * 60 * 60 * 1000));
     const timeUntilDraw = Math.max(0, nextDraw - Date.now());
 
     const timeText = msToReadable(timeUntilDraw);

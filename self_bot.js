@@ -215,10 +215,18 @@ login({ appState }, (loginErr, api) => {
   client.lastLotteryDraw = Date.now();
 
   // Funkcja do uruchamiania losowania loterii
-  function startLotteryTimer() {
+  function startLotteryTimer(isRetry = false) {
+    const minCd = 9 * 60 * 60 * 1000; // 9 godzin
+    const maxCd = 24 * 60 * 60 * 1000; // 24 godziny
+    const delay = isRetry ? 30 * 1000 : (Math.floor(Math.random() * (maxCd - minCd + 1)) + minCd);
+    
+    if (!isRetry) {
+      client.nextLotteryDraw = Date.now() + delay;
+    }
+
     setTimeout(async () => {
       if (!client.api || !client.lastThreadId) {
-        startLotteryTimer(); // Spróbuj ponownie jeśli api nie jest gotowe
+        startLotteryTimer(true); // Spróbuj ponownie za 30 sekund
         return;
       }
 
@@ -285,7 +293,7 @@ login({ appState }, (loginErr, api) => {
 
       // Rekurencyjnie uruchamiaj timer od nowa (zawsze licząc od ostatniego losowania)
       startLotteryTimer();
-    }, 10 * 60 * 1000); // 10 minut
+    }, delay);
   }
 
   // Uruchom timer loterii
