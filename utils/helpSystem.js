@@ -254,10 +254,26 @@ const helpCommands = [
       'Krupier dobiera do 17.'
     ]
   },
+  {
+    id: 17,
+    name: 'rosyjska',
+    category: 'GAMBLING',
+    shortDescription: 'rosyjska ruletka ze stawka',
+    description: 'Zagraj w rosyjską ruletkę solo przeciwko rewolwerowi (szansa na wygraną 5/6, wypłata 1.2x) lub wyzwij innego gracza na pojedynek.',
+    usage: '!rr <kwota> [@osoba] | !rr acc | !rr dec',
+    examples: ['!rr 1000', '!rr 5000 @Kowalski'],
+    cooldown: '5 sekund',
+    requirements: 'Balance na bet.',
+    aliases: ['rr', 'ruletkarosyjska'],
+    additionalInfo: [
+      'Wyzwanie trwa 2 minuty.',
+      'Pojedynek toczy się do pierwszego strzału ze wzrastającym ryzykiem.'
+    ]
+  },
 
   // === SOCIAL ===
   {
-    id: 17,
+    id: 18,
     name: 'rob',
     category: 'SOCIAL',
     shortDescription: 'okradnij gracza',
@@ -272,7 +288,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 18,
+    id: 19,
     name: 'marry',
     category: 'SOCIAL',
     shortDescription: 'slub z graczem',
@@ -287,7 +303,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 19,
+    id: 20,
     name: 'pfp',
     category: 'SOCIAL',
     shortDescription: 'profil kasynowy',
@@ -302,7 +318,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 20,
+    id: 21,
     name: 'rozwod',
     category: 'SOCIAL',
     shortDescription: 'rozwod z graczem',
@@ -317,7 +333,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 21,
+    id: 22,
     name: 'duel',
     category: 'SOCIAL',
     shortDescription: 'pojedynek o monety',
