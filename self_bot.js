@@ -349,6 +349,62 @@ login({ appState }, (loginErr, api) => {
   client.getMsUntilNextTaxTime = getMsUntilNextTaxTime;
   startTaxCollection();
 
+  // System Szybkich Palców (reakcja) co 20-60 minut
+  function startReactionTimer() {
+    const minDelay = 20 * 60 * 1000;
+    const maxDelay = 60 * 60 * 1000;
+    const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+
+    setTimeout(async () => {
+      try {
+        if (client.api && client.activeThreadIds.size > 0) {
+          const targets = Array.from(client.activeThreadIds);
+          
+          if (!client.activeReactions) {
+            client.activeReactions = new Map();
+          }
+
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+          const prize = 5000;
+
+          for (const threadId of targets) {
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+              code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+
+            client.activeReactions.set(threadId, {
+              code,
+              prize,
+              active: true,
+              timestamp: Date.now()
+            });
+
+            const announceMsg = `⚡ **SZYBKIE PALCE** ⚡\nKto pierwszy przepisze poniższy kod, wygrywa **💰 ${prize.toLocaleString()}**!\n\n👉 **\`${code}\`**`;
+            
+            client.api.sendMessage(announceMsg, threadId);
+
+            // Auto-cleanup po 5 minutach
+            setTimeout(() => {
+              const game = client.activeReactions.get(threadId);
+              if (game && game.code === code && game.active) {
+                client.activeReactions.delete(threadId);
+                client.api.sendMessage(`⌛ **SZYBKIE PALCE** ⌛\nCzas minął! Nikt nie przepisał kodu **\`${code}\`** na czas.`, threadId);
+              }
+            }, 5 * 60 * 1000).unref();
+          }
+        }
+      } catch (err) {
+        console.error('[REACTION] Błąd podczas uruchamiania reakcji:', err);
+      }
+
+      startReactionTimer();
+    }, delay);
+  }
+
+  // Uruchom timer reakcji
+  startReactionTimer();
+
   api.setOptions({
     listenEvents: true,
     selfListen: false,
@@ -386,6 +442,28 @@ login({ appState }, (loginErr, api) => {
       return;
     }
     client.markProcessed(messageId);
+
+    // Interceptor dla Szybkich Palców (reakcja)
+    if (client.activeReactions) {
+      const reaction = client.activeReactions.get(threadId);
+      if (reaction && reaction.active && text === reaction.code) {
+        reaction.active = false;
+        client.activeReactions.delete(threadId);
+
+        const prize = reaction.prize;
+        const winnerId = senderId;
+        const winnerName = await client.resolveUserName(api, winnerId);
+
+        await withData(store => {
+          const u = createUser(winnerId, store.users);
+          u.balance = (u.balance || 0) + prize;
+        });
+
+        const replyMsg = `🎉 **SZYBKIE PALCE** 🎉\nGratulacje **${winnerName}**! Jako pierwszy przepisałeś kod i wygrywasz **+💰 ${prize.toLocaleString()}**!`;
+        api.sendMessage(replyMsg, threadId, () => {}, messageId);
+        return; // Nie przetwarzaj dalej jako komendy
+      }
+    }
 
     // Interceptor dla aktywnej gry w blackjacka
     if (!client.activeBlackjackGames) {

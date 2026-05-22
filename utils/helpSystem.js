@@ -179,10 +179,26 @@ const helpCommands = [
       'Obsługuje all.'
     ]
   },
+  {
+    id: 12,
+    name: 'reakcja',
+    category: 'ECONOMY',
+    shortDescription: 'informacje o szybkich palcach',
+    description: 'Gra zręcznościowa wywoływana automatycznie na czacie grupowym co 20-60 minut lub ręcznie przez administratora. Kto pierwszy przepisz kod, wygrywa 5 000 Coins!',
+    usage: '!reakcja (tylko admin)',
+    examples: ['!reakcja'],
+    cooldown: 'Brak.',
+    requirements: 'Wymaga bycia pierwszym na czacie.',
+    aliases: [],
+    additionalInfo: [
+      'Nagroda za poprawny kod wynosi 5 000 Coins.',
+      'Wygenerowany kod wygasa po upływie 5 minut.'
+    ]
+  },
 
   // === GAMBLING ===
   {
-    id: 12,
+    id: 13,
     name: 'slots',
     category: 'GAMBLING',
     shortDescription: 'automaty kasynowe',
@@ -195,20 +211,20 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 13,
+    id: 14,
     name: 'coinflip',
     category: 'GAMBLING',
     shortDescription: 'rzut moneta',
     description: 'Obstaw orła lub reszkę i podwój stawkowanie.',
-    usage: '!coinflip <kwota> <orzel/reszka>',
-    examples: ['!coinflip 1000 orzel'],
+    usage: '!coinflip <kwota> <orzel/reszka> | !cf <kwota> <orzel/reszka>',
+    examples: ['!coinflip 1000 orzel', '!cf 5000 reszka'],
     cooldown: '4 sekundy',
     requirements: 'Balance na bet.',
     aliases: ['cf'],
     additionalInfo: []
   },
   {
-    id: 14,
+    id: 15,
     name: 'ruletka',
     category: 'GAMBLING',
     shortDescription: 'ruletka',
@@ -224,7 +240,7 @@ const helpCommands = [
   },
 
   {
-    id: 15,
+    id: 16,
     name: 'bet',
     category: 'GAMBLING',
     shortDescription: 'zaklad liczbowy',
@@ -239,7 +255,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 16,
+    id: 17,
     name: 'blackjack',
     category: 'GAMBLING',
     shortDescription: 'gra w blackjacka (oczko)',
@@ -255,7 +271,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 17,
+    id: 18,
     name: 'rosyjska',
     category: 'GAMBLING',
     shortDescription: 'rosyjska ruletka ze stawka',
@@ -273,7 +289,7 @@ const helpCommands = [
 
   // === SOCIAL ===
   {
-    id: 18,
+    id: 19,
     name: 'rob',
     category: 'SOCIAL',
     shortDescription: 'okradnij gracza',
@@ -288,7 +304,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 19,
+    id: 20,
     name: 'marry',
     category: 'SOCIAL',
     shortDescription: 'slub z graczem',
@@ -303,7 +319,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 20,
+    id: 21,
     name: 'pfp',
     category: 'SOCIAL',
     shortDescription: 'profil kasynowy',
@@ -318,7 +334,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 21,
+    id: 22,
     name: 'rozwod',
     category: 'SOCIAL',
     shortDescription: 'rozwod z graczem',
@@ -333,7 +349,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 22,
+    id: 23,
     name: 'duel',
     category: 'SOCIAL',
     shortDescription: 'pojedynek o monety',

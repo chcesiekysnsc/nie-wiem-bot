@@ -94,28 +94,25 @@ module.exports = {
       const challengerName = client.userNames.get(request.challengerId) || `Użytkownik_${request.challengerId.slice(-6)}`;
       const targetName = message.author.username || `Użytkownik_${targetId.slice(-6)}`;
 
-      let response = `🔫 **ROSYJSKA RULETKA (Pojedynek)** 🔫\n`;
-      response += `👥 Uczestnicy: **${challengerName}** i **${targetName}**\n`;
-      response += `💰 Stawka: **${formatCurrency(result.amount)}** od każdego (Łączna pula: **${formatCurrency(result.amount * 2)}**)\n\n`;
-      response += `*Krupier ładuje 1 nabój do rewolweru, kręci bębenkiem i kładzie go na stół...*\n\n`;
+      const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+      await message.reply(`🔫 **Rosyjska Ruletka**: **${challengerName}** vs **${targetName}** o **${formatCurrency(result.amount)}**!\n*Krupier kręci bębenkiem...*`);
 
       for (const turn of result.turns) {
+        await sleep(1000);
         const pName = turn.playerId === request.challengerId ? challengerName : targetName;
-        response += `🤠 **Runda ${turn.chamber}**: **${pName}** przykłada lufę do skroni i pociąga za spust...\n`;
         if (turn.shot) {
-          response += `💥 **STRZAŁ!** Rewolwer wystrzelił! (Szansa na strzał: **${turn.chance}%**)\n\n`;
+          await message.reply(`🤠 **Runda ${turn.chamber}** (${turn.chance}%): **${pName}** pociąga za spust... 💥 **STRZAŁ!**`);
         } else {
-          response += `*...klik!* (Pusto. Szansa na strzał: **${turn.chance}%**)\n\n`;
+          await message.reply(`🤠 **Runda ${turn.chamber}** (${turn.chance}%): **${pName}** pociąga za spust... *klik!* (pusto)`);
         }
       }
 
+      await sleep(1000);
       const winnerName = result.winnerId === request.challengerId ? challengerName : targetName;
       const loserName = result.loserId === request.challengerId ? challengerName : targetName;
 
-      response += `🏆 **${winnerName}** przeżył pojedynek i zgarnia całą pulę: **+${formatCurrency(result.amount)}**!\n`;
-      response += `💀 **${loserName}** ginie i traci stawkę: **-${formatCurrency(result.amount)}**.`;
-
-      await message.reply(response);
+      await message.reply(`🏆 **${winnerName}** wygrywa **+${formatCurrency(result.amount)}**! 💀 **${loserName}** ginie.`);
       return;
     }
 

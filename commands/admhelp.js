@@ -13,7 +13,8 @@ const adminCommands = [
   { num: 10, cmd: '!grp', opis: 'Pokazuje listę obecnych grup, ich ID oraz saldo.' },
   { num: 11, cmd: '!blgrp <nr/ID grupy>', opis: 'Blokuje bota na wybranej grupie.' },
   { num: 12, cmd: '!ublgrp <nr/ID grupy>', opis: 'Odblokowuje bota na wybranej grupie.' },
-  { num: 13, cmd: '!admhelp', opis: 'Wyświetla tę pomoc.' }
+  { num: 13, cmd: '!reakcja', opis: 'Ręcznie wywołuje grę Szybkie Palce na obecnej grupie.' },
+  { num: 14, cmd: '!admhelp', opis: 'Wyświetla tę pomoc.' }
 ];
 
 module.exports = {
