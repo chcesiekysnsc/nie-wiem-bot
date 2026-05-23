@@ -435,7 +435,7 @@ login({ appState }, (loginErr, api) => {
 
           for (const threadId of targets) {
             const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
-            const prize = Math.floor(Math.random() * (200000 - 20000 + 1)) + 20000;
+            const { time, prize } = flagaCmd.getGameSettings(randomFlag.region);
 
             client.activeFlags.set(threadId, {
               emoji: randomFlag.emoji,
@@ -446,17 +446,17 @@ login({ appState }, (loginErr, api) => {
               timestamp: Date.now()
             });
 
-            const announceMsg = `🏳️ **ZGADNIJ KRAJ** 🏳️\nJaki kraj reprezentuje ta flaga?\n\n👉 **${randomFlag.emoji}**\n\n💰 Nagroda: **💰 ${prize.toLocaleString()}**!\n⏱️ Masz 20 sekund na odpowiedź.`;
+            const announceMsg = `🏳️ **ZGADNIJ KRAJ** 🏳️\nJaki kraj reprezentuje ta flaga?\n\n👉 **${randomFlag.emoji}**\n\n💰 Nagroda: **💰 ${prize.toLocaleString()}**!\n⏱️ Masz ${time} sekund na odpowiedź.`;
             client.api.sendMessage(announceMsg, threadId);
 
-            // Auto-cleanup po 20 sekundach
+            // Auto-cleanup po określonym czasie
             setTimeout(() => {
               const game = client.activeFlags.get(threadId);
               if (game && game.emoji === randomFlag.emoji && game.active) {
                 client.activeFlags.delete(threadId);
                 client.api.sendMessage(`⌛ **ZGADNIJ KRAJ** ⌛\nCzas minął! Nikt nie zgadł flagi **${randomFlag.emoji}** (${randomFlag.name}) na czas.`, threadId);
               }
-            }, 20 * 1000).unref();
+            }, time * 1000).unref();
           }
         }
       } catch (err) {
