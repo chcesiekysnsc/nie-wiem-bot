@@ -446,17 +446,17 @@ login({ appState }, (loginErr, api) => {
               timestamp: Date.now()
             });
 
-            const announceMsg = `🏳️ **ZGADNIJ KRAJ** 🏳️\nJaki kraj reprezentuje ta flaga?\n\n👉 **${randomFlag.emoji}**\n\n💰 Nagroda: **💰 ${prize.toLocaleString()}**!\n⏱️ Masz 5 minut na odpowiedź.`;
+            const announceMsg = `🏳️ **ZGADNIJ KRAJ** 🏳️\nJaki kraj reprezentuje ta flaga?\n\n👉 **${randomFlag.emoji}**\n\n💰 Nagroda: **💰 ${prize.toLocaleString()}**!\n⏱️ Masz 20 sekund na odpowiedź.`;
             client.api.sendMessage(announceMsg, threadId);
 
-            // Auto-cleanup po 5 minutach
+            // Auto-cleanup po 20 sekundach
             setTimeout(() => {
               const game = client.activeFlags.get(threadId);
               if (game && game.emoji === randomFlag.emoji && game.active) {
                 client.activeFlags.delete(threadId);
                 client.api.sendMessage(`⌛ **ZGADNIJ KRAJ** ⌛\nCzas minął! Nikt nie zgadł flagi **${randomFlag.emoji}** (${randomFlag.name}) na czas.`, threadId);
               }
-            }, 5 * 60 * 1000).unref();
+            }, 20 * 1000).unref();
           }
         }
       } catch (err) {

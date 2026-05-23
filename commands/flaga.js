@@ -61,7 +61,7 @@ module.exports = {
       timestamp: Date.now()
     });
 
-    // Auto-cleanup after 5 minutes
+    // Auto-cleanup after 20 seconds
     setTimeout(() => {
       const game = client.activeFlags.get(threadId);
       if (game && game.emoji === randomFlag.emoji && game.active) {
@@ -70,13 +70,13 @@ module.exports = {
           client.api.sendMessage(`⌛ **ZGADNIJ KRAJ** ⌛\nCzas minął! Nikt nie zgadł flagi **${randomFlag.emoji}** (${randomFlag.name}) na czas.`, threadId);
         }
       }
-    }, 5 * 60 * 1000).unref();
+    }, 20 * 1000).unref();
 
     await message.reply(
       `🏳️ **ZGADNIJ KRAJ** 🏳️\nJaki kraj reprezentuje ta flaga?\n\n` +
       `👉 **${randomFlag.emoji}**\n\n` +
       `💰 Nagroda: **${formatCurrency(prize)}**!\n` +
-      `⏱️ Masz 5 minut na odpowiedź.`
+      `⏱️ Masz 20 sekund na odpowiedź.`
     );
   }
 };
