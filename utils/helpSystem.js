@@ -184,15 +184,15 @@ const helpCommands = [
     name: 'reakcja',
     category: 'ECONOMY',
     shortDescription: 'informacje o szybkich palcach',
-    description: 'Gra zręcznościowa wywoływana automatycznie na czacie grupowym co 20-60 minut lub ręcznie przez administratora. Kto pierwszy przepisz kod, wygrywa 5 000 Coins!',
+    description: 'Gra zręcznościowa wywoływana automatycznie na czacie grupowym co 9-24 godzin lub ręcznie przez administratora. Kto pierwszy przepisze kod, wygrywa od 20 000 do 200 000 Coins!',
     usage: '!reakcja (tylko admin)',
     examples: ['!reakcja'],
     cooldown: 'Brak.',
     requirements: 'Wymaga bycia pierwszym na czacie.',
     aliases: [],
     additionalInfo: [
-      'Nagroda za poprawny kod wynosi 5 000 Coins.',
-      'Wygenerowany kod wygasa po upływie 5 minut.'
+      'Nagroda za poprawny kod wynosi od 20 000 do 200 000 Coins.',
+      'Wygenerowany kod wygasa po upływie 2 minut.'
     ]
   },
   {
@@ -389,9 +389,9 @@ const helpCommands = [
     name: 'gang',
     category: 'SOCIAL',
     shortDescription: 'zarzadzanie i interakcje gangu',
-    description: 'System gangów: zakładanie, wspólny sejf, ulepszenia Dziupli, Biznesów i Fachu, oraz skoki.',
-    usage: '!gang [stworz/zapros/dolacz/awans/wyrzuc/opusc/wplac/wyplac/ulepsz/skok/info] [@osoba/nazwa]',
-    examples: ['!gang stworz MojaEkipa', '!gang zapros @Kowalski', '!gang wplac 5000', '!gang ulepsz dziupla', '!gang skok', '!gang info @Kowalski'],
+    description: 'System gangów: zakładanie, wspólny sejf, ulepszenia Dziupli, Biznesów i Fachu, skoki oraz wojny gangów.',
+    usage: '!gang [stworz/zapros/dolacz/awans/wyrzuc/opusc/wplac/wyplac/ulepsz/skok/haracz/atak/info] [@osoba/nazwa]',
+    examples: ['!gang stworz MojaEkipa', '!gang zapros @Kowalski', '!gang wplac 5000', '!gang ulepsz dziupla', '!gang skok', '!gang atak InnyGang', '!gang info @Kowalski'],
     cooldown: '3 sekundy',
     requirements: 'Zakładanie gangu kosztuje 1 000 000 Coins. Skok gangu wymaga min. 2 graczy.',
     aliases: ['gangi'],
@@ -433,6 +433,22 @@ const helpCommands = [
   },
   {
     id: 29,
+    name: 'atak',
+    category: 'SOCIAL',
+    shortDescription: 'wojna gangow o sejf',
+    description: 'Wypowiada wojnę wrogiemu gangowi w celu okradzenia ich sejfu. Wymaga min. 500k w sejfie i kosztuje 10% Twojego sejfu. Przy wygranej kradnie 15%-35% sejfu wroga (30% idzie do Twojego sejfu, 70% dzielone dla graczy). Przy wpadce tracisz 35% sejfu (20% do sejfu wroga, 15% dzielone dla wrogich obrońców).',
+    usage: '!atak <nazwa_gangu_wroga> | !gang atak dolacz',
+    examples: ['!atak InnyGang', '!gang atak dolacz'],
+    cooldown: '3 sekundy',
+    requirements: 'Musisz być Bossem lub Zastępcą gangu.',
+    aliases: ['wojna'],
+    additionalInfo: [
+      'Po ataku gang broniący otrzymuje 6h tarczy ochronnej.',
+      'Wydarzenie trwa 2 minuty i zależy od siły graczy oraz poziomu ulepszenia Fach.'
+    ]
+  },
+  {
+    id: 30,
     name: 'help',
     category: 'UTILITY',
     shortDescription: 'wyswietla pomoc',

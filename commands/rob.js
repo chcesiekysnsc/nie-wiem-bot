@@ -64,6 +64,10 @@ module.exports = {
       const robberInv = ensureInventoryRecord(store.inventory, authorId);
       const victimLastActiveThreadId = victim.lastActiveThreadId || null;
 
+      if (robber.balance < 100000) {
+        return { error: `❌ Musisz posiadać minimum ${formatCurrency(100000)} w portfelu, aby móc kogoś okraść.` };
+      }
+
       if (victim.balance < 1000) {
         return { error: `❌ ${targetName} ma za mało kasy (min. ${formatCurrency(1000)} w portfelu).` };
       }

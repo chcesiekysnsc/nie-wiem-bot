@@ -62,7 +62,9 @@ module.exports = {
           levelBiznesy: 0,
           levelFach: 0,
           tributePercent: 0,
-          lastHeistTime: 0
+          lastHeistTime: 0,
+          lastAttackTime: 0,
+          shieldUntil: 0
         };
 
         return { success: true, cost };
@@ -776,6 +778,358 @@ module.exports = {
     }
 
     // ==========================================
+    // 10. GANG WAR / ATTACK (!gang atak / !gang wojna)
+    // ==========================================
+    if (sub === 'atak' || sub === 'wojna') {
+      if (!client.activeGangWars) {
+        client.activeGangWars = new Map();
+      }
+
+      const action = String(args[1] || '').toLowerCase();
+
+      if (action === 'dolacz' || action === 'd') {
+        const joinResult = await withData(store => {
+          store.profiles.gangs = store.profiles.gangs || {};
+          const user = createUser(message.author.id, store.users);
+
+          if (!user.gangId || !store.profiles.gangs[user.gangId]) {
+            return { error: '❌ Nie należysz do żadnego gangu.' };
+          }
+
+          const myGangId = user.gangId;
+
+          // Find if there is an active war involving this gang
+          let foundWar = null;
+          let foundAttackerId = null;
+          let isAttackingSide = false;
+
+          for (const [attId, war] of client.activeGangWars.entries()) {
+            if (attId === myGangId) {
+              foundWar = war;
+              foundAttackerId = attId;
+              isAttackingSide = true;
+              break;
+            } else if (war.defenderGangId === myGangId) {
+              foundWar = war;
+              foundAttackerId = attId;
+              isAttackingSide = false;
+              break;
+            }
+          }
+
+          if (!foundWar) {
+            return { error: '❌ Twój gang nie uczestniczy obecnie w żadnej wojnie.' };
+          }
+
+          if (isAttackingSide) {
+            if (foundWar.attackers.has(message.author.id)) {
+              return { error: '❌ Już dołączyłeś do ataku swojego gangu.' };
+            }
+            foundWar.attackers.add(message.author.id);
+            return { success: true, side: 'atakujących', count: foundWar.attackers.size };
+          } else {
+            if (foundWar.defenders.has(message.author.id)) {
+              return { error: '❌ Już dołączyłeś do obrony swojego gangu.' };
+            }
+            foundWar.defenders.add(message.author.id);
+            return { success: true, side: 'obrońców', count: foundWar.defenders.size };
+          }
+        });
+
+        if (joinResult.error) {
+          await message.reply(joinResult.error);
+          return;
+        }
+
+        await message.reply(`⚔️ Pomyślnie dołączyłeś do **${joinResult.side}**! Razem w zespole: **${joinResult.count}** osób.`);
+        return;
+      }
+
+      // Starting an attack
+      const targetGangNameParam = args.slice(1).join(' ').trim();
+      if (!targetGangNameParam) {
+        await message.reply('❌ Użyj: `!gang atak <nazwa_gangu_przeciwnika>` lub `!gang atak dolacz`');
+        return;
+      }
+
+      const startResult = await withData(store => {
+        store.profiles.gangs = store.profiles.gangs || {};
+        const user = createUser(message.author.id, store.users);
+
+        if (!user.gangId || !store.profiles.gangs[user.gangId]) {
+          return { error: '❌ Nie należysz do żadnego gangu.' };
+        }
+
+        const myGangId = user.gangId;
+        const myGang = store.profiles.gangs[myGangId];
+        const isBoss = user.gangRole === 'boss';
+        const isDeputy = user.gangRole === 'deputy';
+
+        if (!isBoss && !isDeputy) {
+          return { error: '❌ Tylko Boss oraz Zastępcy mogą rozpocząć wojnę gangów.' };
+        }
+
+        if (myGang.vault < 500000) {
+          return { error: `❌ Twój gang musi mieć minimum ${formatCurrency(500000)} w sejfie, aby rozpocząć wojnę.` };
+        }
+
+        // Find defending gang
+        const cleanTargetParam = targetGangNameParam.toLowerCase();
+        let targetGangId = null;
+        if (store.profiles.gangs[cleanTargetParam]) {
+          targetGangId = cleanTargetParam;
+        } else {
+          const foundGang = Object.entries(store.profiles.gangs).find(
+            ([id, g]) => g.name.toLowerCase() === cleanTargetParam
+          );
+          if (foundGang) {
+            targetGangId = foundGang[0];
+          }
+        }
+
+        if (!targetGangId || !store.profiles.gangs[targetGangId]) {
+          return { error: '❌ Nie znaleziono gangu o takiej nazwie.' };
+        }
+
+        if (targetGangId === myGangId) {
+          return { error: '❌ Nie możesz zaatakować własnego gangu.' };
+        }
+
+        const defenderGang = store.profiles.gangs[targetGangId];
+
+        // Check if either gang is currently in a war
+        if (client.activeGangWars.has(myGangId)) {
+          return { error: '❌ Twój gang już uczestniczy w wojnie!' };
+        }
+
+        for (const [attId, war] of client.activeGangWars.entries()) {
+          if (war.defenderGangId === myGangId) {
+            return { error: '❌ Twój gang jest obecnie atakowany!' };
+          }
+          if (attId === targetGangId || war.defenderGangId === targetGangId) {
+            return { error: `❌ Gang **${defenderGang.name}** jest już zaangażowany w inną wojnę!` };
+          }
+        }
+
+        // Check 24h attack cooldown
+        const now = Date.now();
+        const lastAttack = myGang.lastAttackTime || 0;
+        const cooldown = 24 * 60 * 60 * 1000;
+        if (now - lastAttack < cooldown) {
+          const diffSec = Math.ceil((cooldown - (now - lastAttack)) / 1000);
+          const hrs = Math.floor(diffSec / 3600);
+          const mins = Math.floor((diffSec % 3600) / 60);
+          const secs = diffSec % 60;
+          const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null, `${secs}s`].filter(Boolean).join(' ');
+          return { error: `⏱️ Twój gang może zaatakować ponownie za: **${leftStr}**.` };
+        }
+
+        // Check 6h defender protection shield
+        const shieldUntil = defenderGang.shieldUntil || 0;
+        if (now < shieldUntil) {
+          const diffSec = Math.ceil((shieldUntil - now) / 1000);
+          const hrs = Math.floor(diffSec / 3600);
+          const mins = Math.floor((diffSec % 3600) / 60);
+          const secs = diffSec % 60;
+          const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null, `${secs}s`].filter(Boolean).join(' ');
+          return { error: `🛡️ Gang **${defenderGang.name}** posiada aktywną tarczę ochronną. Można ich zaatakować za: **${leftStr}**.` };
+        }
+
+        // Cost is 10% of current vault balance
+        const cost = Math.floor(myGang.vault * 0.10);
+        myGang.vault -= cost;
+        myGang.lastAttackTime = now;
+
+        // Active defender's shield immediately upon initiation
+        defenderGang.shieldUntil = now + 6 * 60 * 60 * 1000;
+
+        return {
+          success: true,
+          attackerGangId: myGangId,
+          attackerGangName: myGang.name,
+          defenderGangId: targetGangId,
+          defenderGangName: defenderGang.name,
+          cost,
+          defenderVault: defenderGang.vault || 0
+        };
+      });
+
+      if (startResult.error) {
+        await message.reply(startResult.error);
+        return;
+      }
+
+      // Initialize the war
+      client.activeGangWars.set(startResult.attackerGangId, {
+        initiatorId: message.author.id,
+        defenderGangId: startResult.defenderGangId,
+        attackers: new Set([message.author.id]),
+        defenders: new Set(),
+        endTime: Date.now() + 120000
+      });
+
+      await message.reply(
+        `⚔️ **WOJNA GANGÓW: NAPAD NA SEJF!** ⚔️\n` +
+        `**${message.author.username || 'Boss'}** (Zastępca/Boss gangu **${startResult.attackerGangName}**) wypowiedział wojnę gangowi **${startResult.defenderGangName}**!\n\n` +
+        `💸 Koszt przygotowania ataku: **-${formatCurrency(startResult.cost)}** z sejfu gangu.\n` +
+        `🎯 Cel: Kradzież od **15% do 35%** wrogiego sejfu (obecnie: **${formatCurrency(startResult.defenderVault)}**).\n\n` +
+        `🚗 Członkowie obu gangów mają **2 minuty**, aby dołączyć do walki!\n` +
+        `Wpisz: \`!gang atak dolacz\`, aby wesprzeć swój gang!`
+      );
+
+      // Timer to resolve the war after 2 minutes
+      setTimeout(async () => {
+        const war = client.activeGangWars.get(startResult.attackerGangId);
+        if (!war) return;
+
+        client.activeGangWars.delete(startResult.attackerGangId);
+
+        const listAttackers = Array.from(war.attackers);
+        const listDefenders = Array.from(war.defenders);
+
+        const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+        // Resolve outcome inside withData
+        const outcome = await withData(store => {
+          store.profiles.gangs = store.profiles.gangs || {};
+          const attackerGang = store.profiles.gangs[startResult.attackerGangId];
+          const defenderGang = store.profiles.gangs[startResult.defenderGangId];
+
+          if (!attackerGang || !defenderGang) {
+            return { cancelled: true };
+          }
+
+          // Calculate Attack Power
+          let baseAttackPower = 0;
+          for (let i = 0; i < listAttackers.length; i++) {
+            baseAttackPower += randomInt(10, 50);
+          }
+          const attFachLvl = attackerGang.levelFach || 0;
+          const attackPower = Math.floor(baseAttackPower * (1 + 0.15 * attFachLvl));
+
+          // Calculate Defense Power
+          let baseDefensePower = 0;
+          if (listDefenders.length > 0) {
+            for (let i = 0; i < listDefenders.length; i++) {
+              baseDefensePower += randomInt(10, 50);
+            }
+          }
+          const defFachLvl = defenderGang.levelFach || 0;
+          const defensePower = listDefenders.length > 0 ? Math.floor(baseDefensePower * (1 + 0.15 * defFachLvl)) : 0;
+
+          // Determine Success
+          let winChance = 0.95;
+          if (defensePower > 0) {
+            winChance = attackPower / (attackPower + defensePower);
+          }
+          const success = Math.random() < winChance;
+
+          if (success) {
+            // Success Loot: 15% to 35% of defender's vault
+            const pct = randomInt(15, 35) / 100;
+            const stolenTotal = Math.floor(defenderGang.vault * pct);
+            
+            defenderGang.vault = Math.max(0, defenderGang.vault - stolenTotal);
+            
+            const vaultShare = Math.floor(stolenTotal * 0.30);
+            const membersTotalShare = stolenTotal - vaultShare;
+            const sharePerPerson = Math.floor(membersTotalShare / listAttackers.length);
+
+            attackerGang.vault += vaultShare;
+
+            for (const pid of listAttackers) {
+              const pUser = createUser(pid, store.users);
+              pUser.balance += sharePerPerson;
+            }
+
+            return {
+              success: true,
+              attackPower,
+              defensePower,
+              stolenTotal,
+              vaultShare,
+              sharePerPerson
+            };
+          } else {
+            // Failure Penalty:
+            // 20% to defender's vault
+            // 15% divided equally among defending players' wallets
+            const penaltyVault = Math.floor(attackerGang.vault * 0.20);
+            const penaltyDefenders = Math.floor(attackerGang.vault * 0.15);
+            const totalPenalty = penaltyVault + penaltyDefenders;
+
+            attackerGang.vault = Math.max(0, attackerGang.vault - totalPenalty);
+            defenderGang.vault += penaltyVault;
+
+            let sharePerDefender = 0;
+            if (listDefenders.length > 0) {
+              sharePerDefender = Math.floor(penaltyDefenders / listDefenders.length);
+              for (const pid of listDefenders) {
+                const pUser = createUser(pid, store.users);
+                pUser.balance += sharePerDefender;
+              }
+            } else {
+              // If there were no defending players checked in, the 15% goes to defender's vault
+              defenderGang.vault += penaltyDefenders;
+            }
+
+            return {
+              success: false,
+              attackPower,
+              defensePower,
+              penaltyVault,
+              penaltyDefenders,
+              sharePerDefender,
+              totalPenalty
+            };
+          }
+        });
+
+        if (outcome.cancelled) return;
+
+        // Resolve names for notification
+        const getNamesString = async (ids) => {
+          const namesList = await Promise.all(ids.map(async id => {
+            if (client.userNames.has(id)) return client.userNames.get(id);
+            return `Gracz_${id.slice(-6)}`;
+          }));
+          return namesList.join(', ');
+        };
+
+        const attackerNames = await getNamesString(listAttackers);
+        const defenderNames = listDefenders.length > 0 ? await getNamesString(listDefenders) : 'Brak';
+
+        if (outcome.success) {
+          await message.reply(
+            `⚔️ **WOJNA GANGÓW ZAKOŃCZONA SUKCESEM!** ⚔️\n` +
+            `Gang **${startResult.attackerGangName}** zniszczył obronę gangu **${startResult.defenderGangName}**!\n\n` +
+            `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
+            `💰 **ŁUP WOJENNY:**\n` +
+            `• Skradziono z wrogiego sejfu: **${formatCurrency(outcome.stolenTotal)}**\n` +
+            `• Trafiło do sejfu Waszego gangu (30%): **+${formatCurrency(outcome.vaultShare)}**\n` +
+            `• Każdy uczestnik ataku (**${attackerNames}**) otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!`
+          );
+        } else {
+          const defenderDistribution = listDefenders.length > 0 
+            ? `Każdy obrońca (**${defenderNames}**) otrzymuje: **+${formatCurrency(outcome.sharePerDefender)}** do portfela!`
+            : `Ponieważ nikt nie bronił gangu osobiście, całe **${formatCurrency(outcome.totalPenalty)}** zasiliło sejf broniących!`;
+
+          await message.reply(
+            `🛡️ **ATAK ODPARTY! OBRONA GÓRĄ!** 🛡️\n` +
+            `Gang **${startResult.defenderGangName}** skutecznie obronił swój skarbiec przed gangiem **${startResult.attackerGangName}**!\n\n` +
+            `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
+            `💸 **KONSEKWENCJE PORAŻKI:**\n` +
+            `• Gang szturmujący traci łącznie **${formatCurrency(outcome.totalPenalty)}** ze swojego sejfu!\n` +
+            `• Sejf obrońców zyskuje: **+${formatCurrency(outcome.penaltyVault)}**\n` +
+            `• ${defenderDistribution}`
+          );
+        }
+      }, 120000).unref();
+
+      return;
+    }
+
+    // ==========================================
     // 11. GANG INFO (DEFAULT)
     // ==========================================
     // info
@@ -805,7 +1159,7 @@ module.exports = {
     let targetParam = null;
     if (sub === 'info') {
       targetParam = args.slice(1).join(' ').trim() || null;
-    } else if (!['stworz', 'zapros', 'dolacz', 'akceptuj', 'awans', 'wyrzuc', 'opusc', 'wplac', 'wyplac', 'ulepsz', 'skok', 'haracz'].includes(sub)) {
+    } else if (!['stworz', 'zapros', 'dolacz', 'akceptuj', 'awans', 'wyrzuc', 'opusc', 'wplac', 'wyplac', 'ulepsz', 'skok', 'haracz', 'atak', 'wojna'].includes(sub)) {
       targetParam = args.join(' ').trim() || null;
     }
 
@@ -871,7 +1225,9 @@ module.exports = {
         levelBiznesy: gang.levelBiznesy || 0,
         levelFach: gang.levelFach || 0,
         tributePercent: gang.tributePercent || 0,
-        deposits: gang.deposits || {}
+        deposits: gang.deposits || {},
+        lastAttackTime: gang.lastAttackTime || 0,
+        shieldUntil: gang.shieldUntil || 0
       };
     });
 
@@ -901,12 +1257,34 @@ module.exports = {
     bonusesStr += `2. 📈 Biznesy (Praca): **+${bizPerc}%** (Lvl ${infoResult.levelBiznesy}/3)\n`;
     bonusesStr += `3. 🥷 Fach (Kradzieże): **+${fachPerc}%** (Lvl ${infoResult.levelFach}/3)`;
 
+    let statusStr = '';
+    const now = Date.now();
+    if (infoResult.shieldUntil && now < infoResult.shieldUntil) {
+      const leftSec = Math.ceil((infoResult.shieldUntil - now) / 1000);
+      const hrs = Math.floor(leftSec / 3600);
+      const mins = Math.floor((leftSec % 3600) / 60);
+      const secs = leftSec % 60;
+      const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null, `${secs}s`].filter(Boolean).join(' ');
+      statusStr += `🛡️ Tarcza ochronna: **Aktywna (${leftStr})**\n`;
+    }
+    if (infoResult.lastAttackTime && now - infoResult.lastAttackTime < 24 * 60 * 60 * 1000) {
+      const leftSec = Math.ceil((24 * 60 * 60 * 1000 - (now - infoResult.lastAttackTime)) / 1000);
+      const hrs = Math.floor(leftSec / 3600);
+      const mins = Math.floor((leftSec % 3600) / 60);
+      const secs = leftSec % 60;
+      const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null, `${secs}s`].filter(Boolean).join(' ');
+      statusStr += `⚔️ Gotowość do ataku: **Za ${leftStr}**\n`;
+    } else {
+      statusStr += `⚔️ Gotowość do ataku: **Gotowy**\n`;
+    }
+
     await message.reply(
       `👥 **GANG: ${infoResult.name.toUpperCase()}** 👥\n` +
       `👑 Boss: **${bossName}**\n` +
       `⭐ Zastępcy: **${deputyNames}**\n` +
       `💰 Sejf gangu: **${formatCurrency(infoResult.vault)}**\n` +
-      `💸 Haracz gangu: **${infoResult.tributePercent}%**\n\n` +
+      `💸 Haracz gangu: **${infoResult.tributePercent}%**\n` +
+      (statusStr ? statusStr + `\n` : '') +
       `🛡️ **Ulepszenia i bonusy:**\n${bonusesStr}\n\n` +
       `👥 **Członkowie:**\n${memberNames}`
     );

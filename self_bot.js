@@ -25,6 +25,16 @@ function levenshtein(a, b) {
   return dp[m][n];
 }
 
+function normalizeText(str) {
+  return String(str || '')
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ł/g, "l")
+    .replace(/Ł/g, "l");
+}
+
 function findClosestCommand(name, commands) {
   let best = null, bestDist = Infinity;
   const seen = new Set();
@@ -405,6 +415,61 @@ login({ appState }, (loginErr, api) => {
   // Uruchom timer reakcji
   startReactionTimer();
 
+  // System Zgadnij Kraj (flagi) co 10-24 godzin
+  function startFlagTimer() {
+    const minDelay = 10 * 60 * 60 * 1000;
+    const maxDelay = 24 * 60 * 60 * 1000;
+    const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+
+    setTimeout(async () => {
+      try {
+        if (client.api && client.activeThreadIds.size > 0) {
+          const targets = Array.from(client.activeThreadIds);
+
+          if (!client.activeFlags) {
+            client.activeFlags = new Map();
+          }
+
+          const flagaCmd = require('./commands/flaga');
+          const flagsList = flagaCmd.flagsList;
+
+          for (const threadId of targets) {
+            const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
+            const prize = Math.floor(Math.random() * (200000 - 20000 + 1)) + 20000;
+
+            client.activeFlags.set(threadId, {
+              emoji: randomFlag.emoji,
+              answers: randomFlag.answers,
+              countryName: randomFlag.name,
+              prize,
+              active: true,
+              timestamp: Date.now()
+            });
+
+            const announceMsg = `🏳️ **ZGADNIJ KRAJ** 🏳️\nJaki kraj reprezentuje ta flaga?\n\n👉 **${randomFlag.emoji}**\n\n💰 Nagroda: **💰 ${prize.toLocaleString()}**!\n⏱️ Masz 5 minut na odpowiedź.`;
+            client.api.sendMessage(announceMsg, threadId);
+
+            // Auto-cleanup po 5 minutach
+            setTimeout(() => {
+              const game = client.activeFlags.get(threadId);
+              if (game && game.emoji === randomFlag.emoji && game.active) {
+                client.activeFlags.delete(threadId);
+                client.api.sendMessage(`⌛ **ZGADNIJ KRAJ** ⌛\nCzas minął! Nikt nie zgadł flagi **${randomFlag.emoji}** (${randomFlag.name}) na czas.`, threadId);
+              }
+            }, 5 * 60 * 1000).unref();
+          }
+        }
+      } catch (err) {
+        console.error('[FLAGS] Błąd podczas uruchamiania zgadywanki flag:', err);
+      }
+
+      startFlagTimer();
+    }, delay);
+  }
+
+  // Uruchom timer flag
+  startFlagTimer();
+
   api.setOptions({
     listenEvents: true,
     selfListen: false,
@@ -462,6 +527,33 @@ login({ appState }, (loginErr, api) => {
         const replyMsg = `🎉 **SZYBKIE PALCE** 🎉\nGratulacje **${winnerName}**! Jako pierwszy przepisałeś kod i wygrywasz **+💰 ${prize.toLocaleString()}**!`;
         api.sendMessage(replyMsg, threadId, () => {}, messageId);
         return; // Nie przetwarzaj dalej jako komendy
+      }
+    }
+
+    // Interceptor dla Zgadnij Kraj (flagi)
+    if (client.activeFlags) {
+      const flagGame = client.activeFlags.get(threadId);
+      if (flagGame && flagGame.active) {
+        const normalizedInput = normalizeText(text);
+        const isCorrect = flagGame.answers.some(ans => normalizeText(ans) === normalizedInput);
+
+        if (isCorrect) {
+          flagGame.active = false;
+          client.activeFlags.delete(threadId);
+
+          const prize = flagGame.prize;
+          const winnerId = senderId;
+          const winnerName = await client.resolveUserName(api, winnerId);
+
+          await withData(store => {
+            const u = createUser(winnerId, store.users);
+            u.balance = (u.balance || 0) + prize;
+          });
+
+          const replyMsg = `🎉 **ZGADNIJ KRAJ** 🎉\nGratulacje **${winnerName}**! Poprawna odpowiedź to **${flagGame.countryName}**! Wygrywasz **+💰 ${prize.toLocaleString()}**!`;
+          api.sendMessage(replyMsg, threadId, () => {}, messageId);
+          return; // Nie przetwarzaj dalej jako komendy
+        }
       }
     }
 
