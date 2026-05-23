@@ -76,7 +76,9 @@ module.exports = {
       bio: '',
       badges: [],
       marriedTo: null,
-      dailyCooldown: 0
+      dailyCooldown: 0,
+      messageCount: 0,
+      groupMessages: {}
     },
     maxBet: 100000,
     dailyMin: 900,

@@ -12,16 +12,29 @@ const { createUser, withData } = require('../utils/storage');
 
 function downloadImage(url, dest) {
   return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(dest);
-    https.get(url, (response) => {
-      response.pipe(file);
-      file.on('finish', () => {
-        file.close(resolve);
+    function get(url) {
+      https.get(url, (response) => {
+        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+          return get(response.headers.location);
+        }
+        if (response.statusCode !== 200) {
+          return reject(new Error(`Failed to download: Status Code ${response.statusCode}`));
+        }
+        const file = fs.createWriteStream(dest);
+        response.pipe(file);
+        file.on('finish', () => {
+          file.close(resolve);
+        });
+        file.on('error', (err) => {
+          fs.unlink(dest, () => {});
+          reject(err);
+        });
+      }).on('error', (err) => {
+        fs.unlink(dest, () => {});
+        reject(err);
       });
-    }).on('error', (err) => {
-      fs.unlink(dest, () => {});
-      reject(err);
-    });
+    }
+    get(url);
   });
 }
 
@@ -42,7 +55,7 @@ module.exports = {
     }
 
     let username = `Uzytkownik_${targetId.slice(-6)}`;
-    let avatarUrl = '';
+    const avatarUrl = `https://graph.facebook.com/${targetId}/picture?width=500&height=500`;
 
     if (client.api && typeof client.api.getUserInfo === 'function') {
       try {
@@ -51,7 +64,7 @@ module.exports = {
             if (!err && ret && ret[targetId]) {
               const name = ret[targetId].name;
               client.userNames.set(targetId, name);
-              resolve({ name, thumbSrc: ret[targetId].thumbSrc });
+              resolve({ name });
             } else {
               resolve(null);
             }
@@ -59,12 +72,11 @@ module.exports = {
         });
         if (userInfo) {
           username = userInfo.name;
-          avatarUrl = userInfo.thumbSrc || '';
         }
       } catch (_) {}
     }
 
-    if (!avatarUrl && client.userNames.has(targetId)) {
+    if (client.userNames.has(targetId)) {
       username = client.userNames.get(targetId);
     }
 
@@ -78,6 +90,9 @@ module.exports = {
 
       const rankIndex = sortedUsers.findIndex(u => u.id === targetId);
 
+      const threadId = message.guild?.id || message.rawEvent?.threadID;
+      const groupSpecificCount = (user.groupMessages && user.groupMessages[threadId]) || 0;
+
       return {
         globalRank: rankIndex !== -1 ? rankIndex + 1 : null,
         profileData: {
@@ -89,7 +104,9 @@ module.exports = {
           losses: user.losses || 0,
           badges: [...(user.badges || [])],
           marriedTo: user.marriedTo,
-          commandsUsed: user.commandsUsed || 0
+          commandsUsed: user.commandsUsed || 0,
+          messageCount: user.messageCount || 0,
+          groupSpecificCount
         }
       };
     });
@@ -126,6 +143,7 @@ module.exports = {
       `🆔 ID: \`${targetId}\`\n` +
       `👛 Portfel: ${formatCurrency(profileData.balance)} | 🏦 Bank: ${formatCurrency(profileData.bank)}\n` +
       `🎮 Gry: ${formatNumber(profileData.gamesPlayed)} | ⌨️ Komendy: ${formatNumber(profileData.commandsUsed)}\n` +
+      `💬 Wiadomości: **${formatNumber(profileData.messageCount)}** (**${formatNumber(profileData.groupSpecificCount)}** na tej grupie)\n` +
       `📈 Wygrane: **${formatNumber(profileData.wins)}** | 📉 Przegrane: **${formatNumber(profileData.losses)}**\n` +
       `🏆 Poziom: ${profileData.level}\n` +
       `💍 Małżeństwo: **${partnerName}**\n` +

@@ -515,6 +515,17 @@ login({ appState }, (loginErr, api) => {
     const messageId = event.messageID;
 
     client.lastThreadId = threadId;
+
+    const isGroup = threadId && threadId !== senderId;
+    if (isGroup) {
+      await withData(store => {
+        const u = createUser(senderId, store.users);
+        u.messageCount = (u.messageCount || 0) + 1;
+        u.groupMessages = u.groupMessages || {};
+        u.groupMessages[threadId] = (u.groupMessages[threadId] || 0) + 1;
+      });
+    }
+
     if (threadId) {
       if (!client.activeThreadIds.has(threadId)) {
         client.activeThreadIds.add(threadId);

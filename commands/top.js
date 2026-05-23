@@ -33,6 +33,34 @@ module.exports = {
 
     const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
 
+    if (sub === 'wiadomosci' || sub === 'wiadomości') {
+      const topUsers = await withData(store => {
+        return Object.entries(store.users || {})
+          .map(([id, u]) => {
+            const count = (u.groupMessages && u.groupMessages[threadId]) || 0;
+            return { id, count };
+          })
+          .filter(u => u.count > 0)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+      });
+
+      const medals10 = ['🥇', '🥈', '🥉', '4.', '5.', '6.', '7.', '8.', '9.', '10.'];
+      const lines = await Promise.all(
+        topUsers.map(async (u, i) => {
+          const name = await getName(u.id);
+          return `${medals10[i]} **${name}** — ${formatNumber(u.count)} wiadomości`;
+        })
+      );
+
+      const responseText = 
+        `🏆 **Ranking Wiadomości na tej grupie (Top 10)**\n` +
+        `${lines.length ? lines.join('\n') : 'Brak danych o wiadomościach na tej grupie.'}`;
+
+      await message.reply(responseText);
+      return;
+    }
+
     if (sub === 'gang' || sub === 'gangi' || sub === 'ganki') {
       const gangsList = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};

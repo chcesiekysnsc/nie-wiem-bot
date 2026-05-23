@@ -151,7 +151,7 @@ function sanitizeUser(user) {
     ...(user || {})
   };
 
-  merged.balance = Math.max(0, sanitizeInteger(merged.balance, base.balance));
+  merged.balance = sanitizeInteger(merged.balance, base.balance);
   merged.bank = Math.max(0, sanitizeInteger(merged.bank, base.bank));
   merged.level = Math.max(1, sanitizeInteger(merged.level, base.level));
   merged.xp = Math.max(0, sanitizeInteger(merged.xp, base.xp));
