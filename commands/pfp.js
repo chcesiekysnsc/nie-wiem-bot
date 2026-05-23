@@ -57,26 +57,65 @@ module.exports = {
     let username = `Uzytkownik_${targetId.slice(-6)}`;
     let avatarUrl = `https://graph.facebook.com/${targetId}/picture?width=500&height=500`;
 
-    if (client.api && typeof client.api.getUserInfo === 'function') {
-      try {
-        const userInfo = await new Promise((resolve) => {
-          client.api.getUserInfo(targetId, (err, ret) => {
-            if (!err && ret && ret[targetId]) {
-              const name = ret[targetId].name;
-              client.userNames.set(targetId, name);
-              resolve({ name, thumbSrc: ret[targetId].thumbSrc });
-            } else {
-              resolve(null);
-            }
+    if (client.api) {
+      if (typeof client.api.getUserInfo === 'function') {
+        try {
+          const userInfo = await new Promise((resolve) => {
+            client.api.getUserInfo(targetId, (err, ret) => {
+              if (!err && ret && ret[targetId]) {
+                const name = ret[targetId].name;
+                client.userNames.set(targetId, name);
+                resolve({ name, thumbSrc: ret[targetId].thumbSrc });
+              } else {
+                resolve(null);
+              }
+            });
           });
-        });
-        if (userInfo) {
-          username = userInfo.name;
-          if (userInfo.thumbSrc) {
-            avatarUrl = userInfo.thumbSrc;
+          if (userInfo) {
+            username = userInfo.name;
+            if (userInfo.thumbSrc) {
+              avatarUrl = userInfo.thumbSrc;
+            }
           }
-        }
-      } catch (_) {}
+        } catch (_) {}
+      }
+
+      if (typeof client.api.httpPost === 'function') {
+        try {
+          const highResUrl = await new Promise((resolve) => {
+            const myUid = typeof client.api.getCurrentUserID === 'function' ? client.api.getCurrentUserID() : '';
+            const form = {
+              av: myUid,
+              fb_api_caller_class: 'RelayModern',
+              fb_api_req_friendly_name: 'CometHovercardQueryRendererQuery',
+              server_timestamps: true,
+              doc_id: '24418640587785718',
+              variables: JSON.stringify({
+                actionBarRenderLocation: "WWW_COMET_HOVERCARD",
+                context: "DEFAULT",
+                entityID: targetId,
+                scale: 4,
+                __relay_internal__pv__WorkCometIsEmployeeGKProviderrelayprovider: false
+              })
+            };
+
+            client.api.httpPost('https://www.facebook.com/api/graphql/', form, (err, resText) => {
+              if (err) return resolve(null);
+              try {
+                const cleanText = String(resText || '').replace('for (;;);', '');
+                const res = JSON.parse(cleanText);
+                const uri = res?.data?.node?.comet_hovercard_renderer?.user?.profile_picture?.uri;
+                resolve(uri || null);
+              } catch (_) {
+                resolve(null);
+              }
+            });
+          });
+          if (highResUrl) {
+            avatarUrl = highResUrl;
+          }
+        } catch (_) {}
+      }
     }
 
     if (client.userNames.has(targetId)) {
