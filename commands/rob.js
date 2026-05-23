@@ -76,7 +76,7 @@ module.exports = {
       if (victim.bombaActive) {
         victim.bombaActive = false; // zużyj aktywowaną bombę
         const fine = Math.floor(robber.balance * 0.40);
-        robber.balance = Math.max(0, robber.balance - fine);
+        robber.balance -= fine;
         victim.balance += fine;
 
         refreshBadges(robber, robberInv);

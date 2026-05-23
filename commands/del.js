@@ -41,7 +41,7 @@ module.exports = {
       const user = createUser(targetId, store.users);
       const inventory = ensureInventoryRecord(store.inventory, targetId);
 
-      user.balance = Math.max(0, user.balance - amount);
+      user.balance -= amount;
       refreshBadges(user, inventory);
 
       return { balance: user.balance };

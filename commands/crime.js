@@ -66,7 +66,7 @@ module.exports = {
           text: successLines[Math.floor(Math.random() * successLines.length)]
         };
       } else {
-        user.balance = Math.max(0, user.balance - amount);
+        user.balance -= amount;
         recordGame(user, -amount);
         refreshBadges(user, inventory);
         return {
