@@ -221,6 +221,20 @@ login({ appState }, (loginErr, api) => {
   }
 
   console.log('[SELF-BOT] Zalogowano pomyslnie! Rozpoczynanie nasluchiwania wiadomosci...');
+  
+  // Wrap api.sendMessage to add typing indicator and 1s delay
+  const originalSendMessage = api.sendMessage;
+  api.sendMessage = function(message, threadID, callback, messageID) {
+    if (!threadID) {
+      return originalSendMessage.call(api, message, threadID, callback, messageID);
+    }
+    api.sendTypingIndicator(threadID, () => {
+      setTimeout(() => {
+        originalSendMessage.call(api, message, threadID, callback, messageID);
+      }, 1000);
+    });
+  };
+
   client.api = api;
   client.lastLotteryDraw = Date.now();
 
