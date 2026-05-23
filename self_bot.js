@@ -228,11 +228,14 @@ login({ appState }, (loginErr, api) => {
     if (!threadID) {
       return originalSendMessage.call(api, message, threadID, callback, messageID);
     }
-    api.sendTypingIndicator(threadID, () => {
-      setTimeout(() => {
-        originalSendMessage.call(api, message, threadID, callback, messageID);
-      }, 1000);
-    });
+    try {
+      api.sendTypingIndicator(threadID, () => {});
+    } catch (err) {
+      console.error('[SELF-BOT] Blad typing indicatora:', err);
+    }
+    setTimeout(() => {
+      originalSendMessage.call(api, message, threadID, callback, messageID);
+    }, 1000);
   };
 
   client.api = api;
