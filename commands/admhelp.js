@@ -15,7 +15,8 @@ const adminCommands = [
   { num: 12, cmd: '!ublgrp <nr/ID grupy>', opis: 'Odblokowuje bota na wybranej grupie.' },
   { num: 13, cmd: '!reakcja', opis: 'Ręcznie wywołuje grę Szybkie Palce na obecnej grupie.' },
   { num: 14, cmd: '!loteriastart', opis: 'Ręcznie uruchamia losowanie loterii.' },
-  { num: 15, cmd: '!admhelp', opis: 'Wyświetla tę pomoc.' }
+  { num: 15, cmd: '!flaga', opis: 'Ręcznie wywołuje grę Zgadnij Kraj (flagi) na obecnej grupie.' },
+  { num: 16, cmd: '!admhelp', opis: 'Wyświetla tę pomoc.' }
 ];
 
 module.exports = {

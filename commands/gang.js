@@ -846,9 +846,9 @@ module.exports = {
       }
 
       // Starting an attack
-      const targetGangNameParam = args.slice(1).join(' ').trim();
-      if (!targetGangNameParam) {
-        await message.reply('❌ Użyj: `!gang atak <nazwa_gangu_przeciwnika>` lub `!gang atak dolacz`');
+      const targetParam = args.slice(1).join(' ').trim();
+      if (!targetParam) {
+        await message.reply('❌ Użyj: `!gang atak @osoba` lub `!gang atak <ID>` lub `!gang atak dolacz`');
         return;
       }
 
@@ -873,23 +873,25 @@ module.exports = {
           return { error: `❌ Twój gang musi mieć minimum ${formatCurrency(500000)} w sejfie, aby rozpocząć wojnę.` };
         }
 
-        // Find defending gang
-        const cleanTargetParam = targetGangNameParam.toLowerCase();
-        let targetGangId = null;
-        if (store.profiles.gangs[cleanTargetParam]) {
-          targetGangId = cleanTargetParam;
-        } else {
-          const foundGang = Object.entries(store.profiles.gangs).find(
-            ([id, g]) => g.name.toLowerCase() === cleanTargetParam
-          );
-          if (foundGang) {
-            targetGangId = foundGang[0];
-          }
+        // Resolve target user
+        let targetId = null;
+        const mentioned = message.mentions.users.first();
+        if (mentioned) {
+          targetId = mentioned.id;
+        } else if (/^\d+$/.test(targetParam) && targetParam.length >= 8) {
+          targetId = targetParam;
         }
 
-        if (!targetGangId || !store.profiles.gangs[targetGangId]) {
-          return { error: '❌ Nie znaleziono gangu o takiej nazwie.' };
+        if (!targetId) {
+          return { error: '❌ Musisz oznaczyć osobę (@osoba) lub podać jej ID, aby zaatakować jej gang.' };
         }
+
+        const targetUser = store.users[targetId];
+        if (!targetUser || !targetUser.gangId) {
+          return { error: '❌ Ta osoba nie należy do żadnego gangu.' };
+        }
+
+        const targetGangId = targetUser.gangId;
 
         if (targetGangId === myGangId) {
           return { error: '❌ Nie możesz zaatakować własnego gangu.' };
