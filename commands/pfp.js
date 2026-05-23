@@ -55,7 +55,7 @@ module.exports = {
     }
 
     let username = `Uzytkownik_${targetId.slice(-6)}`;
-    const avatarUrl = `https://graph.facebook.com/${targetId}/picture?width=500&height=500`;
+    let avatarUrl = `https://graph.facebook.com/${targetId}/picture?width=500&height=500`;
 
     if (client.api && typeof client.api.getUserInfo === 'function') {
       try {
@@ -64,7 +64,7 @@ module.exports = {
             if (!err && ret && ret[targetId]) {
               const name = ret[targetId].name;
               client.userNames.set(targetId, name);
-              resolve({ name });
+              resolve({ name, thumbSrc: ret[targetId].thumbSrc });
             } else {
               resolve(null);
             }
@@ -72,6 +72,9 @@ module.exports = {
         });
         if (userInfo) {
           username = userInfo.name;
+          if (userInfo.thumbSrc) {
+            avatarUrl = userInfo.thumbSrc;
+          }
         }
       } catch (_) {}
     }

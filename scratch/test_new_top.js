@@ -43,6 +43,9 @@ async function testRanking() {
   console.log('Testing: !top wiadomosci');
   await top.execute(mockClient, mockMessage, ['wiadomosci']);
 
+  console.log('Testing: !top msg');
+  await top.execute(mockClient, mockMessage, ['msg']);
+
   console.log('Testing: !pfp for Kamil (user_msg_1)');
   await pfp.execute(mockClient, mockMessage, []);
 

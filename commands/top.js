@@ -33,7 +33,7 @@ module.exports = {
 
     const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
 
-    if (sub === 'wiadomosci' || sub === 'wiadomości') {
+    if (sub === 'wiadomosci' || sub === 'wiadomości' || sub === 'msg') {
       const topUsers = await withData(store => {
         return Object.entries(store.users || {})
           .map(([id, u]) => {
