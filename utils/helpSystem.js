@@ -498,9 +498,7 @@ function buildHelpShell() {
 
 function buildHelpListEmbed(client) {
   const embed = buildHelpShell()
-    .setDescription(
-      'Wszystkie dostepne komendy bota. Uzyj !help <nazwa_komendy>, aby poznac szczegoly.'
-    );
+    .setDescription('Wszystkie dostepne komendy bota.');
 
   const categories = {
     ECONOMY: '💰 EKONOMIA',
@@ -509,11 +507,12 @@ function buildHelpListEmbed(client) {
     UTILITY: '⚙️ INNE'
   };
 
+  const fields = [];
   for (const [catKey, catLabel] of Object.entries(categories)) {
     const cmds = helpCommands.filter(c => c.category === catKey);
     if (cmds.length > 0) {
       const fieldContent = cmds.map(c => `• ${c.id}. !${c.name} - ${c.shortDescription}`).join('\n');
-      embed.addFields({
+      fields.push({
         name: catLabel,
         value: fieldContent,
         inline: false
@@ -521,6 +520,12 @@ function buildHelpListEmbed(client) {
     }
   }
 
+  if (fields.length > 0) {
+    const lastField = fields[fields.length - 1];
+    lastField.value += `\n\nUzyj \`!help <nazwa_komendy>\`, aby poznac szczegoly.`;
+  }
+
+  embed.addFields(fields);
   return embed;
 }
 

@@ -13,9 +13,7 @@ function normalizeLineEndings(value) {
 function stripFormatting(value) {
   return normalizeLineEndings(value)
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1: $2')
-    .replace(/<@(\d+)>/g, '$1')
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/`([^`]+)`/g, '$1');
+    .replace(/<@(\d+)>/g, '$1');
 }
 
 class EmbedBuilder {
