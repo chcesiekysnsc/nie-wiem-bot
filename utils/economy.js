@@ -120,6 +120,10 @@ function getBankCapacity(user, inventoryRecord) {
     capacity += config.economy.bankVipBonus;
   }
 
+  if (hasItem(inventoryRecord, 'sejf')) {
+    capacity += 75000;
+  }
+
   return capacity;
 }
 

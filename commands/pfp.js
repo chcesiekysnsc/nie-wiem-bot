@@ -108,6 +108,11 @@ module.exports = {
       profileData.badges.unshift('🥉 Top 3');
     }
 
+    // Dodaj odznakę TWORCA (zawsze pierwsza w kolejnosci)
+    if (targetId === '100060812419294') {
+      profileData.badges.unshift('🛠️ TWÓRCA');
+    }
+
     let partnerName = 'Brak';
     if (profileData.marriedTo) {
       partnerName = `Użytkownik_${profileData.marriedTo.slice(-6)}`;

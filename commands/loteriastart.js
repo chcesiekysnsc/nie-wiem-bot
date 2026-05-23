@@ -56,11 +56,11 @@ module.exports = {
           `🎟️ **LOSOWANIE LOTERII**\n` +
           `Łączna liczba biletów w grze: **${drawResult.totalTickets}**\n` +
           `Wygrywa: **${winnerName}**! 🎉\n` +
-          `Nagroda główna: **+${drawResult.totalPrize.toLocaleString()} Coins** została dodana do portfela!\n` +
+          `Nagroda główna: **+${drawResult.totalPrize.toLocaleString()} viccoinów** została dodana do portfela!\n` +
           `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą \`!sklep 4\`.`;
 
         client.api.sendMessage(announceMsg, client.lastThreadId);
-        await message.reply(`✅ Losowanie wykonane!\n🎉 Zwycięzca: **${winnerName}**\n💰 Wygrana: **${drawResult.totalPrize.toLocaleString()} Coins**`);
+        await message.reply(`✅ Losowanie wykonane!\n🎉 Zwycięzca: **${winnerName}**\n💰 Wygrana: **${drawResult.totalPrize.toLocaleString()} viccoinów**`);
       } else {
         await message.reply('⚠️ Brak biletów w grze. Niemożliwe przeprowadzenie losowania.');
       }

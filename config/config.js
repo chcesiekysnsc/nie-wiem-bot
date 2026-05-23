@@ -137,6 +137,13 @@ module.exports = {
       price: 100000,
       description: 'Pułapka na złodzieja: kradnie 40% jego portfela i nakłada na niego 30 minut cooldownu.',
       type: 'stackable'
+    },
+    sejf: {
+      name: 'Ulepszenie Banku',
+      emoji: '🏦',
+      price: 150000,
+      description: 'Jednorazowy zakup: zwiększa pojemność banku o 75 000.',
+      type: 'permanent'
     }
   },
   badges: {

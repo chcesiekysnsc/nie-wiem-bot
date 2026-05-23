@@ -242,6 +242,23 @@ async function withData(callback) {
       logs: loadData('logs')
     };
 
+    // Oblicz odsetki bankowe co 12h (2% do salda)
+    store.profiles.lastInterestPayout = store.profiles.lastInterestPayout || Date.now();
+    const intervalMs = 12 * 60 * 60 * 1000;
+    let timePassed = Date.now() - store.profiles.lastInterestPayout;
+    while (timePassed >= intervalMs) {
+      for (const [userId, user] of Object.entries(store.users)) {
+        if (user && user.bank > 0) {
+          const interest = Math.floor(user.bank * 0.02);
+          if (interest > 0) {
+            user.balance = (user.balance || 0) + interest;
+          }
+        }
+      }
+      store.profiles.lastInterestPayout += intervalMs;
+      timePassed = Date.now() - store.profiles.lastInterestPayout;
+    }
+
     const result = await callback(store);
 
     saveData('users', store.users);

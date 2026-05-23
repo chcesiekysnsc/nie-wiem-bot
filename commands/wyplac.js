@@ -20,7 +20,7 @@ module.exports = {
       }
 
       if (amount > user.bank) {
-        return { error: '❌ Nie masz tylu coinsów w banku.' };
+        return { error: '❌ Nie masz tylu viccoinów w banku.' };
       }
 
       user.bank -= amount;

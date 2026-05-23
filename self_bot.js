@@ -277,7 +277,7 @@ login({ appState }, (loginErr, api) => {
             `🎟️ **LOSOWANIE LOTERII**\n` +
             `Łączna liczba biletów w grze: **${drawResult.totalTickets}**\n` +
             `Wygrywa: **${winnerName}**! 🎉\n` +
-            `Nagroda główna: **+${drawResult.totalPrize.toLocaleString()} Coins** została dodana do portfela!\n` +
+            `Nagroda główna: **+${drawResult.totalPrize.toLocaleString()} viccoinów** została dodana do portfela!\n` +
             `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą \`!sklep 4\`.`;
 
           const targets = Array.from(client.activeThreadIds);
@@ -334,7 +334,7 @@ login({ appState }, (loginErr, api) => {
             `📊 **POBÓR PODATKÓW**\n` +
             `Pobrano podatek w wysokości: **2% salda**\n` +
             `Liczba opodatkowanych graczy: **${result.taxedUsers}**\n` +
-            `Łączna kwota podatku: **${result.totalCollected.toLocaleString()} Coins**`;
+            `Łączna kwota podatku: **${result.totalCollected.toLocaleString()} viccoinów**`;
 
           const targets = Array.from(client.activeThreadIds);
           if (targets.length > 0) {
@@ -482,7 +482,7 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
-    if (event.type !== 'message' || !event.body) {
+    if (!['message', 'message_reply'].includes(event.type) || !event.body) {
       return;
     }
 
@@ -676,9 +676,16 @@ login({ appState }, (loginErr, api) => {
         users: {
           first: () => {
             const mentionedId = Object.keys(event.mentions || {})[0];
-            if (!mentionedId) return null;
-            const mName = client.userNames.get(mentionedId) || (event.mentions[mentionedId] || '').replace(/^@/, '');
-            return { id: mentionedId, username: mName, profile: { name: mName } };
+            if (mentionedId) {
+              const mName = client.userNames.get(mentionedId) || (event.mentions[mentionedId] || '').replace(/^@/, '');
+              return { id: mentionedId, username: mName, profile: { name: mName } };
+            }
+            if (event.type === 'message_reply' && event.messageReply && event.messageReply.senderID) {
+              const rId = event.messageReply.senderID;
+              const rName = client.userNames.get(rId) || `Uzytkownik_${rId.slice(-6)}`;
+              return { id: rId, username: rName, profile: { name: rName } };
+            }
+            return null;
           }
         }
       },
