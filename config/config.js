@@ -140,32 +140,32 @@ module.exports = {
       name: 'Brązowa Paczka',
       emoji: '🟫',
       price: 50000,
-      shortDesc: 'Lootbox: 25k–75k + 10% szans na Bilet.',
-      description: 'Otwórz komendą: !otworz brazowa\nZawartość: losowa kwota od 25 000 do 75 000 viccoinów (rozkład równomierny).\nBonus drop (10%): 🎟️ Bilet Loterii.',
+      shortDesc: 'Lootbox: 22.5k–72.5k + 10% szans na Bilet.',
+      description: 'Otwórz komendą: !otworz brazowa\nZawartość: losowa kwota od 22 500 do 72 500 viccoinów (rozkład równomierny).\nBonus drop (10%): 🎟️ Bilet Loterii.',
       type: 'stackable'
     },
     paczka_srebrna: {
       name: 'Srebrna Paczka',
       emoji: '⬜',
       price: 100000,
-      shortDesc: 'Lootbox: 75k–150k + 10% szans na przedmiot.',
-      description: 'Otwórz komendą: !otworz srebrna\nZawartość: losowa kwota od 75 000 do 150 000 viccoinów.\nBonus drop (10%): 5% szans na 🔒 Kłódkę, 5% szans na 🍺 Piwo.',
+      shortDesc: 'Lootbox: 71.25k–146.25k + 10% szans na przedmiot.',
+      description: 'Otwórz komendą: !otworz srebrna\nZawartość: losowa kwota od 71 250 do 146 250 viccoinów.\nBonus drop (10%): 5% szans na 🔒 Kłódkę, 5% szans na 🍺 Piwo.',
       type: 'stackable'
     },
     paczka_zlota: {
       name: 'Złota Paczka',
       emoji: '🟨',
       price: 200000,
-      shortDesc: 'Lootbox: 150k–250k + 10% szans na przedmiot.',
-      description: 'Otwórz komendą: !otworz zlota\nZawartość: losowa kwota od 150 000 do 250 000 viccoinów.\nBonus drop (10%): 5% na 💣 Bombę, 3% na 🔒 Kłódkę + 🍺 Piwo jednocześnie, 2% na 🎟️ Bilet.',
+      shortDesc: 'Lootbox: 145k–245k + 10% szans na przedmiot.',
+      description: 'Otwórz komendą: !otworz zlota\nZawartość: losowa kwota od 145 000 do 245 000 viccoinów.\nBonus drop (10%): 5% na 💣 Bombę, 3% na 🔒 Kłódkę + 🍺 Piwo jednocześnie, 2% na 🎟️ Bilet.',
       type: 'stackable'
     },
     paczka_diamentowa: {
       name: 'Diamentowa Paczka',
       emoji: '🟦',
       price: 500000,
-      shortDesc: 'Lootbox: 250k–750k + 10% szans na VIP/Sejf!',
-      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 250 000 do 750 000 viccoinów.\nBonus drop (10%): 5% na 👑 VIP Pass, 5% na 🏦 Ulepszenie Banku.\nJeśli już posiadasz dany przedmiot — otrzymujesz zamiennik o podobnej wartości.',
+      shortDesc: 'Lootbox: 225k–725k + 10% szans na VIP/Sejf!',
+      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 225 000 do 725 000 viccoinów.\nBonus drop (10%): 5% na 👑 VIP Pass, 5% na 🏦 Ulepszenie Banku.\nJeśli już posiadasz dany przedmiot — otrzymujesz zamiennik o podobnej wartości.',
       type: 'stackable'
     },
     // Poniższe itemy są niedostępne w sklepie — wypadają tylko z paczek

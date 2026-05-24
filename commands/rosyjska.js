@@ -179,11 +179,11 @@ module.exports = {
         if (isDead) {
           user.balance -= amount;
         } else {
-          // Payout 1.5x (zysk 50% stawki)
-          user.balance += Math.floor(amount * 0.5);
+          // Payout 1.333x (zysk 33.3% stawki)
+          user.balance += Math.floor(amount * 0.333);
         }
 
-        const net = isDead ? -amount : Math.floor(amount * 0.5);
+        const net = isDead ? -amount : Math.floor(amount * 0.333);
         recordGame(user, net);
 
         refreshBadges(user, ensureInventoryRecord(store.inventory, message.author.id));
@@ -210,7 +210,7 @@ module.exports = {
         response += `💰 Twój portfel: **${formatCurrency(result.newBalance)}**`;
       } else {
         response += `*...klik!* (Pusto. Słychać tylko suche kliknięcie iglicy)\n`;
-        response += `🏆 Udało Ci się przeżyć! Wygrywasz **+${formatCurrency(Math.floor(result.amount * 0.5))}** (zysk 50%).\n`;
+        response += `🏆 Udało Ci się przeżyć! Wygrywasz **+${formatCurrency(Math.floor(result.amount * 0.333))}** (zysk 33.3%).\n`;
         response += `💰 Twój portfel: **${formatCurrency(result.newBalance)}**`;
       }
 

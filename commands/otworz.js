@@ -17,8 +17,8 @@ const PACZKI = {
     id: 'paczka_brazowa',
     name: 'Brązowa Paczka',
     emoji: '🟫',
-    minCash: 25000,
-    maxCash: 75000,
+    minCash: 22500,
+    maxCash: 72500,
     // drops: każdy ma 'chance' w skali 1-100 (suma <= 100, reszta = brak dropu)
     drops: [
       { chance: 10, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] }
@@ -28,8 +28,8 @@ const PACZKI = {
     id: 'paczka_srebrna',
     name: 'Srebrna Paczka',
     emoji: '⬜',
-    minCash: 75000,
-    maxCash: 150000,
+    minCash: 71250,
+    maxCash: 146250,
     drops: [
       { chance: 5, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] },
       { chance: 5, items: [{ id: 'piwo',   qty: 1, label: '🍺 Piwo'   }] }
@@ -39,8 +39,8 @@ const PACZKI = {
     id: 'paczka_zlota',
     name: 'Złota Paczka',
     emoji: '🟨',
-    minCash: 150000,
-    maxCash: 250000,
+    minCash: 145000,
+    maxCash: 245000,
     drops: [
       { chance: 5, items: [{ id: 'bomba',  qty: 1, label: '💣 Bomba'  }] },
       // 3% — oba naraz
@@ -52,8 +52,8 @@ const PACZKI = {
     id: 'paczka_diamentowa',
     name: 'Diamentowa Paczka',
     emoji: '🟦',
-    minCash: 250000,
-    maxCash: 750000,
+    minCash: 225000,
+    maxCash: 725000,
     drops: [
       { chance: 5, items: [{ id: 'vip',  qty: 1, label: '👑 VIP Pass',          permanent: true }] },
       { chance: 5, items: [{ id: 'sejf', qty: 1, label: '🏦 Ulepszenie Banku',  permanent: true }] }
@@ -95,10 +95,10 @@ module.exports = {
       await message.reply(
         `📦 **System Paczek**\n` +
         `Użyj: \`!otworz <brazowa|srebrna|zlota|diamentowa>\`\n\n` +
-        `🟫 **Brązowa** (50k)    — 25 000 – 75 000 + 10% Bilet Loterii\n` +
-        `⬜ **Srebrna** (100k)   — 75 000 – 150 000 + 10% Kłódka lub Piwo\n` +
-        `🟨 **Złota** (200k)     — 150 000 – 250 000 + 10% Bomba lub Kłódka+Piwo\n` +
-        `🟦 **Diamentowa** (500k) — 250 000 – 750 000 + 10% VIP Pass lub Ulepszenie Banku\n\n` +
+        `🟫 **Brązowa** (50k)    — 22 500 – 72 500 + 10% Bilet Loterii\n` +
+        `⬜ **Srebrna** (100k)   — 71 250 – 146 250 + 10% Kłódka lub Piwo\n` +
+        `🟨 **Złota** (200k)     — 145 000 – 245 000 + 10% Bomba lub Kłódka+Piwo\n` +
+        `🟦 **Diamentowa** (500k) — 225 000 – 725 000 + 10% VIP Pass lub Ulepszenie Banku\n\n` +
         `💡 Kup paczki w sklepie: \`!sklep\``
       );
       return;
