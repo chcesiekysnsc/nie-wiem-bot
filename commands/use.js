@@ -38,6 +38,13 @@ module.exports = {
 
     const itemId = entry.id;
 
+    if (itemId.startsWith('paczka_')) {
+      const otworzCommand = require('./otworz.js');
+      const packShortName = itemId.replace('paczka_', '');
+      await otworzCommand.execute(client, message, [packShortName]);
+      return;
+    }
+
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inv = ensureInventoryRecord(store.inventory, message.author.id);

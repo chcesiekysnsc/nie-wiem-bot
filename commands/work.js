@@ -48,11 +48,14 @@ module.exports = {
       if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
         const gang = store.profiles.gangs[user.gangId];
         const tributePercent = gang.tributePercent || 0;
-        if (tributePercent > 0) {
+        const isExcluded = user.gangRole === 'boss' || user.gangRole === 'deputy';
+        if (tributePercent > 0 && !isExcluded) {
           tributeAmount = Math.floor(reward * (tributePercent / 100));
           user.balance += reward - tributeAmount;
           // Dodaj haracza do sejfu gangu i do portfela Bossa
           gang.vault += tributeAmount;
+          const bossUser = createUser(gang.bossId, store.users);
+          bossUser.balance += tributeAmount;
         } else {
           user.balance += reward;
         }

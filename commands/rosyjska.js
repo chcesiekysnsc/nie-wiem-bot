@@ -173,17 +173,17 @@ module.exports = {
           return { error: `❌ Nie masz tylu monet w portfelu. Posiadasz: ${formatCurrency(user.balance)}` };
         }
 
-        // Rosyjska ruletka: 1/6 szansy na porażkę
-        const isDead = Math.random() < (1 / 6);
+        // Rosyjska ruletka: 2/6 szansy na porażkę
+        const isDead = Math.random() < (2 / 6);
 
         if (isDead) {
           user.balance -= amount;
         } else {
-          // Payout 1.2x (zysk 20% stawki)
-          user.balance += Math.floor(amount * 0.2);
+          // Payout 1.5x (zysk 50% stawki)
+          user.balance += Math.floor(amount * 0.5);
         }
 
-        const net = isDead ? -amount : Math.floor(amount * 0.2);
+        const net = isDead ? -amount : Math.floor(amount * 0.5);
         recordGame(user, net);
 
         refreshBadges(user, ensureInventoryRecord(store.inventory, message.author.id));
@@ -202,7 +202,7 @@ module.exports = {
       }
 
       let response = `🔫 **ROSYJSKA RULETKA (Solo)** 🔫\n`;
-      response += `*Wkładasz 1 nabój do rewolweru, kręcisz bębenkiem, przykładasz lufę do skroni...*\n\n`;
+      response += `*Wkładasz 2 naboje do rewolweru, kręcisz bębenkiem, przykładasz lufę do skroni...*\n\n`;
 
       if (result.isDead) {
         response += `💥 **STRZAŁ!** Rewolwer wystrzelił!\n`;
@@ -210,7 +210,7 @@ module.exports = {
         response += `💰 Twój portfel: **${formatCurrency(result.newBalance)}**`;
       } else {
         response += `*...klik!* (Pusto. Słychać tylko suche kliknięcie iglicy)\n`;
-        response += `🏆 Udało Ci się przeżyć! Wygrywasz **+${formatCurrency(Math.floor(result.amount * 0.2))}** (zysk 20%).\n`;
+        response += `🏆 Udało Ci się przeżyć! Wygrywasz **+${formatCurrency(Math.floor(result.amount * 0.5))}** (zysk 50%).\n`;
         response += `💰 Twój portfel: **${formatCurrency(result.newBalance)}**`;
       }
 

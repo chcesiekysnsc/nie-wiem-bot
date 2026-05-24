@@ -14,12 +14,14 @@ const SHOP_ITEMS_ORDERED = Object.entries(config.shopItems).map(([id, item], i) 
   ...item
 }));
 
-// Lista sklepu — tylko nazwy, bez opisów
+// Lista sklepu — krótkie opisy, paczki jako lootbox
 function renderShopList() {
   return SHOP_ITEMS_ORDERED
     .filter(item => item.buyable !== false)
     .map(item => {
-      return `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${formatCurrency(item.price)}\n_lootbox_`;
+      const isPackage = item.id.startsWith('paczka_');
+      const desc = isPackage ? 'lootbox' : (item.shortDesc || item.description);
+      return `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${formatCurrency(item.price)}\n_${desc}_`;
     })
     .join('\n');
 }

@@ -747,7 +747,8 @@ module.exports = {
           let totalTribute = 0;
           for (const pid of listParticipants) {
             const pUser = createUser(pid, store.users);
-            const tributeAmount = Math.floor(rewardPerPerson * (tributePercent / 100));
+            const isExcluded = pUser.gangRole === 'boss' || pUser.gangRole === 'deputy';
+            const tributeAmount = (!isExcluded && tributePercent > 0) ? Math.floor(rewardPerPerson * (tributePercent / 100)) : 0;
             totalTribute += tributeAmount;
             pUser.balance += rewardPerPerson - tributeAmount;
           }
@@ -772,7 +773,7 @@ module.exports = {
         if (heistOutcome.success) {
           const tributePerPerson = Math.floor(heistOutcome.rewardPerPerson * ((heistOutcome.tributePercent || 0) / 100));
           const finalRewardPerPerson = heistOutcome.rewardPerPerson - tributePerPerson;
-          const tributeText = tributePerPerson > 0 ? `\n💰 Haracza dla gangu: **-${formatCurrency(tributePerPerson)}** na osobę` : '';
+          const tributeText = tributePerPerson > 0 ? `\n💰 Haracza dla gangu: **-${formatCurrency(tributePerPerson)}** na osobę (nie dotyczy Bossa i Zastępców)` : '';
           await message.reply(`💰 **SKOK GANGU ZAKOŃCZONY SUKCESEM!** 💰\n` +
             `Ekipa w składzie: **${names}** obrobiła bank!\n\n` +
             `💵 Całkowity łup: **${formatCurrency(heistOutcome.totalReward)}**\n` +
