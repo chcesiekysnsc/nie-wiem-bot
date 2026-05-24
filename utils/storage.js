@@ -265,9 +265,7 @@ async function withData(callback) {
       timePassed = Date.now() - store.profiles.lastInterestPayout;
     }
 
-    const result = await callback(store);
-
-    // Oblicz odsetki i auto-spłatę pożyczek (oprocntowanie co 6h, auto-spłata po 48h)
+    // Oblicz odsetki i auto-spłatę pożyczek (oprocentowanie co 6h, auto-spłata po 48h)
     for (const [userId, user] of Object.entries(store.users)) {
       if (user && user.activeLoan) {
         // 1. Oblicz odsetki co 6h
@@ -288,6 +286,8 @@ async function withData(callback) {
         }
       }
     }
+
+    const result = await callback(store);
 
     // Blacklista za ujemny stan konta przez 7 dni
     if (!store.profiles.blacklist) {
