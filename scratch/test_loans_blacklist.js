@@ -1,4 +1,5 @@
 const { withData, createUser } = require('../utils/storage');
+const { formatCurrency, msToReadable } = require('../utils/economy');
 const pfpCmd = require('../commands/pfp');
 const balCmd = require('../commands/bal');
 const dailyCmd = require('../commands/daily');
@@ -502,6 +503,142 @@ async function runTests() {
     console.log('✅ PASS: All restricted admin IDs were successfully blacklisted after violation.');
   } else {
     console.log('❌ FAIL: Blacklist cascade failed.');
+  }
+
+  // ==========================================
+  // TEST 10: Kick / Wyrzuc Command
+  // ==========================================
+  console.log('\n--- TEST 10: Kick Command Permissions & Protection ---');
+  const kickCmd = require('../commands/kick');
+  const msgKick = createMockMsg(creatorId); // Creator runs it
+  msgKick.mentions.users.first = () => ({ id: testUser2, username: 'Borrower_Adam' });
+
+  // Mock FCA API functions
+  let userWasRemoved = false;
+  mockClient.api.getCurrentUserID = () => 'bot_user_id';
+  mockClient.api.getThreadInfo = (threadId, callback) => {
+    callback(null, {
+      adminIDs: ['bot_user_id', creatorId] // Bot and Creator are admins
+    });
+  };
+  mockClient.api.removeUserFromGroup = (targetId, threadId, callback) => {
+    userWasRemoved = true;
+    callback(null);
+  };
+
+  // 1. Kick should succeed
+  await kickCmd.execute(mockClient, msgKick, [testUser2]);
+  console.log('Success kick reply:', msgKick.getReply());
+  if (userWasRemoved && String(msgKick.getReply() || '').includes('Usunięto użytkownika')) {
+    console.log('✅ PASS: User kicked successfully by authorized sender.');
+  } else {
+    console.log('❌ FAIL: User was not kicked.');
+  }
+
+  // 2. Protect creator from being kicked
+  userWasRemoved = false;
+  const msgKickCreator = createMockMsg(testUser1); // Normal admin runs it
+  msgKickCreator.mentions.users.first = () => ({ id: creatorId, username: 'Creator' });
+  await kickCmd.execute(mockClient, msgKickCreator, [creatorId]);
+  console.log('Kick creator reply:', msgKickCreator.getReply());
+  if (!userWasRemoved && String(msgKickCreator.getReply() || '').includes('Nie możesz wyrzucić twórcy bota')) {
+    console.log('✅ PASS: Creator is protected from being kicked.');
+  } else {
+    console.log('❌ FAIL: Creator kick was not blocked.');
+  }
+
+  // 3. Block command if bot is not admin
+  userWasRemoved = false;
+  mockClient.api.getThreadInfo = (threadId, callback) => {
+    callback(null, {
+      adminIDs: [creatorId] // Bot is NOT admin
+    });
+  };
+  const msgKickNoBotAdmin = createMockMsg(creatorId);
+  msgKickNoBotAdmin.mentions.users.first = () => ({ id: testUser2, username: 'Borrower_Adam' });
+  await kickCmd.execute(mockClient, msgKickNoBotAdmin, [testUser2]);
+  console.log('Kick when bot is not admin reply:', msgKickNoBotAdmin.getReply());
+  if (!userWasRemoved && String(msgKickNoBotAdmin.getReply() || '').includes('Bot nie jest administratorem tej grupy')) {
+    console.log('✅ PASS: Kick blocked because bot is not admin.');
+  } else {
+    console.log('❌ FAIL: Kick was not blocked when bot is not admin.');
+  }
+
+  // ==========================================
+  // TEST 11: Bal Command Loan Output
+  // ==========================================
+  console.log('\n--- TEST 11: Bal Command Loan Details ---');
+  await withData(store => {
+    store.users[testUser2].balance = 110000;
+    store.users[testUser2].activeLoan = {
+      originalAmount: 100000,
+      amount: 100000,
+      rate: 0.04,
+      takenAt: Date.now(),
+      lastInterestApplied: Date.now()
+    };
+  });
+
+  const msgBalLoan = createMockMsg(testUser2);
+  await balCmd.execute(mockClient, msgBalLoan, []);
+  const balReply = msgBalLoan.getReply();
+  console.log('Bal command reply with loan:', balReply);
+  if (String(balReply || '').includes('Do spłaty:') && String(balReply || '').includes('wzrośnie o') && String(balReply || '').includes('4%')) {
+    console.log('✅ PASS: Bal command printed correct loan details under wallet balance.');
+  } else {
+    console.log('❌ FAIL: Bal command missing loan details.');
+  }
+
+  // ==========================================
+  // TEST 12: Loan Reminder Message Generation
+  // ==========================================
+  console.log('\n--- TEST 12: Loan Reminder Message Generation ---');
+  let sentReminderMsg = null;
+  mockClient.api.sendMessage = (msg, threadID) => {
+    sentReminderMsg = msg;
+  };
+
+  // Run the reminder logic
+  const runReminderLogic = async (threadId, participantsList) => {
+    const reminders = [];
+    await withData(async (store) => {
+      for (const pid of participantsList) {
+        const user = store.users[pid];
+        if (user && user.activeLoan) {
+          const name = mockClient.userNames.get(pid) || `User_${pid.slice(-6)}`;
+          const elapsed = Date.now() - user.activeLoan.takenAt;
+          const remainingRepayMs = Math.max(0, 48 * 60 * 60 * 1000 - elapsed);
+          reminders.push({
+            pid,
+            name,
+            amount: user.activeLoan.amount,
+            timeLeftStr: msToReadable(remainingRepayMs)
+          });
+        }
+      }
+    });
+
+    if (reminders.length > 0) {
+      const lines = reminders.map(r => `👤 @${r.name} — Pozostało do spłaty: **${formatCurrency(r.amount)}** (Auto-spłata za: **${r.timeLeftStr}**)`).join('\n');
+      const tagMentions = reminders.map(r => ({
+        tag: `@${r.name}`,
+        id: r.pid
+      }));
+      
+      const remindMsg = {
+        body: `⚠️ **PRZYPOMNIENIE O POŻYCZCE** ⚠️\nNastępujące osoby mają aktywną pożyczkę do spłaty:\n\n${lines}\n\n👉 Spłać komendą: \`!pozyczka splac <kwota|all>\``,
+        mentions: tagMentions
+      };
+      mockClient.api.sendMessage(remindMsg, threadId);
+    }
+  };
+
+  await runReminderLogic('test_thread', [testUser2]);
+  console.log('Sent reminder message:', sentReminderMsg);
+  if (sentReminderMsg && sentReminderMsg.body.includes('PRZYPOMNIENIE O POŻYCZCE') && sentReminderMsg.mentions[0].id === testUser2) {
+    console.log('✅ PASS: Loan reminder message constructed and sent correctly with mentions.');
+  } else {
+    console.log('❌ FAIL: Loan reminder logic failed.');
   }
 
   // Cleanup DB at the end

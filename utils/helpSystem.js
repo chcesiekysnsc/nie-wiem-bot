@@ -387,6 +387,21 @@ const helpCommands = [
   },
   {
     id: 26,
+    name: 'kick',
+    category: 'SOCIAL',
+    shortDescription: 'wyrzucenie czlonka z grupy',
+    description: 'Wyrzuca wskazanego użytkownika z konwersacji grupowej (wymaga uprawnień administratora dla bota oraz nadawcy komendy).',
+    usage: '!kick @osoba | !kick <id_uzytkownika>',
+    examples: ['!kick @Kowalski', '!kick 100089655356822'],
+    cooldown: '3 sekundy',
+    requirements: 'Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.',
+    aliases: ['wyrzuc'],
+    additionalInfo: [
+      'Nie można wyrzucić samego siebie ani twórcy bota.'
+    ]
+  },
+  {
+    id: 27,
     name: 'duel',
     category: 'SOCIAL',
     shortDescription: 'pojedynek o monety',
@@ -401,7 +416,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 27,
+    id: 28,
     name: 'gang',
     category: 'SOCIAL',
     shortDescription: 'zarzadzanie i interakcje gangu',
@@ -417,7 +432,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 28,
+    id: 29,
     name: 'awans',
     category: 'SOCIAL',
     shortDescription: 'awansuj czlonka gangu',
@@ -432,7 +447,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 29,
+    id: 30,
     name: 'haracz',
     category: 'SOCIAL',
     shortDescription: 'ustawia haracz w gangu',
@@ -448,7 +463,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 30,
+    id: 31,
     name: 'atak',
     category: 'SOCIAL',
     shortDescription: 'wojna gangow o sejf',
@@ -464,7 +479,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 31,
+    id: 32,
     name: 'help',
     category: 'UTILITY',
     shortDescription: 'wyswietla pomoc',

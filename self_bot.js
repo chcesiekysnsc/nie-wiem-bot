@@ -10,6 +10,7 @@ const { ensureDataFiles, withData, createUser } = require('./utils/storage');
 const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
+const { formatCurrency, msToReadable } = require('./utils/economy');
 
 // Algorytm Levenshteina do wykrywania litowek
 function levenshtein(a, b) {
@@ -326,7 +327,7 @@ login({ appState }, (loginErr, api) => {
 
   // System podatków co 12 godzin (zawsze o północy i w południe)
   function startTaxCollection() {
-    const delay = getMsUntilNextTaxTime();
+    const delay = getMsUntilNextTaxTime() + 2000;
     setTimeout(async () => {
       try {
         const result = await withData(store => {
@@ -381,6 +382,73 @@ login({ appState }, (loginErr, api) => {
   client.lastTaxCollection = getLastTaxTime();
   client.getMsUntilNextTaxTime = getMsUntilNextTaxTime;
   startTaxCollection();
+
+  // System przypomnień o pożyczkach co 12 godzin (zawsze o północy i w południe)
+  function startLoanReminder() {
+    const delay = getMsUntilNextTaxTime() + 2000;
+    setTimeout(async () => {
+      try {
+        if (client.api) {
+          const targets = Array.from(client.activeThreadIds);
+          for (const threadId of targets) {
+            client.api.getThreadInfo(threadId, async (err, info) => {
+              if (err || !info || !info.participantIDs || info.participantIDs.length === 0) return;
+              
+              const participants = info.participantIDs;
+              const matchingUsers = [];
+              
+              await withData(store => {
+                for (const pid of participants) {
+                  const user = store.users[pid];
+                  if (user && user.activeLoan) {
+                    matchingUsers.push({
+                      pid,
+                      amount: user.activeLoan.amount,
+                      takenAt: user.activeLoan.takenAt
+                    });
+                  }
+                }
+              });
+              
+              if (matchingUsers.length > 0) {
+                const reminders = [];
+                for (const mu of matchingUsers) {
+                  const name = await client.resolveUserName(client.api, mu.pid);
+                  const elapsed = Date.now() - mu.takenAt;
+                  const remainingRepayMs = Math.max(0, 48 * 60 * 60 * 1000 - elapsed);
+                  reminders.push({
+                    pid: mu.pid,
+                    name,
+                    amount: mu.amount,
+                    timeLeftStr: msToReadable(remainingRepayMs)
+                  });
+                }
+                
+                const lines = reminders.map(r => `👤 @${r.name} — Pozostało do spłaty: **${formatCurrency(r.amount)}** (Auto-spłata za: **${r.timeLeftStr}**)`).join('\n');
+                const tagMentions = reminders.map(r => ({
+                  tag: `@${r.name}`,
+                  id: r.pid
+                }));
+                
+                const remindMsg = {
+                  body: `⚠️ **PRZYPOMNIENIE O POŻYCZCE** ⚠️\nNastępujące osoby mają aktywną pożyczkę do spłaty:\n\n${lines}\n\n👉 Spłać komendą: \`!pozyczka splac <kwota|all>\``,
+                  mentions: tagMentions
+                };
+                
+                client.api.sendMessage(remindMsg, threadId);
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[LOAN-REMINDER] Błąd podczas wysyłania przypomnienia:', err);
+      }
+      
+      startLoanReminder();
+    }, delay);
+  }
+  
+  startLoanReminder();
 
   // System Szybkich Palców (reakcja) co 9-24 godzin
   function startReactionTimer() {

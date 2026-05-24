@@ -33,7 +33,13 @@ module.exports = {
         balance: user.balance,
         bank: user.bank,
         nextInterestMs,
-        activeLoan: user.activeLoan ? { originalAmount: user.activeLoan.originalAmount } : null
+        activeLoan: user.activeLoan ? { 
+          originalAmount: user.activeLoan.originalAmount,
+          amount: user.activeLoan.amount,
+          rate: user.activeLoan.rate,
+          takenAt: user.activeLoan.takenAt,
+          lastInterestApplied: user.activeLoan.lastInterestApplied
+        } : null
       };
     });
 
@@ -46,14 +52,21 @@ module.exports = {
     };
 
     let walletText = formatCurrency(snapshot.balance);
+    let loanInfo = '';
     if (snapshot.activeLoan) {
       const ownBal = snapshot.balance - snapshot.activeLoan.originalAmount;
       walletText = `${formatCurrency(ownBal)} (+ ${formatCurrency(snapshot.activeLoan.originalAmount)} z pożyczki)`;
+      
+      const elapsedInterest = Date.now() - (snapshot.activeLoan.lastInterestApplied || snapshot.activeLoan.takenAt);
+      const remainingInterestMs = Math.max(0, 6 * 60 * 60 * 1000 - elapsedInterest);
+      const ratePercent = Math.round(snapshot.activeLoan.rate * 100);
+      loanInfo = `🛑 Do spłaty: **${formatCurrency(snapshot.activeLoan.amount)}** (za **${formatTimeLeft(remainingInterestMs)}** wzrośnie o **${ratePercent}%**)\n`;
     }
 
     await message.reply(
       `💰 Saldo — **${targetName}**\n` +
       `👛 Portfel: ${walletText}\n` +
+      loanInfo +
       `🏦 Bank: ${formatCurrency(snapshot.bank)}\n` +
       `📈 Kolejne odsetki: za **${formatTimeLeft(snapshot.nextInterestMs)}**`
     );
