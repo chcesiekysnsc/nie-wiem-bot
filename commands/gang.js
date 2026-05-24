@@ -742,16 +742,23 @@ module.exports = {
           const totalReward = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
           const rewardPerPerson = Math.floor(totalReward / listParticipants.length);
 
-          // Rozdaj pieniądze każdemu uczestnikowi
+          // Rozdaj pieniądze każdemu uczestnikowi, obliczając haracza
+          const tributePercent = currentGang.tributePercent || 0;
+          let totalTribute = 0;
           for (const pid of listParticipants) {
             const pUser = createUser(pid, store.users);
-            pUser.balance += rewardPerPerson;
+            const tributeAmount = Math.floor(rewardPerPerson * (tributePercent / 100));
+            totalTribute += tributeAmount;
+            pUser.balance += rewardPerPerson - tributeAmount;
           }
+          // Dodaj haracza do sejfu gangu
+          currentGang.vault += totalTribute;
 
           return {
             success: true,
             totalReward,
-            rewardPerPerson
+            rewardPerPerson,
+            tributePercent
           };
         });
 
@@ -763,10 +770,13 @@ module.exports = {
         }).join(', ');
 
         if (heistOutcome.success) {
+          const tributePerPerson = Math.floor(heistOutcome.rewardPerPerson * ((heistOutcome.tributePercent || 0) / 100));
+          const finalRewardPerPerson = heistOutcome.rewardPerPerson - tributePerPerson;
+          const tributeText = tributePerPerson > 0 ? `\n💰 Haracza dla gangu: **-${formatCurrency(tributePerPerson)}** na osobę` : '';
           await message.reply(`💰 **SKOK GANGU ZAKOŃCZONY SUKCESEM!** 💰\n` +
             `Ekipa w składzie: **${names}** obrobiła bank!\n\n` +
             `💵 Całkowity łup: **${formatCurrency(heistOutcome.totalReward)}**\n` +
-            `💸 Każdy z uczestników otrzymuje: **+${formatCurrency(heistOutcome.rewardPerPerson)}**!`);
+            `💸 Każdy z uczestników otrzymuje: **+${formatCurrency(finalRewardPerPerson)}** (brutto: ${formatCurrency(heistOutcome.rewardPerPerson)})${tributeText}`);
         } else {
           await message.reply(`🚨 **SKOK ZAKOŃCZYŁ SIĘ WPADKĄ!** 🚨\n` +
             `Ekipa w składzie: **${names}** została osaczona przez policję.\n\n` +

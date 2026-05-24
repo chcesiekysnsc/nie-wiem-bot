@@ -14,13 +14,12 @@ const SHOP_ITEMS_ORDERED = Object.entries(config.shopItems).map(([id, item], i) 
   ...item
 }));
 
-// Lista sklepu — krótkie opisy
+// Lista sklepu — tylko nazwy, bez opisów
 function renderShopList() {
   return SHOP_ITEMS_ORDERED
     .filter(item => item.buyable !== false)
     .map(item => {
-      const desc = item.shortDesc || item.description;
-      return `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${formatCurrency(item.price)}\n_${desc}_`;
+      return `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${formatCurrency(item.price)}\n_lootbox_`;
     })
     .join('\n');
 }

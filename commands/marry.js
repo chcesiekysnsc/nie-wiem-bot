@@ -107,8 +107,14 @@ module.exports = {
           lockedAmount = user.activeLoan.originalAmount;
         }
 
-        if (user.balance - lockedAmount < depositAmount) {
+        // Zablokowane środki z pożyczki (48h)
+        if (lockedAmount > 0 && user.balance - lockedAmount < depositAmount) {
           return { error: `❌ Te środki są zablokowane z tytułu pożyczki (blokada 48h). Wolne środki: **${formatCurrency(Math.max(0, user.balance - lockedAmount))}**` };
+        }
+
+        // Zwykły brak środków (bez pożyczki)
+        if (user.balance < depositAmount) {
+          return { error: `❌ Nie masz wystarczających środków. Posiadasz: ${formatCurrency(user.balance)}` };
         }
 
         if (currentContribution + depositAmount > 100000) {

@@ -51,8 +51,14 @@ module.exports = {
         lockedAmount = sender.activeLoan.originalAmount;
       }
 
-      if (sender.balance - lockedAmount < amount) {
+      // Zablokowane środki z pożyczki (48h)
+      if (lockedAmount > 0 && sender.balance - lockedAmount < amount) {
         return { error: `❌ Te środki są zablokowane z tytułu pożyczki (blokada 48h). Wolne środki do przelania: ${formatCurrency(Math.max(0, sender.balance - lockedAmount))}` };
+      }
+
+      // Zwykły brak środków (bez pożyczki)
+      if (sender.balance < amount) {
+        return { error: `❌ Nie masz wystarczających środków. Posiadasz: ${formatCurrency(sender.balance)}` };
       }
 
       const tax = Math.floor(amount * 0.05);

@@ -43,12 +43,29 @@ module.exports = {
         reward = Math.floor(reward * multiplier);
       }
 
-      user.balance += reward;
+      // Oblicz haracza, jeśli gracz należy do gangu
+      let tributeAmount = 0;
+      if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
+        const gang = store.profiles.gangs[user.gangId];
+        const tributePercent = gang.tributePercent || 0;
+        if (tributePercent > 0) {
+          tributeAmount = Math.floor(reward * (tributePercent / 100));
+          user.balance += reward - tributeAmount;
+          // Dodaj haracza do sejfu gangu i do portfela Bossa
+          gang.vault += tributeAmount;
+        } else {
+          user.balance += reward;
+        }
+      } else {
+        user.balance += reward;
+      }
+
       const leveledUp = addXp(user, randomInt(12, 24));
       refreshBadges(user, inventory);
 
       return {
         reward,
+        tributeAmount,
         gangBonus,
         leveledUp,
         text: jobs[randomInt(0, jobs.length - 1)]
@@ -56,7 +73,9 @@ module.exports = {
     });
 
     const bonusText = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z biznesów gangu)` : '';
-    const embed = successEmbed('👷 Praca — zarobek', `${result.text}\n\n+**${formatCurrency(result.reward)}**${bonusText}`);
+    const tributeText = result.tributeAmount > 0 ? `\n\n💰 Haracza dla gangu: **-${formatCurrency(result.tributeAmount)}**` : '';
+    const finalReward = result.reward - result.tributeAmount;
+    const embed = successEmbed('👷 Praca — zarobek', `${result.text}\n\n+**${formatCurrency(finalReward)}** (brutto: ${formatCurrency(result.reward)})${bonusText}${tributeText}`);
     await message.reply({ embeds: [embed] });
   }
 };
