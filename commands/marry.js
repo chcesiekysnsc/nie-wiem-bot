@@ -1,4 +1,4 @@
-const { ensureInventoryRecord, refreshBadges } = require('../utils/economy');
+const { ensureInventoryRecord, refreshBadges, formatCurrency } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 function getPartnerLabel(client, userId) {
@@ -18,14 +18,175 @@ module.exports = {
       const status = await withData(store => {
         const user = createUser(message.author.id, store.users);
         refreshBadges(user, ensureInventoryRecord(store.inventory, message.author.id));
-        return { marriedTo: user.marriedTo };
+        
+        let bankInfo = null;
+        if (user.marriedTo) {
+          const marriageKey = [message.author.id, user.marriedTo].sort().join('-');
+          store.profiles.marriageBanks = store.profiles.marriageBanks || {};
+          if (store.profiles.marriageBanks[marriageKey]) {
+            const bank = store.profiles.marriageBanks[marriageKey];
+            bankInfo = {
+              balance: bank.balance || 0,
+              myContribution: bank.contributions[message.author.id] || 0
+            };
+          } else {
+            bankInfo = {
+              balance: 0,
+              myContribution: 0
+            };
+          }
+        }
+        return { marriedTo: user.marriedTo, bankInfo };
       });
 
       if (status.marriedTo) {
-        await message.reply(`💍 Status związku: Jesteś w związku z **${getPartnerLabel(client, status.marriedTo)}**.`);
+        let replyMsg = `💍 Status związku: Jesteś w związku z **${getPartnerLabel(client, status.marriedTo)}**.\n`;
+        if (status.bankInfo) {
+          replyMsg += `🏦 Wspólny bank małżeński: **${formatCurrency(status.bankInfo.balance)}** (Twój wkład: **${formatCurrency(status.bankInfo.myContribution)}/100 000**).\n` +
+                      `💡 Wpłać: \`!marry wplac <kwota>\` | Wypłać: \`!marry wyplac <kwota>\``;
+        }
+        await message.reply(replyMsg);
       } else {
         await message.reply('💍 Status związku: Nie jesteś w żadnym związku. Użyj `!marry @osoba` lub `!marry <id>`.');
       }
+      return;
+    }
+
+    if (action === 'wplac' || action === 'deposit' || action === 'wplata') {
+      let isAll = false;
+      let amount = 0;
+      if (String(args[1] || '').toLowerCase() === 'all') {
+        isAll = true;
+      } else {
+        amount = Math.floor(Number(args[1]));
+        if (isNaN(amount) || amount <= 0) {
+          await message.reply('❌ Podaj poprawną kwotę lub `all`: `!marry wplac <kwota|all>`');
+          return;
+        }
+      }
+
+      const result = await withData(store => {
+        const user = createUser(message.author.id, store.users);
+        if (!user.marriedTo) {
+          return { error: '❌ Nie jesteś w związku małżeńskim. Najpierw weź ślub za pomocą `!marry @osoba`.' };
+        }
+
+        const partnerId = user.marriedTo;
+        const marriageKey = [message.author.id, partnerId].sort().join('-');
+
+        store.profiles.marriageBanks = store.profiles.marriageBanks || {};
+        store.profiles.marriageBanks[marriageKey] = store.profiles.marriageBanks[marriageKey] || {
+          balance: 0,
+          contributions: {}
+        };
+
+        const bank = store.profiles.marriageBanks[marriageKey];
+        bank.contributions[message.author.id] = bank.contributions[message.author.id] || 0;
+
+        const currentContribution = bank.contributions[message.author.id];
+        const remainingLimit = Math.max(0, 100000 - currentContribution);
+
+        if (remainingLimit <= 0) {
+          return { error: '❌ Osiągnąłeś już maksymalny limit wpłat (100k) do wspólnego banku małżeńskiego.' };
+        }
+
+        let depositAmount = amount;
+        if (isAll) {
+          depositAmount = Math.min(user.balance, remainingLimit);
+        }
+
+        if (depositAmount <= 0) {
+          if (isAll) {
+            return { error: '❌ Nie masz żadnych monet w portfelu do wpłacenia.' };
+          }
+          return { error: '❌ Podaj poprawną kwotę.' };
+        }
+
+        if (user.balance < depositAmount) {
+          return { error: `❌ Nie masz wystarczająco dużo monet w portfelu. Posiadasz: **${formatCurrency(user.balance)}**` };
+        }
+
+        if (currentContribution + depositAmount > 100000) {
+          return { error: `❌ Nie możesz wpłacić tyle. Twój obecny wkład: **${formatCurrency(currentContribution)}/100k**. Maksymalnie możesz wpłacić jeszcze **${formatCurrency(remainingLimit)}**.` };
+        }
+
+        user.balance -= depositAmount;
+        bank.balance += depositAmount;
+        bank.contributions[message.author.id] += depositAmount;
+
+        return { success: true, depositAmount, bankBalance: bank.balance, contribution: bank.contributions[message.author.id] };
+      });
+
+      if (result.error) {
+        await message.reply(result.error);
+        return;
+      }
+
+      await message.reply(`🏦 Wpłaciłeś **${formatCurrency(result.depositAmount)}** do wspólnego banku małżeńskiego.\n` +
+                          `💰 Stan konta wspólnego: **${formatCurrency(result.bankBalance)}**\n` +
+                          `📊 Twój całkowity wkład: **${formatCurrency(result.contribution)}/100k**`);
+      return;
+    }
+
+    if (action === 'wyplac' || action === 'withdraw' || action === 'wyplata') {
+      let isAll = false;
+      let amount = 0;
+      if (String(args[1] || '').toLowerCase() === 'all') {
+        isAll = true;
+      } else {
+        amount = Math.floor(Number(args[1]));
+        if (isNaN(amount) || amount <= 0) {
+          await message.reply('❌ Podaj poprawną kwotę lub `all`: `!marry wyplac <kwota|all>`');
+          return;
+        }
+      }
+
+      const result = await withData(store => {
+        const user = createUser(message.author.id, store.users);
+        if (!user.marriedTo) {
+          return { error: '❌ Nie jesteś w związku małżeńskim.' };
+        }
+
+        const partnerId = user.marriedTo;
+        const marriageKey = [message.author.id, partnerId].sort().join('-');
+
+        store.profiles.marriageBanks = store.profiles.marriageBanks || {};
+        const bank = store.profiles.marriageBanks[marriageKey];
+        if (!bank || !bank.balance || bank.balance <= 0) {
+          return { error: '❌ Wspólny bank małżeński jest pusty.' };
+        }
+
+        let withdrawAmount = amount;
+        if (isAll) {
+          withdrawAmount = bank.balance;
+        }
+
+        if (withdrawAmount <= 0) {
+          return { error: '❌ Podaj poprawną kwotę.' };
+        }
+
+        if (bank.balance < withdrawAmount) {
+          return { error: `❌ We wspólnym banku nie ma tylu monet. Stan konta: **${formatCurrency(bank.balance)}**` };
+        }
+
+        user.balance += withdrawAmount;
+        bank.balance -= withdrawAmount;
+
+        // Reduce this partner's contribution count by the amount withdrawn, capped at 0
+        bank.contributions[message.author.id] = bank.contributions[message.author.id] || 0;
+        bank.contributions[message.author.id] = Math.max(0, bank.contributions[message.author.id] - withdrawAmount);
+
+        return { success: true, withdrawAmount, bankBalance: bank.balance, contribution: bank.contributions[message.author.id] };
+      });
+
+      if (result.error) {
+        await message.reply(result.error);
+        return;
+      }
+
+      await message.reply(`🏦 Wypłaciłeś **${formatCurrency(result.withdrawAmount)}** ze wspólnego banku małżeńskiego do swojego portfela.\n` +
+                          `💰 Stan konta wspólnego: **${formatCurrency(result.bankBalance)}**\n` +
+                          `📊 Twój wkład po wypłacie: **${formatCurrency(result.contribution)}/100k**`);
       return;
     }
 

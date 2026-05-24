@@ -153,24 +153,45 @@ module.exports = {
       };
     });
 
-    // Dodaj odznakę ADMIN
-    if (config.admins.includes(targetId)) {
-      profileData.badges.unshift('👑 ADMIN');
-    }
-
-    // Dodaj ekskluzywne odznaki dla Top 3 globalnie
+    const betaTesterIds = ['100089655356822', '61554894353095', '100053875564339', '61571684725864'];
+    let rankBadge = '';
     if (globalRank === 1) {
-      profileData.badges.unshift('🥇 Top 1');
+      rankBadge = '🥇 Top 1';
     } else if (globalRank === 2) {
-      profileData.badges.unshift('🥈 Top 2');
+      rankBadge = '🥈 Top 2';
     } else if (globalRank === 3) {
-      profileData.badges.unshift('🥉 Top 3');
+      rankBadge = '🥉 Top 3';
     }
 
-    // Dodaj odznakę TWORCA (zawsze pierwsza w kolejnosci)
+    let finalBadges = [];
     if (targetId === '100060812419294') {
-      profileData.badges.unshift('🛠️ TWÓRCA');
+      finalBadges.push('🛠️ TWÓRCA', '👑 ADMIN');
+      if (rankBadge) finalBadges.push(rankBadge);
+    } else if (betaTesterIds.includes(targetId)) {
+      finalBadges.push('✨ OG', '🧪 Beta Tester');
+      if (config.admins.includes(targetId)) finalBadges.push('👑 ADMIN');
+      if (rankBadge) finalBadges.push(rankBadge);
+    } else {
+      if (config.admins.includes(targetId)) finalBadges.push('👑 ADMIN');
+      if (rankBadge) finalBadges.push(rankBadge);
     }
+
+    for (const b of profileData.badges) {
+      if (
+        b !== '👑 ADMIN' && 
+        b !== '🛠️ TWÓRCA' && 
+        b !== '🥇 Top 1' && 
+        b !== '🥈 Top 2' && 
+        b !== '🥉 Top 3' && 
+        b !== '✨ OG' && 
+        b !== '🧪 Beta Tester'
+      ) {
+        if (!finalBadges.includes(b)) {
+          finalBadges.push(b);
+        }
+      }
+    }
+    profileData.badges = finalBadges;
 
     let partnerName = 'Brak';
     if (profileData.marriedTo) {

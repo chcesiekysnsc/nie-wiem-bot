@@ -714,11 +714,6 @@ login({ appState }, (loginErr, api) => {
               const mName = client.userNames.get(mentionedId) || (event.mentions[mentionedId] || '').replace(/^@/, '');
               return { id: mentionedId, username: mName, profile: { name: mName } };
             }
-            if (event.type === 'message_reply' && event.messageReply && event.messageReply.senderID) {
-              const rId = event.messageReply.senderID;
-              const rName = client.userNames.get(rId) || `Uzytkownik_${rId.slice(-6)}`;
-              return { id: rId, username: rName, profile: { name: rName } };
-            }
             return null;
           }
         }
