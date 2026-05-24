@@ -585,7 +585,8 @@ login({ appState }, (loginErr, api) => {
     client.lastThreadId = threadId;
 
     const isGroup = threadId && threadId !== senderId;
-    if (isGroup) {
+    const isCommand = text.startsWith(client.config.prefix);
+    if (isGroup && !isCommand) {
       await withData(store => {
         const u = createUser(senderId, store.users);
         u.messageCount = (u.messageCount || 0) + 1;
