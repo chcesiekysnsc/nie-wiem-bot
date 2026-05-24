@@ -1,5 +1,42 @@
-const { formatCurrency, msToReadable } = require('../utils/economy');
+const { formatCurrency, formatNumber, msToReadable } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+
+const LOAN_UNLOCK_COMMANDS = 100;
+
+function getLoanUnlockState(commandsUsed) {
+  const used = Math.max(0, Math.floor(Number(commandsUsed) || 0));
+  const required = LOAN_UNLOCK_COMMANDS + 1;
+
+  return {
+    used,
+    required,
+    remaining: Math.max(0, required - used),
+    unlocked: used > LOAN_UNLOCK_COMMANDS
+  };
+}
+
+function buildLoanUnlockStatus(commandsUsed) {
+  const unlockState = getLoanUnlockState(commandsUsed);
+
+  if (unlockState.unlocked) {
+    return `✅ Dostęp do pożyczki odblokowany. Użyte komendy: **${formatNumber(unlockState.used)}**.`;
+  }
+
+  return (
+    `🔐 Pożyczka odblokowuje się dopiero po użyciu ponad **${formatNumber(LOAN_UNLOCK_COMMANDS)}** komend.\n` +
+    `📊 Twój postęp: **${formatNumber(unlockState.used)}/${formatNumber(unlockState.required)}** użytych komend.`
+  );
+}
+
+function buildLoanUnlockError(commandsUsed) {
+  const unlockState = getLoanUnlockState(commandsUsed);
+
+  return (
+    `❌ Pożyczka odblokowuje się dopiero po użyciu ponad **${formatNumber(LOAN_UNLOCK_COMMANDS)}** komend. ` +
+    `Masz teraz **${formatNumber(unlockState.used)}/${formatNumber(unlockState.required)}** użytych komend, ` +
+    `więc brakuje Ci jeszcze **${formatNumber(unlockState.remaining)}** do odblokowania.`
+  );
+}
 
 module.exports = {
   name: 'pozyczka',
@@ -9,16 +46,22 @@ module.exports = {
 
     if (!action) {
       // Pokaż status aktywnej pożyczki
-      const status = await withData(store => {
+      const snapshot = await withData(store => {
         const user = createUser(message.author.id, store.users);
-        return user.activeLoan ? { ...user.activeLoan, balance: user.balance } : null;
+
+        return {
+          activeLoan: user.activeLoan ? { ...user.activeLoan } : null,
+          balance: user.balance,
+          commandsUsed: user.commandsUsed || 0
+        };
       });
 
-      if (!status) {
+      if (!snapshot.activeLoan) {
         await message.reply(
           `🏦 **Pożyczki wirtualne**\n` +
           `Nie masz obecnie żadnej aktywnej pożyczki.\n\n` +
           `👉 Aby pożyczyć pieniądze, wpisz: \`!pozyczka <kwota>\`\n` +
+          `${buildLoanUnlockStatus(snapshot.commandsUsed)}\n` +
           `ℹ️ *Maksymalny limit: 500 000 💰.*\n` +
           `📈 *Oprocentowanie (co 6h od aktualnego długu):*\n` +
           `• do 200k — **4%**\n` +
@@ -30,19 +73,20 @@ module.exports = {
         return;
       }
 
-      const elapsed = Date.now() - status.takenAt;
+      const { activeLoan } = snapshot;
+      const elapsed = Date.now() - activeLoan.takenAt;
       const remainingRepayMs = Math.max(0, 48 * 60 * 60 * 1000 - elapsed);
       
-      const lastInterest = status.lastInterestApplied || status.takenAt;
+      const lastInterest = activeLoan.lastInterestApplied || activeLoan.takenAt;
       const elapsedInterest = Date.now() - lastInterest;
       const remainingInterestMs = Math.max(0, 6 * 60 * 60 * 1000 - elapsedInterest);
 
-      const percentRate = Math.round(status.rate * 100);
+      const percentRate = Math.round(activeLoan.rate * 100);
 
       await message.reply(
         `🏦 **Twoja Aktywna Pożyczka**\n` +
-        `💵 Pożyczona kwota: **${formatCurrency(status.originalAmount)}**\n` +
-        `💰 Aktualnie do spłaty: **${formatCurrency(status.amount)}**\n` +
+        `💵 Pożyczona kwota: **${formatCurrency(activeLoan.originalAmount)}**\n` +
+        `💰 Aktualnie do spłaty: **${formatCurrency(activeLoan.amount)}**\n` +
         `📈 Oprocentowanie: **${percentRate}% co 6 godzin**\n` +
         `⏱️ Auto-spłata za: **${msToReadable(remainingRepayMs)}**\n` +
         `⚡ Następne odsetki za: **${msToReadable(remainingInterestMs)}**\n\n` +
@@ -116,6 +160,10 @@ module.exports = {
       const user = createUser(message.author.id, store.users);
       if (user.activeLoan) {
         return { error: '❌ Masz już aktywną pożyczkę. Spłać ją najpierw, zanim weźmiesz kolejną.' };
+      }
+
+      if ((user.commandsUsed || 0) <= LOAN_UNLOCK_COMMANDS) {
+        return { error: buildLoanUnlockError(user.commandsUsed) };
       }
 
       if (borrowAmount > 500000) {

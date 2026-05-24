@@ -226,13 +226,14 @@ const helpCommands = [
     name: 'pozyczka',
     category: 'ECONOMY',
     shortDescription: 'pozyczka z banku wirtualnego',
-    description: 'Pozwala pożyczyć pieniądze z banku wirtualnego (limit 500k). Oprocentowanie rośnie co 6h o 4% (dla kwot <=200k), 8% (>200k), 12% (>300k) lub 20% (>400k). Spłata następuje automatycznie po 48h (ściągane z portfela, nawet na minus). Pieniądze z pożyczki mają 48h blokadę transferu i ochrony przed kradzieżą.',
+    description: 'Pozwala pożyczyć pieniądze z banku wirtualnego po przekroczeniu 100 użytych komend (limit 500k). Oprocentowanie rośnie co 6h o 4% (dla kwot <=200k), 8% (>200k), 12% (>300k) lub 20% (>400k). Spłata następuje automatycznie po 48h (ściągane z portfela, nawet na minus). Pieniądze z pożyczki mają 48h blokadę transferu i ochrony przed kradzieżą.',
     usage: '!pozyczka <kwota> | !pozyczka splac <kwota|all> | !pozyczka',
     examples: ['!pozyczka 100000', '!pozyczka splac all', '!pozyczka'],
     cooldown: 'Do momentu spłaty poprzedniej pożyczki.',
-    requirements: 'Maksymalnie 500k długu.',
+    requirements: 'Ponad 100 użytych komend i maksymalnie 500k długu.',
     aliases: ['kredyt', 'loan'],
     additionalInfo: [
+      'Pożyczka odblokowuje się dopiero po przekroczeniu 100 użytych komend.',
       'Po 48h kwota jest automatycznie pobierana z portfela.',
       'Zablokowane środki nie mogą być przelane ani skradzione komendą !rob.'
     ]

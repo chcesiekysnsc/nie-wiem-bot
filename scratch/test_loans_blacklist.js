@@ -149,6 +149,21 @@ async function runTests() {
   // TEST 3: Loan Interest Compounding
   // ==========================================
   console.log('\n--- TEST 3: Loan command compounding interest rates ---');
+
+  await withData(store => {
+    delete store.users[testUser2].activeLoan;
+    store.users[testUser2].balance = 10000;
+    store.users[testUser2].commandsUsed = 100;
+  });
+
+  const msgLockedLoan = createMockMsg(testUser2);
+  await pozyczkaCmd.execute(mockClient, msgLockedLoan, ['100000']);
+  console.log('Borrow below unlock threshold reply:', msgLockedLoan.getReply());
+  if (String(msgLockedLoan.getReply() || '').includes('ponad **100** komend')) {
+    console.log('✅ PASS: Loan stays locked until the user exceeds 100 used commands.');
+  } else {
+    console.log('❌ FAIL: Loan was not blocked below the command threshold.');
+  }
   
   // Test different borrow limits
   const borrowAmounts = [
@@ -163,6 +178,7 @@ async function runTests() {
     await withData(store => {
       delete store.users[testUser2].activeLoan;
       store.users[testUser2].balance = 10000;
+      store.users[testUser2].commandsUsed = 150;
     });
 
     const msgBorrow = createMockMsg(testUser2);
@@ -183,6 +199,7 @@ async function runTests() {
   // Test over-limit borrow
   await withData(store => {
     delete store.users[testUser2].activeLoan;
+    store.users[testUser2].commandsUsed = 150;
   });
   const msgOverLimit = createMockMsg(testUser2);
   await pozyczkaCmd.execute(mockClient, msgOverLimit, ['500001']);
@@ -198,6 +215,7 @@ async function runTests() {
   await withData(store => {
     delete store.users[testUser2].activeLoan;
     store.users[testUser2].balance = 10000;
+    store.users[testUser2].commandsUsed = 150;
   });
   const msgBorrowInterest = createMockMsg(testUser2);
   await pozyczkaCmd.execute(mockClient, msgBorrowInterest, ['100000']);
