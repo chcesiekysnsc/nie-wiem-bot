@@ -814,6 +814,70 @@ async function runTests() {
     console.log('❌ FAIL: Creator ubl on true blacklisted user failed.', { cleanedTrue, cleanedNormal });
   }
 
+  // ==========================================
+  // TEST 15: Admin-only !dlug lista
+  // ==========================================
+  console.log('\n--- TEST 15: Admin-only !dlug lista ---');
+  const dlugCmd = require('../commands/dlug');
+
+  // 1. Non-admin tries to run !dlug lista (testUser2 is not an admin)
+  const msgNonAdminDlug = createMockMsg(testUser2);
+  await dlugCmd.execute(mockClient, msgNonAdminDlug, ['lista']);
+  console.log('Non-admin !dlug lista reply:', msgNonAdminDlug.getReply());
+  if (String(msgNonAdminDlug.getReply() || '').includes('Brak uprawnień')) {
+    console.log('✅ PASS: Non-admin was blocked from using !dlug.');
+  } else {
+    console.log('❌ FAIL: Non-admin restriction failed.');
+  }
+
+  // 2. Admin (testUser1) runs !dlug without args or incorrect args
+  const msgAdminDlugUsage = createMockMsg(testUser1);
+  await dlugCmd.execute(mockClient, msgAdminDlugUsage, []);
+  console.log('Admin !dlug no-args reply:', msgAdminDlugUsage.getReply());
+  if (String(msgAdminDlugUsage.getReply() || '').replace(/`/g, '').includes('Użyj: !dlug lista')) {
+    console.log('✅ PASS: Admin received correct usage instruction.');
+  } else {
+    console.log('❌ FAIL: Admin usage instruction failed.');
+  }
+
+  // 3. Admin (testUser1) runs !dlug lista with no debtors
+  await withData(store => {
+    for (const u of Object.values(store.users)) {
+      u.activeLoan = null;
+    }
+  });
+  const msgAdminDlugListEmpty = createMockMsg(testUser1);
+  await dlugCmd.execute(mockClient, msgAdminDlugListEmpty, ['lista']);
+  console.log('Admin !dlug lista empty reply:', msgAdminDlugListEmpty.getReply());
+  if (String(msgAdminDlugListEmpty.getReply() || '').includes('Brak aktywnych pożyczek')) {
+    console.log('✅ PASS: Admin received empty debt message.');
+  } else {
+    console.log('❌ FAIL: Admin empty debt message failed.');
+  }
+
+  // 4. Admin (testUser1) runs !dlug lista with debtors
+  await withData(store => {
+    const user = store.users[testUser2] || { balance: 5000, bank: 10000 };
+    user.activeLoan = {
+      originalAmount: 100000,
+      amount: 104000,
+      takenAt: Date.now() - 3600000,
+      rate: 0.04
+    };
+    store.users[testUser2] = user;
+  });
+
+  const msgAdminDlugListWithDebtors = createMockMsg(testUser1);
+  await dlugCmd.execute(mockClient, msgAdminDlugListWithDebtors, ['lista']);
+  console.log('Admin !dlug lista with debtors reply:\n', msgAdminDlugListWithDebtors.getReply());
+  const replyStr = String(msgAdminDlugListWithDebtors.getReply() || '');
+  const normalizedReply = replyStr.replace(/\s/g, ' ');
+  if (normalizedReply.includes('LISTA DŁUŻNIKÓW') && normalizedReply.includes('Borrower_Adam') && normalizedReply.includes('104 000')) {
+    console.log('✅ PASS: Admin received correct debt list and total debt calculated.');
+  } else {
+    console.log('❌ FAIL: Admin debt list verification failed.');
+  }
+
   // Cleanup DB at the end
   await withData(store => {
     delete store.users[testUser1];

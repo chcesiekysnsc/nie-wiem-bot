@@ -16,7 +16,8 @@ const adminCommands = [
   { num: 13, cmd: '!reakcja', opis: 'Ręcznie wywołuje grę Szybkie Palce na obecnej grupie.' },
   { num: 14, cmd: '!loteriastart', opis: 'Ręcznie uruchamia losowanie loterii.' },
   { num: 15, cmd: '!flaga', opis: 'Ręcznie wywołuje grę Zgadnij Kraj (flagi) na obecnej grupie.' },
-  { num: 16, cmd: '!admhelp', opis: 'Wyświetla tę pomoc.' }
+  { num: 16, cmd: '!dlug lista', opis: 'Pokazuje wszystkich dłużników i ich długi.' },
+  { num: 17, cmd: '!admhelp', opis: 'Wyświetla tę pomoc.' }
 ];
 
 module.exports = {
