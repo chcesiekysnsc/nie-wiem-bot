@@ -16,6 +16,7 @@ const SHOP_ITEMS_ORDERED = Object.entries(config.shopItems).map(([id, item], i) 
 
 function renderShopList() {
   return SHOP_ITEMS_ORDERED
+    .filter(item => item.buyable !== false)
     .map(item => `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${formatCurrency(item.price)}\n_${item.description}_`)
     .join('\n');
 }
@@ -52,6 +53,12 @@ module.exports = {
 
     const itemId = shopEntry.id;
     const item = config.shopItems[itemId];
+
+    if (item.buyable === false) {
+      await message.reply(`❌ **${item.emoji} ${item.name}** nie jest dostępny w sklepie.\n💡 ${item.shopNote || 'Zdobądź go z paczki!'}`);
+      return;
+    }
+
     const parsedQuantity = Math.floor(Number(quantityArg || 1));
     const quantity = item.type === 'permanent' ? 1 : Math.max(1, isNaN(parsedQuantity) ? 1 : parsedQuantity);
 

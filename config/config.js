@@ -104,14 +104,6 @@ module.exports = {
     xpPerLevelGrowth: 55
   },
   shopItems: {
-    vip: {
-      name: 'VIP Pass',
-      emoji: '👑',
-      price: 100000,
-      description: 'Daje bonus do !daily i !work oraz zwieksza pojemnosc banku.',
-      type: 'permanent'
-    },
-
     klodka: {
       name: 'Klodka',
       emoji: '🔒',
@@ -140,12 +132,52 @@ module.exports = {
       description: 'Pułapka na złodzieja: kradnie 40% jego portfela i nakłada na niego 30 minut cooldownu.',
       type: 'stackable'
     },
+    paczka_brazowa: {
+      name: 'Brązowa Paczka',
+      emoji: '🟫',
+      price: 50000,
+      description: 'Otwórz: !otworz brazowa | Wygrana: 25 000–75 000 + 10% szans na Bilet Loterii.',
+      type: 'stackable'
+    },
+    paczka_srebrna: {
+      name: 'Srebrna Paczka',
+      emoji: '⬜',
+      price: 100000,
+      description: 'Otwórz: !otworz srebrna | Wygrana: 75 000–150 000 + 10% szans na Kłódkę lub Piwo.',
+      type: 'stackable'
+    },
+    paczka_zlota: {
+      name: 'Złota Paczka',
+      emoji: '🟨',
+      price: 200000,
+      description: 'Otwórz: !otworz zlota | Wygrana: 150 000–250 000 + 10% szans na Bombę lub Kłódkę+Piwo.',
+      type: 'stackable'
+    },
+    paczka_diamentowa: {
+      name: 'Diamentowa Paczka',
+      emoji: '🟦',
+      price: 500000,
+      description: 'Otwórz: !otworz diamentowa | Wygrana: 250 000–750 000 + 10% szans na VIP Pass lub Ulepszenie Banku!',
+      type: 'stackable'
+    },
+    // Poniższe itemy są niedostępne w sklepie — wypadają tylko z paczek
+    vip: {
+      name: 'VIP Pass',
+      emoji: '👑',
+      price: 100000,
+      description: 'Daje bonus do !daily i !work oraz zwiększa pojemność banku.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🟦 Diamentowej Paczki!'
+    },
     sejf: {
       name: 'Ulepszenie Banku',
       emoji: '🏦',
       price: 150000,
-      description: 'Jednorazowy zakup: zwiększa pojemność banku o 75 000.',
-      type: 'permanent'
+      description: 'Zwiększa pojemność banku o 75 000.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępne tylko z 🟦 Diamentowej Paczki!'
     }
   },
   badges: {
