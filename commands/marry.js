@@ -102,8 +102,13 @@ module.exports = {
           return { error: '❌ Podaj poprawną kwotę.' };
         }
 
-        if (user.balance < depositAmount) {
-          return { error: `❌ Nie masz wystarczająco dużo monet w portfelu. Posiadasz: **${formatCurrency(user.balance)}**` };
+        let lockedAmount = 0;
+        if (user.activeLoan && Date.now() - user.activeLoan.takenAt < 48 * 60 * 60 * 1000) {
+          lockedAmount = user.activeLoan.originalAmount;
+        }
+
+        if (user.balance - lockedAmount < depositAmount) {
+          return { error: `❌ Te środki są zablokowane z tytułu pożyczki (blokada 48h). Wolne środki: **${formatCurrency(Math.max(0, user.balance - lockedAmount))}**` };
         }
 
         if (currentContribution + depositAmount > 100000) {

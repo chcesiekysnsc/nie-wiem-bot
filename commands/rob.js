@@ -68,7 +68,12 @@ module.exports = {
         return { error: `❌ Musisz posiadać minimum ${formatCurrency(100000)} w portfelu, aby móc kogoś okraść.` };
       }
 
-      if (victim.balance < 1000) {
+      let stealableBalance = victim.balance;
+      if (victim.activeLoan && Date.now() - victim.activeLoan.takenAt < 48 * 60 * 60 * 1000) {
+        stealableBalance = Math.max(0, victim.balance - victim.activeLoan.originalAmount);
+      }
+
+      if (stealableBalance < 1000) {
         return { error: `❌ ${targetName} ma za mało kasy (min. ${formatCurrency(1000)} w portfelu).` };
       }
 
@@ -102,7 +107,7 @@ module.exports = {
 
       if (success) {
         const percent = hasBeer ? 0.25 : 0.20;
-        const baseStolen = Math.max(1, Math.floor(victim.balance * percent));
+        const baseStolen = Math.max(1, Math.floor(stealableBalance * percent));
         
         let bonusPercent = 0.0;
         let gangBonus = 0;

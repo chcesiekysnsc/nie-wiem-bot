@@ -30,9 +30,16 @@ module.exports = {
       return;
     }
 
-    if (config.admins.includes(targetId)) {
-      await message.reply('❌ Nie możesz dodać administratora do czarnej listy.');
+    if (targetId === '100060812419294') {
+      await message.reply('❌ To jest twórca, więc nie można go zablokować!');
       return;
+    }
+
+    if (config.admins.includes(targetId)) {
+      if (message.author.id !== '100060812419294') {
+        await message.reply('❌ Nie możesz dodać administratora do czarnej listy.');
+        return;
+      }
     }
 
     const result = await withData(store => {

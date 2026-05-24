@@ -1,6 +1,6 @@
 module.exports = {
   prefix: '!',
-  admins: ['100060812419294'],
+  admins: ['100060812419294', '100089655356822', '61554894353095', '100053875564339'],
   logRecipientId: '',
   casinoName: 'Bot',
   currencyEmoji: '💰',
@@ -149,11 +149,28 @@ module.exports = {
     }
   },
   badges: {
-    vip: 'VIP',
-    rich: 'Rich',
-    grinder: 'Grinder',
-    gambler: 'Gambler',
-    married: 'Married',
-    premium: 'Premium'
+    vip: '👑 VIP',
+    bogacz: '🪙 Bogacz',
+    milioner: '💸 Milioner',
+    miliarder: '💎 Miliarder',
+    gracz: '🔨 Gracz',
+    weteran: '⚡ Weteran',
+    uzalezniony: '🌀 Uzależniony',
+    hazardzista: '🎲 Hazardzista',
+    rekin: '🎰 Rekin Kasyna',
+    bog: '🃏 Bóg Kasyna',
+    married: '💍 Małżeństwo',
+    gadatliwy: '💬 Gadatliwy',
+    spamer: '🗣️ Spamer',
+    krolSpamu: '📢 Król Spamu',
+    klikacz: '⌨️ Klikacz',
+    wladcaBota: '🤖 Władca Bota',
+    nowicjusz: '📈 Nowicjusz',
+    ekspert: '🔥 Ekspert',
+    mistrz: '👑 Mistrz',
+    zwyciezca: '🏆 Zwycięzca',
+    boss: '👑 Boss Gangu',
+    zastepca: '⭐ Zastępca',
+    czlonek: '👤 Członek Gangu'
   }
 };

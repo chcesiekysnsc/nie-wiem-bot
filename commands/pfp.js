@@ -127,7 +127,10 @@ module.exports = {
       refreshBadges(user, ensureInventoryRecord(store.inventory, targetId));
 
       const sortedUsers = Object.entries(store.users || {})
-        .map(([id, u]) => ({ id, balance: (u.balance || 0) + (u.bank || 0) }))
+        .map(([id, u]) => {
+          const borrowed = u.activeLoan ? u.activeLoan.originalAmount : 0;
+          return { id, balance: (u.balance || 0) - borrowed + (u.bank || 0) };
+        })
         .sort((a, b) => b.balance - a.balance);
 
       const rankIndex = sortedUsers.findIndex(u => u.id === targetId);
@@ -148,11 +151,13 @@ module.exports = {
           marriedTo: user.marriedTo,
           commandsUsed: user.commandsUsed || 0,
           messageCount: user.messageCount || 0,
-          groupSpecificCount
+          groupSpecificCount,
+          activeLoan: user.activeLoan ? { originalAmount: user.activeLoan.originalAmount } : null
         }
       };
     });
 
+    const czadowyIds = ['100089655356822', '61554894353095', '100053875564339'];
     const betaTesterIds = ['100089655356822', '61554894353095', '100053875564339', '61571684725864'];
     let rankBadge = '';
     if (globalRank === 1) {
@@ -166,6 +171,9 @@ module.exports = {
     let finalBadges = [];
     if (targetId === '100060812419294') {
       finalBadges.push('🛠️ TWÓRCA', '👑 ADMIN');
+      if (rankBadge) finalBadges.push(rankBadge);
+    } else if (czadowyIds.includes(targetId)) {
+      finalBadges.push('👑 ADMIN', '✨ OG', '🧪 Beta Tester', '🔥 CZADOWY');
       if (rankBadge) finalBadges.push(rankBadge);
     } else if (betaTesterIds.includes(targetId)) {
       finalBadges.push('✨ OG', '🧪 Beta Tester');
@@ -184,7 +192,8 @@ module.exports = {
         b !== '🥈 Top 2' && 
         b !== '🥉 Top 3' && 
         b !== '✨ OG' && 
-        b !== '🧪 Beta Tester'
+        b !== '🧪 Beta Tester' &&
+        b !== '🔥 CZADOWY'
       ) {
         if (!finalBadges.includes(b)) {
           finalBadges.push(b);
@@ -201,10 +210,16 @@ module.exports = {
       }
     }
 
+    let walletText = formatCurrency(profileData.balance);
+    if (profileData.activeLoan) {
+      const ownBal = profileData.balance - profileData.activeLoan.originalAmount;
+      walletText = `${formatCurrency(ownBal)} (+ ${formatCurrency(profileData.activeLoan.originalAmount)} z pożyczki)`;
+    }
+
     const response = 
       `👤 **Profil: ${username}**\n` +
       `🆔 ID: \`${targetId}\`\n` +
-      `👛 Portfel: ${formatCurrency(profileData.balance)} | 🏦 Bank: ${formatCurrency(profileData.bank)}\n` +
+      `👛 Portfel: ${walletText} | 🏦 Bank: ${formatCurrency(profileData.bank)}\n` +
       `🎮 Gry: ${formatNumber(profileData.gamesPlayed)} | ⌨️ Komendy: ${formatNumber(profileData.commandsUsed)}\n` +
       `💬 Wiadomości: **${formatNumber(profileData.messageCount)}** (**${formatNumber(profileData.groupSpecificCount)}** na tej grupie)\n` +
       `📈 Wygrane: **${formatNumber(profileData.wins)}** | 📉 Przegrane: **${formatNumber(profileData.losses)}**\n` +

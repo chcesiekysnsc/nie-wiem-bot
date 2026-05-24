@@ -133,11 +133,78 @@ function refreshBadges(user, inventoryRecord) {
     ? user.badges.filter(badge => typeof badge === 'string' && !dynamicBadges.has(badge))
     : [];
 
+  // VIP
   if (hasItem(inventoryRecord, 'vip')) staticBadges.push(config.badges.vip);
-  if (user.balance + user.bank >= 150000) staticBadges.push(config.badges.rich);
-  if (user.gamesPlayed >= 100) staticBadges.push(config.badges.grinder);
-  if (user.totalWon >= 50000) staticBadges.push(config.badges.gambler);
+
+  // Wealth (Bogacz / Milioner / Miliarder)
+  const totalWealth = (user.balance || 0) + (user.bank || 0);
+  if (totalWealth >= 10000000) {
+    staticBadges.push(config.badges.miliarder);
+  } else if (totalWealth >= 1000000) {
+    staticBadges.push(config.badges.milioner);
+  } else if (totalWealth >= 150000) {
+    staticBadges.push(config.badges.bogacz);
+  }
+
+  // Grinder (Gracz / Weteran / Uzależniony)
+  if (user.gamesPlayed >= 2500) {
+    staticBadges.push(config.badges.uzalezniony);
+  } else if (user.gamesPlayed >= 500) {
+    staticBadges.push(config.badges.weteran);
+  } else if (user.gamesPlayed >= 100) {
+    staticBadges.push(config.badges.gracz);
+  }
+
+  // Gambler (Hazardzista / Rekin / Bóg)
+  if (user.totalWon >= 5000000) {
+    staticBadges.push(config.badges.bog);
+  } else if (user.totalWon >= 500000) {
+    staticBadges.push(config.badges.rekin);
+  } else if (user.totalWon >= 50000) {
+    staticBadges.push(config.badges.hazardzista);
+  }
+
+  // Marriage
   if (user.marriedTo) staticBadges.push(config.badges.married);
+
+  // Messages Sent (Gadatliwy / Spamer / Król Spamu)
+  if (user.messageCount >= 25000) {
+    staticBadges.push(config.badges.krolSpamu);
+  } else if (user.messageCount >= 5000) {
+    staticBadges.push(config.badges.spamer);
+  } else if (user.messageCount >= 1000) {
+    staticBadges.push(config.badges.gadatliwy);
+  }
+
+  // Commands Used (Klikacz / Władca Bota)
+  if (user.commandsUsed >= 1000) {
+    staticBadges.push(config.badges.wladcaBota);
+  } else if (user.commandsUsed >= 100) {
+    staticBadges.push(config.badges.klikacz);
+  }
+
+  // Level (Nowicjusz / Ekspert / Mistrz)
+  if (user.level >= 50) {
+    staticBadges.push(config.badges.mistrz);
+  } else if (user.level >= 30) {
+    staticBadges.push(config.badges.ekspert);
+  } else if (user.level >= 10) {
+    staticBadges.push(config.badges.nowicjusz);
+  }
+
+  // Wins
+  if (user.wins >= 100) staticBadges.push(config.badges.zwyciezca);
+
+  // Gang Membership
+  if (user.gangId && user.gangRole) {
+    if (user.gangRole === 'boss') {
+      staticBadges.push(config.badges.boss);
+    } else if (user.gangRole === 'deputy') {
+      staticBadges.push(config.badges.zastepca);
+    } else {
+      staticBadges.push(config.badges.czlonek);
+    }
+  }
 
   user.badges = [...new Set(staticBadges)];
   return user.badges;

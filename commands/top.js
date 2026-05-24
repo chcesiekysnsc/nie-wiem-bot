@@ -111,7 +111,10 @@ module.exports = {
 
       // Top 5 Globalnie (najwięcej monet ze wszystkich zarejestrowanych)
       const globalTop = users
-        .map(([id, u]) => ({ id, balance: (u.balance || 0) + (u.bank || 0) }))
+        .map(([id, u]) => {
+          const borrowed = u.activeLoan ? u.activeLoan.originalAmount : 0;
+          return { id, balance: (u.balance || 0) - borrowed + (u.bank || 0) };
+        })
         .sort((a, b) => b.balance - a.balance)
         .slice(0, 5);
 
@@ -121,14 +124,18 @@ module.exports = {
         // Mapujemy wszystkich uczestników grupy - jeśli nie ma ich w bazie, dajemy domyślny balans startowy (15 000)
         groupMembers = participantIDs.map(id => {
           const u = store.users[id] || { balance: 5000, bank: 10000 };
-          return { id, balance: (u.balance || 0) + (u.bank || 0) };
+          const borrowed = u.activeLoan ? u.activeLoan.originalAmount : 0;
+          return { id, balance: (u.balance || 0) - borrowed + (u.bank || 0) };
         })
         .sort((a, b) => b.balance - a.balance)
         .slice(0, 5);
       } else {
         // Fallback: Pokazujemy zarejestrowanych użytkowników
         groupMembers = users
-          .map(([id, u]) => ({ id, balance: (u.balance || 0) + (u.bank || 0) }))
+          .map(([id, u]) => {
+            const borrowed = u.activeLoan ? u.activeLoan.originalAmount : 0;
+            return { id, balance: (u.balance || 0) - borrowed + (u.bank || 0) };
+          })
           .sort((a, b) => b.balance - a.balance)
           .slice(0, 5);
       }

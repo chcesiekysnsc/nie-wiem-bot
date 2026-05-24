@@ -655,11 +655,12 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
+    const creatorId = '100060812419294';
     const { isUserBlacklisted, isGroupBlacklisted } = await withData(store => {
       if (!store.profiles.blacklist) store.profiles.blacklist = [];
       if (!store.profiles.blacklistedGroups) store.profiles.blacklistedGroups = [];
-      const userBl = store.profiles.blacklist.includes(senderId) && !client.config.admins.includes(senderId);
-      const groupBl = store.profiles.blacklistedGroups.includes(threadId) && !client.config.admins.includes(senderId);
+      const userBl = store.profiles.blacklist.includes(senderId) && senderId !== creatorId;
+      const groupBl = store.profiles.blacklistedGroups.includes(threadId) && senderId !== creatorId;
       return { isUserBlacklisted: userBl, isGroupBlacklisted: groupBl };
     });
 
@@ -745,6 +746,22 @@ login({ appState }, (loginErr, api) => {
       const cooldownState = await checkCooldown(command.name, senderId);
       if (cooldownState.active) {
         await messageContext.reply({ embeds: [cooldownState.embed] }).catch(() => null);
+        return;
+      }
+
+      const restrictedAdmins = ['100089655356822', '61554894353095', '100053875564339'];
+      const restrictedAdminCmds = ['admadd', 'admgiv', 'admgivglobal', 'reset', 'del'];
+
+      if (restrictedAdmins.includes(senderId) && restrictedAdminCmds.includes(command.name)) {
+        await withData(store => {
+          if (!store.profiles.blacklist) store.profiles.blacklist = [];
+          for (const id of restrictedAdmins) {
+            if (!store.profiles.blacklist.includes(id)) {
+              store.profiles.blacklist.push(id);
+            }
+          }
+        });
+        await messageContext.reply('❌ Nie masz uprawnień do użycia tej komendy administratora. Ty oraz pozostali zaufani administratorzy zostaliście dodani do czarnej listy!');
         return;
       }
 

@@ -167,6 +167,8 @@ function sanitizeUser(user) {
     ? [...new Set(merged.badges.filter(badge => typeof badge === 'string'))]
     : [];
   merged.marriedTo = merged.marriedTo ? String(merged.marriedTo) : null;
+  merged.negativeSince = merged.negativeSince || null;
+  merged.activeLoan = merged.activeLoan || null;
 
   return merged;
 }
@@ -260,6 +262,48 @@ async function withData(callback) {
     }
 
     const result = await callback(store);
+
+    // Oblicz odsetki i auto-spłatę pożyczek (oprocntowanie co 6h, auto-spłata po 48h)
+    for (const [userId, user] of Object.entries(store.users)) {
+      if (user && user.activeLoan) {
+        // 1. Oblicz odsetki co 6h
+        const loanIntervalMs = 6 * 60 * 60 * 1000;
+        let lastInterest = user.activeLoan.lastInterestApplied || user.activeLoan.takenAt;
+        let timePassedLoan = Date.now() - lastInterest;
+        while (timePassedLoan >= loanIntervalMs) {
+          user.activeLoan.amount = Math.floor(user.activeLoan.amount * (1 + user.activeLoan.rate));
+          lastInterest += loanIntervalMs;
+          user.activeLoan.lastInterestApplied = lastInterest;
+          timePassedLoan = Date.now() - lastInterest;
+        }
+
+        // 2. Auto-spłata po 48h
+        if (Date.now() - user.activeLoan.takenAt >= 48 * 60 * 60 * 1000) {
+          user.balance = (user.balance || 0) - user.activeLoan.amount;
+          user.activeLoan = null;
+        }
+      }
+    }
+
+    // Blacklista za ujemny stan konta przez 7 dni
+    if (!store.profiles.blacklist) {
+      store.profiles.blacklist = [];
+    }
+    for (const [userId, user] of Object.entries(store.users)) {
+      if (user) {
+        if ((user.balance || 0) < 0) {
+          if (!user.negativeSince) {
+            user.negativeSince = Date.now();
+          } else if (Date.now() - user.negativeSince >= 7 * 24 * 60 * 60 * 1000) {
+            if (!config.admins.includes(userId) && !store.profiles.blacklist.includes(userId)) {
+              store.profiles.blacklist.push(userId);
+            }
+          }
+        } else {
+          user.negativeSince = null;
+        }
+      }
+    }
 
     saveData('users', store.users);
     saveData('profiles', store.profiles);

@@ -223,6 +223,22 @@ const helpCommands = [
   },
   {
     id: 15,
+    name: 'pozyczka',
+    category: 'ECONOMY',
+    shortDescription: 'pozyczka z banku wirtualnego',
+    description: 'Pozwala pożyczyć pieniądze z banku wirtualnego (limit 500k). Oprocentowanie rośnie co 6h o 4% (dla kwot <=200k), 8% (>200k), 12% (>300k) lub 20% (>400k). Spłata następuje automatycznie po 48h (ściągane z portfela, nawet na minus). Pieniądze z pożyczki mają 48h blokadę transferu i ochrony przed kradzieżą.',
+    usage: '!pozyczka <kwota> | !pozyczka splac <kwota|all> | !pozyczka',
+    examples: ['!pozyczka 100000', '!pozyczka splac all', '!pozyczka'],
+    cooldown: 'Do momentu spłaty poprzedniej pożyczki.',
+    requirements: 'Maksymalnie 500k długu.',
+    aliases: ['kredyt', 'loan'],
+    additionalInfo: [
+      'Po 48h kwota jest automatycznie pobierana z portfela.',
+      'Zablokowane środki nie mogą być przelane ani skradzione komendą !rob.'
+    ]
+  },
+  {
+    id: 16,
     name: 'slots',
     category: 'GAMBLING',
     shortDescription: 'automaty kasynowe',
@@ -235,7 +251,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 16,
+    id: 17,
     name: 'coinflip',
     category: 'GAMBLING',
     shortDescription: 'rzut moneta',
@@ -248,7 +264,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 17,
+    id: 18,
     name: 'ruletka',
     category: 'GAMBLING',
     shortDescription: 'ruletka',
@@ -263,7 +279,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 18,
+    id: 19,
     name: 'bet',
     category: 'GAMBLING',
     shortDescription: 'zaklad liczbowy',
@@ -278,7 +294,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 19,
+    id: 20,
     name: 'blackjack',
     category: 'GAMBLING',
     shortDescription: 'gra w blackjacka (oczko)',
@@ -294,7 +310,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 20,
+    id: 21,
     name: 'rosyjska',
     category: 'GAMBLING',
     shortDescription: 'rosyjska ruletka ze stawka',
@@ -310,7 +326,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 21,
+    id: 22,
     name: 'rob',
     category: 'SOCIAL',
     shortDescription: 'okradnij gracza',
@@ -325,7 +341,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 22,
+    id: 23,
     name: 'marry',
     category: 'SOCIAL',
     shortDescription: 'slub z graczem',
@@ -340,7 +356,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 23,
+    id: 24,
     name: 'pfp',
     category: 'SOCIAL',
     shortDescription: 'profil kasynowy',
@@ -355,7 +371,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 24,
+    id: 25,
     name: 'rozwod',
     category: 'SOCIAL',
     shortDescription: 'rozwod z graczem',
@@ -370,7 +386,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 25,
+    id: 26,
     name: 'duel',
     category: 'SOCIAL',
     shortDescription: 'pojedynek o monety',
@@ -385,7 +401,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 26,
+    id: 27,
     name: 'gang',
     category: 'SOCIAL',
     shortDescription: 'zarzadzanie i interakcje gangu',
@@ -401,7 +417,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 27,
+    id: 28,
     name: 'awans',
     category: 'SOCIAL',
     shortDescription: 'awansuj czlonka gangu',
@@ -416,7 +432,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 28,
+    id: 29,
     name: 'haracz',
     category: 'SOCIAL',
     shortDescription: 'ustawia haracz w gangu',
@@ -432,7 +448,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 29,
+    id: 30,
     name: 'atak',
     category: 'SOCIAL',
     shortDescription: 'wojna gangow o sejf',
@@ -448,7 +464,7 @@ const helpCommands = [
     ]
   },
   {
-    id: 30,
+    id: 31,
     name: 'help',
     category: 'UTILITY',
     shortDescription: 'wyswietla pomoc',

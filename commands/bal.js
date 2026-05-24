@@ -32,7 +32,8 @@ module.exports = {
       return {
         balance: user.balance,
         bank: user.bank,
-        nextInterestMs
+        nextInterestMs,
+        activeLoan: user.activeLoan ? { originalAmount: user.activeLoan.originalAmount } : null
       };
     });
 
@@ -44,9 +45,15 @@ module.exports = {
       return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
     };
 
+    let walletText = formatCurrency(snapshot.balance);
+    if (snapshot.activeLoan) {
+      const ownBal = snapshot.balance - snapshot.activeLoan.originalAmount;
+      walletText = `${formatCurrency(ownBal)} (+ ${formatCurrency(snapshot.activeLoan.originalAmount)} z pożyczki)`;
+    }
+
     await message.reply(
       `💰 Saldo — **${targetName}**\n` +
-      `👛 Portfel: ${formatCurrency(snapshot.balance)}\n` +
+      `👛 Portfel: ${walletText}\n` +
       `🏦 Bank: ${formatCurrency(snapshot.bank)}\n` +
       `📈 Kolejne odsetki: za **${formatTimeLeft(snapshot.nextInterestMs)}**`
     );

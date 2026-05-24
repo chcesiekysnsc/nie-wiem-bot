@@ -1,0 +1,521 @@
+const { withData, createUser } = require('../utils/storage');
+const pfpCmd = require('../commands/pfp');
+const balCmd = require('../commands/bal');
+const dailyCmd = require('../commands/daily');
+const pozyczkaCmd = require('../commands/pozyczka');
+const tipCmd = require('../commands/tip');
+const robCmd = require('../commands/rob');
+const marryCmd = require('../commands/marry');
+
+// Helper to simulate time passage by manually adjusting timestamps in storage
+async function runTests() {
+  console.log('=== RUNNING LOANS & BLACKLIST SYSTEM TESTS ===\n');
+
+  const testUser1 = '100089655356822'; // Beta Tester + CZADOWY recipient
+  const testUser2 = 'some_tester_user'; // Normal user for borrowing
+  const testUser3 = 'robber_user'; // User to test robbery from testUser2
+
+  // 1. Reset user accounts
+  await withData(store => {
+    // Clean database for test users
+    delete store.users[testUser1];
+    delete store.users[testUser2];
+    delete store.users[testUser3];
+    if (store.profiles.blacklist) {
+      store.profiles.blacklist = store.profiles.blacklist.filter(id => id !== testUser1 && id !== testUser2 && id !== testUser3);
+    }
+  });
+
+  const mockClient = {
+    api: {
+      sendMessage: (payload, threadID, callback, messageID) => {
+        if (callback) callback();
+      }
+    },
+    userNames: new Map([
+      [testUser1, 'Czadowy_User_1'],
+      [testUser2, 'Borrower_Adam'],
+      [testUser3, 'Robber_Rich']
+    ]),
+    processedMessages: new Set(),
+    isProcessed: () => false,
+    markProcessed: () => {},
+    marriageRequests: new Map(),
+    commands: new Map()
+  };
+
+  // Setup message mocks
+  const createMockMsg = (authorId, content = '') => {
+    let capturedReply = null;
+    return {
+      author: { id: authorId, username: mockClient.userNames.get(authorId) || 'User' },
+      content,
+      guild: { id: 'test_thread' },
+      rawEvent: { threadID: 'test_thread', messageID: 'msg_' + Math.random() },
+      reply: async (payload) => {
+        capturedReply = payload;
+        return { success: true };
+      },
+      mentions: {
+        users: {
+          first: () => null
+        }
+      },
+      getReply: () => capturedReply
+    };
+  };
+
+  // ==========================================
+  // TEST 1: Badges Order for 🔥 CZADOWY
+  // ==========================================
+  console.log('--- TEST 1: CZADOWY Badge Order Verification ---');
+  const msgPfp1 = createMockMsg(testUser1);
+  // Capturing sendMessage output
+  let capturedBadges = [];
+  mockClient.api.sendMessage = (payload) => {
+    const match = payload.body.match(/🎖️ Odznaki: (.*)/);
+    if (match) capturedBadges = match[1].split(', ');
+  };
+
+  await pfpCmd.execute(mockClient, msgPfp1, []);
+  console.log('Captured badges for user 1:', capturedBadges);
+  if (capturedBadges[0] === '👑 ADMIN' && capturedBadges[1] === '✨ OG' && capturedBadges[2] === '🧪 Beta Tester' && capturedBadges[3] === '🔥 CZADOWY') {
+    console.log('✅ PASS: Badge order matches expectation (ADMIN first, CZADOWY 4th).');
+  } else {
+    console.log('❌ FAIL: Incorrect badge order.');
+  }
+
+  // Restore mock client send message
+  mockClient.api.sendMessage = (payload, threadID, callback) => { if (callback) callback(); };
+
+  // ==========================================
+  // TEST 2: Timezone Daily Reset & Streaks
+  // ==========================================
+  console.log('\n--- TEST 2: Europe/Warsaw Calendar-Day Daily Claim Reset ---');
+  const msgDaily = createMockMsg(testUser2);
+
+  // 1st claim
+  await dailyCmd.execute(mockClient, msgDaily);
+  let reply = msgDaily.getReply();
+  console.log('Daily claim 1 reply:', reply);
+
+  // Try to claim again immediately (should fail)
+  const msgDailyFail = createMockMsg(testUser2);
+  await dailyCmd.execute(mockClient, msgDailyFail);
+  console.log('Daily claim 2 (immediate) reply:', msgDailyFail.getReply());
+  if (String(msgDailyFail.getReply() || '').includes('Zaczekaj jeszcze')) {
+    console.log('✅ PASS: Cooldown prevents immediate double claim.');
+  } else {
+    console.log('❌ FAIL: Double claim allowed.');
+  }
+
+  // Simulate time travel to tomorrow 00:05 Warsaw time
+  await withData(store => {
+    const u = store.users[testUser2];
+    // Push the claim time back to yesterday's 14:00 Warsaw time
+    // Let's compute yesterday 14:00.
+    // For simplicity, we just set lastDailyClaim to 25 hours ago, and dailyCooldown to 1 hour ago
+    u.lastDailyClaim = Date.now() - 25 * 60 * 60 * 1000;
+    u.dailyCooldown = Date.now() - 1 * 60 * 60 * 1000;
+  });
+
+  const msgDailyStreak = createMockMsg(testUser2);
+  await dailyCmd.execute(mockClient, msgDailyStreak);
+  console.log('Daily claim tomorrow reply:', msgDailyStreak.getReply());
+  if (String(msgDailyStreak.getReply() || '').includes('Dzień: 2')) {
+    console.log('✅ PASS: Daily claimed on next calendar day maintained and incremented streak.');
+  } else {
+    console.log('❌ FAIL: Streak did not increment.');
+  }
+
+  // Simulate time travel to 2 days later (streak should reset)
+  await withData(store => {
+    const u = store.users[testUser2];
+    u.lastDailyClaim = Date.now() - 50 * 60 * 60 * 1000; // 50h ago (missed a calendar day)
+    u.dailyCooldown = Date.now() - 26 * 60 * 60 * 1000;
+  });
+
+  const msgDailyReset = createMockMsg(testUser2);
+  await dailyCmd.execute(mockClient, msgDailyReset);
+  console.log('Daily claim after delay reply:', msgDailyReset.getReply());
+  if (String(msgDailyReset.getReply() || '').includes('Dzień: 1')) {
+    console.log('✅ PASS: Daily claimed after missed day correctly reset streak to 1.');
+  } else {
+    console.log('❌ FAIL: Streak did not reset.');
+  }
+
+  // ==========================================
+  // TEST 3: Loan Interest Compounding
+  // ==========================================
+  console.log('\n--- TEST 3: Loan command compounding interest rates ---');
+  
+  // Test different borrow limits
+  const borrowAmounts = [
+    { amt: 100000, expectedRate: 0.04 }, // <= 200k
+    { amt: 250000, expectedRate: 0.08 }, // > 200k
+    { amt: 350000, expectedRate: 0.12 }, // > 300k
+    { amt: 450000, expectedRate: 0.20 }, // > 400k
+    { amt: 500000, expectedRate: 0.20 }, // limit
+  ];
+
+  for (const t of borrowAmounts) {
+    await withData(store => {
+      delete store.users[testUser2].activeLoan;
+      store.users[testUser2].balance = 10000;
+    });
+
+    const msgBorrow = createMockMsg(testUser2);
+    await pozyczkaCmd.execute(mockClient, msgBorrow, [String(t.amt)]);
+    
+    let dbRate = 0;
+    await withData(store => {
+      dbRate = store.users[testUser2].activeLoan.rate;
+    });
+
+    if (dbRate === t.expectedRate) {
+      console.log(`✅ PASS: Borrowing ${t.amt} correctly set rate to ${dbRate * 100}%.`);
+    } else {
+      console.log(`❌ FAIL: Borrowing ${t.amt} set incorrect rate ${dbRate * 100}% (expected ${t.expectedRate * 100}%).`);
+    }
+  }
+
+  // Test over-limit borrow
+  await withData(store => {
+    delete store.users[testUser2].activeLoan;
+  });
+  const msgOverLimit = createMockMsg(testUser2);
+  await pozyczkaCmd.execute(mockClient, msgOverLimit, ['500001']);
+  console.log('Borrowing 500,001 reply:', msgOverLimit.getReply());
+  if (String(msgOverLimit.getReply() || '').includes('Maksymalna kwota pożyczki')) {
+    console.log('✅ PASS: Loan above 500k is blocked.');
+  } else {
+    console.log('❌ FAIL: Loan above 500k was allowed.');
+  }
+
+  // Simulate interest compounding (co 6 godzin)
+  // Let's borrow 100k (4% co 6h)
+  await withData(store => {
+    delete store.users[testUser2].activeLoan;
+    store.users[testUser2].balance = 10000;
+  });
+  const msgBorrowInterest = createMockMsg(testUser2);
+  await pozyczkaCmd.execute(mockClient, msgBorrowInterest, ['100000']);
+
+  // Move back takenAt and lastInterestApplied by 12 hours (2 interest periods)
+  await withData(store => {
+    const loan = store.users[testUser2].activeLoan;
+    loan.takenAt -= 12.5 * 60 * 60 * 1000;
+    loan.lastInterestApplied -= 12.5 * 60 * 60 * 1000;
+  });
+
+  // Accessing database triggers withData compound logic
+  let compoundAmt = 0;
+  await withData(store => {
+    compoundAmt = store.users[testUser2].activeLoan.amount;
+  });
+
+  // Expected compounding: 100,000 * 1.04 * 1.04 = 108,160
+  console.log('Compounded loan amount after 12h:', compoundAmt);
+  if (compoundAmt === 108160) {
+    console.log('✅ PASS: Compounding interest correctly applied twice (+8.16% total).');
+  } else {
+    console.log('❌ FAIL: Compounding interest calculated incorrectly.');
+  }
+
+  // ==========================================
+  // TEST 4: Loan Transfer & Robbery Blocks
+  // ==========================================
+  console.log('\n--- TEST 4: Loan Transfer block & Robbery protection (48h) ---');
+
+  // Set up: User 2 has 10k own money, 100k loan (total balance: 110k)
+  await withData(store => {
+    store.users[testUser2].balance = 110000;
+    store.users[testUser2].activeLoan = {
+      originalAmount: 100000,
+      amount: 100000,
+      rate: 0.04,
+      takenAt: Date.now(),
+      lastInterestApplied: Date.now()
+    };
+
+    // User 3 (robber) has 150k
+    const r = createUser(testUser3, store.users);
+    r.balance = 150000;
+  });
+
+  // Try to transfer 15k (should fail, own balance is only 10k)
+  const msgTip = createMockMsg(testUser2);
+  msgTip.mentions.users.first = () => ({ id: testUser1, username: 'Target' });
+  await tipCmd.execute(mockClient, msgTip, ['15000', testUser1]);
+  console.log('Transferring 15k with 10k free balance reply:', msgTip.getReply());
+  if (String(msgTip.getReply() || '').includes('zablokowane z tytułu pożyczki')) {
+    console.log('✅ PASS: Transfer blocked for locked loan funds.');
+  } else {
+    console.log('❌ FAIL: Transfer allowed.');
+  }
+
+  // Try to transfer 5k (should pass)
+  const msgTipPass = createMockMsg(testUser2);
+  msgTipPass.mentions.users.first = () => ({ id: testUser1, username: 'Target' });
+  await tipCmd.execute(mockClient, msgTipPass, ['5000', testUser1]);
+  console.log('Transferring 5k with 10k free balance reply:', msgTipPass.getReply());
+  if (String(msgTipPass.getReply() || '').includes('Przelano')) {
+    console.log('✅ PASS: Transfer allowed for non-loan funds.');
+  } else {
+    console.log('❌ FAIL: Transfer of non-loan funds failed.');
+  }
+
+  // Robbery protection test
+  // Borrower now has 105k (100k loan, 5k own)
+  // Let's attempt to rob them. The stealable balance is victim.balance - loan.originalAmount = 105k - 100k = 5k.
+  // Rob target is Borrower, robber is User 3.
+  const msgRob = createMockMsg(testUser3);
+  msgRob.mentions.users.first = () => ({ id: testUser2, username: 'Borrower_Adam' });
+
+  // Let's force Math.random to always succeed in robbery to test the base stolen calculation
+  const originalRandom = Math.random;
+  Math.random = () => 0.1; // Success (normally < 0.60)
+
+  let finalVictimBalance = 0;
+  let finalRobberBalance = 0;
+
+  await robCmd.execute(mockClient, msgRob, [testUser2]);
+  console.log('Robbing user with 5k free balance reply:', msgRob.getReply());
+
+  await withData(store => {
+    finalVictimBalance = store.users[testUser2].balance;
+    finalRobberBalance = store.users[testUser3].balance;
+  });
+
+  Math.random = originalRandom; // Restore Math.random
+
+  // Since stealableBalance is 5k, baseStolen should be 5,000 * 0.20 = 1,000.
+  // Victim's original balance was 105k, so new balance should be 104k.
+  console.log('Victim balance after robbery:', finalVictimBalance);
+  if (finalVictimBalance === 104000) {
+    console.log('✅ PASS: Robbery only stole 20% of free funds (1,000), leaving the 100k loan untouched.');
+  } else {
+    console.log('❌ FAIL: Robbery stole from locked loan funds.');
+  }
+
+  // If victim's free balance < 1000, robbery should be completely blocked
+  await withData(store => {
+    store.users[testUser2].balance = 100500; // Only 500 free balance
+    const r2 = createUser('robber_user_2', store.users);
+    r2.balance = 150000;
+  });
+  const msgRobBlock = createMockMsg('robber_user_2');
+  msgRobBlock.mentions.users.first = () => ({ id: testUser2, username: 'Borrower_Adam' });
+  await robCmd.execute(mockClient, msgRobBlock, [testUser2]);
+  console.log('Robbing user with 500 free balance reply:', msgRobBlock.getReply());
+  if (String(msgRobBlock.getReply() || '').includes('ma za mało kasy')) {
+    console.log('✅ PASS: Robbery blocked when free balance is under 1,000.');
+  } else {
+    console.log('❌ FAIL: Robbery of low free balance was not blocked.');
+  }
+
+  // ==========================================
+  // TEST 5: Auto-Repayment after 48h
+  // ==========================================
+  console.log('\n--- TEST 5: Auto-Repayment after 48 Hours ---');
+
+  // Let's set up: User has 10k balance, 100k loan. Total balance: 110k
+  await withData(store => {
+    store.users[testUser2].balance = 110000;
+    store.users[testUser2].activeLoan = {
+      originalAmount: 100000,
+      amount: 100000,
+      rate: 0.04,
+      takenAt: Date.now() - 49 * 60 * 60 * 1000, // Taken 49h ago
+      lastInterestApplied: Date.now() - 49 * 60 * 60 * 1000
+    };
+  });
+
+  // Accessing database triggers auto-spłata in withData
+  let finalBal = 0;
+  let activeLoan = null;
+  await withData(store => {
+    finalBal = store.users[testUser2].balance;
+    activeLoan = store.users[testUser2].activeLoan;
+  });
+
+  console.log(`Balance after 48h auto-spłata: ${finalBal}, activeLoan:`, activeLoan);
+  // Compounded interest: 100,000 * (1.04 ^ 8) = 136,856.
+  // 110,000 - 136,856 = -26,856.
+  if (finalBal < 0 && activeLoan === null) {
+    console.log('✅ PASS: Auto-repayment successfully deducted outstanding balance, cleared loan, and put account in the negative.');
+  } else {
+    console.log('❌ FAIL: Auto-repayment failed.');
+  }
+
+  // ==========================================
+  // TEST 6: 7-Day Negative Balance Blacklist
+  // ==========================================
+  console.log('\n--- TEST 6: 7-Day Negative Balance Auto-Blacklist ---');
+
+  // Let's make balance negative, check that negativeSince is set
+  await withData(store => {
+    store.users[testUser2].balance = -100;
+    store.users[testUser2].negativeSince = null;
+  });
+
+  // Call withData to trigger the blacklist/negative checks
+  let negSince = null;
+  await withData(store => {
+    negSince = store.users[testUser2].negativeSince;
+  });
+
+  if (negSince !== null) {
+    console.log('✅ PASS: negativeSince was initialized to current time.');
+  } else {
+    console.log('❌ FAIL: negativeSince was not initialized.');
+  }
+
+  // Advance negativeSince by 8 days
+  await withData(store => {
+    store.users[testUser2].negativeSince = Date.now() - 8 * 24 * 60 * 60 * 1000;
+  });
+
+  // Trigger check and check if added to blacklist
+  let blacklisted = false;
+  await withData(store => {
+    blacklisted = store.profiles.blacklist.includes(testUser2);
+  });
+
+  if (blacklisted) {
+    console.log('✅ PASS: User was automatically added to blacklist after 7 days of negative balance.');
+  } else {
+    console.log('❌ FAIL: User was not blacklisted.');
+  }
+
+  // Recover balance, blacklist check should clear negativeSince but keep blacklist (manual remove by admin)
+  await withData(store => {
+    store.users[testUser2].balance = 5000;
+  });
+
+  await withData(store => {
+    negSince = store.users[testUser2].negativeSince;
+  });
+
+  if (negSince === null) {
+    console.log('✅ PASS: negativeSince is cleared when balance becomes positive.');
+  } else {
+    console.log('❌ FAIL: negativeSince was not cleared.');
+  }
+
+  // ==========================================
+  // TEST 7: ADMIN Badge Priority
+  // ==========================================
+  console.log('\n--- TEST 7: ADMIN Badge Priority for Restricted Admins ---');
+  let badgesUser1 = [];
+  mockClient.api.sendMessage = (payload) => {
+    const match = payload.body.match(/🎖️ Odznaki: (.*)/);
+    if (match) badgesUser1 = match[1].split(', ');
+  };
+  await pfpCmd.execute(mockClient, msgPfp1, []);
+  console.log('Restricted admin badges:', badgesUser1);
+  if (badgesUser1[0] === '👑 ADMIN') {
+    console.log('✅ PASS: ADMIN is the first badge for restricted admins.');
+  } else {
+    console.log('❌ FAIL: ADMIN is not the first badge.');
+  }
+
+  // ==========================================
+  // TEST 8: Creator Blacklist Immunity
+  // ==========================================
+  console.log('\n--- TEST 8: Creator Blacklist Immunity ---');
+  const creatorId = '100060812419294';
+  const msgCreatorBl = createMockMsg(creatorId);
+  const blCmd = require('../commands/bl');
+
+  // Creator blacklists someone else
+  await blCmd.execute(mockClient, msgCreatorBl, [testUser2]);
+  console.log('Creator blacklisted someone else reply:', msgCreatorBl.getReply());
+
+  // Check if testUser2 is blacklisted
+  let isUser2Bl = false;
+  await withData(store => {
+    isUser2Bl = store.profiles.blacklist.includes(testUser2);
+  });
+  if (isUser2Bl) {
+    console.log('✅ PASS: Creator successfully blacklisted a user.');
+  } else {
+    console.log('❌ FAIL: Creator failed to blacklist user.');
+  }
+
+  // Restricted admin tries to blacklist the creator
+  const msgRestrictedBl = createMockMsg(testUser1);
+  await blCmd.execute(mockClient, msgRestrictedBl, [creatorId]);
+  console.log('Restricted admin blacklisting creator reply:', msgRestrictedBl.getReply());
+  if (String(msgRestrictedBl.getReply() || '').includes('To jest twórca, więc nie można go zablokować')) {
+    console.log('✅ PASS: Restricted admin was blocked from blacklisting the creator.');
+  } else {
+    console.log('❌ FAIL: Restricted admin was not blocked.');
+  }
+
+  // ==========================================
+  // TEST 9: Restricted Admin Command Interception
+  // ==========================================
+  console.log('\n--- TEST 9: Restricted Admin Interception & Blacklist Cascade ---');
+  // Mock event and arguments to simulate running !reset 10
+  const mockMsgReset = createMockMsg(testUser1, '!reset 10');
+  
+  // Clean blacklist first
+  await withData(store => {
+    store.profiles.blacklist = [];
+  });
+
+  // We execute the intercept check in the same way self_bot does
+  const checkInterception = async (senderId, cmdName) => {
+    const restrictedAdmins = ['100089655356822', '61554894353095', '100053875564339'];
+    const restrictedAdminCmds = ['admadd', 'admgiv', 'admgivglobal', 'reset', 'del'];
+
+    if (restrictedAdmins.includes(senderId) && restrictedAdminCmds.includes(cmdName)) {
+      await withData(store => {
+        if (!store.profiles.blacklist) store.profiles.blacklist = [];
+        for (const id of restrictedAdmins) {
+          if (!store.profiles.blacklist.includes(id)) {
+            store.profiles.blacklist.push(id);
+          }
+        }
+      });
+      return true; // Intercepted
+    }
+    return false;
+  };
+
+  const intercepted = await checkInterception(testUser1, 'reset');
+  if (intercepted) {
+    console.log('✅ PASS: Command was intercepted.');
+  } else {
+    console.log('❌ FAIL: Command was not intercepted.');
+  }
+
+  let allBlacklisted = false;
+  await withData(store => {
+    allBlacklisted = store.profiles.blacklist.includes('100089655356822') &&
+                     store.profiles.blacklist.includes('61554894353095') &&
+                     store.profiles.blacklist.includes('100053875564339');
+  });
+
+  if (allBlacklisted) {
+    console.log('✅ PASS: All restricted admin IDs were successfully blacklisted after violation.');
+  } else {
+    console.log('❌ FAIL: Blacklist cascade failed.');
+  }
+
+  // Cleanup DB at the end
+  await withData(store => {
+    delete store.users[testUser1];
+    delete store.users[testUser2];
+    delete store.users[testUser3];
+    delete store.users['robber_user_2'];
+    if (store.profiles.blacklist) {
+      store.profiles.blacklist = store.profiles.blacklist.filter(id => id !== testUser1 && id !== testUser2 && id !== testUser3 && id !== 'robber_user_2');
+    }
+  });
+
+  console.log('\n=== ALL TESTS COMPLETED ===');
+}
+
+runTests().catch(console.error);

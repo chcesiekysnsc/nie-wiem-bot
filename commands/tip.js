@@ -46,8 +46,13 @@ module.exports = {
         return { error: '❌ Podaj poprawną kwotę do przelania.' };
       }
 
-      if (sender.balance < amount) {
-        return { error: `❌ Nie masz tylu środków w portfelu. Posiadasz: ${formatCurrency(sender.balance)}` };
+      let lockedAmount = 0;
+      if (sender.activeLoan && Date.now() - sender.activeLoan.takenAt < 48 * 60 * 60 * 1000) {
+        lockedAmount = sender.activeLoan.originalAmount;
+      }
+
+      if (sender.balance - lockedAmount < amount) {
+        return { error: `❌ Te środki są zablokowane z tytułu pożyczki (blokada 48h). Wolne środki do przelania: ${formatCurrency(Math.max(0, sender.balance - lockedAmount))}` };
       }
 
       const tax = Math.floor(amount * 0.05);
