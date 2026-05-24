@@ -641,6 +641,179 @@ async function runTests() {
     console.log('❌ FAIL: Loan reminder logic failed.');
   }
 
+  // ==========================================
+  // TEST 13: Restricted Admin Unblacklist Restriction
+  // ==========================================
+  console.log('\n--- TEST 13: Restricted Admin Unblacklist Restriction ---');
+  const ublCmd = require('../commands/ubl');
+  
+  // Set up testUser2 as blacklisted with blacklistedForNegativeBalance: true
+  await withData(store => {
+    if (!store.profiles.blacklist) store.profiles.blacklist = [];
+    if (!store.profiles.blacklist.includes(testUser2)) {
+      store.profiles.blacklist.push(testUser2);
+    }
+    if (!store.users[testUser2]) {
+      store.users[testUser2] = { balance: 0 };
+    }
+    store.users[testUser2].blacklistedForNegativeBalance = true;
+    
+    // Clear restricted admins from blacklist so they can run commands
+    store.profiles.blacklist = store.profiles.blacklist.filter(id => id !== testUser1);
+  });
+
+  // Restricted admin tries to unblacklist testUser2
+  const msgRestrictedUbl = createMockMsg(testUser1);
+  msgRestrictedUbl.mentions.users.first = () => ({ id: testUser2, username: 'Borrower_Adam' });
+  await ublCmd.execute(mockClient, msgRestrictedUbl, [testUser2]);
+  console.log('Restricted admin unblacklist reply:', msgRestrictedUbl.getReply());
+  
+  let userStillBlacklisted = false;
+  let adminIsBlacklisted = false;
+  await withData(store => {
+    userStillBlacklisted = store.profiles.blacklist.includes(testUser2);
+    adminIsBlacklisted = store.profiles.blacklist.includes(testUser1);
+  });
+  
+  if (userStillBlacklisted && !adminIsBlacklisted && String(msgRestrictedUbl.getReply() || '').includes('Nie posiadasz uprawnień do usuwania tego użytkownika z czarnej listy')) {
+    console.log('✅ PASS: Restricted admin was blocked from unblacklisting and was NOT punished.');
+  } else {
+    console.log('❌ FAIL: Restricted admin check failed.', { userStillBlacklisted, adminIsBlacklisted, reply: msgRestrictedUbl.getReply() });
+  }
+
+  // Creator tries to unblacklist testUser2
+  const msgCreatorUbl = createMockMsg(creatorId);
+  msgCreatorUbl.mentions.users.first = () => ({ id: testUser2, username: 'Borrower_Adam' });
+  await ublCmd.execute(mockClient, msgCreatorUbl, [testUser2]);
+  console.log('Creator unblacklist reply:', msgCreatorUbl.getReply());
+  
+  let userCleared = false;
+  let negativeFlagCleared = false;
+  await withData(store => {
+    userCleared = !store.profiles.blacklist.includes(testUser2);
+    negativeFlagCleared = store.users[testUser2] ? !store.users[testUser2].blacklistedForNegativeBalance : true;
+  });
+
+  if (userCleared && negativeFlagCleared && String(msgCreatorUbl.getReply() || '').includes('Usunięto')) {
+    console.log('✅ PASS: Creator successfully unblacklisted the negative balance user and cleared the flag.');
+  } else {
+    console.log('❌ FAIL: Creator unblacklist failed.', { userCleared, negativeFlagCleared, reply: msgCreatorUbl.getReply() });
+  }
+
+  // ==========================================
+  // TEST 14: Creator-only True Blacklist
+  // ==========================================
+  console.log('\n--- TEST 14: Creator-only True Blacklist ---');
+  const trueblCmd = require('../commands/truebl');
+
+  // 1. Non-creator tries to run !truebl
+  const msgNonCreatorTrueBl = createMockMsg(testUser1);
+  msgNonCreatorTrueBl.mentions.users.first = () => ({ id: testUser2, username: 'Borrower_Adam' });
+  await trueblCmd.execute(mockClient, msgNonCreatorTrueBl, [testUser2]);
+  console.log('Non-creator truebl reply:', msgNonCreatorTrueBl.getReply());
+  
+  let isTargetInTrueBl = false;
+  await withData(store => {
+    isTargetInTrueBl = store.profiles.trueBlacklist && store.profiles.trueBlacklist.includes(testUser2);
+  });
+  if (!isTargetInTrueBl && String(msgNonCreatorTrueBl.getReply() || '').includes('Brak uprawnień')) {
+    console.log('✅ PASS: Non-creator was blocked from using !truebl.');
+  } else {
+    console.log('❌ FAIL: Non-creator restriction failed.');
+  }
+
+  // 2. Creator runs !truebl (should add)
+  const msgCreatorTrueBl = createMockMsg(creatorId);
+  msgCreatorTrueBl.mentions.users.first = () => ({ id: testUser2, username: 'Borrower_Adam' });
+  await trueblCmd.execute(mockClient, msgCreatorTrueBl, [testUser2]);
+  console.log('Creator truebl add reply:', msgCreatorTrueBl.getReply());
+
+  let addedToTrue = false;
+  let addedToNormal = false;
+  await withData(store => {
+    addedToTrue = store.profiles.trueBlacklist && store.profiles.trueBlacklist.includes(testUser2);
+    addedToNormal = store.profiles.blacklist && store.profiles.blacklist.includes(testUser2);
+  });
+
+  if (addedToTrue && addedToNormal && String(msgCreatorTrueBl.getReply() || '').includes('Dodano')) {
+    console.log('✅ PASS: Creator successfully added user to true blacklist and normal blacklist.');
+  } else {
+    console.log('❌ FAIL: Creator truebl addition failed.', { addedToTrue, addedToNormal });
+  }
+
+  // 3. Normal admin tries to unblacklist user on true blacklist
+  const msgAdminUblTrue = createMockMsg(testUser1);
+  msgAdminUblTrue.mentions.users.first = () => ({ id: testUser2, username: 'Borrower_Adam' });
+  // Clean blacklist from beta tester ID so they can run commands
+  await withData(store => {
+    store.profiles.blacklist = (store.profiles.blacklist || []).filter(id => id !== testUser1);
+  });
+  await ublCmd.execute(mockClient, msgAdminUblTrue, [testUser2]);
+  console.log('Admin unblacklisting true blacklisted user reply:', msgAdminUblTrue.getReply());
+
+  let stillTrueBl = false;
+  await withData(store => {
+    stillTrueBl = store.profiles.trueBlacklist && store.profiles.trueBlacklist.includes(testUser2);
+  });
+  if (stillTrueBl && String(msgAdminUblTrue.getReply() || '').includes('został zablokowany przez twórcę')) {
+    console.log('✅ PASS: Normal admin was blocked from unblacklisting true blacklisted user.');
+  } else {
+    console.log('❌ FAIL: Normal admin unblacklist true blacklisted user check failed.');
+  }
+
+  // 4. Global command blocking test for true blacklisted user
+  const checkInterceptTrueBl = async (senderId) => {
+    const creatorId = '100060812419294';
+    let blocked = false;
+    await withData(store => {
+      const userBl = (store.profiles.blacklist.includes(senderId) || (store.profiles.trueBlacklist && store.profiles.trueBlacklist.includes(senderId))) && senderId !== creatorId;
+      blocked = userBl;
+    });
+    return blocked;
+  };
+  const isBlocked = await checkInterceptTrueBl(testUser2);
+  if (isBlocked) {
+    console.log('✅ PASS: True blacklisted user was intercepted/blocked globally.');
+  } else {
+    console.log('❌ FAIL: True blacklisted user global interception check failed.');
+  }
+
+  // 5. Creator runs !truebl again (should remove)
+  await trueblCmd.execute(mockClient, msgCreatorTrueBl, [testUser2]);
+  console.log('Creator truebl remove reply:', msgCreatorTrueBl.getReply());
+
+  let removedFromTrue = false;
+  let removedFromNormal = false;
+  await withData(store => {
+    removedFromTrue = !store.profiles.trueBlacklist || !store.profiles.trueBlacklist.includes(testUser2);
+    removedFromNormal = !store.profiles.blacklist || !store.profiles.blacklist.includes(testUser2);
+  });
+
+  if (removedFromTrue && removedFromNormal && String(msgCreatorTrueBl.getReply() || '').includes('Usunięto')) {
+    console.log('✅ PASS: Creator successfully removed user from true blacklist and normal blacklist via !truebl.');
+  } else {
+    console.log('❌ FAIL: Creator truebl removal failed.', { removedFromTrue, removedFromNormal });
+  }
+
+  // 6. Creator runs !ubl on true blacklisted user (should clean up both)
+  // Put user on true blacklist again first
+  await trueblCmd.execute(mockClient, msgCreatorTrueBl, [testUser2]);
+  // Creator runs !ubl
+  await ublCmd.execute(mockClient, msgCreatorUbl, [testUser2]);
+  console.log('Creator ubl on true blacklisted user reply:', msgCreatorUbl.getReply());
+
+  let cleanedTrue = false;
+  let cleanedNormal = false;
+  await withData(store => {
+    cleanedTrue = !store.profiles.trueBlacklist || !store.profiles.trueBlacklist.includes(testUser2);
+    cleanedNormal = !store.profiles.blacklist || !store.profiles.blacklist.includes(testUser2);
+  });
+  if (cleanedTrue && cleanedNormal && String(msgCreatorUbl.getReply() || '').includes('Usunięto')) {
+    console.log('✅ PASS: Creator successfully unblacklisted true blacklisted user via !ubl.');
+  } else {
+    console.log('❌ FAIL: Creator ubl on true blacklisted user failed.', { cleanedTrue, cleanedNormal });
+  }
+
   // Cleanup DB at the end
   await withData(store => {
     delete store.users[testUser1];

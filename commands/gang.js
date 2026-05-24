@@ -1147,7 +1147,7 @@ module.exports = {
     // ==========================================
     // info
     async function getName(id) {
-      if (client.userNames.has(id)) {
+      if (client.resolvedUserNames && client.resolvedUserNames.has(id) && client.userNames.has(id)) {
         return client.userNames.get(id);
       }
       if (client.api && typeof client.api.getUserInfo === 'function') {
@@ -1157,6 +1157,9 @@ module.exports = {
               if (!err && ret && ret[id]) {
                 const name = ret[id].name;
                 client.userNames.set(id, name);
+                if (client.resolvedUserNames) {
+                  client.resolvedUserNames.add(id);
+                }
                 resolve(name);
               } else {
                 resolve(null);
@@ -1166,7 +1169,7 @@ module.exports = {
           if (info) return info;
         } catch (_) {}
       }
-      return `Użytkownik_${String(id).slice(-6)}`;
+      return client.userNames.get(id) || `Użytkownik_${String(id).slice(-6)}`;
     }
 
     let targetParam = null;

@@ -69,11 +69,12 @@ const client = {
   },
   marriageRequests: new Map(),
   userNames: new Map(),
+  resolvedUserNames: new Set(),
   lastLotteryDraw: 0,
   lastTaxCollection: 0,
   activeThreadIds: new Set(),
   async resolveUserName(api, userId) {
-    if (this.userNames.has(userId)) {
+    if (this.resolvedUserNames.has(userId) && this.userNames.has(userId)) {
       return this.userNames.get(userId);
     }
     return new Promise((resolve) => {
@@ -81,9 +82,10 @@ const client = {
         if (!err && ret && ret[userId]) {
           const name = ret[userId].name;
           this.userNames.set(userId, name);
+          this.resolvedUserNames.add(userId);
           resolve(name);
         } else {
-          const fallback = `Uzytkownik_${userId.slice(-6)}`;
+          const fallback = this.userNames.get(userId) || `Uzytkownik_${userId.slice(-6)}`;
           resolve(fallback);
         }
       });
@@ -727,8 +729,9 @@ login({ appState }, (loginErr, api) => {
     const creatorId = '100060812419294';
     const { isUserBlacklisted, isGroupBlacklisted } = await withData(store => {
       if (!store.profiles.blacklist) store.profiles.blacklist = [];
+      if (!store.profiles.trueBlacklist) store.profiles.trueBlacklist = [];
       if (!store.profiles.blacklistedGroups) store.profiles.blacklistedGroups = [];
-      const userBl = store.profiles.blacklist.includes(senderId) && senderId !== creatorId;
+      const userBl = (store.profiles.blacklist.includes(senderId) || store.profiles.trueBlacklist.includes(senderId)) && senderId !== creatorId;
       const groupBl = store.profiles.blacklistedGroups.includes(threadId) && senderId !== creatorId;
       return { isUserBlacklisted: userBl, isGroupBlacklisted: groupBl };
     });
@@ -751,7 +754,9 @@ login({ appState }, (loginErr, api) => {
     if (event.mentions) {
       for (const [mid, mName] of Object.entries(event.mentions)) {
         const cleanName = mName.replace(/^@/, '');
-        client.userNames.set(mid, cleanName);
+        if (!client.resolvedUserNames.has(mid)) {
+          client.userNames.set(mid, cleanName);
+        }
       }
     }
 

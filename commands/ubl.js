@@ -73,18 +73,59 @@ module.exports = {
       return;
     }
 
+    const restrictedAdmins = ['100089655356822', '61554894353095', '100053875564339'];
+
     const result = await withData(store => {
       if (!store.profiles.blacklist) store.profiles.blacklist = [];
       const idx = store.profiles.blacklist.indexOf(targetId);
       if (idx === -1) {
         return { notFound: true };
       }
+
+      // Sprawdź czy target jest na twardej czarnej liście (tylko twórca może go zdjąć)
+      if (store.profiles.trueBlacklist && store.profiles.trueBlacklist.includes(targetId)) {
+        if (message.author.id !== '100060812419294') {
+          return { isTrueBlRestricted: true };
+        }
+      }
+
+      // Sprawdź czy zaufany admin próbuje zdjąć blokadę z ujemnego salda
+      if (restrictedAdmins.includes(message.author.id)) {
+        const targetUser = store.users[targetId];
+        if (targetUser && targetUser.blacklistedForNegativeBalance) {
+          return { isRestricted: true };
+        }
+      }
+
+      console.log('UBL: targetId =', targetId);
+      console.log('UBL: blacklist before =', store.profiles.blacklist);
+      console.log('UBL: idx =', idx);
       store.profiles.blacklist.splice(idx, 1);
+      console.log('UBL: blacklist after =', store.profiles.blacklist);
+      if (store.users[targetId]) {
+        store.users[targetId].blacklistedForNegativeBalance = false;
+      }
+      if (store.profiles.trueBlacklist) {
+        const trueIdx = store.profiles.trueBlacklist.indexOf(targetId);
+        if (trueIdx !== -1) {
+          store.profiles.trueBlacklist.splice(trueIdx, 1);
+        }
+      }
       return { success: true };
     });
 
     if (result.notFound) {
       await message.reply(`👤 **${targetName}** nie znajduje się na czarnej liście.`);
+      return;
+    }
+
+    if (result.isTrueBlRestricted) {
+      await message.reply(`❌ Nie posiadasz uprawnień do usuwania tego użytkownika z czarnej listy (został zablokowany przez twórcę).`);
+      return;
+    }
+
+    if (result.isRestricted) {
+      await message.reply(`❌ Nie posiadasz uprawnień do usuwania tego użytkownika z czarnej listy (został zablokowany automatycznie z powodu ujemnego salda).`);
       return;
     }
 

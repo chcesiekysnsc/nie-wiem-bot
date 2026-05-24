@@ -128,6 +128,9 @@ function saveData(key, data) {
 
   const normalized = normalizeData(key, data);
   const content = JSON.stringify(normalized, null, 2);
+  if (key === 'profiles') {
+    console.log('SAVEDATA PROFILES CONTENT:', content);
+  }
   fs.writeFileSync(filePath, content);
 
   const BACKUP_DIR = 'C:\\Users\\dupek\\.gemini\\antigravity\\db_backups';
@@ -169,6 +172,7 @@ function sanitizeUser(user) {
   merged.marriedTo = merged.marriedTo ? String(merged.marriedTo) : null;
   merged.negativeSince = merged.negativeSince || null;
   merged.activeLoan = merged.activeLoan || null;
+  merged.blacklistedForNegativeBalance = merged.blacklistedForNegativeBalance || false;
 
   return merged;
 }
@@ -297,6 +301,7 @@ async function withData(callback) {
           } else if (Date.now() - user.negativeSince >= 7 * 24 * 60 * 60 * 1000) {
             if (!config.admins.includes(userId) && !store.profiles.blacklist.includes(userId)) {
               store.profiles.blacklist.push(userId);
+              user.blacklistedForNegativeBalance = true;
             }
           }
         } else {

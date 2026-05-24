@@ -9,7 +9,7 @@ module.exports = {
     const sub = String(args[0] || '').trim().toLowerCase();
 
     async function getName(id) {
-      if (client.userNames.has(id)) {
+      if (client.resolvedUserNames && client.resolvedUserNames.has(id) && client.userNames.has(id)) {
         return client.userNames.get(id);
       }
       if (client.api && typeof client.api.getUserInfo === 'function') {
@@ -19,6 +19,9 @@ module.exports = {
               if (!err && ret && ret[id]) {
                 const name = ret[id].name;
                 client.userNames.set(id, name);
+                if (client.resolvedUserNames) {
+                  client.resolvedUserNames.add(id);
+                }
                 resolve(name);
               } else {
                 resolve(null);
@@ -28,7 +31,7 @@ module.exports = {
           if (info) return info;
         } catch (_) {}
       }
-      return `Uzytkownik_${String(id).slice(-6)}`;
+      return client.userNames.get(id) || `Uzytkownik_${String(id).slice(-6)}`;
     }
 
     const medals = ['🥇', '🥈', '🥉', '4.', '5.'];

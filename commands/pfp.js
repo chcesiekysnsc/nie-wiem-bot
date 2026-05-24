@@ -65,6 +65,9 @@ module.exports = {
               if (!err && ret && ret[targetId]) {
                 const name = ret[targetId].name;
                 client.userNames.set(targetId, name);
+                if (client.resolvedUserNames) {
+                  client.resolvedUserNames.add(targetId);
+                }
                 resolve({ name, thumbSrc: ret[targetId].thumbSrc });
               } else {
                 resolve(null);
