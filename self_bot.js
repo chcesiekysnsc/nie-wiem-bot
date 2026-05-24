@@ -811,15 +811,15 @@ login({ appState }, (loginErr, api) => {
     };
 
     try {
-      const spamState = await checkSpam(senderId);
-      if (spamState.blocked) {
-        await messageContext.reply({ embeds: [spamState.embed] }).catch(() => null);
-        return;
-      }
-
       const cooldownState = await checkCooldown(command.name, senderId);
       if (cooldownState.active) {
         await messageContext.reply({ embeds: [cooldownState.embed] }).catch(() => null);
+        return;
+      }
+
+      const spamState = await checkSpam(senderId);
+      if (spamState.blocked) {
+        await messageContext.reply({ embeds: [spamState.embed] }).catch(() => null);
         return;
       }
 

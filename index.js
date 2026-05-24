@@ -85,15 +85,15 @@ async function executeCommand(event, pageId) {
   }
 
   try {
-    const spamState = await checkSpam(senderId);
-    if (spamState.blocked) {
-      await message.reply({ embeds: [spamState.embed] }).catch(() => null);
-      return;
-    }
-
     const cooldownState = await checkCooldown(command.name, senderId);
     if (cooldownState.active) {
       await message.reply({ embeds: [cooldownState.embed] }).catch(() => null);
+      return;
+    }
+
+    const spamState = await checkSpam(senderId);
+    if (spamState.blocked) {
+      await message.reply({ embeds: [spamState.embed] }).catch(() => null);
       return;
     }
 

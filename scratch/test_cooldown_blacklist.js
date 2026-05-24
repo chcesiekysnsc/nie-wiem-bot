@@ -1,5 +1,5 @@
 const { withData } = require('../utils/storage');
-const { checkCooldown } = require('../utils/cooldowns');
+const { checkCooldown, checkSpam } = require('../utils/cooldowns');
 
 const testUserId = 'cooldown_spam_user';
 
@@ -67,6 +67,35 @@ async function run() {
     console.log('✅ PASS: 5 powiadomień o cooldownie w 30s zlicza się globalnie i dodaje użytkownika do czarnej listy.');
   } else {
     throw new Error('System blacklisty za globalny spam cooldownami nie zadziałał poprawnie.');
+  }
+
+  await resetTestState();
+
+  const flowCommands = ['bal', 'help', 'bal', 'help', 'bal', 'help', 'bal'];
+  for (const commandName of flowCommands) {
+    const cooldownState = await checkCooldown(commandName, testUserId);
+    if (cooldownState.active) {
+      state = cooldownState;
+      continue;
+    }
+
+    const spamState = await checkSpam(testUserId);
+    if (spamState.blocked) {
+      throw new Error('Antyspam zablokował użytkownika zanim uzbierało się 5 globalnych ostrzeżeń cooldownu.');
+    }
+  }
+
+  await withData(store => {
+    isBlacklisted = Array.isArray(store.profiles.blacklist) && store.profiles.blacklist.includes(testUserId);
+  });
+
+  console.log('\nOstatnia odpowiedź w przepływie mieszanych komend:', state);
+  console.log('Czy użytkownik trafił na blacklistę po mieszanym spamie:', isBlacklisted);
+
+  if (state.blacklisted && isBlacklisted) {
+    console.log('✅ PASS: Mieszany spam różnymi komendami też kończy się blacklistą po 5 ostrzeżeniach cooldownu.');
+  } else {
+    throw new Error('Mieszany spam różnymi komendami nie zakończył się blacklistą.');
   }
 
   await resetTestState();
