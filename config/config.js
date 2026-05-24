@@ -108,56 +108,64 @@ module.exports = {
       name: 'Klodka',
       emoji: '🔒',
       price: 35000,
-      description: 'Chroni przed kradzieza przez innego gracza (!rob). Zuzywana przy probie robu.',
+      shortDesc: 'Chroni przed kradzieżą (!rob).',
+      description: 'Chroni przed kradzieżą przez innego gracza (!rob). Kłódka jest zużywana przy każdej próbie robu — złodziej traci możliwość kradzieży i odchodzi z niczym.',
       type: 'stackable'
     },
     piwo: {
       name: 'Piwo',
       emoji: '🍺',
       price: 50000,
-      description: 'Uzyj przed !rob: 50% szans na +5% wiekszy lup (25% zamiast 20%), ale przy wpadce tracisz 40% zamiast 30%.',
+      shortDesc: 'Bonus do !rob (+5% łup lub -10% kara).',
+      description: 'Użyj przed !rob: daje 50% szans na zwiększony łup (+5%, czyli 25% zamiast 20%). Uwaga — przy wpadce kara rośnie do 40% zamiast 30%. Ryzyko się opłaca odważnym!',
       type: 'stackable'
     },
     ticket: {
       name: 'Bilet Loterii',
       emoji: '🎟️',
       price: 50000,
-      description: 'Bilet na loterię (losowanie co 10 min, max 5 szt.).',
+      shortDesc: 'Udział w loterii co 10 min (max 5 szt.).',
+      description: 'Bilet uprawnia do udziału w automatycznej loterii, która losuje zwycięzcę co 10 minut. Im więcej biletów, tym większa szansa wygranej. Nagroda = liczba biletów × 50 000. Limit: 5 biletów na osobę.',
       type: 'stackable'
     },
     bomba: {
       name: 'Bomba',
       emoji: '💣',
       price: 100000,
-      description: 'Pułapka na złodzieja: kradnie 40% jego portfela i nakłada na niego 30 minut cooldownu.',
+      shortDesc: 'Pułapka: obrabowuje złodzieja przy !rob.',
+      description: 'Aktywna pułapka na złodzieja. Gdy ktoś spróbuje cię okraść (!rob), bomba wybucha — kradnie 40% portfela złodzieja i nakłada na niego 30 minut cooldownu na !rob. Bomba zużywa się po aktywacji.',
       type: 'stackable'
     },
     paczka_brazowa: {
       name: 'Brązowa Paczka',
       emoji: '🟫',
       price: 50000,
-      description: 'Otwórz: !otworz brazowa | Wygrana: 25 000–75 000 + 10% szans na Bilet Loterii.',
+      shortDesc: 'Lootbox: 25k–75k + 10% szans na Bilet.',
+      description: 'Otwórz komendą: !otworz brazowa\nZawartość: losowa kwota od 25 000 do 75 000 viccoinów (rozkład równomierny).\nBonus drop (10%): 🎟️ Bilet Loterii.',
       type: 'stackable'
     },
     paczka_srebrna: {
       name: 'Srebrna Paczka',
       emoji: '⬜',
       price: 100000,
-      description: 'Otwórz: !otworz srebrna | Wygrana: 75 000–150 000 + 10% szans na Kłódkę lub Piwo.',
+      shortDesc: 'Lootbox: 75k–150k + 10% szans na przedmiot.',
+      description: 'Otwórz komendą: !otworz srebrna\nZawartość: losowa kwota od 75 000 do 150 000 viccoinów.\nBonus drop (10%): 5% szans na 🔒 Kłódkę, 5% szans na 🍺 Piwo.',
       type: 'stackable'
     },
     paczka_zlota: {
       name: 'Złota Paczka',
       emoji: '🟨',
       price: 200000,
-      description: 'Otwórz: !otworz zlota | Wygrana: 150 000–250 000 + 10% szans na Bombę lub Kłódkę+Piwo.',
+      shortDesc: 'Lootbox: 150k–250k + 10% szans na przedmiot.',
+      description: 'Otwórz komendą: !otworz zlota\nZawartość: losowa kwota od 150 000 do 250 000 viccoinów.\nBonus drop (10%): 5% na 💣 Bombę, 3% na 🔒 Kłódkę + 🍺 Piwo jednocześnie, 2% na 🎟️ Bilet.',
       type: 'stackable'
     },
     paczka_diamentowa: {
       name: 'Diamentowa Paczka',
       emoji: '🟦',
       price: 500000,
-      description: 'Otwórz: !otworz diamentowa | Wygrana: 250 000–750 000 + 10% szans na VIP Pass lub Ulepszenie Banku!',
+      shortDesc: 'Lootbox: 250k–750k + 10% szans na VIP/Sejf!',
+      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 250 000 do 750 000 viccoinów.\nBonus drop (10%): 5% na 👑 VIP Pass, 5% na 🏦 Ulepszenie Banku.\nJeśli już posiadasz dany przedmiot — otrzymujesz zamiennik o podobnej wartości.',
       type: 'stackable'
     },
     // Poniższe itemy są niedostępne w sklepie — wypadają tylko z paczek
@@ -165,7 +173,8 @@ module.exports = {
       name: 'VIP Pass',
       emoji: '👑',
       price: 100000,
-      description: 'Daje bonus do !daily i !work oraz zwiększa pojemność banku.',
+      shortDesc: 'Bonus do !daily, !work i większy bank.',
+      description: 'Daje stały bonus do nagród z !daily (+25%) i !work (+10%) oraz zwiększa pojemność banku o 25 000. Tylko jeden egzemplarz na gracza. Dostępny wyłącznie z 🟦 Diamentowej Paczki.',
       type: 'permanent',
       buyable: false,
       shopNote: 'Dostępny tylko z 🟦 Diamentowej Paczki!'
@@ -174,7 +183,8 @@ module.exports = {
       name: 'Ulepszenie Banku',
       emoji: '🏦',
       price: 150000,
-      description: 'Zwiększa pojemność banku o 75 000.',
+      shortDesc: 'Zwiększa pojemność banku o 75 000.',
+      description: 'Jednorazowy upgrade: trwale zwiększa pojemność banku o 75 000 viccoinów. Tylko jeden egzemplarz na gracza. Dostępny wyłącznie z 🟦 Diamentowej Paczki.',
       type: 'permanent',
       buyable: false,
       shopNote: 'Dostępne tylko z 🟦 Diamentowej Paczki!'

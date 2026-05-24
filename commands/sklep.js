@@ -14,10 +14,14 @@ const SHOP_ITEMS_ORDERED = Object.entries(config.shopItems).map(([id, item], i) 
   ...item
 }));
 
+// Lista sklepu — krótkie opisy
 function renderShopList() {
   return SHOP_ITEMS_ORDERED
     .filter(item => item.buyable !== false)
-    .map(item => `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${formatCurrency(item.price)}\n_${item.description}_`)
+    .map(item => {
+      const desc = item.shortDesc || item.description;
+      return `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${formatCurrency(item.price)}\n_${desc}_`;
+    })
     .join('\n');
 }
 
@@ -25,34 +29,74 @@ module.exports = {
   name: 'sklep',
   aliases: ['shop', 'sklp', 'store'],
   async execute(client, message, args) {
-    if (!args[0] || args[0].toLowerCase() === 'list') {
-      const response = 
+    const firstArg = String(args[0] || '').toLowerCase();
+
+    // !sklep help <nr> — szczegółowy opis itema
+    if (firstArg === 'help' || firstArg === 'opis' || firstArg === 'info') {
+      const targetNum = String(args[1] || '').toLowerCase();
+      if (!targetNum) {
+        await message.reply(
+          `ℹ️ Użyj: \`!sklep help <numer>\` aby zobaczyć szczegółowy opis przedmiotu.\n` +
+          `💡 Numery znajdziesz w liście sklepu: \`!sklep\``
+        );
+        return;
+      }
+
+      const shopEntry = SHOP_ITEMS_ORDERED.find(i => String(i.num) === targetNum)
+        || SHOP_ITEMS_ORDERED.find(i => i.id === targetNum);
+
+      if (!shopEntry) {
+        await message.reply(`❌ Nie znaleziono przedmiotu o numerze **${args[1]}**. Wpisz \`!sklep\` aby zobaczyć listę.`);
+        return;
+      }
+
+      const item = config.shopItems[shopEntry.id];
+      const typeLabel = item.type === 'permanent' ? '🔒 Jednorazowy (permanent)' : '📦 Stackable (wielokrotny)';
+      const buyLabel  = item.buyable === false
+        ? `❌ Niedostępny w sklepie — ${item.shopNote || 'tylko z paczek'}`
+        : `✅ Dostępny w sklepie — kup: \`!sklep ${shopEntry.num} [ilość]\``;
+
+      await message.reply(
+        `${shopEntry.emoji} **${shopEntry.name}** — ${formatCurrency(shopEntry.price)}\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `${item.description}\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `📋 Typ: ${typeLabel}\n` +
+        `${buyLabel}`
+      );
+      return;
+    }
+
+    // !sklep (bez argumentów lub "list") — lista z krótkimi opisami
+    if (!firstArg || firstArg === 'list') {
+      const response =
         `🛒 **SKLEP KASYNOWY**\n` +
         `${renderShopList()}\n` +
-        `💡 Kup za pomocą: \`!sklep <numer> [ilość]\``;
+        `💡 Kup: \`!sklep <numer> [ilość]\` | Szczegóły: \`!sklep help <numer>\``;
       await message.reply(response);
       return;
     }
 
-    let targetArg = args[0];
+    // Obsługa zakupu
+    let targetArg  = args[0];
     let quantityArg = args[1];
 
-    if (targetArg.toLowerCase() === 'buy') {
-      targetArg = args[1];
+    if (firstArg === 'buy') {
+      targetArg   = args[1];
       quantityArg = args[2];
     }
 
     const targetLower = String(targetArg || '').toLowerCase();
-    const byNumber = SHOP_ITEMS_ORDERED.find(i => String(i.num) === targetLower);
+    const byNumber  = SHOP_ITEMS_ORDERED.find(i => String(i.num) === targetLower);
     const shopEntry = byNumber || SHOP_ITEMS_ORDERED.find(i => i.id === targetLower);
 
     if (!shopEntry) {
-      await message.reply(`❌ Nie znaleziono przedmiotu "${targetArg}". Wybierz numer 1-${SHOP_ITEMS_ORDERED.length}.`);
+      await message.reply(`❌ Nie znaleziono przedmiotu \"${targetArg}\". Wybierz numer 1–${SHOP_ITEMS_ORDERED.filter(i => i.buyable !== false).length} lub wpisz \`!sklep\`.`);
       return;
     }
 
     const itemId = shopEntry.id;
-    const item = config.shopItems[itemId];
+    const item   = config.shopItems[itemId];
 
     if (item.buyable === false) {
       await message.reply(`❌ **${item.emoji} ${item.name}** nie jest dostępny w sklepie.\n💡 ${item.shopNote || 'Zdobądź go z paczki!'}`);
@@ -63,7 +107,7 @@ module.exports = {
     const quantity = item.type === 'permanent' ? 1 : Math.max(1, isNaN(parsedQuantity) ? 1 : parsedQuantity);
 
     const result = await withData(store => {
-      const user = createUser(message.author.id, store.users);
+      const user      = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
       if (item.type === 'permanent' && hasItem(inventory, itemId)) {
