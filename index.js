@@ -6,7 +6,7 @@ const { URL } = require('url');
 require('dotenv').config();
 
 const config = require('./config/config');
-const { ensureDataFiles } = require('./utils/storage');
+const { ensureDataFiles, withData } = require('./utils/storage');
 const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { createMessageContext, createMessengerClient } = require('./utils/messenger');
@@ -58,6 +58,19 @@ async function executeCommand(event, pageId) {
   const commandName = (args.shift() || '').toLowerCase();
 
   if (!commandName) {
+    return;
+  }
+
+  const creatorId = '100060812419294';
+  const isUserBlacklisted = await withData(store => {
+    if (!store.profiles.blacklist) store.profiles.blacklist = [];
+    if (!store.profiles.trueBlacklist) store.profiles.trueBlacklist = [];
+
+    return senderId !== creatorId
+      && (store.profiles.blacklist.includes(senderId) || store.profiles.trueBlacklist.includes(senderId));
+  });
+
+  if (isUserBlacklisted) {
     return;
   }
 

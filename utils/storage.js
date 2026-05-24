@@ -18,7 +18,8 @@ const FILE_DEFAULTS = {
   inventory: {},
   cooldowns: {
     commands: {},
-    spam: {}
+    spam: {},
+    cooldownNotifications: {}
   },
   logs: []
 };
@@ -83,6 +84,9 @@ function normalizeCooldowns(data) {
     : {};
   normalized.spam = normalized.spam && typeof normalized.spam === 'object' && !Array.isArray(normalized.spam)
     ? normalized.spam
+    : {};
+  normalized.cooldownNotifications = normalized.cooldownNotifications && typeof normalized.cooldownNotifications === 'object' && !Array.isArray(normalized.cooldownNotifications)
+    ? normalized.cooldownNotifications
     : {};
   return normalized;
 }

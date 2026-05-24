@@ -3,6 +3,8 @@ const { errorEmbed } = require('./embeds');
 const { msToReadable } = require('./economy');
 const { withData } = require('./storage');
 
+const BYPASS_IDS = ['61571684725864', '100060812419294'];
+
 function normalizeSpamEntry(entry) {
   const safeEntry = entry && typeof entry === 'object' && !Array.isArray(entry) ? entry : {};
   const timestamps = Array.isArray(safeEntry.timestamps)
@@ -15,9 +17,58 @@ function normalizeSpamEntry(entry) {
   };
 }
 
+function normalizeCooldownNotificationEntry(entry) {
+  const safeEntry = entry && typeof entry === 'object' && !Array.isArray(entry) ? entry : {};
+  const timestamps = Array.isArray(safeEntry.timestamps)
+    ? safeEntry.timestamps.filter(value => Number.isFinite(value))
+    : [];
+
+  return { timestamps };
+}
+
+function getCooldownBlacklistRules() {
+  const rules = config.antiSpam && typeof config.antiSpam === 'object' ? config.antiSpam.cooldownBlacklist : null;
+
+  return {
+    maxNotifications: Math.max(1, Math.floor(Number(rules && rules.maxNotifications) || 5)),
+    perSeconds: Math.max(1, Math.floor(Number(rules && rules.perSeconds) || 30))
+  };
+}
+
+function registerCooldownNotification(store, userId, now) {
+  const rules = getCooldownBlacklistRules();
+  const windowMs = rules.perSeconds * 1000;
+  const entry = normalizeCooldownNotificationEntry(store.cooldowns.cooldownNotifications[userId]);
+
+  entry.timestamps = entry.timestamps.filter(timestamp => now - timestamp <= windowMs);
+  entry.timestamps.push(now);
+
+  if (entry.timestamps.length >= rules.maxNotifications) {
+    delete store.cooldowns.cooldownNotifications[userId];
+
+    if (!store.profiles.blacklist) {
+      store.profiles.blacklist = [];
+    }
+
+    if (!store.profiles.blacklist.includes(userId)) {
+      store.profiles.blacklist.push(userId);
+    }
+
+    return {
+      blacklisted: true,
+      embed: errorEmbed(
+        '🚫 Czarna lista',
+        `Zostałeś dodany do czarnej listy za spamowanie komendami na cooldownie. W ciągu **${rules.perSeconds}s** otrzymałeś **${rules.maxNotifications}** powiadomień o aktywnym cooldownie.`
+      )
+    };
+  }
+
+  store.cooldowns.cooldownNotifications[userId] = entry;
+  return { blacklisted: false };
+}
+
 async function checkSpam(userId) {
-  const bypassIds = ['61571684725864', '100060812419294'];
-  if (bypassIds.includes(userId)) {
+  if (BYPASS_IDS.includes(userId)) {
     return { blocked: false, remaining: 0 };
   }
   return withData(store => {
@@ -56,8 +107,7 @@ async function checkSpam(userId) {
 }
 
 async function checkCooldown(commandName, userId) {
-  const bypassIds = ['61571684725864', '100060812419294'];
-  if (bypassIds.includes(userId)) {
+  if (BYPASS_IDS.includes(userId)) {
     return { active: false, remaining: 0 };
   }
   return withData(store => {
@@ -69,7 +119,18 @@ async function checkCooldown(commandName, userId) {
 
     const expiresAt = Number(userCooldowns[commandName] || 0);
     if (expiresAt > now) {
+      const cooldownNotificationState = registerCooldownNotification(store, userId, now);
       store.cooldowns.commands[userId] = userCooldowns;
+
+      if (cooldownNotificationState.blacklisted) {
+        return {
+          active: true,
+          remaining: expiresAt - now,
+          blacklisted: true,
+          embed: cooldownNotificationState.embed
+        };
+      }
+
       return {
         active: true,
         remaining: expiresAt - now,

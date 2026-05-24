@@ -17,7 +17,11 @@ module.exports = {
   antiSpam: {
     maxCommands: 6,
     perSeconds: 10,
-    muteSeconds: 15
+    muteSeconds: 15,
+    cooldownBlacklist: {
+      maxNotifications: 5,
+      perSeconds: 30
+    }
   },
   cooldowns: {
     default: 3,
