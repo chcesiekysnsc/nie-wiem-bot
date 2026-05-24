@@ -73,9 +73,11 @@ module.exports = {
     });
 
     const bonusText = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z biznesów gangu)` : '';
-    const tributeText = result.tributeAmount > 0 ? `\n\n💰 Haracza dla gangu: **-${formatCurrency(result.tributeAmount)}**` : '';
     const finalReward = result.reward - result.tributeAmount;
-    const embed = successEmbed('👷 Praca — zarobek', `${result.text}\n\n+**${formatCurrency(finalReward)}** (brutto: ${formatCurrency(result.reward)})${bonusText}${tributeText}`);
-    await message.reply({ embeds: [embed] });
+    if (result.tributeAmount > 0) {
+      await message.reply(`👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText} (pobrano **${formatCurrency(result.tributeAmount)}** haraczu dla Bossa)`);
+    } else {
+      await message.reply(`👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText}`);
+    }
   }
 };
