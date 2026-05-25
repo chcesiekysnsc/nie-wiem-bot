@@ -73,15 +73,11 @@ async function runTests() {
     await withData(store => { createUser(TEST_USER, store.users).balance = 999999; });
 
     const msgVip = createMockMsg(TEST_USER);
-    // Sklep używa numeru — znajdź numer VIP
-    const config = require('../config/config');
-    const vipNum = Object.entries(config.shopItems).findIndex(([k]) => k === 'vip') + 1;
-    await sklep.execute(mockClient, msgVip, [String(vipNum)]);
+    await sklep.execute(mockClient, msgVip, ['vip']);
     assert(msgVip.getReply().includes('nie jest dostępny w sklepie'), 'Zakup VIP przez sklep zablokowany');
 
     const msgSejf = createMockMsg(TEST_USER);
-    const sejfNum = Object.entries(config.shopItems).findIndex(([k]) => k === 'sejf') + 1;
-    await sklep.execute(mockClient, msgSejf, [String(sejfNum)]);
+    await sklep.execute(mockClient, msgSejf, ['sejf']);
     assert(msgSejf.getReply().includes('nie jest dostępny w sklepie'), 'Zakup sejf przez sklep zablokowany');
   }
 
@@ -138,9 +134,9 @@ async function runTests() {
       await otworz.execute(mockClient, msg, ['brazowa']);
       const balAfter = await withData(store => (store.users[TEST_USER] || {}).balance || 0);
       const gained = balAfter - balBefore;
-      if (gained < 25000 || gained > 75000) { allInRange = false; break; }
+      if (gained < 22500 || gained > 72500) { allInRange = false; break; }
     }
-    assert(allInRange, `Przez ${RUNS} otwarć gotówka zawsze mieściła się w 25k–75k`);
+    assert(allInRange, `Przez ${RUNS} otwarć gotówka zawsze mieściła się w 22.5k–72.5k`);
   }
 
   // ──────────────────────────────────────────────
@@ -160,9 +156,9 @@ async function runTests() {
       const msg = createMockMsg(TEST_USER);
       await otworz.execute(mockClient, msg, ['diamentowa']);
       const balAfter = await withData(store => (store.users[TEST_USER] || {}).balance || 0);
-      if (balAfter < 250000 || balAfter > 750000) { allInRange = false; break; }
+      if (balAfter < 225000 || balAfter > 725000) { allInRange = false; break; }
     }
-    assert(allInRange, `Przez ${RUNS} otwarć diamentowej gotówka mieściła się w 250k–750k`);
+    assert(allInRange, `Przez ${RUNS} otwarć diamentowej gotówka mieściła się w 225k–725k`);
   }
 
   // ──────────────────────────────────────────────

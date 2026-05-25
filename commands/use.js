@@ -8,11 +8,15 @@ const {
 const { createUser, withData } = require('../utils/storage');
 
 function getOrderedItems() {
-  return Object.entries(config.shopItems).map(([id, item], i) => ({
-    num: i + 1,
-    id,
-    ...item
-  }));
+  let buyableCount = 0;
+  return Object.entries(config.shopItems).map(([id, item]) => {
+    const isBuyable = item.buyable !== false;
+    return {
+      num: isBuyable ? ++buyableCount : null,
+      id,
+      ...item
+    };
+  });
 }
 
 module.exports = {
@@ -22,7 +26,7 @@ module.exports = {
     const numArg = String(args[0] || '').trim();
 
     if (!numArg) {
-      const items = getOrderedItems();
+      const items = getOrderedItems().filter(i => i.num !== null);
       const list = items.map(i => `${i.num}. ${i.emoji} **${i.name}**`).join('\n');
       await message.reply(`🎒 **Użycie przedmiotu**\nWpisz **!use <numer>** aby użyć:\n${list}`);
       return;

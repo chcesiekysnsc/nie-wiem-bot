@@ -8,11 +8,15 @@ const {
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
-const SHOP_ITEMS_ORDERED = Object.entries(config.shopItems).map(([id, item], i) => ({
-  num: i + 1,
-  id,
-  ...item
-}));
+let buyableCount = 0;
+const SHOP_ITEMS_ORDERED = Object.entries(config.shopItems).map(([id, item]) => {
+  const isBuyable = item.buyable !== false;
+  return {
+    num: isBuyable ? ++buyableCount : null,
+    id,
+    ...item
+  };
+});
 
 // Lista sklepu — krótkie opisy, paczki jako lootbox
 function renderShopList() {
