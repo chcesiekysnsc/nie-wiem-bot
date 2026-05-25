@@ -30,7 +30,7 @@ module.exports = {
 
     const chosenNumber = Math.floor(Number(rawNum));
     if (isNaN(chosenNumber) || chosenNumber < 1 || chosenNumber > 90) {
-      await message.reply('❌ Wybierz liczbę od **1 do 90** (np. `!bet 1000 50`).');
+      await message.reply('❌ Wybierz liczbę od **1 do 90** (np. **!bet 1000 50**).');
       return;
     }
 

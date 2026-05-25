@@ -36,11 +36,11 @@ module.exports = {
       if (game && game.code === code && game.active) {
         client.activeReactions.delete(threadId);
         if (client.api) {
-          client.api.sendMessage(`⌛ **SZYBKIE PALCE** ⌛\nCzas minął! Nikt nie przepisał kodu **\`${code}\`** na czas.`, threadId);
+          client.api.sendMessage(`⌛ **SZYBKIE PALCE** ⌛\nCzas minął! Nikt nie przepisał kodu **${code}** na czas.`, threadId);
         }
       }
     }, 2 * 60 * 1000).unref();
 
-    await message.reply(`⚡ **SZYBKIE PALCE** ⚡\nKto pierwszy przepisze poniższy kod, wygrywa **${formatCurrency(prize)}**!\n\n👉 **\`${code}\`**`);
+    await message.reply(`⚡ **SZYBKIE PALCE** ⚡\nKto pierwszy przepisze poniższy kod, wygrywa **${formatCurrency(prize)}**!\n\n👉 **${code}**`);
   }
 };

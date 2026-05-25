@@ -11,7 +11,7 @@ module.exports = {
     }
 
     if (!args[0]) {
-      await message.reply('❌ Użycie: `!blgrp <przypisany nr lub ID grupy>`');
+      await message.reply('❌ Użycie: **!blgrp <przypisany nr lub ID grupy>**');
       return;
     }
 
@@ -43,10 +43,10 @@ module.exports = {
     });
 
     if (result.already) {
-      await message.reply(`🚫 Grupa o ID \`${targetThreadId}\` jest już zablokowana.`);
+      await message.reply(`🚫 Grupa o ID **${targetThreadId}** jest już zablokowana.`);
       return;
     }
 
-    await message.reply(`✅ Pomyślnie zablokowano grupę o ID \`${targetThreadId}\`. Bot nie będzie na niej odpowiadać.`);
+    await message.reply(`✅ Pomyślnie zablokowano grupę o ID **${targetThreadId}**. Bot nie będzie na niej odpowiadać.`);
   }
 };

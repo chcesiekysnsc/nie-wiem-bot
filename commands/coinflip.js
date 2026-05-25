@@ -20,7 +20,7 @@ module.exports = {
     const choice = normalizeChoice(args[1]);
 
     if (!choice) {
-      await message.reply('❌ Użyj: `!coinflip <kwota> <orzel/reszka>`');
+      await message.reply('❌ Użyj: **!coinflip <kwota> <orzel/reszka>**');
       return;
     }
 

@@ -24,7 +24,7 @@ module.exports = {
     if (!numArg) {
       const items = getOrderedItems();
       const list = items.map(i => `${i.num}. ${i.emoji} **${i.name}**`).join('\n');
-      await message.reply(`🎒 **Użycie przedmiotu**\nWpisz \`!use <numer>\` aby użyć:\n${list}`);
+      await message.reply(`🎒 **Użycie przedmiotu**\nWpisz **!use <numer>** aby użyć:\n${list}`);
       return;
     }
 

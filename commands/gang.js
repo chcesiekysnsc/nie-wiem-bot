@@ -20,7 +20,7 @@ module.exports = {
     if (sub === 'stworz') {
       const gangName = args.slice(1).join(' ').trim();
       if (!gangName || gangName.length < 3 || gangName.length > 20) {
-        await message.reply('❌ Użyj: `!gang stworz <Nazwa>` (od 3 do 20 znaków).');
+        await message.reply('❌ Użyj: **!gang stworz <Nazwa>** (od 3 do 20 znaków).');
         return;
       }
 
@@ -96,7 +96,7 @@ module.exports = {
       }
 
       if (!targetId) {
-        await message.reply('❌ Użyj: `!gang zapros @osoba` lub `!gang zapros <ID>`');
+        await message.reply('❌ Użyj: **!gang zapros @osoba** lub **!gang zapros <ID>**');
         return;
       }
 
@@ -152,7 +152,7 @@ module.exports = {
         }
       }, 120000).unref();
 
-      await message.reply(`✉️ Wysłałeś zaproszenie do gangu **${inviteResult.gangName}** dla **${targetName}**! Ważne przez 2 minuty. Zaproszony musi wpisać \`!gang dolacz\` lub \`!gang akceptuj\`.`);
+      await message.reply(`✉️ Wysłałeś zaproszenie do gangu **${inviteResult.gangName}** dla **${targetName}**! Ważne przez 2 minuty. Zaproszony musi wpisać **!gang dolacz** lub **!gang akceptuj**.`);
       return;
     }
 
@@ -221,7 +221,7 @@ module.exports = {
       }
 
       if (!targetId) {
-        await message.reply('❌ Użyj: `!gang awans @osoba` lub `!gang awans <ID>` (może użyć też skrótu `!awans @osoba`).');
+        await message.reply('❌ Użyj: **!gang awans @osoba** lub **!gang awans <ID>** (może użyć też skrótu **!awans @osoba**).');
         return;
       }
 
@@ -286,12 +286,12 @@ module.exports = {
       }
 
       if (!targetId) {
-        await message.reply('❌ Użyj: `!gang wyrzuc @osoba` lub `!gang wyrzuc <ID>`');
+        await message.reply('❌ Użyj: **!gang wyrzuc @osoba** lub **!gang wyrzuc <ID>**');
         return;
       }
 
       if (targetId === message.author.id) {
-        await message.reply('❌ Nie możesz wyrzucić samego siebie. Jeśli chcesz odejść, użyj `!gang opusc`.');
+        await message.reply('❌ Nie możesz wyrzucić samego siebie. Jeśli chcesz odejść, użyj **!gang opusc**.');
         return;
       }
 
@@ -394,7 +394,7 @@ module.exports = {
     if (sub === 'wplac') {
       const amountRaw = args[1];
       if (!amountRaw) {
-        await message.reply('❌ Użyj: `!gang wplac <kwota/all>`');
+        await message.reply('❌ Użyj: **!gang wplac <kwota/all>**');
         return;
       }
 
@@ -439,7 +439,7 @@ module.exports = {
     if (sub === 'wyplac') {
       const amountRaw = args[1];
       if (!amountRaw) {
-        await message.reply('❌ Użyj: `!gang wyplac <kwota/all>`');
+        await message.reply('❌ Użyj: **!gang wyplac <kwota/all>**');
         return;
       }
 
@@ -546,7 +546,38 @@ module.exports = {
       else if (targetUpgrade === '3') targetUpgrade = 'fach';
 
       if (!['dziupla', 'biznesy', 'fach'].includes(targetUpgrade)) {
-        await message.reply('❌ Użyj: `!gang ulepsz <dziupla/biznesy/fach>` lub `!gang ulepsz <1/2/3>`');
+        // Fetch current levels to show upgrade costs
+        const levels = await withData(store => {
+          const user = createUser(message.author.id, store.users);
+          if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
+            const gang = store.profiles.gangs[user.gangId];
+            return {
+              levelDziupla: gang.levelDziupla || 0,
+              levelBiznesy: gang.levelBiznesy || 0,
+              levelFach: gang.levelFach || 0
+            };
+          }
+          return null;
+        });
+
+        let costsMsg = '';
+        if (levels) {
+          const costDziupla = levels.levelDziupla < 10 ? formatCurrency(100000 + levels.levelDziupla * 40000) : 'Maksymalny poziom';
+          const costBiznesy = levels.levelBiznesy < 3 ? formatCurrency([200000, 400000, 650000][levels.levelBiznesy]) : 'Maksymalny poziom';
+          const costFach = levels.levelFach < 3 ? formatCurrency([200000, 350000, 600000][levels.levelFach]) : 'Maksymalny poziom';
+
+          costsMsg = `\n\n🛠️ **Koszt kolejnych ulepszeń dla Twojego gangu:**\n` +
+                     `• 📦 **Dziupla** (Lvl ${levels.levelDziupla} -> ${levels.levelDziupla + 1}): **${costDziupla}**\n` +
+                     `• 📈 **Legalne Biznesy** (Lvl ${levels.levelBiznesy} -> ${levels.levelBiznesy + 1}): **${costBiznesy}**\n` +
+                     `• 🥷 **Złodziejski Fach** (Lvl ${levels.levelFach} -> ${levels.levelFach + 1}): **${costFach}**`;
+        } else {
+          costsMsg = `\n\n🛠️ **Cennik ulepszeń gangów:**\n` +
+                     `• 📦 **Dziupla**: **100 000 💰** (każdy kolejny poziom +40 000 💰)\n` +
+                     `• 📈 **Legalne Biznesy**: Lvl 1: **200 000 💰** | Lvl 2: **400 000 💰** | Lvl 3: **650 000 💰**\n` +
+                     `• 🥷 **Złodziejski Fach**: Lvl 1: **200 000 💰** | Lvl 2: **350 000 💰** | Lvl 3: **600 000 💰**`;
+        }
+
+        await message.reply(`❌ Użyj: **!gang ulepsz <dziupla/biznesy/fach>** lub **!gang ulepsz <1/2/3>**${costsMsg}`);
         return;
       }
 
@@ -593,7 +624,7 @@ module.exports = {
           const costs = [200000, 350000, 600000];
           cost = costs[currentLevel];
           newLevel = currentLevel + 1;
-          const bonuses = ['+2%', '+4%', '+5%'];
+          const bonuses = ['+4%', '+8%', '+12%'];
           upgradeLabel = `Złodziejski Fach (Kradzieże bonus: ${bonuses[currentLevel]})`;
         }
 
@@ -636,7 +667,7 @@ module.exports = {
 
           const activeHeist = client.gangHeists.get(user.gangId);
           if (!activeHeist) {
-            return { error: '❌ Twój gang nie prowadzi obecnie przygotowań do skoku. Boss lub Zastępca musi wpisać `!gang skok`.' };
+            return { error: '❌ Twój gang nie prowadzi obecnie przygotowań do skoku. Boss lub Zastępca musi wpisać **!gang skok**.' };
           }
 
           if (activeHeist.participants.has(message.author.id)) {
@@ -707,7 +738,7 @@ module.exports = {
       await message.reply(`👥 **GANG HEIST (Skok Gangu)** 👥\n` +
         `**${message.author.username || 'Boss'}** zaplanował napad gangu **${startResult.gangName}**!\n\n` +
         `🚗 Wszyscy członkowie gangu mają **2 minuty**, aby dołączyć do akcji!\n` +
-        `Wpisz: \`!gang skok dolacz\` (lub \`!gang skok d\`), aby wziąć udział.\n\n` +
+        `Wpisz: **!gang skok dolacz** (lub **!gang skok d**), aby wziąć udział.\n\n` +
         `⚠️ *Wymagane minimum 2 osoby. Szansa na powodzenie: 50%. Łup: 60k - 400k dzielony po równo.*`);
 
       // Timer na wykonanie skoku po 2 minutach
@@ -859,7 +890,7 @@ module.exports = {
       // Starting an attack
       const targetParam = args.slice(1).join(' ').trim();
       if (!targetParam) {
-        await message.reply('❌ Użyj: `!gang atak @osoba` lub `!gang atak <ID>` lub `!gang atak dolacz`');
+        await message.reply('❌ Użyj: **!gang atak @osoba** lub **!gang atak <ID>** lub **!gang atak dolacz**');
         return;
       }
 
@@ -987,7 +1018,7 @@ module.exports = {
         `💸 Koszt przygotowania ataku: **-${formatCurrency(startResult.cost)}** z sejfu gangu.\n` +
         `🎯 Cel: Kradzież od **15% do 35%** wrogiego sejfu (obecnie: **${formatCurrency(startResult.defenderVault)}**).\n\n` +
         `🚗 Członkowie obu gangów mają **2 minuty**, aby dołączyć do walki!\n` +
-        `Wpisz: \`!gang atak dolacz\`, aby wesprzeć swój gang!`
+        `Wpisz: **!gang atak dolacz**, aby wesprzeć swój gang!`
       );
 
       // Timer to resolve the war after 2 minutes
@@ -1268,10 +1299,21 @@ module.exports = {
 
     let bonusesStr = '';
     const bizPerc = [0, 10, 20, 30][infoResult.levelBiznesy];
-    const fachPerc = [0, 2, 4, 5][infoResult.levelFach];
-    bonusesStr += `1. 📦 Dziupla (Pojemność): **${infoResult.members.length}/${maxMembers}** (Lvl ${infoResult.levelDziupla}/10)\n`;
-    bonusesStr += `2. 📈 Biznesy (Praca): **+${bizPerc}%** (Lvl ${infoResult.levelBiznesy}/3)\n`;
-    bonusesStr += `3. 🥷 Fach (Kradzieże): **+${fachPerc}%** (Lvl ${infoResult.levelFach}/3)`;
+    const fachPerc = [0, 4, 8, 12][infoResult.levelFach];
+
+    const costDziupla = infoResult.levelDziupla < 10 
+      ? ` — Koszt ulepszenia: **${formatCurrency(100000 + infoResult.levelDziupla * 40000)}**` 
+      : ' (Maks. poziom)';
+    const costBiznesy = infoResult.levelBiznesy < 3 
+      ? ` — Koszt ulepszenia: **${formatCurrency([200000, 400000, 650000][infoResult.levelBiznesy])}**` 
+      : ' (Maks. poziom)';
+    const costFach = infoResult.levelFach < 3 
+      ? ` — Koszt ulepszenia: **${formatCurrency([200000, 350000, 600000][infoResult.levelFach])}**` 
+      : ' (Maks. poziom)';
+
+    bonusesStr += `1. 📦 Dziupla (Pojemność): **${infoResult.members.length}/${maxMembers}** (Lvl ${infoResult.levelDziupla}/10)${costDziupla}\n`;
+    bonusesStr += `2. 📈 Biznesy (Praca): **+${bizPerc}%** (Lvl ${infoResult.levelBiznesy}/3)${costBiznesy}\n`;
+    bonusesStr += `3. 🥷 Fach (Kradzieże): **+${fachPerc}%** (Lvl ${infoResult.levelFach}/3)${costFach}`;
 
     let statusStr = '';
     const now = Date.now();

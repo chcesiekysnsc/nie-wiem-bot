@@ -43,11 +43,11 @@ module.exports = {
         let replyMsg = `💍 Status związku: Jesteś w związku z **${getPartnerLabel(client, status.marriedTo)}**.\n`;
         if (status.bankInfo) {
           replyMsg += `🏦 Wspólny bank małżeński: **${formatCurrency(status.bankInfo.balance)}** (Twój wkład: **${formatCurrency(status.bankInfo.myContribution)}/100 000**).\n` +
-                      `💡 Wpłać: \`!marry wplac <kwota>\` | Wypłać: \`!marry wyplac <kwota>\``;
+                      `💡 Wpłać: **!marry wplac <kwota>** | Wypłać: **!marry wyplac <kwota>**`;
         }
         await message.reply(replyMsg);
       } else {
-        await message.reply('💍 Status związku: Nie jesteś w żadnym związku. Użyj `!marry @osoba` lub `!marry <id>`.');
+        await message.reply('💍 Status związku: Nie jesteś w żadnym związku. Użyj **!marry @osoba** lub **!marry <id>**.');
       }
       return;
     }
@@ -60,7 +60,7 @@ module.exports = {
       } else {
         amount = Math.floor(Number(args[1]));
         if (isNaN(amount) || amount <= 0) {
-          await message.reply('❌ Podaj poprawną kwotę lub `all`: `!marry wplac <kwota|all>`');
+          await message.reply('❌ Podaj poprawną kwotę lub **all**: **!marry wplac <kwota|all>**');
           return;
         }
       }
@@ -68,7 +68,7 @@ module.exports = {
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
         if (!user.marriedTo) {
-          return { error: '❌ Nie jesteś w związku małżeńskim. Najpierw weź ślub za pomocą `!marry @osoba`.' };
+          return { error: '❌ Nie jesteś w związku małżeńskim. Najpierw weź ślub za pomocą **!marry @osoba**.' };
         }
 
         const partnerId = user.marriedTo;
@@ -147,7 +147,7 @@ module.exports = {
       } else {
         amount = Math.floor(Number(args[1]));
         if (isNaN(amount) || amount <= 0) {
-          await message.reply('❌ Podaj poprawną kwotę lub `all`: `!marry wyplac <kwota|all>`');
+          await message.reply('❌ Podaj poprawną kwotę lub **all**: **!marry wyplac <kwota|all>**');
           return;
         }
       }
@@ -212,7 +212,7 @@ module.exports = {
       }
 
       if (!proposerId) {
-        await message.reply('❌ Użyj: `!marry accept @osoba` lub `!marry accept <id>`.');
+        await message.reply('❌ Użyj: **!marry accept @osoba** lub **!marry accept <id>**.');
         return;
       }
 
@@ -277,7 +277,7 @@ module.exports = {
     }
 
     if (!targetId) {
-      await message.reply('❌ Użyj: `!marry @osoba` lub `!marry <id>`.');
+      await message.reply('❌ Użyj: **!marry @osoba** lub **!marry <id>**.');
       return;
     }
 
@@ -322,6 +322,6 @@ module.exports = {
       client.marriageRequests.delete(requestId);
     }, 120000).unref();
 
-    await message.reply(`💍 Wysłano propozycję ślubu do **${targetName}**. Druga osoba musi wpisać \`!marry accept ${message.author.id}\` w ciągu 2 minut.`);
+    await message.reply(`💍 Wysłano propozycję ślubu do **${targetName}**. Druga osoba musi wpisać **!marry accept ${message.author.id}** w ciągu 2 minut.`);
   }
 };

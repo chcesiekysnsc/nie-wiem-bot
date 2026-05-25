@@ -25,7 +25,7 @@ module.exports = {
 
       let amount = resolveAmount(rawAmount, user.balance);
       if (!amount) {
-        return { error: '❌ Podaj poprawną kwotę lub `all`.' };
+        return { error: '❌ Podaj poprawną kwotę lub **all**.' };
       }
 
       const isAll = ['all', 'max'].includes(String(rawAmount || '').toLowerCase());

@@ -135,7 +135,7 @@ module.exports = {
     // 3. SOLO LUB WYZWANIE
     const rawAmount = args[0];
     if (!rawAmount) {
-      await message.reply('❌ Użyj:\n• Solo: `!rr <kwota>`\n• Wyzwanie: `!rr <kwota> @osoba`\n• Akceptacja/Odrzucenie: `!rr acc` / `!rr dec`');
+      await message.reply('❌ Użyj:\n• Solo: **!rr <kwota>**\n• Wyzwanie: **!rr <kwota> @osoba**\n• Akceptacja/Odrzucenie: **!rr acc** / **!rr dec**');
       return;
     }
 
@@ -269,6 +269,6 @@ module.exports = {
     }, 120000).unref();
 
     const challengerName = message.author.username || `Użytkownik_${message.author.id.slice(-6)}`;
-    await message.reply(`🔫 Pojedynek Ruletki! **${challengerName}** wyzywa **${targetName}** na rosyjską ruletkę o **${formatCurrency(validation.amount)}**! Wpisz \`!rr acc\` lub \`!rr dec\` w ciągu 2 minut.`);
+    await message.reply(`🔫 Pojedynek Ruletki! **${challengerName}** wyzywa **${targetName}** na rosyjską ruletkę o **${formatCurrency(validation.amount)}**! Wpisz **!rr acc** lub **!rr dec** w ciągu 2 minut.`);
   }
 };

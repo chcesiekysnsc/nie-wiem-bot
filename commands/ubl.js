@@ -11,7 +11,7 @@ module.exports = {
     }
 
     if (!args[0]) {
-      await message.reply('❌ Podaj ID/oznacz osobę lub podaj numer/ID grupy: `!ubl @osoba`, `!ubl <id_uzytkownika>` lub `!ubl <nr_grupy>`');
+      await message.reply('❌ Podaj ID/oznacz osobę lub podaj numer/ID grupy: **!ubl @osoba**, **!ubl <id_uzytkownika>** lub **!ubl <nr_grupy>**');
       return;
     }
 
@@ -45,11 +45,11 @@ module.exports = {
       });
 
       if (result.notFound) {
-        await message.reply(`👤 Grupa o ID \`${targetGroupId}\` nie znajduje się na czarnej liście.`);
+        await message.reply(`👤 Grupa o ID **${targetGroupId}** nie znajduje się na czarnej liście.`);
         return;
       }
 
-      await message.reply(`✅ Pomyślnie odblokowano grupę o ID \`${targetGroupId}\`. Bot ponownie będzie na niej odpowiadać.`);
+      await message.reply(`✅ Pomyślnie odblokowano grupę o ID **${targetGroupId}**. Bot ponownie będzie na niej odpowiadać.`);
       return;
     }
 
@@ -69,7 +69,7 @@ module.exports = {
     }
 
     if (!targetId) {
-      await message.reply('❌ Podaj ID lub oznacz osobę: `!ubl @osoba` lub `!ubl <id>`');
+      await message.reply('❌ Podaj ID lub oznacz osobę: **!ubl @osoba** lub **!ubl <id>**');
       return;
     }
 

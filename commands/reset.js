@@ -12,7 +12,7 @@ module.exports = {
 
     const percent = Math.floor(Number(args[0]));
     if (isNaN(percent) || percent < 1 || percent > 100) {
-      await message.reply('❌ Użyj: `!reset <procent 1-100>` (np. `!reset 10` usuwa 10% monet).');
+      await message.reply('❌ Użyj: **!reset <procent 1-100>** (np. **!reset 10** usuwa 10% monet).');
       return;
     }
 

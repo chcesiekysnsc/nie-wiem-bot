@@ -13,7 +13,7 @@ module.exports = {
 
     const action = String(args[0] || '').trim().toLowerCase();
     if (action !== 'lista') {
-      await message.reply('❌ Użyj: `!dlug lista`');
+      await message.reply('❌ Użyj: **!dlug lista**');
       return;
     }
 
@@ -85,7 +85,7 @@ module.exports = {
     response += `----------------------------------------\n`;
     let totalDebt = 0;
     list.forEach((d, idx) => {
-      response += `${idx + 1}. 👤 **${d.name}** (\`${d.id}\`) — **${formatCurrency(d.amount)}** (pierwotnie: **${formatCurrency(d.originalAmount)}**, spłata za: **${d.remainingTimeStr}**)\n`;
+      response += `${idx + 1}. 👤 **${d.name}** (**${d.id}**) — **${formatCurrency(d.amount)}** (pierwotnie: **${formatCurrency(d.originalAmount)}**, spłata za: **${d.remainingTimeStr}**)\n`;
       totalDebt += d.amount;
     });
     response += `----------------------------------------\n`;

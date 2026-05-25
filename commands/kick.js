@@ -31,7 +31,7 @@ module.exports = {
     }
 
     if (!targetId) {
-      await message.reply('❌ Podaj ID lub oznacz osobę do wyrzucenia: `!kick @osoba` lub `!kick <id>`');
+      await message.reply('❌ Podaj ID lub oznacz osobę do wyrzucenia: **!kick @osoba** lub **!kick <id>**');
       return;
     }
 

@@ -22,7 +22,7 @@ module.exports = {
     }
 
     if (!targetId) {
-      await message.reply('❌ Użyj: `!tip <kwota> @osoba` lub `!tip <kwota> <id>`');
+      await message.reply('❌ Użyj: **!tip <kwota> @osoba** lub **!tip <kwota> <id>**');
       return;
     }
 

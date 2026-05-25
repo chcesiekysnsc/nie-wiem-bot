@@ -13,7 +13,7 @@ module.exports = {
 
     const amount = Math.floor(Number(args[0]));
     if (isNaN(amount) || amount <= 0) {
-      await message.reply('❌ Użyj: `!admgivglobal <kwota>`');
+      await message.reply('❌ Użyj: **!admgivglobal <kwota>**');
       return;
     }
 

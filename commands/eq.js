@@ -55,7 +55,7 @@ module.exports = {
       `📦 **Ekwipunek — ${targetName}**\n` +
       `${result.items.length ? result.items.join('\n') : 'Brak przedmiotów.'}\n` +
       `👛 Portfel: ${formatCurrency(result.balance)} | 🏦 Bank: ${formatCurrency(result.bank)}\n` +
-      `💡 Aby użyć lub sprawdzić przedmiot, wpisz: \`!use <numer>\``;
+      `💡 Aby użyć lub sprawdzić przedmiot, wpisz: **!use <numer>**`;
 
     await message.reply(response);
   }

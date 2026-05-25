@@ -29,7 +29,7 @@ module.exports = {
       return;
     }
 
-    const lines = adminCommands.map(c => `👑 **${c.num}.** \`${c.cmd}\` — ${c.opis}`).join('\n');
+    const lines = adminCommands.map(c => `👑 **${c.num}.** **${c.cmd}** — ${c.opis}`).join('\n');
     await message.reply(`👑 **KOMENDY ADMINISTRACYJNE**\n${lines}`);
   }
 };

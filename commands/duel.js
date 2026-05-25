@@ -111,7 +111,7 @@ module.exports = {
     }
 
     if (!targetId || !rawAmount) {
-      await message.reply('❌ Użyj: `!duel <kwota> @osoba` lub `!duel acc` / `!duel dec`.');
+      await message.reply('❌ Użyj: **!duel <kwota> @osoba** lub **!duel acc** / **!duel dec**.');
       return;
     }
 
@@ -165,6 +165,6 @@ module.exports = {
     }, 120000).unref();
 
     const challengerName = message.author.username || `Użytkownik_${message.author.id.slice(-6)}`;
-    await message.reply(`⚔️ Pojedynek! **${challengerName}** wyzywa **${targetName}** na pojedynek o **${formatCurrency(validation.amount)}**! Wpisz \`!duel acc\` lub \`!duel dec\` w ciągu 2 minut.`);
+    await message.reply(`⚔️ Pojedynek! **${challengerName}** wyzywa **${targetName}** na pojedynek o **${formatCurrency(validation.amount)}**! Wpisz **!duel acc** lub **!duel dec** w ciągu 2 minut.`);
   }
 };

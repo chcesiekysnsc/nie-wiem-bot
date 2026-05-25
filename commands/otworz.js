@@ -94,12 +94,12 @@ module.exports = {
     if (!packKey) {
       await message.reply(
         `📦 **System Paczek**\n` +
-        `Użyj: \`!otworz <brazowa|srebrna|zlota|diamentowa>\`\n\n` +
+        `Użyj: **!otworz <brazowa|srebrna|zlota|diamentowa>**\n\n` +
         `🟫 **Brązowa** (50k)    — 22 500 – 72 500 + 10% Bilet Loterii\n` +
         `⬜ **Srebrna** (100k)   — 71 250 – 146 250 + 10% Kłódka lub Piwo\n` +
         `🟨 **Złota** (200k)     — 145 000 – 245 000 + 10% Bomba lub Kłódka+Piwo\n` +
         `🟦 **Diamentowa** (500k) — 225 000 – 725 000 + 10% VIP Pass lub Ulepszenie Banku\n\n` +
-        `💡 Kup paczki w sklepie: \`!sklep\``
+        `💡 Kup paczki w sklepie: **!sklep**`
       );
       return;
     }
@@ -112,7 +112,7 @@ module.exports = {
 
       // Sprawdź czy ma paczkę w ekwipunku
       if (!hasItem(inventory, pack.id)) {
-        return { error: `❌ Nie masz żadnej **${pack.emoji} ${pack.name}** w ekwipunku.\n💡 Kup ją w sklepie: \`!sklep\`` };
+        return { error: `❌ Nie masz żadnej **${pack.emoji} ${pack.name}** w ekwipunku.\n💡 Kup ją w sklepie: **!sklep**` };
       }
 
       // Zdejmij paczkę z ekwipunku

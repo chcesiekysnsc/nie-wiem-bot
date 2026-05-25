@@ -13,7 +13,7 @@ module.exports = {
 
     const amount = Math.floor(Number(args[0]));
     if (isNaN(amount) || amount <= 0) {
-      await message.reply('❌ Użyj: `!del <kwota> @osoba` lub `!del <kwota> <id>`');
+      await message.reply('❌ Użyj: **!del <kwota> @osoba** lub **!del <kwota> <id>**');
       return;
     }
 
@@ -33,7 +33,7 @@ module.exports = {
     }
 
     if (!targetId) {
-      await message.reply('❌ Wskaż użytkownika: `!del <kwota> @osoba` lub `!del <kwota> <id>`');
+      await message.reply('❌ Użyj: **!del <kwota> @osoba** lub **!del <kwota> <id>**');
       return;
     }
 

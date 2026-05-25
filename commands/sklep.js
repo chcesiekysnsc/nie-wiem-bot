@@ -37,8 +37,8 @@ module.exports = {
       const targetNum = String(args[1] || '').toLowerCase();
       if (!targetNum) {
         await message.reply(
-          `ℹ️ Użyj: \`!sklep help <numer>\` aby zobaczyć szczegółowy opis przedmiotu.\n` +
-          `💡 Numery znajdziesz w liście sklepu: \`!sklep\``
+          `ℹ️ Użyj: **!sklep help <numer>** aby zobaczyć szczegółowy opis przedmiotu.\n` +
+          `💡 Numery znajdziesz w liście sklepu: **!sklep**`
         );
         return;
       }
@@ -47,7 +47,7 @@ module.exports = {
         || SHOP_ITEMS_ORDERED.find(i => i.id === targetNum);
 
       if (!shopEntry) {
-        await message.reply(`❌ Nie znaleziono przedmiotu o numerze **${args[1]}**. Wpisz \`!sklep\` aby zobaczyć listę.`);
+        await message.reply(`❌ Nie znaleziono przedmiotu o numerze **${args[1]}**. Wpisz **!sklep** aby zobaczyć listę.`);
         return;
       }
 
@@ -55,7 +55,7 @@ module.exports = {
       const typeLabel = item.type === 'permanent' ? '🔒 Jednorazowy (permanent)' : '📦 Stackable (wielokrotny)';
       const buyLabel  = item.buyable === false
         ? `❌ Niedostępny w sklepie — ${item.shopNote || 'tylko z paczek'}`
-        : `✅ Dostępny w sklepie — kup: \`!sklep ${shopEntry.num} [ilość]\``;
+        : `✅ Dostępny w sklepie — kup: **!sklep ${shopEntry.num} [ilość]**`;
 
       await message.reply(
         `${shopEntry.emoji} **${shopEntry.name}** — ${formatCurrency(shopEntry.price)}\n` +
@@ -73,7 +73,7 @@ module.exports = {
       const response =
         `🛒 **SKLEP KASYNOWY**\n` +
         `${renderShopList()}\n` +
-        `💡 Kup: \`!sklep <numer> [ilość]\` | Szczegóły: \`!sklep help <numer>\``;
+        `💡 Kup: **!sklep <numer> [ilość]** | Szczegóły: **!sklep help <numer>**`;
       await message.reply(response);
       return;
     }
@@ -92,7 +92,7 @@ module.exports = {
     const shopEntry = byNumber || SHOP_ITEMS_ORDERED.find(i => i.id === targetLower);
 
     if (!shopEntry) {
-      await message.reply(`❌ Nie znaleziono przedmiotu \"${targetArg}\". Wybierz numer 1–${SHOP_ITEMS_ORDERED.filter(i => i.buyable !== false).length} lub wpisz \`!sklep\`.`);
+      await message.reply(`❌ Nie znaleziono przedmiotu \"${targetArg}\". Wybierz numer 1–${SHOP_ITEMS_ORDERED.filter(i => i.buyable !== false).length} lub wpisz **!sklep**.`);
       return;
     }
 

@@ -221,7 +221,7 @@ module.exports = {
 
     const response = 
       `👤 **Profil: ${username}**\n` +
-      `🆔 ID: \`${targetId}\`\n` +
+      `🆔 ID: **${targetId}**\n` +
       `👛 Portfel: ${walletText} | 🏦 Bank: ${formatCurrency(profileData.bank)}\n` +
       `🎮 Gry: ${formatNumber(profileData.gamesPlayed)} | ⌨️ Komendy: ${formatNumber(profileData.commandsUsed)}\n` +
       `💬 Wiadomości: **${formatNumber(profileData.messageCount)}** (**${formatNumber(profileData.groupSpecificCount)}** na tej grupie)\n` +

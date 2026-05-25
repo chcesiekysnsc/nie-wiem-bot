@@ -46,7 +46,7 @@ module.exports = {
       `🎫 Ilość biletów w grze: **${result.totalTickets}**\n` +
       `💰 Pula do wygrania: **${prizeText}**\n\n` +
       `Bilet kosztuje **50 000 viccoinów** (limit 5 szt.)\n` +
-      `Kupuj za pomocą \`!sklep 4\``
+      `Kupuj za pomocą **!sklep 4**`
     );
   }
 };

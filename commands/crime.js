@@ -30,10 +30,10 @@ module.exports = {
       if (success && user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
         const gang = store.profiles.gangs[user.gangId];
         const fachLvl = gang.levelFach || 0;
-        const multipliers = [1.0, 1.02, 1.04, 1.05];
+        const multipliers = [1.0, 1.04, 1.08, 1.12];
         const multiplier = multipliers[fachLvl] || 1.0;
         if (fachLvl > 0) {
-          gangBonus = [0, 2, 4, 5][fachLvl] || 0;
+          gangBonus = [0, 4, 8, 12][fachLvl] || 0;
         }
         amount = Math.floor(amount * multiplier);
       }

@@ -16,7 +16,7 @@ module.exports = {
       const amount = resolveAmount(args[0], user.bank);
 
       if (!amount) {
-        return { error: '❌ Podaj poprawną kwotę lub `all`.' };
+        return { error: '❌ Podaj poprawną kwotę lub **all**.' };
       }
 
       if (amount > user.bank) {

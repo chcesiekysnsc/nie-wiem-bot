@@ -57,7 +57,7 @@ module.exports = {
           `Łączna liczba biletów w grze: **${drawResult.totalTickets}**\n` +
           `Wygrywa: **${winnerName}**! 🎉\n` +
           `Nagroda główna: **+${drawResult.totalPrize.toLocaleString()} viccoinów** została dodana do portfela!\n` +
-          `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą \`!sklep 4\`.`;
+          `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą **!sklep 4**.`;
 
         client.api.sendMessage(announceMsg, client.lastThreadId);
         await message.reply(`✅ Losowanie wykonane!\n🎉 Zwycięzca: **${winnerName}**\n💰 Wygrana: **${drawResult.totalPrize.toLocaleString()} viccoinów**`);

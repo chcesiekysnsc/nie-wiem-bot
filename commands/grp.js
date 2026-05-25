@@ -97,7 +97,7 @@ module.exports = {
     resolvedThreads.forEach((data, index) => {
       const banIndicator = data.isBanned ? ' 🚫 [ZABLOKOWANA]' : '';
       response += `**${index + 1}.** ${data.name}\n`;
-      response += `   • ID: \`${data.id}\`${banIndicator}\n`;
+      response += `   • ID: **${data.id}**${banIndicator}\n`;
       response += `   • Łącznie pieniędzy: **${formatCurrency(data.totalMoney)}**\n\n`;
     });
 

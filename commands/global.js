@@ -14,7 +14,7 @@ module.exports = {
     const action = String(args[1] || '').toLowerCase();
 
     if (!targetId || !['on', 'off'].includes(action)) {
-      await message.reply('❌ Użyj: `!global <pozycja_top/id_konta> on/off`');
+      await message.reply('❌ Użyj: **!global <pozycja_top/id_konta> on/off**');
       return;
     }
 
@@ -55,7 +55,7 @@ module.exports = {
     });
 
     if (!resolvedId) {
-      await message.reply(`❌ Nie znaleziono użytkownika na pozycji/ID: \`${targetId}\`.`);
+      await message.reply(`❌ Nie znaleziono użytkownika na pozycji/ID: **${targetId}**.`);
       return;
     }
 
@@ -67,9 +67,9 @@ module.exports = {
     }
 
     if (action === 'on') {
-      await message.reply(`✅ Włączono pokazywanie ID dla gracza **${resolvedName}** (pozycja: \`${targetId}\`, ID: \`${resolvedId}\`) w rankingu.`);
+      await message.reply(`✅ Włączono pokazywanie ID dla gracza **${resolvedName}** (pozycja: **${targetId}**, ID: **${resolvedId}**) w rankingu.`);
     } else {
-      await message.reply(`❌ Wyłączono pokazywanie ID dla gracza **${resolvedName}** (pozycja: \`${targetId}\`, ID: \`${resolvedId}\`) w rankingu.`);
+      await message.reply(`❌ Wyłączono pokazywanie ID dla gracza **${resolvedName}** (pozycja: **${targetId}**, ID: **${resolvedId}**) w rankingu.`);
     }
   }
 };

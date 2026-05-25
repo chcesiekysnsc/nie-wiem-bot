@@ -70,13 +70,13 @@ module.exports = {
     }
 
     if (client.activeBlackjackGames.has(authorId)) {
-      await message.reply('❌ Masz już aktywną grę w Blackjacka! Napisz `hit` (dobierz), `stand` (stop) lub `double` (podwój).');
+      await message.reply('❌ Masz już aktywną grę w Blackjacka! Napisz **hit** (dobierz), **stand** (stop) lub **double** (podwój).');
       return;
     }
 
     const rawBet = args[0];
     if (!rawBet) {
-      await message.reply('❌ Użyj: `!blackjack <kwota>` lub `!bj <kwota>`');
+      await message.reply('❌ Użyj: **!blackjack <kwota>** lub **!bj <kwota>**');
       return;
     }
 
@@ -166,7 +166,7 @@ module.exports = {
     await message.reply(
       `🃏 **Gra w Blackjacka rozpoczęta!**\n` +
       `Stawka: **${formatCurrency(bet)}**\n\n` +
-      `Twój ruch: wpisz \`hit\` (dobierz), \`stand\` (stop) lub \`double\` (podwój).\n\n` +
+      `Twój ruch: wpisz **hit** (dobierz), **stand** (stop) lub **double** (podwój).\n\n` +
       `👨‍💼 Krupier: ${renderHand(dealerCards, true)} (Wartość: ?)\n` +
       `👤 Twoja Ręka: ${renderHand(playerCards)} (Wartość: ${playerValue} pkt)`
     );
@@ -211,7 +211,7 @@ module.exports = {
         await message.reply(
           `🃏 **Blackjack (Kolejna karta)**\n` +
           `Stawka: **${formatCurrency(game.bet)}**\n\n` +
-          `Twój ruch: wpisz \`hit\` (dobierz) lub \`stand\` (stop).\n\n` +
+          `Twój ruch: wpisz **hit** (dobierz) lub **stand** (stop).\n\n` +
           `👨‍💼 Krupier: ${renderHand(game.dealerCards, true)} (Wartość: ?)\n` +
           `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)`
         );

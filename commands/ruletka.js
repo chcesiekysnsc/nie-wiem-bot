@@ -38,7 +38,7 @@ module.exports = {
     const target = parseBetTarget(args[1]);
 
     if (!target) {
-      await message.reply('❌ Użyj: `!ruletka <kwota> <czerwony/czarny/zielony/parzyste/nieparzyste/0-36>`');
+      await message.reply('❌ Użyj: **!ruletka <kwota> <czerwony/czarny/zielony/parzyste/nieparzyste/0-36>**');
       return;
     }
 

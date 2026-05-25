@@ -11,7 +11,7 @@ module.exports = {
     }
 
     if (!args[0]) {
-      await message.reply('❌ Użycie: `!ublgrp <przypisany nr lub ID grupy>`');
+      await message.reply('❌ Użycie: **!ublgrp <przypisany nr lub ID grupy>**');
       return;
     }
 
@@ -44,10 +44,10 @@ module.exports = {
     });
 
     if (result.notFound) {
-      await message.reply(`👤 Grupa o ID \`${targetThreadId}\` nie znajduje się na czarnej liście.`);
+      await message.reply(`👤 Grupa o ID **${targetThreadId}** nie znajduje się na czarnej liście.`);
       return;
     }
 
-    await message.reply(`✅ Pomyślnie odblokowano grupę o ID \`${targetThreadId}\`. Bot ponownie będzie na niej odpowiadać.`);
+    await message.reply(`✅ Pomyślnie odblokowano grupę o ID **${targetThreadId}**. Bot ponownie będzie na niej odpowiadać.`);
   }
 };

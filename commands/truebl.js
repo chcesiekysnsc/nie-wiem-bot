@@ -26,7 +26,7 @@ module.exports = {
     }
 
     if (!targetId) {
-      await message.reply('❌ Podaj ID lub oznacz osobę: `!truebl @osoba` lub `!truebl <id>`');
+      await message.reply('❌ Podaj ID lub oznacz osobę: **!truebl @osoba** lub **!truebl <id>**');
       return;
     }
 

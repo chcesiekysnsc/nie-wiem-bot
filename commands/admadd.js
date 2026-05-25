@@ -18,7 +18,7 @@ module.exports = {
 
     if (!Number.isFinite(amount) || amount <= 0) {
       await message.reply({
-        embeds: [errorEmbed('Bledne uzycie', 'Uzyj: `!admadd <kwota>` — dodaje kase tobie.')]
+        embeds: [errorEmbed('Bledne uzycie', 'Uzyj: **!admadd <kwota>** — dodaje kase tobie.')]
       });
       return;
     }

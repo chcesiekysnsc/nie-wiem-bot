@@ -60,7 +60,7 @@ module.exports = {
         await message.reply(
           `🏦 **Pożyczki wirtualne**\n` +
           `Nie masz obecnie żadnej aktywnej pożyczki.\n\n` +
-          `👉 Aby pożyczyć pieniądze, wpisz: \`!pozyczka <kwota>\`\n` +
+          `👉 Aby pożyczyć pieniądze, wpisz: **!pozyczka <kwota>**\n` +
           `${buildLoanUnlockStatus(snapshot.commandsUsed)}\n` +
           `ℹ️ *Maksymalny limit: 500 000 💰.*\n` +
           `📈 *Oprocentowanie (co 6h od aktualnego długu):*\n` +
@@ -90,7 +90,7 @@ module.exports = {
         `📈 Oprocentowanie: **${percentRate}% co 6 godzin**\n` +
         `⏱️ Auto-spłata za: **${msToReadable(remainingRepayMs)}**\n` +
         `⚡ Następne odsetki za: **${msToReadable(remainingInterestMs)}**\n\n` +
-        `👉 Aby spłacić pożyczkę, wpisz: \`!pozyczka splac <kwota|all>\``
+        `👉 Aby spłacić pożyczkę, wpisz: **!pozyczka splac <kwota|all>**`
       );
       return;
     }
@@ -98,7 +98,7 @@ module.exports = {
     if (['splac', 'repay', 'splata', 'spłac', 'oddaj'].includes(action)) {
       const rawAmount = args[1];
       if (!rawAmount) {
-        await message.reply('❌ Użyj: `!pozyczka splac <kwota|all>`');
+        await message.reply('❌ Użyj: **!pozyczka splac <kwota|all>**');
         return;
       }
 
@@ -112,7 +112,7 @@ module.exports = {
         let amountToRepay = isAll ? user.activeLoan.amount : Math.floor(Number(rawAmount));
 
         if (isNaN(amountToRepay) || amountToRepay <= 0) {
-          return { error: '❌ Podaj poprawną kwotę do spłaty: `!pozyczka splac <kwota|all>`' };
+          return { error: '❌ Podaj poprawną kwotę do spłaty: **!pozyczka splac <kwota|all>**' };
         }
 
         amountToRepay = Math.min(amountToRepay, user.activeLoan.amount);
@@ -152,7 +152,7 @@ module.exports = {
     // Wzięcie pożyczki
     const borrowAmount = Math.floor(Number(args[0]));
     if (isNaN(borrowAmount) || borrowAmount <= 0) {
-      await message.reply('❌ Podaj poprawną kwotę pożyczki lub użyj `!pozyczka splac <kwota|all>`.');
+      await message.reply('❌ Podaj poprawną kwotę pożyczki lub użyj **!pozyczka splac <kwota|all>**.');
       return;
     }
 

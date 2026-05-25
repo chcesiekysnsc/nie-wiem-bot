@@ -44,7 +44,7 @@ module.exports = {
     }
 
     if (!targetId) {
-      await message.reply('❌ Użyj: `!rob @osoba` lub `!rob <id>`');
+      await message.reply('❌ Użyj: **!rob @osoba** lub **!rob <id>**');
       return;
     }
 
@@ -114,10 +114,10 @@ module.exports = {
         if (robber.gangId && store.profiles.gangs && store.profiles.gangs[robber.gangId]) {
           const gang = store.profiles.gangs[robber.gangId];
           const fachLvl = gang.levelFach || 0;
-          const multipliers = [0.0, 0.02, 0.04, 0.05];
+          const multipliers = [0.0, 0.04, 0.08, 0.12];
           bonusPercent = multipliers[fachLvl] || 0.0;
           if (fachLvl > 0) {
-            gangBonus = [0, 2, 4, 5][fachLvl] || 0;
+            gangBonus = [0, 4, 8, 12][fachLvl] || 0;
           }
         }
 
