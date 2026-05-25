@@ -61,7 +61,10 @@ module.exports = {
     thanks: 2,
     loteria: 3,
     loteriastart: 2,
-    podatki: 3
+    podatki: 3,
+    artefakty: 3,
+    rynek: 3,
+    itemadd: 2
   },
   economy: {
     defaultUser: {
@@ -192,6 +195,65 @@ module.exports = {
       type: 'permanent',
       buyable: false,
       shopNote: 'Dostępne tylko z 🟦 Diamentowej Paczki!'
+    },
+    krwawy_zeton: {
+      name: 'Krwawy Żeton',
+      emoji: '🩸',
+      price: 0,
+      shortDesc: 'Pasywny PvP: +6% szansa rob, +4% łup, +8% kara przy wpadce.',
+      description: 'Zwiększa szansę powodzenia komendy !rob o 6%. Jeśli kradzież się uda, otrzymujesz +4% dodatkowego łupu. Jeśli nie, kara jest zwiększona o 8%. Efekty się nie stackują.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępny z wojen gangów (4%) lub paczki diamentowej (2%).'
+    },
+    przekupiony_krupier: {
+      name: 'Przekupiony Krupier',
+      emoji: '🧠',
+      price: 0,
+      shortDesc: 'Hazard passive: 3% większa szansa na korzystną kartę w blackjacku.',
+      description: 'Daje 3% szansy na dobór korzystniejszej karty w grze !blackjack podczas dobierania (hit). Efekty się nie stackują.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🩶 Tytanowej Paczki (2%).'
+    },
+    zlota_karta: {
+      name: 'Złota Karta',
+      emoji: '💳',
+      price: 0,
+      shortDesc: '+50k miejsca w banku.',
+      description: 'Zwiększa pojemność Twojego banku o 50 000 viccoinów. Efekty się nie stackują.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępna tylko ze Złotej Paczki (2%).'
+    },
+    stary_zegar: {
+      name: 'Stary Zegar',
+      emoji: '⏰',
+      price: 0,
+      shortDesc: '10% krótszy cooldown na !work oraz !crime.',
+      description: 'Skraca cooldown na komendy !work oraz !crime o 10%. Efekty się nie stackują.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Diamentowej Paczki (0.5%).'
+    },
+    kamera: {
+      name: 'Kamera',
+      emoji: '📷',
+      price: 0,
+      shortDesc: 'Defensywny: +5% więcej z kary gdy złodziej wpadnie.',
+      description: 'Gdy ktoś próbuje Cię okraść i zostanie przyłapany, dostajesz dodatkowo 5% z kwoty kary nałożonej na złodzieja. Efekty się nie stackują.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępna tylko ze Złotej Paczki (1%).'
+    },
+    paczka_tytanowa: {
+      name: 'Tytanowa Paczka',
+      emoji: '🩶',
+      price: 800000,
+      shortDesc: 'Lootbox: 550k–1M + 2% na Krupiera, 40% na bombę/piwo/kłódkę.',
+      description: 'Otwórz komendą: !otworz tytanowa\nZawartość: losowa kwota od 550 000 do 1 000 000 viccoinów.\nBonus drop (2%): 🧠 Przekupiony Krupier.\nDodatkowo 40% szans na wylosowanie bomby, piwa lub kłódki.',
+      type: 'stackable',
+      buyable: true
     }
   },
   badges: {

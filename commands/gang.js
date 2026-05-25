@@ -1,4 +1,4 @@
-const { formatCurrency, resolveAmount } = require('../utils/economy');
+const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 module.exports = {
@@ -1089,9 +1089,16 @@ module.exports = {
 
             attackerGang.vault += vaultShare;
 
+            const zetonWinners = [];
             for (const pid of listAttackers) {
               const pUser = createUser(pid, store.users);
               pUser.balance += sharePerPerson;
+              
+              if (Math.random() < 0.04) {
+                const pInv = ensureInventoryRecord(store.inventory, pid);
+                addItem(pInv, 'krwawy_zeton', 1);
+                zetonWinners.push(pid);
+              }
             }
 
             return {
@@ -1100,7 +1107,8 @@ module.exports = {
               defensePower,
               stolenTotal,
               vaultShare,
-              sharePerPerson
+              sharePerPerson,
+              zetonWinners
             };
           } else {
             // Failure Penalty:
@@ -1152,6 +1160,12 @@ module.exports = {
         const defenderNames = listDefenders.length > 0 ? await getNamesString(listDefenders) : 'Brak';
 
         if (outcome.success) {
+          let zetonNote = '';
+          if (outcome.zetonWinners && outcome.zetonWinners.length > 0) {
+            const zetonNames = await getNamesString(outcome.zetonWinners);
+            zetonNote = `\n🎁 **LEGENDA WOJENNA!** Uczestnicy: **${zetonNames}** zdobyli 🩸 **Krwawy Żeton**!`;
+          }
+
           await message.reply(
             `⚔️ **WOJNA GANGÓW ZAKOŃCZONA SUKCESEM!** ⚔️\n` +
             `Gang **${startResult.attackerGangName}** zniszczył obronę gangu **${startResult.defenderGangName}**!\n\n` +
@@ -1159,7 +1173,7 @@ module.exports = {
             `💰 **ŁUP WOJENNY:**\n` +
             `• Skradziono z wrogiego sejfu: **${formatCurrency(outcome.stolenTotal)}**\n` +
             `• Trafiło do sejfu Waszego gangu (30%): **+${formatCurrency(outcome.vaultShare)}**\n` +
-            `• Każdy uczestnik ataku (**${attackerNames}**) otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!`
+            `• Każdy uczestnik ataku (**${attackerNames}**) otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!${zetonNote}`
           );
         } else {
           const defenderDistribution = listDefenders.length > 0 
@@ -1292,7 +1306,8 @@ module.exports = {
     }
 
     const bossName = await getName(infoResult.bossId);
-    const deputyNamesList = await Promise.all(infoResult.deputies.map(async id => await getName(id)));
+    const sortedDeputies = [...infoResult.deputies].sort((a, b) => (infoResult.deposits[b] || 0) - (infoResult.deposits[a] || 0));
+    const deputyNamesList = await Promise.all(sortedDeputies.map(async id => await getName(id)));
     const deputyNames = deputyNamesList.join(', ') || 'Brak';
 
     // Sort members: boss first, deputies second, regular members sorted by deposits desc
@@ -1302,7 +1317,7 @@ module.exports = {
 
     const orderedMembers = [
       infoResult.bossId,
-      ...infoResult.deputies,
+      ...sortedDeputies,
       ...regularMembers
     ].filter(id => infoResult.members.includes(id) || id === infoResult.bossId);
 

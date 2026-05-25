@@ -82,6 +82,12 @@ module.exports = {
         return { notFound: true };
       }
 
+      // Blokada za ujemne saldo — NIKT (nawet twórca) nie może zdjąć
+      const targetUser = store.users[targetId];
+      if (targetUser && targetUser.blacklistedForNegativeBalance) {
+        return { isNegativeBalanceBl: true };
+      }
+
       // Sprawdź czy target jest na twardej czarnej liście (tylko twórca może go zdjąć)
       if (store.profiles.trueBlacklist && store.profiles.trueBlacklist.includes(targetId)) {
         if (message.author.id !== '100060812419294') {
@@ -89,22 +95,7 @@ module.exports = {
         }
       }
 
-      // Sprawdź czy zaufany admin próbuje zdjąć blokadę z ujemnego salda
-      if (restrictedAdmins.includes(message.author.id)) {
-        const targetUser = store.users[targetId];
-        if (targetUser && targetUser.blacklistedForNegativeBalance) {
-          return { isRestricted: true };
-        }
-      }
-
-      console.log('UBL: targetId =', targetId);
-      console.log('UBL: blacklist before =', store.profiles.blacklist);
-      console.log('UBL: idx =', idx);
       store.profiles.blacklist.splice(idx, 1);
-      console.log('UBL: blacklist after =', store.profiles.blacklist);
-      if (store.users[targetId]) {
-        store.users[targetId].blacklistedForNegativeBalance = false;
-      }
       if (store.profiles.trueBlacklist) {
         const trueIdx = store.profiles.trueBlacklist.indexOf(targetId);
         if (trueIdx !== -1) {
@@ -119,13 +110,13 @@ module.exports = {
       return;
     }
 
-    if (result.isTrueBlRestricted) {
-      await message.reply(`❌ Nie posiadasz uprawnień do usuwania tego użytkownika z czarnej listy (został zablokowany przez twórcę).`);
+    if (result.isNegativeBalanceBl) {
+      await message.reply(`❌ Tej blokady nie można zdjąć — **${targetName}** został zablokowany automatycznie za zbyt długie ujemne saldo. Blokada jest trwała.`);
       return;
     }
 
-    if (result.isRestricted) {
-      await message.reply(`❌ Nie posiadasz uprawnień do usuwania tego użytkownika z czarnej listy (został zablokowany automatycznie z powodu ujemnego salda).`);
+    if (result.isTrueBlRestricted) {
+      await message.reply(`❌ Nie posiadasz uprawnień do usuwania tego użytkownika z czarnej listy (został zablokowany przez twórcę).`);
       return;
     }
 

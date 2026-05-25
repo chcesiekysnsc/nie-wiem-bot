@@ -41,11 +41,15 @@ module.exports = {
 
       const idx = store.profiles.trueBlacklist.indexOf(targetId);
       if (idx !== -1) {
-        // Zdejmij z twardej i zwykłej czarnej listy
+        // Zdejmij z twardej czarnej listy
         store.profiles.trueBlacklist.splice(idx, 1);
-        const normalIdx = store.profiles.blacklist.indexOf(targetId);
-        if (normalIdx !== -1) {
-          store.profiles.blacklist.splice(normalIdx, 1);
+        // Ze zwykłej zdejmij TYLKO jeśli NIE był blokowany za ujemne saldo
+        const targetUser = store.users && store.users[targetId];
+        if (!targetUser || !targetUser.blacklistedForNegativeBalance) {
+          const normalIdx = store.profiles.blacklist.indexOf(targetId);
+          if (normalIdx !== -1) {
+            store.profiles.blacklist.splice(normalIdx, 1);
+          }
         }
         return { removed: true };
       } else {

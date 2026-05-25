@@ -102,8 +102,10 @@ module.exports = {
         robber.piwoActive = false; // zużyj aktywne piwo
       }
 
-      // Szanse: 60% sukces, 40% wpadka
-      const success = Math.random() < 0.60;
+      // Szanse: 60% sukces, 40% wpadka. Krwawy Żeton daje +6%
+      const robberHasZeton = hasItem(robberInv, 'krwawy_zeton');
+      const baseSuccessChance = robberHasZeton ? 0.66 : 0.60;
+      const success = Math.random() < baseSuccessChance;
 
       if (success) {
         const percent = hasBeer ? 0.25 : 0.20;
@@ -121,7 +123,10 @@ module.exports = {
           }
         }
 
-        const stolen = Math.floor(baseStolen * (1 + bonusPercent));
+        let stolen = Math.floor(baseStolen * (1 + bonusPercent));
+        if (robberHasZeton) {
+          stolen = Math.floor(stolen * 1.04);
+        }
 
         let tribute = 0;
         if (robber.gangId && store.profiles.gangs && store.profiles.gangs[robber.gangId]) {
@@ -146,16 +151,21 @@ module.exports = {
         robber.gamesPlayed += 1;
         refreshBadges(robber, robberInv);
         refreshBadges(victim, victimInv);
-        return { success: true, stolen: netStolen, tribute, gangBonus, beer: hasBeer, victimLastActiveThreadId };
+        return { success: true, stolen: netStolen, tribute, gangBonus, beer: hasBeer, victimLastActiveThreadId, robberHasZeton };
       } else {
         const losePercent = hasBeer ? 0.40 : 0.30;
-        const fine = Math.max(1, Math.floor(robber.balance * losePercent));
+        let fine = Math.max(1, Math.floor(robber.balance * losePercent));
+        if (robberHasZeton) {
+          fine = Math.floor(fine * 1.08);
+        }
+        const victimHasKamera = hasItem(victimInv, 'kamera');
+        const payout = victimHasKamera ? Math.floor(fine * 1.05) : fine;
         robber.balance -= fine;
-        victim.balance += fine;
+        victim.balance += payout;
         robber.gamesPlayed += 1;
         refreshBadges(robber, robberInv);
         refreshBadges(victim, victimInv);
-        return { success: false, fine, beer: hasBeer, victimLastActiveThreadId };
+        return { success: false, fine, payout, beer: hasBeer, victimLastActiveThreadId, robberHasZeton, victimHasKamera };
       }
     });
 
@@ -206,17 +216,21 @@ module.exports = {
 
       if (result.success) {
         const beerNote = result.beer ? ' (Wypite Piwo +25%!)' : '';
+        const zetonNote = result.robberHasZeton ? ' (Krwawy Żeton +4%!)' : '';
         const bonusNote = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z fachu gangu)` : '';
         if (result.tribute > 0) {
-          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa).${beerNote}`;
+          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}${zetonNote} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa).${beerNote}`;
         } else {
-          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}.${beerNote}`;
+          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}${zetonNote}.${beerNote}`;
         }
-        notifyMsg = `💰 **ALARM!** Użytkownik **${robberName}** okradł **${targetName}** na kwotę **${formatCurrency(result.stolen)}**!${bonusNote}${beerNote}`;
+        notifyMsg = `💰 **ALARM!** Użytkownik **${robberName}** okradł **${targetName}** na kwotę **${formatCurrency(result.stolen)}**!${bonusNote}${zetonNote}${beerNote}`;
       } else {
         const beerNote = result.beer ? ' (Wypite Piwo -40%!)' : '';
-        replyMsg = `🚔 Wpadka! Policja Cię złapała. Tracisz **${formatCurrency(result.fine)}** na rzecz **${targetName}**. Ban na okradanie: 1h.${beerNote}`;
-        notifyMsg = `🚔 **ALARM!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale wpadł i policja oddała Ci zadośćuczynienie w wysokości **+${formatCurrency(result.fine)}**!`;
+        const zetonNote = result.robberHasZeton ? ' (w tym **+8%** kary z Krwawego Żetonu)' : '';
+        const kameraNote = result.victimHasKamera ? ' (w tym **+5%** z Twojej Kamery)' : '';
+        const robberKameraNote = result.victimHasKamera ? ' (+5% bonusu z Kamery dla ofiary)' : '';
+        replyMsg = `🚔 Wpadka! Policja Cię złapała. Tracisz **${formatCurrency(result.fine)}** na rzecz **${targetName}**${zetonNote}${robberKameraNote}. Ban na okradanie: 1h.${beerNote}`;
+        notifyMsg = `🚔 **ALARM!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale wpadł i policja oddała Ci zadośćuczynienie w wysokości **+${formatCurrency(result.payout)}**!${kameraNote}${beerNote}`;
       }
     }
 

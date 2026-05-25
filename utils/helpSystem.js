@@ -491,6 +491,35 @@ const helpCommands = [
     requirements: 'Brak.',
     aliases: ['pomoc', 'commands'],
     additionalInfo: []
+  },
+  {
+    id: 33,
+    name: 'artefakty',
+    category: 'UTILITY',
+    shortDescription: 'wyswietla Twoje pasywne przedmioty',
+    description: 'Wyświetla listę wszystkich 5 pasywnych artefaktów w grze oraz informację, które z nich aktualnie posiadasz.',
+    usage: '!artefakty | !artefakty help <numer_artefaktu>',
+    examples: ['!artefakty', '!artefakty help 1'],
+    cooldown: '3 sekundy',
+    requirements: 'Brak.',
+    aliases: ['artf', 'artefakt'],
+    additionalInfo: []
+  },
+  {
+    id: 34,
+    name: 'rynek',
+    category: 'ECONOMY',
+    shortDescription: 'globalny rynek artefaktow',
+    description: 'Pozwala wystawiać na sprzedaż, kupować oraz wycofywać oferty potężnych pasywnych artefaktów na globalnym rynku. Podatek wynosi 10% przy sprzedaży.',
+    usage: '!rynek | !rynek sprzedaj <nr_artefaktu> <cena> | !rynek kup <nr_oferty> | !rynek wycofaj <nr_oferty>',
+    examples: ['!rynek', '!rynek sprzedaj 1 300000', '!rynek kup 1', '!rynek wycofaj 2'],
+    cooldown: '3 sekundy',
+    requirements: 'Wystawienie przedmiotu na rynek wymaga posiadania go w ekwipunku. Minimalna cena to 250 000 viccoinów.',
+    aliases: ['market', 'gielda', 'giełda'],
+    additionalInfo: [
+      'Pieniądze trafiają do sprzedającego po zakupie przedmiotu przez innego gracza.',
+      'Wycofanie oferty zwraca przedmiot do ekwipunku sprzedającego bez żadnych kosztów.'
+    ]
   }
 ];
 

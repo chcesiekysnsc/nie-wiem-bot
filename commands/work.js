@@ -26,7 +26,10 @@ module.exports = {
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
       const now = Date.now();
-      const cdMs = (config.cooldowns.work || 600) * 1000;
+      const hasZegar = hasItem(inventory, 'stary_zegar');
+      const baseCd = config.cooldowns.work || 600;
+      const actualCd = hasZegar ? baseCd * 0.90 : baseCd;
+      const cdMs = actualCd * 1000;
       const last = user.lastWorkTime || 0;
       const diff = now - last;
 

@@ -124,6 +124,10 @@ function getBankCapacity(user, inventoryRecord) {
     capacity += 75000;
   }
 
+  if (hasItem(inventoryRecord, 'zlota_karta')) {
+    capacity += config.economy.goldenCardBonus || 50000;
+  }
+
   return capacity;
 }
 

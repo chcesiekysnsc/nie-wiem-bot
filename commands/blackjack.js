@@ -7,7 +7,7 @@ const {
   resolveAmount,
   ensureInventoryRecord
 } = require('../utils/economy');
-const { createUser, withData } = require('../utils/storage');
+const { createUser, withData, loadData } = require('../utils/storage');
 
 const SUITS = ['♠️', '♥️', '♦️', '♣️'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -55,6 +55,31 @@ function renderHand(cards, hideSecond = false) {
     return `[${cards[0].rank}${cards[0].suit}] [❓]`;
   }
   return cards.map(c => `[${c.rank}${c.suit}]`).join(' ');
+}
+
+function drawCardForPlayer(game, hasDealerItem) {
+  let card = game.deck.pop();
+  if (hasDealerItem && Math.random() < 0.03 && game.deck.length > 0) {
+    const nextCard = game.deck[game.deck.length - 1];
+    const currentVal = getHandValue([...game.playerCards, card]);
+    const nextVal = getHandValue([...game.playerCards, nextCard]);
+    
+    let swap = false;
+    if (currentVal > 21 && nextVal <= 21) {
+      swap = true;
+    } else if (currentVal <= 21 && nextVal <= 21 && nextVal > currentVal) {
+      swap = true;
+    }
+    
+    if (swap) {
+      const actualNext = game.deck.pop();
+      game.deck.unshift(card);
+      card = actualNext;
+      card.isCheat = true;
+    }
+  }
+  game.playerCards.push(card);
+  return card;
 }
 
 module.exports = {
@@ -182,8 +207,13 @@ module.exports = {
     let playerValue = getHandValue(game.playerCards);
 
     if (action === 'hit' || action === 'dobierz') {
-      game.playerCards.push(game.deck.pop());
+      const inventoryData = loadData('inventory');
+      const inventoryRecord = ensureInventoryRecord(inventoryData, authorId);
+      const hasDealerItem = hasItem(inventoryRecord, 'przekupiony_krupier');
+
+      const drawnCard = drawCardForPlayer(game, hasDealerItem);
       playerValue = getHandValue(game.playerCards);
+      const cheatNote = drawnCard.isCheat ? '\n🧠 *Krupier dyskretnie wsunął Ci korzystniejszą kartę...*' : '';
 
       if (playerValue > 21) {
         // Przegrana (Bust)
@@ -197,7 +227,7 @@ module.exports = {
         });
 
         await message.reply(
-          `💥 **Przegrana (Bust!)** - przekroczyłeś 21 punktów.\n\n` +
+          `💥 **Przegrana (Bust!)** - przekroczyłeś 21 punktów.${cheatNote}\n\n` +
           `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
           `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)\n\n` +
           `Tracisz **${formatCurrency(game.bet)}**. Twój balans: **${formatCurrency(dbResult)}**`
@@ -209,7 +239,7 @@ module.exports = {
       } else {
         // Gra toczy się dalej
         await message.reply(
-          `🃏 **Blackjack (Kolejna karta)**\n` +
+          `🃏 **Blackjack (Kolejna karta)**${cheatNote}\n` +
           `Stawka: **${formatCurrency(game.bet)}**\n\n` +
           `Twój ruch: wpisz **hit** (dobierz) lub **stand** (stop).\n\n` +
           `👨‍💼 Krupier: ${renderHand(game.dealerCards, true)} (Wartość: ?)\n` +
@@ -238,8 +268,13 @@ module.exports = {
       }
 
       game.bet *= 2;
-      game.playerCards.push(game.deck.pop());
+      const inventoryData = loadData('inventory');
+      const inventoryRecord = ensureInventoryRecord(inventoryData, authorId);
+      const hasDealerItem = hasItem(inventoryRecord, 'przekupiony_krupier');
+
+      const drawnCard = drawCardForPlayer(game, hasDealerItem);
       playerValue = getHandValue(game.playerCards);
+      const cheatNote = drawnCard.isCheat ? '\n🧠 *Krupier dyskretnie wsunął Ci korzystniejszą kartę...*' : '';
 
       if (playerValue > 21) {
         // Przegrana (Bust) przy podwojeniu
@@ -253,7 +288,7 @@ module.exports = {
         });
 
         await message.reply(
-          `💥 **Przegrana (Bust!) przy podwojeniu** - przekroczyłeś 21 punktów.\n\n` +
+          `💥 **Przegrana (Bust!) przy podwojeniu** - przekroczyłeś 21 punktów.${cheatNote}\n\n` +
           `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
           `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)\n\n` +
           `Tracisz **${formatCurrency(game.bet)}**. Twój balans: **${formatCurrency(dbResult)}**`
@@ -261,14 +296,14 @@ module.exports = {
         client.activeBlackjackGames.delete(authorId);
       } else {
         // Automatyczne zatrzymanie (stand) po dobraniu 1 karty przy double
-        await this.executeDealerTurn(client, message, game, playerValue);
+        await this.executeDealerTurn(client, message, game, playerValue, cheatNote);
       }
     } else if (action === 'stand' || action === 'stop') {
       await this.executeDealerTurn(client, message, game, playerValue);
     }
   },
 
-  async executeDealerTurn(client, message, game, playerValue) {
+  async executeDealerTurn(client, message, game, playerValue, cheatNote = '') {
     const authorId = message.author.id;
     let dealerValue = getHandValue(game.dealerCards);
 
@@ -314,7 +349,7 @@ module.exports = {
     });
 
     await message.reply(
-      `🃏 **Koniec gry w Blackjacka!**\n\n` +
+      `🃏 **Koniec gry w Blackjacka!**${cheatNote}\n\n` +
       `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
       `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)\n\n` +
       `${outcome}\n` +
