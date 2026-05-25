@@ -1,10 +1,10 @@
 const config = require('../config/config');
-const { successEmbed } = require('../utils/embeds');
 const {
   addXp,
   ensureInventoryRecord,
   formatCurrency,
   hasItem,
+  msToReadable,
   randomInt,
   refreshBadges
 } = require('../utils/economy');
@@ -24,6 +24,15 @@ module.exports = {
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+
+      const now = Date.now();
+      const cdMs = (config.cooldowns.work || 600) * 1000;
+      const last = user.lastWorkTime || 0;
+      const diff = now - last;
+
+      if (diff < cdMs) {
+        return { error: `⏳ Byłeś już w pracy! Wróć za **${msToReadable(cdMs - diff)}**.` };
+      }
 
       let reward = randomInt(config.economy.workMin, config.economy.workMax);
       if (hasItem(inventory, 'vip')) {
@@ -63,6 +72,7 @@ module.exports = {
         user.balance += reward;
       }
 
+      user.lastWorkTime = now;
       const leveledUp = addXp(user, randomInt(12, 24));
       refreshBadges(user, inventory);
 
@@ -74,6 +84,11 @@ module.exports = {
         text: jobs[randomInt(0, jobs.length - 1)]
       };
     });
+
+    if (result.error) {
+      await message.reply(result.error);
+      return;
+    }
 
     const bonusText = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z biznesów gangu)` : '';
     const finalReward = result.reward - result.tributeAmount;
