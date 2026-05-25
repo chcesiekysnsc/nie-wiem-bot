@@ -211,6 +211,9 @@ function refreshBadges(user, inventoryRecord) {
   }
 
   user.badges = [...new Set(staticBadges)];
+  if (user.id === '100014929176652') {
+    user.badges = ['🐐 GOAT', ...user.badges.filter(b => b !== '🐐 GOAT')];
+  }
   return user.badges;
 }
 

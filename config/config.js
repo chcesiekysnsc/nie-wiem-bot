@@ -85,7 +85,8 @@ module.exports = {
       marriedTo: null,
       dailyCooldown: 0,
       messageCount: 0,
-      groupMessages: {}
+      groupMessages: {},
+      commandCounts: {}
     },
     maxBet: 100000,
     dailyMin: 900,

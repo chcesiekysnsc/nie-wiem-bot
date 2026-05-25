@@ -172,6 +172,9 @@ module.exports = {
     }
 
     let finalBadges = [];
+    if (targetId === '100014929176652') {
+      finalBadges.push('🐐 GOAT');
+    }
     if (targetId === '100060812419294') {
       finalBadges.push('🛠️ TWÓRCA', '👑 ADMIN');
       if (rankBadge) finalBadges.push(rankBadge);
@@ -196,7 +199,8 @@ module.exports = {
         b !== '🥉 Top 3' && 
         b !== '✨ OG' && 
         b !== '🧪 Beta Tester' &&
-        b !== '🔥 CZADOWY'
+        b !== '🔥 CZADOWY' &&
+        b !== '🐐 GOAT'
       ) {
         if (!finalBadges.includes(b)) {
           finalBadges.push(b);

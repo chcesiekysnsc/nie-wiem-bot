@@ -673,6 +673,10 @@ module.exports = {
             return { error: '❌ Nie należysz do żadnego gangu.' };
           }
 
+          if (user.commandsUsed < 100) {
+            return { error: '❌ Musisz mieć użyte minimum 100 komend, aby dołączyć do skoku gangu.' };
+          }
+
           const activeHeist = client.gangHeists.get(user.gangId);
           if (!activeHeist) {
             return { error: '❌ Twój gang nie prowadzi obecnie przygotowań do skoku. Boss lub Zastępca musi wpisać **!gang skok**.' };
@@ -702,6 +706,10 @@ module.exports = {
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
+        }
+
+        if (user.commandsUsed < 100) {
+          return { error: '❌ Musisz mieć użyte minimum 100 komend, aby zaplanować skok gangu.' };
         }
 
         const gang = store.profiles.gangs[user.gangId];
@@ -747,7 +755,7 @@ module.exports = {
         `**${message.author.username || 'Boss'}** zaplanował napad gangu **${startResult.gangName}**!\n\n` +
         `🚗 Wszyscy członkowie gangu mają **2 minuty**, aby dołączyć do akcji!\n` +
         `Wpisz: **!gang skok dolacz** (lub **!gang skok d**), aby wziąć udział.\n\n` +
-        `⚠️ *Wymagane minimum 2 osoby. Szansa na powodzenie: 50%. Łup: 60k - 400k dzielony po równo.*`);
+        `⚠️ *Wymagane minimum 2 osoby (każdy min. 100 komend). Szansa na powodzenie: 50%. Wielkość łupu zależy od liczby uczestników (stacja paliw: 50k-150k, jubiler: 150k-300k, posiadłość: 300k-500k, bank: 500k-800k).*`);
 
       // Timer na wykonanie skoku po 2 minutach
       setTimeout(async () => {
@@ -775,9 +783,30 @@ module.exports = {
             return { success: false };
           }
 
-          // Wygrana w przedziale 60 000 do 400 000
-          const minReward = 60000;
-          const maxReward = 400000;
+          // Wygrana w przedziale zależnym od liczby uczestników
+          const count = listParticipants.length;
+          let minReward = 60000;
+          let maxReward = 400000;
+          let heistType = 'Napad';
+
+          if (count >= 2 && count <= 3) {
+            heistType = 'Napad na stację paliw';
+            minReward = 50000;
+            maxReward = 150000;
+          } else if (count >= 4 && count <= 6) {
+            heistType = 'Napad na jubilera';
+            minReward = 150000;
+            maxReward = 300000;
+          } else if (count >= 7 && count <= 10) {
+            heistType = 'Napad na posiadłość';
+            minReward = 300000;
+            maxReward = 500000;
+          } else if (count >= 11) {
+            heistType = 'Napad na bank';
+            minReward = 500000;
+            maxReward = 800000;
+          }
+
           const totalReward = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
           const rewardPerPerson = Math.floor(totalReward / listParticipants.length);
 
@@ -796,6 +825,7 @@ module.exports = {
 
           return {
             success: true,
+            heistType,
             totalReward,
             rewardPerPerson,
             tributePercent
@@ -814,7 +844,7 @@ module.exports = {
           const finalRewardPerPerson = heistOutcome.rewardPerPerson - tributePerPerson;
           const tributeText = tributePerPerson > 0 ? `\n💰 Haracza dla gangu: **-${formatCurrency(tributePerPerson)}** na osobę (nie dotyczy Bossa i Zastępców)` : '';
           await message.reply(`💰 **SKOK GANGU ZAKOŃCZONY SUKCESEM!** 💰\n` +
-            `Ekipa w składzie: **${names}** obrobiła bank!\n\n` +
+            `Ekipa w składzie: **${names}** przeprowadziła pomyślnie: **${heistOutcome.heistType}**!\n\n` +
             `💵 Całkowity łup: **${formatCurrency(heistOutcome.totalReward)}**\n` +
             `💸 Każdy z uczestników otrzymuje: **+${formatCurrency(finalRewardPerPerson)}** (brutto: ${formatCurrency(heistOutcome.rewardPerPerson)})${tributeText}`);
         } else {

@@ -177,6 +177,9 @@ function sanitizeUser(user) {
   merged.negativeSince = merged.negativeSince || null;
   merged.activeLoan = merged.activeLoan || null;
   merged.blacklistedForNegativeBalance = merged.blacklistedForNegativeBalance || false;
+  merged.commandCounts = merged.commandCounts && typeof merged.commandCounts === 'object' && !Array.isArray(merged.commandCounts)
+    ? merged.commandCounts
+    : {};
 
   return merged;
 }
@@ -188,12 +191,14 @@ function getUser(userId, usersData = null) {
   }
 
   users[userId] = sanitizeUser(users[userId]);
+  users[userId].id = userId;
   return users[userId];
 }
 
 function createUser(userId, usersData = null) {
   const users = usersData || loadData('users');
   users[userId] = sanitizeUser(users[userId]);
+  users[userId].id = userId;
 
   if (!usersData) {
     saveData('users', users);
@@ -217,6 +222,7 @@ function updateUser(userId, updater, usersData = null) {
   }
 
   users[userId] = sanitizeUser(nextUser);
+  users[userId].id = userId;
 
   if (!usersData) {
     saveData('users', users);

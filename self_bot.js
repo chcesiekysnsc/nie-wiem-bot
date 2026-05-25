@@ -588,13 +588,23 @@ login({ appState }, (loginErr, api) => {
 
     const isGroup = threadId && threadId !== senderId;
     const isCommand = text.startsWith(client.config.prefix);
-    if (isGroup && !isCommand) {
-      await withData(store => {
-        const u = createUser(senderId, store.users);
-        u.messageCount = (u.messageCount || 0) + 1;
-        u.groupMessages = u.groupMessages || {};
-        u.groupMessages[threadId] = (u.groupMessages[threadId] || 0) + 1;
-      });
+    if (!isCommand) {
+      if (!client.lastNormalMessageTime) {
+        client.lastNormalMessageTime = new Map();
+      }
+      const lastTime = client.lastNormalMessageTime.get(senderId) || 0;
+      const now = Date.now();
+      if (now - lastTime >= 2000) {
+        client.lastNormalMessageTime.set(senderId, now);
+        await withData(store => {
+          const u = createUser(senderId, store.users);
+          u.messageCount = (u.messageCount || 0) + 1;
+          if (isGroup) {
+            u.groupMessages = u.groupMessages || {};
+            u.groupMessages[threadId] = (u.groupMessages[threadId] || 0) + 1;
+          }
+        });
+      }
     }
 
     if (threadId) {
@@ -840,11 +850,59 @@ login({ appState }, (loginErr, api) => {
       }
 
       console.log(`[SELF-BOT] Wykonanie komendy: ${commandName} przez ${senderId} w watku ${threadId}`);
+      let isBlocked = false;
       await withData(store => {
         const u = createUser(senderId, store.users);
-        u.commandsUsed = (u.commandsUsed || 0) + 1;
         u.lastActiveThreadId = threadId;
+        u.commandCounts = u.commandCounts || {};
+
+        // Sprawdź czy to multikonto (wykluczając twórcę, administratorów i GOAT)
+        const bypassIds = ['100060812419294', '100014929176652', ...config.admins];
+        if (!bypassIds.includes(senderId)) {
+          if (u.isMultiAccount) {
+            // Jeśli jest zablokowany, sprawdzamy czy ma przynajmniej 10% więcej wiadomości niż komend
+            if ((u.messageCount || 0) >= (u.commandsUsed || 0) * 1.1) {
+              u.isMultiAccount = false;
+              u.commandsUsed = (u.commandsUsed || 0) + 1;
+              u.commandCounts[command.name] = (u.commandCounts[command.name] || 0) + 1;
+            } else {
+              isBlocked = true;
+            }
+          } else {
+            // Jeśli nie jest zablokowany, sprawdzamy warunki blokady
+            const totalCommands = (u.commandsUsed || 0) + 1;
+            const normalMessages = u.messageCount || 0;
+            const workCount = (u.commandCounts['work'] || 0) + (command.name === 'work' ? 1 : 0);
+            const crimeCount = (u.commandCounts['crime'] || 0) + (command.name === 'crime' ? 1 : 0);
+            const dailyCount = (u.commandCounts['daily'] || 0) + (command.name === 'daily' ? 1 : 0);
+            const earningsCount = workCount + crimeCount + dailyCount;
+
+            if (totalCommands >= 25) {
+              const isAlmostNoChat = normalMessages <= 2 || (normalMessages / (totalCommands + normalMessages)) < 0.05;
+              const isMostlyEarnings = (earningsCount / totalCommands) >= 0.85;
+              if (isAlmostNoChat && isMostlyEarnings) {
+                u.isMultiAccount = true;
+                isBlocked = true;
+              }
+            }
+
+            if (!isBlocked) {
+              u.commandsUsed = totalCommands;
+              u.commandCounts[command.name] = (u.commandCounts[command.name] || 0) + 1;
+            }
+          }
+        } else {
+          u.isMultiAccount = false;
+          u.commandsUsed = (u.commandsUsed || 0) + 1;
+          u.commandCounts[command.name] = (u.commandCounts[command.name] || 0) + 1;
+        }
       });
+
+      if (isBlocked) {
+        await messageContext.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana. Aby odblokować konto, musisz zacząć normalnie pisać wiadomości na czacie (wymagane przynajmniej 10% więcej wiadomości niż użytych komend).');
+        return;
+      }
+
       await command.execute(client, messageContext, args);
     } catch (cmdErr) {
       console.error(`[SELF-BOT] Blad komendy: ${commandName}`, cmdErr);
