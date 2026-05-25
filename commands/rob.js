@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, refreshBadges, ensureInventoryRecord } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 const robCooldowns = new Map();   // userId -> timestamp wolny od kiedy

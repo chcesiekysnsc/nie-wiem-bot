@@ -50,6 +50,48 @@ async function executeCommand(event, pageId) {
 
   const senderUser = await client.cacheUser(senderId);
 
+  // Interceptor dla aktywnej gry w blackjacka
+  if (!client.activeBlackjackGames) {
+    client.activeBlackjackGames = new Map();
+  }
+  const activeGame = client.activeBlackjackGames.get(senderId);
+  if (activeGame) {
+    const cleanText = text.trim().toLowerCase().replace(/^!/, '');
+    if (['hit', 'stand', 'double', 'dobierz', 'stop', 'podwoj'].includes(cleanText)) {
+      const bjCommand = client.commands.get('blackjack');
+      if (bjCommand && typeof bjCommand.handleAction === 'function') {
+        const message = createMessageContext(client, senderUser, text, [cleanText], event, pageId);
+        
+        let isBlocked = false;
+        await withData(store => {
+          const u = createUser(senderId, store.users);
+          if (u.isMultiAccount) {
+            if ((u.messageCount || 0) >= (u.commandsUsed || 0)) {
+              u.isMultiAccount = false;
+              u.commandsUsed = (u.commandsUsed || 0) + 1;
+            } else {
+              isBlocked = true;
+            }
+          } else {
+            u.commandsUsed = (u.commandsUsed || 0) + 1;
+          }
+        });
+
+        if (isBlocked) {
+          await message.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana. Aby odblokować konto, musisz zacząć normalnie pisać wiadomości na czacie (wymagany przynajmniej stosunek 50/50 - tyle samo wiadomości co użytych komend).');
+          return;
+        }
+
+        try {
+          await bjCommand.handleAction(client, message, cleanText);
+        } catch (err) {
+          console.error('[WEBHOOK] Blad ruchu w blackjacku:', err);
+        }
+        return;
+      }
+    }
+  }
+
   if (!text.startsWith(client.config.prefix)) {
     if (!client.lastNormalMessageTime) {
       client.lastNormalMessageTime = new Map();

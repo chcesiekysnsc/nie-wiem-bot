@@ -5,7 +5,8 @@ const {
   recordGame,
   refreshBadges,
   resolveAmount,
-  ensureInventoryRecord
+  ensureInventoryRecord,
+  hasItem
 } = require('../utils/economy');
 const { createUser, withData, loadData } = require('../utils/storage');
 

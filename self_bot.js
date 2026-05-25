@@ -684,9 +684,19 @@ login({ appState }, (loginErr, api) => {
         if (bjCommand && typeof bjCommand.handleAction === 'function') {
           console.log(`[SELF-BOT] Wykonanie ruchu w blackjacku: ${cleanText} przez ${senderId}`);
           
+          let isBlocked = false;
           await withData(store => {
             const u = createUser(senderId, store.users);
-            u.commandsUsed = (u.commandsUsed || 0) + 1;
+            if (u.isMultiAccount) {
+              if ((u.messageCount || 0) >= (u.commandsUsed || 0)) {
+                u.isMultiAccount = false;
+                u.commandsUsed = (u.commandsUsed || 0) + 1;
+              } else {
+                isBlocked = true;
+              }
+            } else {
+              u.commandsUsed = (u.commandsUsed || 0) + 1;
+            }
             u.lastActiveThreadId = threadId;
           });
 
@@ -714,6 +724,12 @@ login({ appState }, (loginErr, api) => {
               });
             }
           };
+
+          if (isBlocked) {
+            const replyText = '❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana. Aby odblokować konto, musisz zacząć normalnie pisać wiadomości na czacie (wymagany przynajmniej stosunek 50/50 - tyle samo wiadomości co użytych komend).';
+            api.sendMessage(replyText, threadId, () => {}, messageId);
+            return;
+          }
 
           try {
             await bjCommand.handleAction(client, messageContext, cleanText);
