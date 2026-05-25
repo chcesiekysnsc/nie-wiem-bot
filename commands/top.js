@@ -1,5 +1,5 @@
 const { formatNumber, formatCurrency } = require('../utils/economy');
-const { withData } = require('../utils/storage');
+const { withData, createUser } = require('../utils/storage');
 
 module.exports = {
   name: 'top',
@@ -108,18 +108,26 @@ module.exports = {
       } catch (_) {}
     }
 
-    const { globalTop, groupMembers, showIds } = await withData(store => {
+    const { globalTop, groupMembers, showIds, myRank, totalPlayers } = await withData(store => {
+      // Upewnij się, że autor ma swój profil w bazie
+      createUser(message.author.id, store.users);
+
       const users = Object.entries(store.users || {});
       const showIds = store.profiles.showIds || [];
 
-      // Top 5 Globalnie (najwięcej monet ze wszystkich zarejestrowanych)
-      const globalTop = users
+      // Wszystkie konta posortowane globalnie
+      const globalSorted = users
         .map(([id, u]) => {
           const borrowed = u.activeLoan ? u.activeLoan.originalAmount : 0;
           return { id, balance: (u.balance || 0) - borrowed + (u.bank || 0) };
         })
-        .sort((a, b) => b.balance - a.balance)
-        .slice(0, 5);
+        .sort((a, b) => b.balance - a.balance);
+
+      const totalPlayers = globalSorted.length;
+      const myRank = globalSorted.findIndex(u => u.id === message.author.id) + 1;
+
+      // Top 5 Globalnie (najwięcej monet ze wszystkich zarejestrowanych)
+      const globalTop = globalSorted.slice(0, 5);
 
       // Top 5 Grupy (najbardziej majętni ludzie na danej grupie)
       let groupMembers = [];
@@ -134,16 +142,10 @@ module.exports = {
         .slice(0, 5);
       } else {
         // Fallback: Pokazujemy zarejestrowanych użytkowników
-        groupMembers = users
-          .map(([id, u]) => {
-            const borrowed = u.activeLoan ? u.activeLoan.originalAmount : 0;
-            return { id, balance: (u.balance || 0) - borrowed + (u.bank || 0) };
-          })
-          .sort((a, b) => b.balance - a.balance)
-          .slice(0, 5);
+        groupMembers = globalSorted.slice(0, 5);
       }
 
-      return { globalTop, groupMembers, showIds };
+      return { globalTop, groupMembers, showIds, myRank, totalPlayers };
     });
 
     const globalLines = await Promise.all(
@@ -171,7 +173,8 @@ module.exports = {
       `🌍 **Top 5 Global**\n` +
       `${globalLines.length ? globalLines.join('\n') : 'Brak danych.'}\n` +
       `👥 **Top 5 Grupy**\n` +
-      `${groupLines.length ? groupLines.join('\n') : 'Brak danych grupowych.'}`;
+      `${groupLines.length ? groupLines.join('\n') : 'Brak danych grupowych.'}\n\n` +
+      `🌐 Jesteś **${myRank}** z **${totalPlayers}** graczy.`;
 
     await message.reply(responseText);
   }
