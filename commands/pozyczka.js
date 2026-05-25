@@ -68,7 +68,7 @@ module.exports = {
           `• powyżej 200k (do 300k) — **8%**\n` +
           `• powyżej 300k (do 400k) — **12%**\n` +
           `• powyżej 400k (do 500k) — **20%**\n` +
-          `🔒 *Środki z pożyczki mają blokadę na przelewy/marry oraz ochronę przed okradaniem (!rob) na 48h. Po tym czasie bot sam ściągnie należność.*`
+          `🔒 *Środki z pożyczki mają blokadę na przelewy (!tip), ślub (!marry), wpłaty gangu (!gang wplac) oraz ochronę przed okradaniem (!rob) do momentu spłaty.*`
         );
         return;
       }
@@ -206,7 +206,7 @@ module.exports = {
     await message.reply(
       `🎉 Pomyślnie pożyczono **${formatCurrency(result.borrowAmount)}** z banku wirtualnego!\n` +
       `📈 Oprocentowanie: **${percentRate}% co 6 godzin**.\n` +
-      `🔒 Środki te mają blokadę na przelewy/marry oraz ochronę przed okradaniem (!rob) na 48 godzin.\n` +
+      `🔒 Środki te mają całkowitą blokadę na przelewy, ślub, wpłaty do gangu oraz ochronę przed okradaniem do momentu spłaty.\n` +
       `⚠️ Po 48 godzinach bot automatycznie spłaci całą pożyczkę z Twojego portfela (może zaminusować konto!).`
     );
   }

@@ -69,7 +69,7 @@ module.exports = {
       }
 
       let stealableBalance = victim.balance;
-      if (victim.activeLoan && Date.now() - victim.activeLoan.takenAt < 48 * 60 * 60 * 1000) {
+      if (victim.activeLoan) {
         stealableBalance = Math.max(0, victim.balance - victim.activeLoan.originalAmount);
       }
 

@@ -103,13 +103,13 @@ module.exports = {
         }
 
         let lockedAmount = 0;
-        if (user.activeLoan && Date.now() - user.activeLoan.takenAt < 48 * 60 * 60 * 1000) {
+        if (user.activeLoan) {
           lockedAmount = user.activeLoan.originalAmount;
         }
 
-        // Zablokowane środki z pożyczki (48h)
+        // Zablokowane środki z pożyczki
         if (lockedAmount > 0 && user.balance - lockedAmount < depositAmount) {
-          return { error: `❌ Te środki są zablokowane z tytułu pożyczki (blokada 48h). Wolne środki: **${formatCurrency(Math.max(0, user.balance - lockedAmount))}**` };
+          return { error: `❌ Te środki są zablokowane z tytułu pożyczki. Wolne środki: **${formatCurrency(Math.max(0, user.balance - lockedAmount))}**` };
         }
 
         // Zwykły brak środków (bez pożyczki)

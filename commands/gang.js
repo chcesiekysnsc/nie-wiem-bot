@@ -411,6 +411,15 @@ module.exports = {
           return { error: '❌ Podaj poprawną kwotę wpłaty.' };
         }
 
+        let lockedAmount = 0;
+        if (user.activeLoan) {
+          lockedAmount = user.activeLoan.originalAmount;
+        }
+
+        if (lockedAmount > 0 && user.balance - lockedAmount < amount) {
+          return { error: `❌ Te środki są zablokowane z tytułu pożyczki. Wolne środki do wpłaty: ${formatCurrency(Math.max(0, user.balance - lockedAmount))}` };
+        }
+
         if (user.balance < amount) {
           return { error: '❌ Nie masz tylu monet w portfelu.' };
         }

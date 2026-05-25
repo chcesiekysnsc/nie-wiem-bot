@@ -164,16 +164,16 @@ module.exports = {
       name: 'Złota Paczka',
       emoji: '🟨',
       price: 200000,
-      shortDesc: 'Lootbox: 145k–245k + 10% szans na przedmiot.',
-      description: 'Otwórz komendą: !otworz zlota\nZawartość: losowa kwota od 145 000 do 245 000 viccoinów.\nBonus drop (10%): 5% na 💣 Bombę, 3% na 🔒 Kłódkę + 🍺 Piwo jednocześnie, 2% na 🎟️ Bilet.',
+      shortDesc: 'Lootbox: 145k–245k + 13% szans na przedmiot/artefakt.',
+      description: 'Otwórz komendą: !otworz zlota\nZawartość: losowa kwota od 145 000 do 245 000 viccoinów.\nBonus drop (13%): 5% na 💣 Bombę, 3% na 🔒 Kłódkę + 🍺 Piwo jednocześnie, 2% na 🎟️ Bilet, 2% na 💳 Złotą Kartę, 1% na 📷 Kamerę.',
       type: 'stackable'
     },
     paczka_diamentowa: {
       name: 'Diamentowa Paczka',
       emoji: '🟦',
       price: 500000,
-      shortDesc: 'Lootbox: 225k–725k + 10% szans na VIP/Sejf!',
-      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 225 000 do 725 000 viccoinów.\nBonus drop (10%): 5% na 👑 VIP Pass, 5% na 🏦 Ulepszenie Banku.\nJeśli już posiadasz dany przedmiot — otrzymujesz zamiennik o podobnej wartości.',
+      shortDesc: 'Lootbox: 225k–725k + 12.5% szans na VIP/Sejf/Artefakty!',
+      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 225 000 do 725 000 viccoinów.\nBonus drop (12.5%): 5% na 👑 VIP Pass, 5% na 🏦 Ulepszenie Banku, 2% na 🩸 Krwawy Żeton, 0.5% na ⏰ Stary Zegar.\nJeśli już posiadasz dany przedmiot permanentny — otrzymujesz zamiennik o podobnej wartości.',
       type: 'stackable'
     },
     // Poniższe itemy są niedostępne w sklepie — wypadają tylko z paczek
