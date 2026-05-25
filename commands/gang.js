@@ -451,6 +451,18 @@ module.exports = {
           return { error: '❌ Nie należysz do żadnego gangu.' };
         }
 
+        const myGangId = user.gangId;
+        if (client.activeGangWars) {
+          if (client.activeGangWars.has(myGangId)) {
+            return { error: '❌ Nie można wypłacać pieniędzy z sejfu podczas wojny gangów!' };
+          }
+          for (const war of client.activeGangWars.values()) {
+            if (war.defenderGangId === myGangId) {
+              return { error: '❌ Nie można wypłacać pieniędzy z sejfu podczas wojny gangów!' };
+            }
+          }
+        }
+
         const gang = store.profiles.gangs[user.gangId];
         const isBoss = user.gangRole === 'boss';
         const isDeputy = user.gangRole === 'deputy';
@@ -595,6 +607,18 @@ module.exports = {
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
+        }
+
+        const myGangId = user.gangId;
+        if (client.activeGangWars) {
+          if (client.activeGangWars.has(myGangId)) {
+            return { error: '❌ Nie można ulepszać gangu podczas wojny gangów!' };
+          }
+          for (const war of client.activeGangWars.values()) {
+            if (war.defenderGangId === myGangId) {
+              return { error: '❌ Nie można ulepszać gangu podczas wojny gangów!' };
+            }
+          }
         }
 
         const gang = store.profiles.gangs[user.gangId];

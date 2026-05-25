@@ -39,6 +39,10 @@ module.exports = {
       const sender = createUser(message.author.id, store.users);
       const receiver = createUser(targetId, store.users);
 
+      if (receiver.isMultiAccount) {
+        return { error: '❌ Nie możesz przelać pieniędzy na to konto, ponieważ jest ono zablokowane.' };
+      }
+
       const isAll = ['all', 'max'].includes(String(rawAmount || '').toLowerCase());
       let amount = isAll ? sender.balance : Math.floor(Number(rawAmount));
 

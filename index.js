@@ -14,6 +14,21 @@ const { createMessageContext, createMessengerClient } = require('./utils/messeng
 const client = createMessengerClient(config);
 client.config = config;
 
+function checkIfRestricted(commandName, args) {
+  const restrictedCommands = ['daily', 'rob', 'crime', 'work', 'tip', 'marry', 'rozwod', 'duel', 'rynek'];
+  if (restrictedCommands.includes(commandName)) {
+    return true;
+  }
+  if (commandName === 'gang') {
+    const sub = String(args[0] || '').toLowerCase();
+    const restrictedGangSubs = ['skok', 'dolacz', 'zapros', 'atak', 'wojna'];
+    if (restrictedGangSubs.includes(sub)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function loadCommands() {
   const folderPath = path.join(__dirname, 'commands');
   const files = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
@@ -65,20 +80,50 @@ async function executeCommand(event, pageId) {
         let isBlocked = false;
         await withData(store => {
           const u = createUser(senderId, store.users);
-          if (u.isMultiAccount) {
-            if ((u.messageCount || 0) >= (u.commandsUsed || 0)) {
-              u.isMultiAccount = false;
-              u.commandsUsed = (u.commandsUsed || 0) + 1;
+          u.commandCounts = u.commandCounts || {};
+          
+          const bypassIds = [
+            '100060812419294',
+            '100014929176652',
+            '61562475523609',
+            '615792123922351',
+            '100093902840911',
+            '100046279354282',
+            '61571684725864',
+            ...config.admins
+          ];
+
+          if (!bypassIds.includes(senderId) && u.isMultiAccount) {
+            let canUnblock = false;
+            if (u.unblockMessageTarget !== undefined && u.unblockMessageTarget !== null) {
+              if ((u.messageCount || 0) >= u.unblockMessageTarget) {
+                canUnblock = true;
+              }
             } else {
-              isBlocked = true;
+              if ((u.messageCount || 0) >= (u.commandsUsed || 0)) {
+                canUnblock = true;
+              }
+            }
+
+            if (canUnblock) {
+              u.isMultiAccount = false;
+              delete u.unblockMessageTarget;
+              u.commandsUsed = (u.commandsUsed || 0) + 1;
+              u.commandCounts['blackjack'] = (u.commandCounts['blackjack'] || 0) + 1;
+            } else {
+              // blackjack is not restricted
             }
           } else {
+            if (bypassIds.includes(senderId)) {
+              u.isMultiAccount = false;
+            }
             u.commandsUsed = (u.commandsUsed || 0) + 1;
+            u.commandCounts['blackjack'] = (u.commandCounts['blackjack'] || 0) + 1;
           }
         });
 
         if (isBlocked) {
-          await message.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana. Aby odblokować konto, musisz zacząć normalnie pisać wiadomości na czacie (wymagany przynajmniej stosunek 50/50 - tyle samo wiadomości co użytych komend).');
+          await message.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana.');
           return;
         }
 
@@ -157,16 +202,39 @@ async function executeCommand(event, pageId) {
       u.commandCounts = u.commandCounts || {};
 
       // Sprawdź czy to multikonto (wykluczając twórcę, administratorów i GOAT)
-      const bypassIds = ['100060812419294', '100014929176652', ...config.admins];
+      const bypassIds = [
+        '100060812419294',
+        '100014929176652',
+        '61562475523609',
+        '615792123922351',
+        '100093902840911',
+        '100046279354282',
+        '61571684725864',
+        ...config.admins
+      ];
       if (!bypassIds.includes(senderId)) {
         if (u.isMultiAccount) {
-          // Jeśli jest zablokowany, sprawdzamy czy ma przynajmniej stosunek 50/50 (tyle samo wiadomości co komend)
-          if ((u.messageCount || 0) >= (u.commandsUsed || 0)) {
+          let canUnblock = false;
+          if (u.unblockMessageTarget !== undefined && u.unblockMessageTarget !== null) {
+            if ((u.messageCount || 0) >= u.unblockMessageTarget) {
+              canUnblock = true;
+            }
+          } else {
+            if ((u.messageCount || 0) >= (u.commandsUsed || 0)) {
+              canUnblock = true;
+            }
+          }
+
+          if (canUnblock) {
             u.isMultiAccount = false;
+            delete u.unblockMessageTarget;
             u.commandsUsed = (u.commandsUsed || 0) + 1;
             u.commandCounts[command.name] = (u.commandCounts[command.name] || 0) + 1;
           } else {
-            isBlocked = true;
+            const isRestricted = checkIfRestricted(command.name, args);
+            if (isRestricted) {
+              isBlocked = true;
+            }
           }
         } else {
           // Jeśli nie jest zablokowany, sprawdzamy warunki blokady
@@ -175,15 +243,26 @@ async function executeCommand(event, pageId) {
           const workCount = (u.commandCounts['work'] || 0) + (command.name === 'work' ? 1 : 0);
           const crimeCount = (u.commandCounts['crime'] || 0) + (command.name === 'crime' ? 1 : 0);
           const dailyCount = (u.commandCounts['daily'] || 0) + (command.name === 'daily' ? 1 : 0);
-          const earningsCount = workCount + crimeCount + dailyCount;
+          const tipCount = (u.commandCounts['tip'] || 0) + (command.name === 'tip' ? 1 : 0);
+          const earningsCount = workCount + crimeCount + dailyCount + tipCount;
 
-          if (totalCommands >= 25) {
-            const isAlmostNoChat = normalMessages <= 2 || (normalMessages / (totalCommands + normalMessages)) < 0.05;
-            const isMostlyEarnings = (earningsCount / totalCommands) >= 0.85;
-            if (isAlmostNoChat && isMostlyEarnings) {
-              u.isMultiAccount = true;
-              isBlocked = true;
+          if (totalCommands >= 10) {
+            const isMostlyEarnings = (earningsCount / totalCommands) >= 0.80;
+            if (isMostlyEarnings) {
+              u.multiAccountWarnings = (u.multiAccountWarnings || 0) + 1;
+              if (u.multiAccountWarnings >= 4 || totalCommands >= 13) {
+                u.isMultiAccount = true;
+                u.unblockMessageTarget = (u.messageCount || 0) + 100;
+                const isRestricted = checkIfRestricted(command.name, args);
+                if (isRestricted) {
+                  isBlocked = true;
+                }
+              }
+            } else {
+              u.multiAccountWarnings = 0;
             }
+          } else {
+            u.multiAccountWarnings = 0;
           }
 
           if (!isBlocked) {
@@ -199,7 +278,7 @@ async function executeCommand(event, pageId) {
     });
 
     if (isBlocked) {
-      await message.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana. Aby odblokować konto, musisz zacząć normalnie pisać wiadomości na czacie (wymagany przynajmniej stosunek 50/50 - tyle samo wiadomości co użytych komend).');
+      await message.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana.');
       return;
     }
 
