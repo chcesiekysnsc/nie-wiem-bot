@@ -468,10 +468,13 @@ module.exports = {
           return { error: '❌ Sejf gangu nie posiada takiej kwoty.' };
         }
 
-        gang.vault -= amount;
-        user.balance += amount;
+        const tax = Math.floor(amount * 0.20);
+        const netAmount = amount - tax;
 
-        return { success: true, amount, gangName: gang.name };
+        gang.vault -= amount;
+        user.balance += netAmount;
+
+        return { success: true, amount, netAmount, tax, gangName: gang.name };
       });
 
       if (withdrawResult.error) {
@@ -479,7 +482,12 @@ module.exports = {
         return;
       }
 
-      await message.reply(`📤 Wypłaciłeś **${formatCurrency(withdrawResult.amount)}** z sejfu gangu **${withdrawResult.gangName}** do swojego portfela.`);
+      await message.reply(
+        `📤 Wypłata z sejfu gangu **${withdrawResult.gangName}**:\n` +
+        `💰 Kwota brutto: **${formatCurrency(withdrawResult.amount)}**\n` +
+        `🏛️ Podatek (20%): **-${formatCurrency(withdrawResult.tax)}**\n` +
+        `✅ Otrzymujesz: **${formatCurrency(withdrawResult.netAmount)}**`
+      );
       return;
     }
 
@@ -1287,7 +1295,18 @@ module.exports = {
     const deputyNamesList = await Promise.all(infoResult.deputies.map(async id => await getName(id)));
     const deputyNames = deputyNamesList.join(', ') || 'Brak';
 
-    const memberNamesList = await Promise.all(infoResult.members.map(async id => {
+    // Sort members: boss first, deputies second, regular members sorted by deposits desc
+    const regularMembers = infoResult.members.filter(
+      id => id !== infoResult.bossId && !infoResult.deputies.includes(id)
+    ).sort((a, b) => (infoResult.deposits[b] || 0) - (infoResult.deposits[a] || 0));
+
+    const orderedMembers = [
+      infoResult.bossId,
+      ...infoResult.deputies,
+      ...regularMembers
+    ].filter(id => infoResult.members.includes(id) || id === infoResult.bossId);
+
+    const memberNamesList = await Promise.all(orderedMembers.map(async id => {
       const roleStr = id === infoResult.bossId ? '👑 Boss' : infoResult.deputies.includes(id) ? '⭐ Zastępca' : '👤 Członek';
       const nameStr = await getName(id);
       const deposited = infoResult.deposits[id] || 0;
