@@ -860,8 +860,8 @@ login({ appState }, (loginErr, api) => {
         const bypassIds = ['100060812419294', '100014929176652', ...config.admins];
         if (!bypassIds.includes(senderId)) {
           if (u.isMultiAccount) {
-            // Jeśli jest zablokowany, sprawdzamy czy ma przynajmniej 10% więcej wiadomości niż komend
-            if ((u.messageCount || 0) >= (u.commandsUsed || 0) * 1.1) {
+            // Jeśli jest zablokowany, sprawdzamy czy ma przynajmniej stosunek 50/50 (tyle samo wiadomości co komend)
+            if ((u.messageCount || 0) >= (u.commandsUsed || 0)) {
               u.isMultiAccount = false;
               u.commandsUsed = (u.commandsUsed || 0) + 1;
               u.commandCounts[command.name] = (u.commandCounts[command.name] || 0) + 1;
@@ -899,7 +899,7 @@ login({ appState }, (loginErr, api) => {
       });
 
       if (isBlocked) {
-        await messageContext.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana. Aby odblokować konto, musisz zacząć normalnie pisać wiadomości na czacie (wymagane przynajmniej 10% więcej wiadomości niż użytych komend).');
+        await messageContext.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana. Aby odblokować konto, musisz zacząć normalnie pisać wiadomości na czacie (wymagany przynajmniej stosunek 50/50 - tyle samo wiadomości co użytych komend).');
         return;
       }
 
