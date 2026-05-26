@@ -106,6 +106,7 @@ async function simulateCommand(client, userId, commandName, args = []) {
         }
       } else {
         const totalCommands = (u.commandsUsed || 0) + 1;
+        const trackedCommandsCount = Object.values(u.commandCounts || {}).reduce((a, b) => a + b, 0) + 1;
         const normalMessages = u.messageCount || 0;
         const logicalCommandName = ['gang', 'atak', 'wojna', 'haracz', 'awans'].includes(command.name) ? 'gang' : command.name;
         const workCount = (u.commandCounts['work'] || 0) + (logicalCommandName === 'work' ? 1 : 0);
@@ -115,14 +116,15 @@ async function simulateCommand(client, userId, commandName, args = []) {
         const robCount = (u.commandCounts['rob'] || 0) + (logicalCommandName === 'rob' ? 1 : 0);
         const gangCount = (u.commandCounts['gang'] || 0) + (logicalCommandName === 'gang' ? 1 : 0)
           + (u.commandCounts['atak'] || 0) + (u.commandCounts['haracz'] || 0) + (u.commandCounts['awans'] || 0);
-        const earningsCount = workCount + crimeCount + dailyCount + tipCount + robCount + gangCount;
+        const balCount = (u.commandCounts['bal'] || 0) + (logicalCommandName === 'bal' ? 1 : 0);
+        const earningsCount = workCount + crimeCount + dailyCount + tipCount + robCount + gangCount + balCount;
 
-        if (normalMessages < totalCommands) {
-          if (totalCommands >= 10) {
-            const isMostlyEarnings = (earningsCount / totalCommands) >= 0.80;
+        if (normalMessages < trackedCommandsCount) {
+          if (trackedCommandsCount >= 10) {
+            const isMostlyEarnings = (earningsCount / trackedCommandsCount) >= 0.80;
             if (isMostlyEarnings) {
               u.multiAccountWarnings = (u.multiAccountWarnings || 0) + 1;
-              if (u.multiAccountWarnings >= 4 || totalCommands >= 13) {
+              if (u.multiAccountWarnings >= 4 || trackedCommandsCount >= 13) {
                 u.isMultiAccount = true;
                 u.unblockMessageTarget = (u.messageCount || 0) + 100;
                 const isRestricted = checkIfRestricted(command.name, args);
@@ -295,6 +297,31 @@ async function runTests() {
   });
   const resUnblocked = await simulateCommand({}, TEST_USER, 'work');
   assert(!resUnblocked.isBlocked, 'Work command is successfully unblocked at 100 messages');
+
+  // TEST 6: Cold start tracking & bal command check
+  console.log('\n--- 6. Cold Start & Bal Command Check ---');
+  const COLD_USER = 'cold_start_test_user';
+  
+  await withData(store => {
+    const u = createUser(COLD_USER, store.users);
+    u.commandsUsed = 100;
+    u.messageCount = 0;
+    u.commandCounts = {};
+  });
+
+  for (let i = 1; i <= 12; i++) {
+    const res = await simulateCommand({}, COLD_USER, i % 2 === 0 ? 'bal' : 'work');
+    assert(!res.isBlocked, `Cold start command ${i} (bal/work) executed successfully`);
+  }
+  const res13Cold = await simulateCommand({}, COLD_USER, 'work');
+  assert(res13Cold.isBlocked, `Cold start command 13 is blocked due to tracked commands limit reached`);
+
+  await withData(store => {
+    const u = store.users[COLD_USER];
+    assert(u.isMultiAccount === true, 'Cold start user is successfully flagged as multi-account');
+    delete store.users[COLD_USER];
+    delete store.inventory[COLD_USER];
+  });
 
   // Cleanup database
   await withData(store => {

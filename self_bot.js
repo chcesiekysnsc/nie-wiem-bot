@@ -950,6 +950,7 @@ login({ appState }, (loginErr, api) => {
           } else {
             // Jeśli nie jest zablokowany, sprawdzamy warunki blokady
             const totalCommands = (u.commandsUsed || 0) + 1;
+            const trackedCommandsCount = Object.values(u.commandCounts || {}).reduce((a, b) => a + b, 0) + 1;
             const normalMessages = u.messageCount || 0;
             const logicalCommandName = ['gang', 'atak', 'wojna', 'haracz', 'awans'].includes(command.name) ? 'gang' : command.name;
             const workCount = (u.commandCounts['work'] || 0) + (logicalCommandName === 'work' ? 1 : 0);
@@ -959,14 +960,15 @@ login({ appState }, (loginErr, api) => {
             const robCount = (u.commandCounts['rob'] || 0) + (logicalCommandName === 'rob' ? 1 : 0);
             const gangCount = (u.commandCounts['gang'] || 0) + (logicalCommandName === 'gang' ? 1 : 0)
               + (u.commandCounts['atak'] || 0) + (u.commandCounts['haracz'] || 0) + (u.commandCounts['awans'] || 0);
-            const earningsCount = workCount + crimeCount + dailyCount + tipCount + robCount + gangCount;
+            const balCount = (u.commandCounts['bal'] || 0) + (logicalCommandName === 'bal' ? 1 : 0);
+            const earningsCount = workCount + crimeCount + dailyCount + tipCount + robCount + gangCount + balCount;
 
-            if (normalMessages < totalCommands) {
-              if (totalCommands >= 10) {
-                const isMostlyEarnings = (earningsCount / totalCommands) >= 0.80;
+            if (normalMessages < trackedCommandsCount) {
+              if (trackedCommandsCount >= 10) {
+                const isMostlyEarnings = (earningsCount / trackedCommandsCount) >= 0.80;
                 if (isMostlyEarnings) {
                   u.multiAccountWarnings = (u.multiAccountWarnings || 0) + 1;
-                  if (u.multiAccountWarnings >= 4 || totalCommands >= 13) {
+                  if (u.multiAccountWarnings >= 4 || trackedCommandsCount >= 13) {
                     u.isMultiAccount = true;
                     u.unblockMessageTarget = (u.messageCount || 0) + 100;
                     const isRestricted = checkIfRestricted(command.name, args);
