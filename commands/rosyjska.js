@@ -229,7 +229,8 @@ module.exports = {
           isDead,
           amount,
           newBalance: user.balance,
-          xpResult
+          xpResult,
+          net
         };
       });
 
@@ -247,7 +248,7 @@ module.exports = {
         response += `💰 Twój portfel: **${formatCurrency(result.newBalance)}**`;
       } else {
         response += `*...klik!* (Pusto. Słychać tylko suche kliknięcie iglicy)\n`;
-        response += `🏆 Udało Ci się przeżyć! Wygrywasz **+${formatCurrency(result.xpResult.net)}**.\n`;
+        response += `🏆 Udało Ci się przeżyć! Wygrywasz **+${formatCurrency(result.net)}**.\n`;
         response += `💰 Twój portfel: **${formatCurrency(result.newBalance)}**`;
       }
 
