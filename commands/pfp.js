@@ -179,7 +179,7 @@ module.exports = {
       finalBadges.push('🛠️ TWÓRCA', '👑 ADMIN');
       if (rankBadge) finalBadges.push(rankBadge);
     } else if (czadowyIds.includes(targetId)) {
-      finalBadges.push('👑 ADMIN', '✨ OG', '🧪 Beta Tester', '🔥 CZADOWY');
+      finalBadges.push('👑 ADMIN', '✨ OG', '🧪 Beta Tester', '🔥 CZADOWY', '🐛 MENDA');
       if (rankBadge) finalBadges.push(rankBadge);
     } else if (betaTesterIds.includes(targetId)) {
       finalBadges.push('✨ OG', '🧪 Beta Tester');
@@ -200,6 +200,7 @@ module.exports = {
         b !== '✨ OG' && 
         b !== '🧪 Beta Tester' &&
         b !== '🔥 CZADOWY' &&
+        b !== '🐛 MENDA' &&
         b !== '🐐 GOAT'
       ) {
         if (!finalBadges.includes(b)) {

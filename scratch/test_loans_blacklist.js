@@ -80,8 +80,8 @@ async function runTests() {
 
   await pfpCmd.execute(mockClient, msgPfp1, []);
   console.log('Captured badges for user 1:', capturedBadges);
-  if (capturedBadges[0] === '👑 ADMIN' && capturedBadges[1] === '✨ OG' && capturedBadges[2] === '🧪 Beta Tester' && capturedBadges[3] === '🔥 CZADOWY') {
-    console.log('✅ PASS: Badge order matches expectation (ADMIN first, CZADOWY 4th).');
+  if (capturedBadges[0] === '👑 ADMIN' && capturedBadges[1] === '✨ OG' && capturedBadges[2] === '🧪 Beta Tester' && capturedBadges[3] === '🔥 CZADOWY' && capturedBadges[4] === '🐛 MENDA') {
+    console.log('✅ PASS: Badge order matches expectation (ADMIN first, CZADOWY 4th, MENDA 5th).');
   } else {
     console.log('❌ FAIL: Incorrect badge order.');
   }
