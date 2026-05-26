@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { refreshBadges, ensureInventoryRecord } = require('../utils/economy');
+const { refreshBadges, ensureInventoryRecord, MILESTONE_REWARDS, getMilestoneRewardDescription, giveMilestoneReward } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 module.exports = {
@@ -18,15 +18,45 @@ module.exports = {
       return;
     }
 
-    await withData(store => {
+    const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
+      const oldLvl = user.level;
+      const inv = ensureInventoryRecord(store.inventory, message.author.id);
+      
+      const awardedMilestones = [];
+      user.claimedMilestones = user.claimedMilestones || [];
+      if (targetLvl > oldLvl) {
+        for (let l = oldLvl + 1; l <= targetLvl; l++) {
+          if (MILESTONE_REWARDS[l]) {
+            giveMilestoneReward(user, l, inv);
+            awardedMilestones.push(l);
+            if (!user.claimedMilestones.includes(l)) {
+              user.claimedMilestones.push(l);
+            }
+          }
+        }
+      }
+
       user.level = targetLvl;
       user.xp = 0; // resetuj xp na nowym poziomie
       
-      const inv = ensureInventoryRecord(store.inventory, message.author.id);
       refreshBadges(user, inv);
+      
+      return {
+        oldLvl,
+        awardedMilestones
+      };
     });
 
-    await message.reply(`✅ Ustawiono Twój poziom na **${targetLvl}** (XP zresetowane do 0).`);
+    let replyMsg = `✅ Ustawiono Twój poziom na **${targetLvl}** (XP zresetowane do 0).`;
+    
+    if (result.awardedMilestones.length > 0) {
+      replyMsg += `\n\n🎉 **OSIĄGNIĘTO KAMIEŃ MILOWY!**`;
+      for (const lvl of result.awardedMilestones) {
+        replyMsg += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+      }
+    }
+
+    await message.reply(replyMsg);
   }
 };

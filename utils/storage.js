@@ -180,6 +180,9 @@ function sanitizeUser(user) {
   merged.commandCounts = merged.commandCounts && typeof merged.commandCounts === 'object' && !Array.isArray(merged.commandCounts)
     ? merged.commandCounts
     : {};
+  merged.claimedMilestones = Array.isArray(merged.claimedMilestones)
+    ? [...new Set(merged.claimedMilestones.filter(m => typeof m === 'number'))]
+    : [];
 
   return merged;
 }
@@ -330,10 +333,22 @@ async function withData(callback) {
       }
     }
 
-    // Automatyczne odświeżanie odznak dla wszystkich użytkowników na bieżąco
-    const { refreshBadges, ensureInventoryRecord } = require('./economy');
+    // Automatyczne odświeżanie odznak i zaległych kamieni milowych dla wszystkich użytkowników na bieżąco
+    const { refreshBadges, ensureInventoryRecord, giveMilestoneReward, MILESTONE_REWARDS } = require('./economy');
     for (const [userId, user] of Object.entries(store.users)) {
       if (user) {
+        // Retroaktywne kamienie milowe
+        user.claimedMilestones = user.claimedMilestones || [];
+        for (const milestoneStr of Object.keys(MILESTONE_REWARDS)) {
+          const milestone = parseInt(milestoneStr, 10);
+          if (user.level >= milestone && !user.claimedMilestones.includes(milestone)) {
+            const inv = ensureInventoryRecord(store.inventory, userId);
+            giveMilestoneReward(user, milestone, inv);
+            user.claimedMilestones.push(milestone);
+            console.log(`[RETROACTIVE] Przyznano zaległy kamień milowy ${milestone} dla użytkownika ${userId}`);
+          }
+        }
+
         const inv = ensureInventoryRecord(store.inventory, userId);
         refreshBadges(user, inv);
       }

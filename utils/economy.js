@@ -108,12 +108,17 @@ function addXp(user, amount, inventoryRecord = null) {
     if (MILESTONE_REWARDS[user.level]) {
       giveMilestoneReward(user, user.level, inventoryRecord);
       milestonesGained.push(user.level);
+      user.claimedMilestones = user.claimedMilestones || [];
+      if (!user.claimedMilestones.includes(user.level)) {
+        user.claimedMilestones.push(user.level);
+      }
     }
 
     if (user.level === 100) {
       if ((user.prestige || 0) < 15) {
         user.level = 1;
         user.prestige = (user.prestige || 0) + 1;
+        user.claimedMilestones = [];
       }
     }
   }
@@ -335,5 +340,6 @@ module.exports = {
   getBankCapacity,
   refreshBadges,
   MILESTONE_REWARDS,
-  getMilestoneRewardDescription
+  getMilestoneRewardDescription,
+  giveMilestoneReward
 };
