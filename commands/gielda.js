@@ -21,7 +21,7 @@ function displayAsset(asset) {
 
 module.exports = {
   name: 'gielda',
-  aliases: ['stock'],
+  aliases: ['stock', 'giełda'],
   async execute(client, message, args) {
     client.stockSessions = client.stockSessions || new Map();
     const threadId = message.guild?.id || message.rawEvent?.threadID || 'default_thread';

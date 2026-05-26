@@ -12,7 +12,7 @@ const ARTEFAKTY_MAP = {
 
 module.exports = {
   name: 'rynek',
-  aliases: ['market', 'gielda', 'giełda'],
+  aliases: ['market'],
   async execute(client, message, args) {
     const action = String(args[0] || '').toLowerCase();
     const userId = message.author.id;

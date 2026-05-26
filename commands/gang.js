@@ -785,20 +785,36 @@ module.exports = {
       });
 
       const memberTags = [];
+      const tagsList = [];
       if (startResult.members) {
         for (const pid of startResult.members) {
           const name = await client.resolveUserName(pid);
-          memberTags.push(`@${name}`);
+          const tag = `@${name}`;
+          tagsList.push(tag);
+          memberTags.push({
+            tag: tag,
+            id: pid
+          });
         }
       }
-      const tagsString = memberTags.length > 0 ? memberTags.join(' ') : 'Brak członków';
+      const tagsString = tagsList.length > 0 ? tagsList.join(' ') : 'Brak członków';
 
-      await message.reply(`👥 **GANG HEIST (Skok Gangu)** 👥\n` +
-        `**${message.author.username || 'Boss'}** zaplanował napad gangu **${startResult.gangName}**!\n\n` +
-        `🚗 Wszyscy członkowie gangu mają **2 minuty**, aby dołączyć do akcji!\n` +
-        `Członkowie: ${tagsString}\n\n` +
-        `Wpisz: **!gang skok dolacz** (lub **!gang skok d**), aby wziąć udział.\n\n` +
-        `⚠️ *Wymagane minimum 2 osoby (każdy min. 100 komend). Szansa na powodzenie: 50%. Wielkość łupu zależy od liczby uczestników (stacja paliw: 50k-150k, jubiler: 150k-300k, posiadłość: 300k-500k, bank: 500k-800k).*`);
+      const threadId = message.guild?.id || message.rawEvent?.threadID;
+      const msgPayload = {
+        body: `👥 **GANG HEIST (Skok Gangu)** 👥\n` +
+          `**${message.author.username || 'Boss'}** zaplanował napad gangu **${startResult.gangName}**!\n\n` +
+          `🚗 Wszyscy członkowie gangu mają **2 minuty**, aby dołączyć do akcji!\n` +
+          `Członkowie: ${tagsString}\n\n` +
+          `Wpisz: **!gang skok dolacz** (lub **!gang skok d**), aby wziąć udział.\n\n` +
+          `⚠️ *Wymagane minimum 2 osoby (każdy min. 100 komend). Szansa na powodzenie: 50%. Wielkość łupu zależy od liczby uczestników (stacja paliw: 50k-150k, jubiler: 150k-300k, posiadłość: 300k-500k, bank: 500k-800k).*`,
+        mentions: memberTags
+      };
+
+      if (client.api && threadId) {
+        client.api.sendMessage(msgPayload, threadId);
+      } else {
+        await message.reply(msgPayload.body);
+      }
 
       // Timer na wykonanie skoku po 2 minutach
       setTimeout(async () => {
@@ -1107,33 +1123,47 @@ module.exports = {
       });
 
       const attackerTags = [];
+      const attackerMentions = [];
       if (startResult.attackerMembers) {
         for (const pid of startResult.attackerMembers) {
           const name = await client.resolveUserName(pid);
-          attackerTags.push(`@${name}`);
+          const tag = `@${name}`;
+          attackerTags.push(tag);
+          attackerMentions.push({ tag, id: pid });
         }
       }
       const attackerTagsString = attackerTags.length > 0 ? attackerTags.join(' ') : 'Brak';
 
       const defenderTags = [];
+      const defenderMentions = [];
       if (startResult.defenderMembers) {
         for (const pid of startResult.defenderMembers) {
           const name = await client.resolveUserName(pid);
-          defenderTags.push(`@${name}`);
+          const tag = `@${name}`;
+          defenderTags.push(tag);
+          defenderMentions.push({ tag, id: pid });
         }
       }
       const defenderTagsString = defenderTags.length > 0 ? defenderTags.join(' ') : 'Brak';
 
-      await message.reply(
-        `⚔️ **WOJNA GANGÓW: NAPAD NA SEJF!** ⚔️\n` +
-        `**${message.author.username || 'Boss'}** (Zastępca/Boss gangu **${startResult.attackerGangName}**) wypowiedział wojnę gangowi **${startResult.defenderGangName}**!\n\n` +
-        `💸 Koszt przygotowania ataku: **-${formatCurrency(startResult.cost)}** z sejfu gangu.\n` +
-        `🎯 Cel: Kradzież od **15% do 35%** wrogiego sejfu (obecnie: **${formatCurrency(startResult.defenderVault)}**).\n\n` +
-        `⚔️ **Atakujący (${startResult.attackerGangName}):** ${attackerTagsString}\n` +
-        `🛡️ **Obrońcy (${startResult.defenderGangName}):** ${defenderTagsString}\n\n` +
-        `🚗 Członkowie obu gangów mają **2 minuty**, aby dołączyć do walki!\n` +
-        `Wpisz: **!gang atak dolacz**, aby wesprzeć swój gang!`
-      );
+      const threadIdVal = message.guild?.id || message.rawEvent?.threadID;
+      const msgPayload = {
+        body: `⚔️ **WOJNA GANGÓW: NAPAD NA SEJF!** ⚔️\n` +
+          `**${message.author.username || 'Boss'}** (Zastępca/Boss gangu **${startResult.attackerGangName}**) wypowiedział wojnę gangowi **${startResult.defenderGangName}**!\n\n` +
+          `💸 Koszt przygotowania ataku: **-${formatCurrency(startResult.cost)}** z sejfu gangu.\n` +
+          `🎯 Cel: Kradzież od **15% do 35%** wrogiego sejfu (obecnie: **${formatCurrency(startResult.defenderVault)}**).\n\n` +
+          `⚔️ **Atakujący (${startResult.attackerGangName}):** ${attackerTagsString}\n` +
+          `🛡️ **Obrońcy (${startResult.defenderGangName}):** ${defenderTagsString}\n\n` +
+          `🚗 Członkowie obu gangów mają **2 minuty**, aby dołączyć do walki!\n` +
+          `Wpisz: **!gang atak dolacz**, aby wesprzeć swój gang!`,
+        mentions: [...attackerMentions, ...defenderMentions]
+      };
+
+      if (client.api && threadIdVal) {
+        client.api.sendMessage(msgPayload, threadIdVal);
+      } else {
+        await message.reply(msgPayload.body);
+      }
 
       // Timer to resolve the war after 2 minutes
       setTimeout(async () => {

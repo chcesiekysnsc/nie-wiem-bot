@@ -217,7 +217,7 @@ const helpCommands = [
     examples: ["!rynek","!rynek sprzedaj 1 300000","!rynek kup 1","!rynek wycofaj 2"],
     cooldown: "3 sekundy",
     requirements: "Wystawienie przedmiotu na rynek wymaga posiadania go w ekwipunku. Minimalna cena to 250 000 viccoinów.",
-    aliases: ["market","gielda","giełda"],
+    aliases: ["market"],
     additionalInfo: ["Pieniądze trafiają do sprzedającego po zakupie przedmiotu przez innego gracza.","Wycofanie oferty zwraca przedmiot do ekwipunku sprzedającego bez żadnych kosztów."]
   },
   {
@@ -297,6 +297,19 @@ const helpCommands = [
     requirements: "Balance na bet.",
     aliases: ["rr","ruletkarosyjska"],
     additionalInfo: ["Wyzwanie trwa 2 minuty.","Pojedynek toczy się do pierwszego strzału ze wzrastającym ryzykiem."]
+  },
+  {
+    id: 38,
+    name: "gielda",
+    category: "GAMBLING",
+    shortDescription: "multiplayer inwestycje gieldowe",
+    description: "Gra giełdowa multiplayer. Uruchom lobby (!gielda start) na 120s, dołącz do aktywnej sesji (!gielda dolacz), a następnie zainwestuj w jedno z 4 aktywów w rundzie inwestowania (60s). Pieniądze są blokowane do losowania wyników.",
+    usage: "!gielda | !gielda start | !gielda dolacz | !gielda inwestuj <kwota> <aktywo>",
+    examples: ["!gielda", "!gielda start", "!gielda dolacz", "!gielda inwestuj 100k zloto", "!gielda inwestuj all diamenty"],
+    cooldown: "Zależy od fazy sesji.",
+    requirements: "Maksymalnie 8 graczy na sesję. Wymaga posiadania środków na inwestycję.",
+    aliases: ["stock", "giełda"],
+    additionalInfo: ["Aktywa to: Bank (-5% do +10%), Srebro (-15% do +20%), Złoto (-25% do +35%), Diamenty (-50% do +80%).", "Wszystkie procenty są w pełni losowane przy każdej sesji w przedziałach zmian."]
   },
   {
     id: 23,
@@ -494,17 +507,30 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 38,
-    name: "gielda",
+    id: 39,
+    name: "gangreset",
+    category: "ADMIN",
+    shortDescription: "resetuje cooldowny gangow (admin)",
+    description: "Resetuje czas oczekiwania (cooldown) na skoki gangu oraz ataki dla wszystkich gangów w bazie danych.",
+    usage: "!gangreset",
+    examples: ["!gangreset"],
+    cooldown: "Brak.",
+    requirements: "Wymaga uprawnień administratora bota.",
+    aliases: [],
+    additionalInfo: []
+  },
+  {
+    id: 40,
+    name: "wojna",
     category: "GAMBLING",
-    shortDescription: "multiplayer inwestycje gieldowe",
-    description: "Gra giełdowa multiplayer. Uruchom lobby (!gielda start) na 120s, dołącz do aktywnej sesji (!gielda dolacz), a następnie zainwestuj w jedno z 4 aktywów w rundzie inwestowania (60s). Pieniądze są blokowane do losowania wyników.",
-    usage: "!gielda | !gielda start | !gielda dolacz | !gielda inwestuj <kwota> <aktywo>",
-    examples: ["!gielda", "!gielda start", "!gielda dolacz", "!gielda inwestuj 100k zloto", "!gielda inwestuj all diamenty"],
-    cooldown: "Zależy od fazy sesji.",
-    requirements: "Maksymalnie 8 graczy na sesję. Wymaga posiadania środków na inwestycję.",
-    aliases: ["stock"],
-    additionalInfo: ["Aktywa to: Bank (-5% do +10%), Srebro (-15% do +20%), Złoto (-25% do +35%), Diamenty (-50% do +80%).", "Wszystkie procenty są w pełni losowane przy każdej sesji w przedziałach zmian."]
+    shortDescription: "multiplayer wojna karciana",
+    description: "Gra karciana multiplayer (Wojna). Otwiera lobby dla maksymalnie 12 graczy ze stawką wejściową. W każdej rundzie odpada 40% graczy z najsłabszymi kartami (w przypadku remisu decyduje kolor: Pik > Kier > Karo > Trefl). Ostatni pozostały gracz wygrywa całą pulę.",
+    usage: "!wojna <kwota> | !wojna dolacz | !wojna",
+    examples: ["!wojna 50k", "!wojna dolacz", "!wojna"],
+    cooldown: "Zależy od czasu trwania gry.",
+    requirements: "Minimum 2 graczy, maksymalnie 12. Wymaga posiadania kwoty wpisowej.",
+    aliases: ["cardwar"],
+    additionalInfo: ["Stawka jest pobierana przy dołączeniu.", "Czas na zapisy to 90s.", "Jeśli nikt nie dołączy, stawka jest zwracana hostowi."]
   }
 ];
 
