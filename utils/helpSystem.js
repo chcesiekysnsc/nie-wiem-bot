@@ -492,6 +492,19 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: ["scianawstydu", "zadluzeni", "dluznicy"],
     additionalInfo: []
+  },
+  {
+    id: 38,
+    name: "gielda",
+    category: "GAMBLING",
+    shortDescription: "multiplayer inwestycje gieldowe",
+    description: "Gra giełdowa multiplayer. Uruchom lobby (!gielda start) na 120s, dołącz do aktywnej sesji (!gielda dolacz), a następnie zainwestuj w jedno z 4 aktywów w rundzie inwestowania (60s). Pieniądze są blokowane do losowania wyników.",
+    usage: "!gielda | !gielda start | !gielda dolacz | !gielda inwestuj <kwota> <aktywo>",
+    examples: ["!gielda", "!gielda start", "!gielda dolacz", "!gielda inwestuj 100k zloto", "!gielda inwestuj all diamenty"],
+    cooldown: "Zależy od fazy sesji.",
+    requirements: "Maksymalnie 8 graczy na sesję. Wymaga posiadania środków na inwestycję.",
+    aliases: ["stock"],
+    additionalInfo: ["Aktywa to: Bank (-5% do +10%), Srebro (-15% do +20%), Złoto (-25% do +35%), Diamenty (-50% do +80%).", "Wszystkie procenty są w pełni losowane przy każdej sesji w przedziałach zmian."]
   }
 ];
 

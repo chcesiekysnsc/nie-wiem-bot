@@ -769,7 +769,7 @@ module.exports = {
           return { error: '❌ Przygotowania do skoku już trwają!' };
         }
 
-        return { success: true, gangId: user.gangId, gangName: gang.name };
+        return { success: true, gangId: user.gangId, gangName: gang.name, members: gang.members || [] };
       });
 
       if (startResult.error) {
@@ -784,9 +784,19 @@ module.exports = {
         endTime: Date.now() + 120000
       });
 
+      const memberTags = [];
+      if (startResult.members) {
+        for (const pid of startResult.members) {
+          const name = await client.resolveUserName(pid);
+          memberTags.push(`@${name}`);
+        }
+      }
+      const tagsString = memberTags.length > 0 ? memberTags.join(' ') : 'Brak członków';
+
       await message.reply(`👥 **GANG HEIST (Skok Gangu)** 👥\n` +
         `**${message.author.username || 'Boss'}** zaplanował napad gangu **${startResult.gangName}**!\n\n` +
         `🚗 Wszyscy członkowie gangu mają **2 minuty**, aby dołączyć do akcji!\n` +
+        `Członkowie: ${tagsString}\n\n` +
         `Wpisz: **!gang skok dolacz** (lub **!gang skok d**), aby wziąć udział.\n\n` +
         `⚠️ *Wymagane minimum 2 osoby (każdy min. 100 komend). Szansa na powodzenie: 50%. Wielkość łupu zależy od liczby uczestników (stacja paliw: 50k-150k, jubiler: 150k-300k, posiadłość: 300k-500k, bank: 500k-800k).*`);
 
@@ -1076,7 +1086,9 @@ module.exports = {
           defenderGangId: targetGangId,
           defenderGangName: defenderGang.name,
           cost,
-          defenderVault: defenderGang.vault || 0
+          defenderVault: defenderGang.vault || 0,
+          attackerMembers: myGang.members || [],
+          defenderMembers: defenderGang.members || []
         };
       });
 
@@ -1094,11 +1106,31 @@ module.exports = {
         endTime: Date.now() + 120000
       });
 
+      const attackerTags = [];
+      if (startResult.attackerMembers) {
+        for (const pid of startResult.attackerMembers) {
+          const name = await client.resolveUserName(pid);
+          attackerTags.push(`@${name}`);
+        }
+      }
+      const attackerTagsString = attackerTags.length > 0 ? attackerTags.join(' ') : 'Brak';
+
+      const defenderTags = [];
+      if (startResult.defenderMembers) {
+        for (const pid of startResult.defenderMembers) {
+          const name = await client.resolveUserName(pid);
+          defenderTags.push(`@${name}`);
+        }
+      }
+      const defenderTagsString = defenderTags.length > 0 ? defenderTags.join(' ') : 'Brak';
+
       await message.reply(
         `⚔️ **WOJNA GANGÓW: NAPAD NA SEJF!** ⚔️\n` +
         `**${message.author.username || 'Boss'}** (Zastępca/Boss gangu **${startResult.attackerGangName}**) wypowiedział wojnę gangowi **${startResult.defenderGangName}**!\n\n` +
         `💸 Koszt przygotowania ataku: **-${formatCurrency(startResult.cost)}** z sejfu gangu.\n` +
         `🎯 Cel: Kradzież od **15% do 35%** wrogiego sejfu (obecnie: **${formatCurrency(startResult.defenderVault)}**).\n\n` +
+        `⚔️ **Atakujący (${startResult.attackerGangName}):** ${attackerTagsString}\n` +
+        `🛡️ **Obrońcy (${startResult.defenderGangName}):** ${defenderTagsString}\n\n` +
         `🚗 Członkowie obu gangów mają **2 minuty**, aby dołączyć do walki!\n` +
         `Wpisz: **!gang atak dolacz**, aby wesprzeć swój gang!`
       );

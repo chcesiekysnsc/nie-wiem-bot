@@ -13,20 +13,6 @@ function displayChoice(choice) {
   return choice === 'heads' ? 'Orzeł' : 'Reszka';
 }
 
-function getConsecutiveCount(array) {
-  if (!array || array.length === 0) return 0;
-  const lastElement = array[array.length - 1];
-  let count = 0;
-  for (let i = array.length - 1; i >= 0; i--) {
-    if (array[i] === lastElement) {
-      count++;
-    } else {
-      break;
-    }
-  }
-  return count;
-}
-
 module.exports = {
   name: 'coinflip',
   aliases: ['cf'],
@@ -48,32 +34,25 @@ module.exports = {
 
       user.balance -= bet;
 
-      user.lastFlips = user.lastFlips || [];
+      user.coinflipBag = user.coinflipBag || [];
       const crypto = require('crypto');
-      let rawFlip = 'heads';
 
-      const consecutiveCount = getConsecutiveCount(user.lastFlips);
-      if (consecutiveCount === 0) {
-        rawFlip = crypto.randomInt(0, 2) === 0 ? 'heads' : 'tails';
-      } else {
-        const lastSide = user.lastFlips[user.lastFlips.length - 1];
-        const oppositeSide = lastSide === 'heads' ? 'tails' : 'heads';
-
-        let oppositeChance = 0.50;
-        if (consecutiveCount === 1) oppositeChance = 0.50;
-        else if (consecutiveCount === 2) oppositeChance = 0.55;
-        else if (consecutiveCount === 3) oppositeChance = 0.65;
-        else if (consecutiveCount === 4) oppositeChance = 0.75;
-        else if (consecutiveCount === 5) oppositeChance = 0.85;
-        else if (consecutiveCount >= 6) oppositeChance = 0.90;
-
-        const roll = crypto.randomInt(0, 100);
-        if (roll < oppositeChance * 100) {
-          rawFlip = oppositeSide;
-        } else {
-          rawFlip = lastSide;
+      if (user.coinflipBag.length === 0) {
+        const tempBag = [];
+        for (let i = 0; i < 5; i++) {
+          tempBag.push(crypto.randomInt(0, 2) === 0 ? 'heads' : 'tails');
         }
+        // Fisher-Yates shuffle
+        for (let i = tempBag.length - 1; i > 0; i--) {
+          const j = crypto.randomInt(0, i + 1);
+          const temp = tempBag[i];
+          tempBag[i] = tempBag[j];
+          tempBag[j] = temp;
+        }
+        user.coinflipBag = tempBag;
       }
+
+      const rawFlip = user.coinflipBag.shift();
 
       let won = rawFlip === choice;
       let secondChanceSaved = false;
@@ -103,10 +82,6 @@ module.exports = {
       }
 
       const flip = won ? choice : (choice === 'heads' ? 'tails' : 'heads');
-      user.lastFlips.push(flip);
-      if (user.lastFlips.length > 5) {
-        user.lastFlips.shift();
-      }
 
       let payout = won ? bet * 2 : 0;
       if (won && user.badges && user.badges.includes(config.badges.uzalezniony)) {
