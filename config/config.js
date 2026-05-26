@@ -2,6 +2,7 @@ module.exports = {
   prefix: '!',
   admins: ['100060812419294', '100089655356822', '61554894353095', '100053875564339'],
   logRecipientId: '',
+  adminGroupId: '5277347745703557',
   casinoName: 'Bot',
   currencyEmoji: '💰',
   messenger: {

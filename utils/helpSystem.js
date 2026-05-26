@@ -479,6 +479,19 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: [],
     additionalInfo: []
+  },
+  {
+    id: 37,
+    name: "shamewall",
+    category: "UTILITY",
+    shortDescription: "mur wstydu dłużników",
+    description: "Pokazuje ranking top 5 najbardziej zadłużonych kont w banku wirtualnym.",
+    usage: "!shamewall",
+    examples: ["!shamewall"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["murwstydu", "zadluzeni", "dluznicy"],
+    additionalInfo: []
   }
 ];
 

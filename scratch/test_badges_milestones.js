@@ -234,6 +234,57 @@ async function runTests() {
     }
   });
 
+  // Test 9: Tips sent tracking and shamewall sorting
+  console.log('\n--- TEST 9: Tip tracking & shamewall sorting ---');
+  await withData(store => {
+    const userSender = createUser('test_sender_tip', store.users);
+    userSender.balance = 10000;
+    const userReceiver = createUser('test_receiver_tip', store.users);
+    userReceiver.balance = 0;
+  });
+
+  const tipCommand = require('../commands/tip');
+  const mockMessage = {
+    author: { id: 'test_sender_tip' },
+    mentions: { users: { first: () => ({ id: 'test_receiver_tip', username: 'TestReceiver' }) } },
+    reply: async (msg) => console.log('Mock Reply:', msg)
+  };
+  await tipCommand.execute({ userNames: new Map() }, mockMessage, ['1000']);
+
+  let tipsSentCount = 0;
+  await withData(store => {
+    const sender = store.users['test_sender_tip'];
+    tipsSentCount = (sender.tipsSent && sender.tipsSent['test_receiver_tip']) || 0;
+  });
+  console.log(`Tips sent to receiver: ${tipsSentCount} (expected: 1)`);
+
+  // Test shamewall sorting
+  await withData(store => {
+    const debtor1 = createUser('debtor_1', store.users);
+    debtor1.activeLoan = { amount: 50000, originalAmount: 30000 };
+    
+    const debtor2 = createUser('debtor_2', store.users);
+    debtor2.activeLoan = { amount: 150000, originalAmount: 100000 };
+  });
+
+  const shamewallCommand = require('../commands/shamewall');
+  let shamewallPassed = false;
+  const mockMessageShamewall = {
+    reply: async (msg) => {
+      console.log('Shamewall Output:\n', msg);
+      if (msg.includes('debtor_2') && msg.indexOf('debtor_2') < msg.indexOf('debtor_1')) {
+        shamewallPassed = true;
+      }
+    }
+  };
+  await shamewallCommand.execute({ userNames: new Map([['debtor_1', 'debtor_1'], ['debtor_2', 'debtor_2']]) }, mockMessageShamewall, []);
+
+  if (tipsSentCount === 1 && shamewallPassed) {
+    console.log('✅ Tip tracking & shamewall sorting test passed!');
+  } else {
+    console.error('❌ Tip tracking & shamewall sorting test failed!');
+  }
+
   console.log('\n=== ALL TESTS FINISHED ===');
 }
 

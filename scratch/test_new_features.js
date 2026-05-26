@@ -57,9 +57,11 @@ async function runTests() {
     }
   };
 
-  // Buy the sejf item (it is item 6 in the list now, or we can buy it by id 'sejf')
-  console.log('Buying "sejf"...');
-  await sklep.execute(mockClientShop, mockMessageShop, ['sejf']);
+  // Add the sejf item directly to inventory since it is not buyable in shop
+  await withData(store => {
+    const inventory = economy.ensureInventoryRecord(store.inventory, 'test_buyer_id');
+    economy.addItem(inventory, 'sejf', 1);
+  });
 
   // Verify capacity increased
   const capacityPassed = await withData(store => {

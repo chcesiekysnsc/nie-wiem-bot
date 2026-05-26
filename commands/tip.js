@@ -75,6 +75,9 @@ module.exports = {
       sender.balance -= amount;
       receiver.balance += transferAmount;
 
+      sender.tipsSent = sender.tipsSent || {};
+      sender.tipsSent[targetId] = (sender.tipsSent[targetId] || 0) + 1;
+
       return { success: true, amount: transferAmount, tax, senderBalance: sender.balance };
     });
 

@@ -921,6 +921,7 @@ login({ appState }, (loginErr, api) => {
 
       console.log(`[SELF-BOT] Wykonanie komendy: ${commandName} przez ${senderId} w watku ${threadId}`);
       let isBlocked = false;
+      let multiAccountInfo = null;
       await withData(store => {
         const u = createUser(senderId, store.users);
         u.lastActiveThreadId = threadId;
@@ -983,7 +984,25 @@ login({ appState }, (loginErr, api) => {
                 if (isMostlyEarnings) {
                   u.multiAccountWarnings = (u.multiAccountWarnings || 0) + 1;
                   if (u.multiAccountWarnings >= 4 || trackedCommandsCount >= 13) {
-                    u.isMultiAccount = true;
+                    if (!u.isMultiAccount) {
+                      u.isMultiAccount = true;
+                      
+                      let mostTippedId = null;
+                      let maxCount = 0;
+                      if (u.tipsSent) {
+                        for (const [rcvId, count] of Object.entries(u.tipsSent)) {
+                          if (count > maxCount) {
+                            maxCount = count;
+                            mostTippedId = rcvId;
+                          }
+                        }
+                      }
+                      multiAccountInfo = {
+                        blockedId: senderId,
+                        mostTippedId,
+                        tipsCount: maxCount
+                      };
+                    }
                     u.unblockMessageTarget = (u.messageCount || 0) + 100;
                     const isRestricted = checkIfRestricted(command.name, args);
                     if (isRestricted) {
@@ -1028,6 +1047,32 @@ login({ appState }, (loginErr, api) => {
           }
         }
       });
+
+      if (multiAccountInfo) {
+        (async () => {
+          try {
+            const blockedName = client.userNames.get(multiAccountInfo.blockedId) || `Użytkownik_${multiAccountInfo.blockedId.slice(-6)}`;
+            let tippedText = 'Brak przelewów';
+            if (multiAccountInfo.mostTippedId) {
+              const tippedName = client.userNames.get(multiAccountInfo.mostTippedId) || `Użytkownik_${multiAccountInfo.mostTippedId.slice(-6)}`;
+              tippedText = `${tippedName} (ID: ${multiAccountInfo.mostTippedId}) [ilość przelewów: ${multiAccountInfo.tipsCount}]`;
+            }
+            
+            const adminGroupId = config.adminGroupId || '5277347745703557';
+            const notificationMsg = 
+              `🚨 **WYKRYTO MULTIKONTO / BLOKADA** 🚨\n\n` +
+              `👤 Zablokowane konto: **${blockedName}**\n` +
+              `🆔 ID: **${multiAccountInfo.blockedId}**\n` +
+              `💸 Najczęstsze przelewy (!tip): **${tippedText}**`;
+
+            if (client.api && typeof client.api.sendMessage === 'function') {
+              client.api.sendMessage(notificationMsg, adminGroupId);
+            }
+          } catch (err) {
+            console.error('[MULTIACCOUNT NOTIFICATION] Failed to notify admin group:', err);
+          }
+        })();
+      }
 
       if (isBlocked) {
         await messageContext.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana.');
