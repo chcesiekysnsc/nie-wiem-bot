@@ -136,13 +136,11 @@ function recordGame(user, net, xpGain = 25, inventoryRecord = null) {
 
   let finalXpGain = xpGain;
   if (user.badges) {
-    if (user.badges.includes(config.badges.uzalezniony)) {
-      finalXpGain = Math.round(finalXpGain * 1.12);
-    } else if (user.badges.includes(config.badges.weteran)) {
-      finalXpGain = Math.round(finalXpGain * 1.08);
-    } else if (user.badges.includes(config.badges.gracz)) {
-      finalXpGain = Math.round(finalXpGain * 1.05);
-    }
+    let multiplier = 1.0;
+    if (user.badges.includes(config.badges.gracz)) multiplier += 0.05;
+    if (user.badges.includes(config.badges.weteran)) multiplier += 0.08;
+    if (user.badges.includes(config.badges.uzalezniony)) multiplier += 0.12;
+    finalXpGain = Math.round(finalXpGain * multiplier);
   }
 
   if (net >= 0) {
@@ -209,10 +207,11 @@ function getBankCapacity(user, inventoryRecord) {
     capacity += config.economy.goldenCardBonus || 50000;
   }
 
+  if (user.badges && user.badges.includes(config.badges.milioner)) {
+    capacity += 25000;
+  }
   if (user.badges && user.badges.includes(config.badges.miliarder)) {
     capacity += 50000;
-  } else if (user.badges && user.badges.includes(config.badges.milioner)) {
-    capacity += 25000;
   }
 
   return capacity;
@@ -231,27 +230,33 @@ function refreshBadges(user, inventoryRecord) {
   const totalWealth = (user.balance || 0) + (user.bank || 0);
   if (totalWealth >= 30000000) {
     staticBadges.push(config.badges.miliarder);
-  } else if (totalWealth >= 3000000) {
+  }
+  if (totalWealth >= 5000000) {
     staticBadges.push(config.badges.milioner);
-  } else if (totalWealth >= 300000) {
+  }
+  if (totalWealth >= 500000) {
     staticBadges.push(config.badges.bogacz);
   }
 
   // Grinder (Gracz / Weteran / Uzależniony)
-  if (user.gamesPlayed >= 7500) {
+  if (user.gamesPlayed >= 12000) {
     staticBadges.push(config.badges.uzalezniony);
-  } else if (user.gamesPlayed >= 1500) {
+  }
+  if (user.gamesPlayed >= 2500) {
     staticBadges.push(config.badges.weteran);
-  } else if (user.gamesPlayed >= 250) {
+  }
+  if (user.gamesPlayed >= 400) {
     staticBadges.push(config.badges.gracz);
   }
 
   // Gambler (Hazardzista / Rekin / Bóg)
-  if (user.totalWon >= 50000000) {
+  if (user.totalWon >= 250000000) {
     staticBadges.push(config.badges.bog);
-  } else if (user.totalWon >= 5000000) {
+  }
+  if (user.totalWon >= 50000000) {
     staticBadges.push(config.badges.rekin);
-  } else if (user.totalWon >= 500000) {
+  }
+  if (user.totalWon >= 1000000) {
     staticBadges.push(config.badges.hazardzista);
   }
 
@@ -259,32 +264,37 @@ function refreshBadges(user, inventoryRecord) {
   if (user.marriedTo) staticBadges.push(config.badges.married);
 
   // Messages Sent (Gadatliwy / Spamer / Król Spamu)
-  if (user.messageCount >= 75000) {
+  if (user.messageCount >= 120000) {
     staticBadges.push(config.badges.krolSpamu);
-  } else if (user.messageCount >= 15000) {
+  }
+  if (user.messageCount >= 25000) {
     staticBadges.push(config.badges.spamer);
-  } else if (user.messageCount >= 3000) {
+  }
+  if (user.messageCount >= 5000) {
     staticBadges.push(config.badges.gadatliwy);
   }
 
   // Commands Used (Klikacz / Władca Bota)
-  if (user.commandsUsed >= 3000) {
+  if (user.commandsUsed >= 10000) {
     staticBadges.push(config.badges.wladcaBota);
-  } else if (user.commandsUsed >= 300) {
+  }
+  if (user.commandsUsed >= 500) {
     staticBadges.push(config.badges.klikacz);
   }
 
   // Level (Nowicjusz / Ekspert / Mistrz)
-  if (user.level >= 50) {
+  if (user.level >= 80) {
     staticBadges.push(config.badges.mistrz);
-  } else if (user.level >= 35) {
+  }
+  if (user.level >= 50) {
     staticBadges.push(config.badges.ekspert);
-  } else if (user.level >= 15) {
+  }
+  if (user.level >= 20) {
     staticBadges.push(config.badges.nowicjusz);
   }
 
   // Wins
-  if (user.wins >= 300) staticBadges.push(config.badges.zwyciezca);
+  if (user.wins >= 500) staticBadges.push(config.badges.zwyciezca);
 
   // Gang Membership
   if (user.gangId && user.gangRole) {

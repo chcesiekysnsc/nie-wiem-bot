@@ -270,12 +270,14 @@ async function withData(callback) {
         if (user && user.bank > 0) {
           let rate = 0.02;
           if (user.badges) {
+            if (user.badges.includes(config.badges.bogacz)) {
+              rate += 0.005;
+            }
+            if (user.badges.includes(config.badges.milioner)) {
+              rate += 0.01;
+            }
             if (user.badges.includes(config.badges.miliarder)) {
               rate += 0.02;
-            } else if (user.badges.includes(config.badges.milioner)) {
-              rate += 0.01;
-            } else if (user.badges.includes(config.badges.bogacz)) {
-              rate += 0.005;
             }
           }
           const interest = Math.floor(user.bank * rate);

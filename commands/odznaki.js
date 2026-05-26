@@ -1,21 +1,23 @@
 const config = require('../config/config');
+const { createUser, withData } = require('../utils/storage');
+const { refreshBadges, ensureInventoryRecord } = require('../utils/economy');
 
 const badgeGroups = [
   {
     nr: 1,
     name: 'Hazard',
     badges: [
-      { name: '🎲 Hazardzista', desc: '+0.5% szans na wygraną w kasynie', req: 'Wygranie łącznie 500 000 💰 w grach' },
-      { name: '🎰 Rekin Kasyna', desc: '+1% szans na wygraną w kasynie', req: 'Wygranie łącznie 5 000 000 💰 w grach' },
-      { name: '🃏 Bóg Kasyna', desc: '+2% szans na wygraną w kasynie', req: 'Wygranie łącznie 50 000 000 💰 w grach' }
+      { name: '🎲 Hazardzista', desc: '+0.5% szans na wygraną w kasynie', req: 'Wygranie łącznie 1 000 000 💰 w grach' },
+      { name: '🎰 Rekin Kasyna', desc: '+1% szans na wygraną w kasynie', req: 'Wygranie łącznie 50 000 000 💰 w grach' },
+      { name: '🃏 Bóg Kasyna', desc: '+2% szans na wygraną w kasynie', req: 'Wygranie łącznie 250 000 000 💰 w grach' }
     ]
   },
   {
     nr: 2,
     name: 'Bogactwo',
     badges: [
-      { name: '🪙 Bogacz', desc: '+0.5% odsetek z banku', req: 'Posiadanie łącznie 300 000 💰 (portfel + bank)' },
-      { name: '💸 Milioner', desc: '+1% odsetek, +25k miejsca w banku', req: 'Posiadanie łącznie 3 000 000 💰 (portfel + bank)' },
+      { name: '🪙 Bogacz', desc: '+0.5% odsetek z banku', req: 'Posiadanie łącznie 500 000 💰 (portfel + bank)' },
+      { name: '💸 Milioner', desc: '+1% odsetek, +25k miejsca w banku', req: 'Posiadanie łącznie 5 000 000 💰 (portfel + bank)' },
       { name: '💎 Miliarder', desc: '+2% odsetek, +50k miejsca w banku', req: 'Posiadanie łącznie 30 000 000 💰 (portfel + bank)' }
     ]
   },
@@ -23,33 +25,33 @@ const badgeGroups = [
     nr: 3,
     name: 'Granie',
     badges: [
-      { name: '🔨 Gracz', desc: '+5% XP z gier', req: 'Rozegranie łącznie 250 gier' },
-      { name: '⚡ Weteran', desc: '+8% XP z gier', req: 'Rozegranie łącznie 1 500 gier' },
-      { name: '🌀 Uzależniony', desc: '+12% XP z gier, +3% do wygranych (zysk)', req: 'Rozegranie łącznie 7 500 gier' }
+      { name: '🔨 Gracz', desc: '+5% XP z gier', req: 'Rozegranie łącznie 400 gier' },
+      { name: '⚡ Weteran', desc: '+8% XP z gier', req: 'Rozegranie łącznie 2 500 gier' },
+      { name: '🌀 Uzależniony', desc: '+12% XP z gier, +3% do wygranych (zysk)', req: 'Rozegranie łącznie 12 000 gier' }
     ]
   },
   {
     nr: 4,
     name: 'Wiadomości',
     badges: [
-      { name: '💬 Gadatliwy', desc: '+4% do !daily', req: 'Wysłanie łącznie 3 000 wiadomości' },
-      { name: '🗣️ Spamer', desc: '+8% do !daily', req: 'Wysłanie łącznie 15 000 wiadomości' },
-      { name: '📢 Król Spamu', desc: '+12% do !daily, +5% do !work', req: 'Wysłanie łącznie 75 000 wiadomości' }
+      { name: '💬 Gadatliwy', desc: '+4% do !daily', req: 'Wysłanie łącznie 5 000 wiadomości' },
+      { name: '🗣️ Spamer', desc: '+8% do !daily', req: 'Wysłanie łącznie 25 000 wiadomości' },
+      { name: '📢 Król Spamu', desc: '+12% do !daily, +5% do !work', req: 'Wysłanie łącznie 120 000 wiadomości' }
     ]
   },
   {
     nr: 5,
     name: 'Komendy',
     badges: [
-      { name: '⌨️ Klikacz', desc: '-3% czasu cooldownów', req: 'Użycie łącznie 300 komend' },
-      { name: '🤖 Władca Bota', desc: '-5% czasu cooldownów', req: 'Użycie łącznie 3 000 komend' }
+      { name: '⌨️ Klikacz', desc: '-3% czasu cooldownów', req: 'Użycie łącznie 500 komend' },
+      { name: '🤖 Władca Bota', desc: '-5% czasu cooldownów', req: 'Użycie łącznie 10 000 komend' }
     ]
   },
   {
     nr: 6,
     name: 'Zwycięstwa',
     badges: [
-      { name: '🏆 Zwycięzca', desc: '+5% szans sukcesu w !rob', req: 'Wygranie łącznie 300 gier (wins)' }
+      { name: '🏆 Zwycięzca', desc: '+5% szans sukcesu w !rob', req: 'Wygranie łącznie 500 gier (wins)' }
     ]
   },
   {
@@ -72,9 +74,9 @@ const badgeGroups = [
     nr: 9,
     name: 'Poziomy',
     badges: [
-      { name: '📈 Nowicjusz', desc: 'Odznaka poziomu (kosmetyczna)', req: 'Osiągnięcie poziomu 15' },
-      { name: '🔥 Ekspert', desc: 'Odznaka poziomu (kosmetyczna)', req: 'Osiągnięcie poziomu 35' },
-      { name: '👑 Mistrz', desc: 'Odznaka poziomu (kosmetyczna)', req: 'Osiągnięcie poziomu 50' }
+      { name: '📈 Nowicjusz', desc: 'Odznaka poziomu (kosmetyczna)', req: 'Osiągnięcie poziomu 20' },
+      { name: '🔥 Ekspert', desc: 'Odznaka poziomu (kosmetyczna)', req: 'Osiągnięcie poziomu 50' },
+      { name: '👑 Mistrz', desc: 'Odznaka poziomu (kosmetyczna)', req: 'Osiągnięcie poziomu 80' }
     ]
   },
   {
@@ -90,6 +92,19 @@ module.exports = {
   name: 'odznaki',
   aliases: ['odznaka', 'badges'],
   async execute(client, message, args) {
+    const authorId = message.author.id;
+    const authorBadges = await withData(store => {
+      const u = createUser(authorId, store.users);
+      const inv = ensureInventoryRecord(store.inventory, authorId);
+      refreshBadges(u, inv);
+      return u.badges || [];
+    });
+
+    const hasBadge = (badgeName) => {
+      const normalized = badgeName.trim().toLowerCase();
+      return authorBadges.some(b => b.trim().toLowerCase() === normalized);
+    };
+
     const sub = String(args[0] || '').toLowerCase();
 
     if (sub === 'help' || !isNaN(Number(args[0]))) {
@@ -107,7 +122,8 @@ module.exports = {
       let response = `ℹ️ **Szczegółowy opis odznak z grupy ${group.nr} (${group.name}):**\n\n`;
 
       for (const badge of group.badges) {
-        response += `• **${badge.name}**\n  - Opis: *${badge.desc}*\n  - Wymaga: *${badge.req}*\n\n`;
+        const statusStr = hasBadge(badge.name) ? ' [✅ POSIADASZ]' : ' [❌ BRAK]';
+        response += `• **${badge.name}**${statusStr}\n  - Opis: *${badge.desc}*\n  - Wymaga: *${badge.req}*\n\n`;
       }
 
       await message.reply(response.trim());
@@ -117,10 +133,12 @@ module.exports = {
     let response = `🏅 **Lista grup odznak i ich bonusy:**\n\n`;
     for (const group of badgeGroups) {
       const firstBadge = group.badges[0].name.replace(/^\S+\s+/, '').trim();
-      response += `${group.nr}. ${firstBadge.toLowerCase()}\n`;
+      const firstHas = hasBadge(group.badges[0].name) ? ' [✅]' : '';
+      response += `${group.nr}. ${firstBadge.toLowerCase()}${firstHas}\n`;
       for (let i = 1; i < group.badges.length; i++) {
         const otherBadge = group.badges[i].name.replace(/^\S+\s+/, '').trim();
-        response += `-${otherBadge.toLowerCase()}\n`;
+        const otherHas = hasBadge(group.badges[i].name) ? ' [✅]' : '';
+        response += `-${otherBadge.toLowerCase()}${otherHas}\n`;
       }
       const shortDesc = group.badges.map(b => `${b.name.split(' ')[0]} ${b.desc}`).join(', ');
       response += `*Bonusy:* ${shortDesc}\n\n`;
