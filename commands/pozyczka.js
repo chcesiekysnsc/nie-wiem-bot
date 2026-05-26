@@ -162,6 +162,10 @@ module.exports = {
         return { error: '❌ Masz już aktywną pożyczkę. Spłać ją najpierw, zanim weźmiesz kolejną.' };
       }
 
+      if ((user.balance || 0) < 0) {
+        return { error: '❌ Nie możesz wziąć pożyczki, gdy masz ujemne saldo.' };
+      }
+
       if ((user.commandsUsed || 0) <= LOAN_UNLOCK_COMMANDS) {
         return { error: buildLoanUnlockError(user.commandsUsed) };
       }
