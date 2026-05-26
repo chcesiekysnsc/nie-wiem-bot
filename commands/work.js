@@ -26,6 +26,10 @@ module.exports = {
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
       const now = Date.now();
+      if (user.jailUntil && user.jailUntil > now) {
+        const msLeft = user.jailUntil - now;
+        return { error: `❌ Jesteś w więzieniu! Odzyskasz wolność za **${msToReadable(msLeft)}**.` };
+      }
       const hasZegar = hasItem(inventory, 'stary_zegar');
       const baseCd = config.cooldowns.work || 600;
       const actualCd = hasZegar ? baseCd * 0.90 : baseCd;

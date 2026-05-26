@@ -19,6 +19,20 @@ module.exports = {
     const authorId = message.author.id;
     const now = Date.now();
 
+    const isJail = await withData(store => {
+      const u = createUser(authorId, store.users);
+      if (u.jailUntil && u.jailUntil > now) {
+        return u.jailUntil;
+      }
+      return null;
+    });
+
+    if (isJail) {
+      const left = Math.ceil((isJail - now) / 60000);
+      await message.reply(`❌ Jesteś w więzieniu! Wyjdziesz za **${left} min**.`);
+      return;
+    }
+
     // Sprawdź ban po wpadce
     const banUntil = caughtBan.get(authorId) || 0;
     if (now < banUntil) {
@@ -67,6 +81,10 @@ module.exports = {
       const victimInv = ensureInventoryRecord(store.inventory, targetId);
       const robberInv = ensureInventoryRecord(store.inventory, authorId);
       const victimLastActiveThreadId = victim.lastActiveThreadId || null;
+
+      if (robber.gangId && victim.gangId && robber.gangId === victim.gangId) {
+        return { error: '❌ Nie możesz okraść członka swojego własnego gangu!' };
+      }
 
       if (robber.balance < 100000) {
         return { error: `❌ Musisz posiadać minimum ${formatCurrency(100000)} w portfelu, aby móc kogoś okraść.` };

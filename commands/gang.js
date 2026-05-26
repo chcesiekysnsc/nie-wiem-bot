@@ -702,6 +702,10 @@ module.exports = {
           store.profiles.gangs = store.profiles.gangs || {};
           const user = createUser(message.author.id, store.users);
 
+          if (user.jailUntil && user.jailUntil > Date.now()) {
+            return { error: '❌ Jesteś w więzieniu i nie możesz brać udziału w skokach!' };
+          }
+
           if (!user.gangId || !store.profiles.gangs[user.gangId]) {
             return { error: '❌ Nie należysz do żadnego gangu.' };
           }
@@ -736,6 +740,10 @@ module.exports = {
       const startResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
         const user = createUser(message.author.id, store.users);
+
+        if (user.jailUntil && user.jailUntil > Date.now()) {
+          return { error: '❌ Jesteś w więzieniu i nie możesz zaplanować skoku gangu!' };
+        }
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };

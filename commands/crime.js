@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt } = require('../utils/economy');
+const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 const successLines = [
@@ -17,54 +17,120 @@ const failLines = [
 module.exports = {
   name: 'crime',
   aliases: [],
-  async execute(client, message) {
-    const result = await withData(store => {
-      const user = createUser(message.author.id, store.users);
-      const inventory = ensureInventoryRecord(store.inventory, message.author.id);
-      
-      const roll = randomInt(0, 100);
-      let officer = '';
-      let baseSuccessChance = 0.50;
-      let minGain = 0, maxGain = 0;
-      let minLoss = 0, maxLoss = 0;
+  async execute(client, message, args) {
+    client.pendingBribes = client.pendingBribes || new Map();
+    const authorId = message.author.id;
+    const now = Date.now();
 
-      if (roll < 40) {
-        officer = 'Posterunkowy';
-        baseSuccessChance = 0.75;
-        minGain = 5000; maxGain = 15000;
-        minLoss = 4000; maxLoss = 8000;
-      } else if (roll < 70) {
-        officer = 'Sierżant';
-        baseSuccessChance = 0.60;
-        minGain = 15000; maxGain = 35000;
-        minLoss = 12000; maxLoss = 25000;
-      } else if (roll < 90) {
-        officer = 'Dzielnicowy';
-        baseSuccessChance = 0.40;
-        minGain = 35000; maxGain = 50000;
-        minLoss = 30000; maxLoss = 50000;
-      } else {
-        officer = '☠️ Funkcjonariusz CBŚ';
-        baseSuccessChance = 0.20;
-        minGain = 50000; maxGain = 80000;
-        minLoss = 40000; maxLoss = 70000;
+    // ==========================================
+    // 1. PROCESS BRIBE OFFER (!crime lapowka)
+    // ==========================================
+    const sub = String(args && args[0] || '').toLowerCase().trim();
+    if (sub === 'lapowka' || sub === 'łapówka' || sub === 'przekup') {
+      const pending = client.pendingBribes.get(authorId);
+      if (!pending) {
+        await message.reply('❌ Nie masz żadnej aktywnej wpadki, za którą mógłbyś zaoferować łapówkę.');
+        return;
       }
 
-      let finalSuccessChance = baseSuccessChance;
+      // Clear the automatic timeout
+      clearTimeout(pending.timeout);
+      client.pendingBribes.delete(authorId);
+
+      const bribeResult = await withData(store => {
+        const user = createUser(authorId, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, authorId);
+
+        const bribeCost = pending.bribeCost;
+        if (user.balance < bribeCost) {
+          // Charged standard penalty and jailed since they spent the bribe money in the meantime
+          user.balance -= pending.amount;
+          user.jailUntil = Date.now() + 60 * 60 * 1000;
+          recordGame(user, -pending.amount, 25, inventory);
+          refreshBadges(user, inventory);
+          return { error: `❌ Nie masz już wystarczającej ilości gotówki na łapówkę (${formatCurrency(bribeCost)}). Zapłaciłeś standardową karę i trafiłeś do więzienia: **-${formatCurrency(pending.amount)}**.` };
+        }
+
+        // 45% chance of refusal
+        const refused = Math.random() < 0.45;
+
+        if (refused) {
+          user.balance -= bribeCost;
+          user.jailUntil = Date.now() + 60 * 60 * 1000; // 1 hour jail
+          recordGame(user, -bribeCost, 25, inventory);
+          refreshBadges(user, inventory);
+          return { success: false, bribeCost, jailUntil: user.jailUntil };
+        } else {
+          const payout = Math.floor(pending.amount * 0.5);
+          user.balance -= bribeCost;
+          user.balance += payout;
+          const net = payout - bribeCost;
+          recordGame(user, net, 25, inventory);
+          refreshBadges(user, inventory);
+          return { success: true, bribeCost, payout, net };
+        }
+      });
+
+      if (bribeResult.error) {
+        await message.reply(bribeResult.error);
+        return;
+      }
+
+      if (bribeResult.success) {
+        await message.reply(
+          `👮 **Policjant przyjął łapówkę! Unikasz więzienia!**\n` +
+          `💸 Zapłaciłeś łapówkę **-${formatCurrency(bribeResult.bribeCost)}**, ale policjant oddał Ci połowę łapu: **+${formatCurrency(bribeResult.payout)}**.\n` +
+          `📉 Strata netto: **${formatCurrency(Math.abs(bribeResult.net))}**.`
+        );
+      } else {
+        await message.reply(
+          `👮 **Policjant ODMÓWIŁ przyjęcia łapówki!**\n` +
+          `💸 Straciłeś całą zaoferowaną kwotę łapówki: **-${formatCurrency(bribeResult.bribeCost)}**.\n` +
+          `⛓️ Trafiasz do więzienia na **1 GODZINĘ**!\n` +
+          `⚠️ Nie możesz teraz pracować (**!work**), brać udziału w skokach (**!gang skok**) oraz okradać innych (**!rob**).`
+        );
+      }
+      return;
+    }
+
+    // ==========================================
+    // 2. CHECK JAIL STATUS
+    // ==========================================
+    const isJailed = await withData(store => {
+      const user = createUser(authorId, store.users);
+      if (user.jailUntil && user.jailUntil > now) {
+        return user.jailUntil;
+      }
+      return null;
+    });
+
+    if (isJailed) {
+      const diffMs = isJailed - now;
+      await message.reply(`❌ Jesteś w więzieniu! Odzyskasz wolność za **${msToReadable(diffMs)}**.`);
+      return;
+    }
+
+    // ==========================================
+    // 3. EXECUTE NORMAL CRIME
+    // ==========================================
+    const result = await withData(store => {
+      const user = createUser(authorId, store.users);
+      const inventory = ensureInventoryRecord(store.inventory, authorId);
+
+      let baseSuccessChance = 0.50;
       if (user.badges) {
         if (user.badges.includes(config.badges.boss)) {
-          finalSuccessChance += 0.05;
+          baseSuccessChance += 0.05;
         } else if (user.badges.includes(config.badges.zastepca)) {
-          finalSuccessChance += 0.03;
+          baseSuccessChance += 0.03;
         } else if (user.badges.includes(config.badges.czlonek)) {
-          finalSuccessChance += 0.015;
+          baseSuccessChance += 0.015;
         }
       }
+      const success = Math.random() < baseSuccessChance;
+      let amount = randomInt(5000, 30000);
 
-      const success = Math.random() < finalSuccessChance;
-      let amount = success ? randomInt(minGain, maxGain + 1) : randomInt(minLoss, maxLoss + 1);
-
-      // Zastosuj bonus gangowy: Złodziejski Fach
+      // Gang bonus
       let gangBonus = 0;
       if (success && user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
         const gang = store.profiles.gangs[user.gangId];
@@ -77,6 +143,7 @@ module.exports = {
         amount = Math.floor(amount * multiplier);
       }
 
+      // Tribute
       let tribute = 0;
       if (success && user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
         const gang = store.profiles.gangs[user.gangId];
@@ -99,7 +166,6 @@ module.exports = {
         refreshBadges(user, inventory);
         return {
           success: true,
-          officer,
           amount: netAmount,
           tribute,
           gangBonus,
@@ -107,42 +173,91 @@ module.exports = {
           text: successLines[Math.floor(Math.random() * successLines.length)]
         };
       } else {
-        user.balance -= amount;
-        const xpResult = recordGame(user, -amount, 25, inventory);
-        refreshBadges(user, inventory);
+        // Check if user has enough balance to cover a bribe (2 * amount)
+        const canBribe = user.balance >= (amount * 2);
         return {
           success: false,
-          officer,
           amount,
-          xpResult,
+          canBribe,
           text: failLines[Math.floor(Math.random() * failLines.length)]
         };
       }
     });
 
-    let replyText = '';
     if (result.success) {
       const bonusText = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z fachu gangu)` : '';
-      const startText = `🎭 Napad (**${result.officer}**): ${result.text}`;
+      let replyText = '';
       if (result.tribute > 0) {
-        replyText = `${startText} Zysk: **+${formatCurrency(result.amount)}**${bonusText} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa)`;
+        replyText = `🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}**${bonusText} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa)`;
       } else {
-        replyText = `${startText} Zysk: **+${formatCurrency(result.amount)}**${bonusText}`;
+        replyText = `🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}**${bonusText}`;
       }
-    } else {
-      replyText = `🚔 Wpadka: Złapał Cię **${result.officer}** (${result.text}). Strata: **-${formatCurrency(result.amount)}**`;
-    }
 
-    if (result.xpResult && result.xpResult.leveledUp) {
-      replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
-      if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
-        const { getMilestoneRewardDescription } = require('../utils/economy');
-        for (const lvl of result.xpResult.milestonesGained) {
-          replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+      if (result.xpResult && result.xpResult.leveledUp) {
+        replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
+        if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
+          const { getMilestoneRewardDescription } = require('../utils/economy');
+          for (const lvl of result.xpResult.milestonesGained) {
+            replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+          }
         }
       }
-    }
+      await message.reply(replyText);
+    } else {
+      if (result.canBribe) {
+        // Set up pending bribe in memory
+        const timeout = setTimeout(async () => {
+          const pending = client.pendingBribes.get(authorId);
+          if (pending) {
+            client.pendingBribes.delete(authorId);
 
-    await message.reply(replyText);
+            // Commit standard penalty and jail them by default since they did not offer a bribe
+            await withData(store => {
+              const user = createUser(authorId, store.users);
+              const inventory = ensureInventoryRecord(store.inventory, authorId);
+              user.balance -= pending.amount;
+              user.jailUntil = Date.now() + 60 * 60 * 1000; // default jail
+              recordGame(user, -pending.amount, 25, inventory);
+              refreshBadges(user, inventory);
+            });
+
+            await message.reply(
+              `⌛ **Czas na decyzję minął!** Zapłaciłeś karę **-${formatCurrency(pending.amount)}** i trafiasz do więzienia na **1 godzinę**!`
+            );
+          }
+        }, 15000);
+
+        client.pendingBribes.set(authorId, {
+          amount: result.amount,
+          bribeCost: result.amount * 2,
+          timeout
+        });
+
+        await message.reply(
+          `🚔 Wpadka! ${result.text}\n` +
+          `Masz **15 sekund** na próbę uniknięcia więzienia:\n` +
+          `👉 Wpisz **!crime lapowka**, aby przekupić policjanta za **${formatCurrency(result.amount * 2)}** (szansa na sukces: 55%).\n` +
+          `Jeśli odmówią lub minie czas, na pewno trafisz do więzienia na **1 godzinę** i zapłacisz karę!`
+        );
+      } else {
+        // Apply normal penalty and jail directly
+        const penaltyResult = await withData(store => {
+          const user = createUser(authorId, store.users);
+          const inventory = ensureInventoryRecord(store.inventory, authorId);
+          user.balance -= result.amount;
+          user.jailUntil = Date.now() + 60 * 60 * 1000; // default jail
+          const xpRes = recordGame(user, -result.amount, 25, inventory);
+          refreshBadges(user, inventory);
+          return { xpResult: xpRes };
+        });
+
+        let replyText = `🚔 Wpadka: ${result.text} Strata: **-${formatCurrency(result.amount)}**.\n` +
+          `⛓️ Trafiasz do więzienia na **1 godzinę** (brak środków na łapówkę).`;
+        if (penaltyResult.xpResult && penaltyResult.xpResult.leveledUp) {
+          replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${penaltyResult.xpResult.newLevel}**!`;
+        }
+        await message.reply(replyText);
+      }
+    }
   }
 };
