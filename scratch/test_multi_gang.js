@@ -38,12 +38,20 @@ function mockMessage(userId, content = '', commandName = '') {
 }
 
 function checkIfRestricted(commandName, args) {
+  let logicalName = commandName;
+  let logicalArgs = args;
+
+  if (['atak', 'wojna', 'haracz', 'awans'].includes(commandName)) {
+    logicalName = 'gang';
+    logicalArgs = [commandName === 'wojna' ? 'wojna' : commandName, ...args];
+  }
+
   const restrictedCommands = ['daily', 'rob', 'crime', 'work', 'tip', 'marry', 'rozwod', 'duel', 'rynek'];
-  if (restrictedCommands.includes(commandName)) {
+  if (restrictedCommands.includes(logicalName)) {
     return true;
   }
-  if (commandName === 'gang') {
-    const sub = String(args[0] || '').toLowerCase();
+  if (logicalName === 'gang') {
+    const sub = String(logicalArgs[0] || '').toLowerCase();
     const restrictedGangSubs = ['skok', 'dolacz', 'zapros', 'atak', 'wojna'];
     if (restrictedGangSubs.includes(sub)) {
       return true;
@@ -68,7 +76,6 @@ async function simulateCommand(client, userId, commandName, args = []) {
       '615792123922351',
       '100093902840911',
       '100046279354282',
-      '61571684725864',
       ...config.admins
     ];
 
@@ -88,6 +95,7 @@ async function simulateCommand(client, userId, commandName, args = []) {
         if (canUnblock) {
           u.isMultiAccount = false;
           delete u.unblockMessageTarget;
+          u.multiAccountWarnings = 0;
           u.commandsUsed = (u.commandsUsed || 0) + 1;
           u.commandCounts[command.name] = (u.commandCounts[command.name] || 0) + 1;
         } else {
@@ -99,23 +107,31 @@ async function simulateCommand(client, userId, commandName, args = []) {
       } else {
         const totalCommands = (u.commandsUsed || 0) + 1;
         const normalMessages = u.messageCount || 0;
-        const workCount = (u.commandCounts['work'] || 0) + (command.name === 'work' ? 1 : 0);
-        const crimeCount = (u.commandCounts['crime'] || 0) + (command.name === 'crime' ? 1 : 0);
-        const dailyCount = (u.commandCounts['daily'] || 0) + (command.name === 'daily' ? 1 : 0);
-        const tipCount = (u.commandCounts['tip'] || 0) + (command.name === 'tip' ? 1 : 0);
-        const earningsCount = workCount + crimeCount + dailyCount + tipCount;
+        const logicalCommandName = ['gang', 'atak', 'wojna', 'haracz', 'awans'].includes(command.name) ? 'gang' : command.name;
+        const workCount = (u.commandCounts['work'] || 0) + (logicalCommandName === 'work' ? 1 : 0);
+        const crimeCount = (u.commandCounts['crime'] || 0) + (logicalCommandName === 'crime' ? 1 : 0);
+        const dailyCount = (u.commandCounts['daily'] || 0) + (logicalCommandName === 'daily' ? 1 : 0);
+        const tipCount = (u.commandCounts['tip'] || 0) + (logicalCommandName === 'tip' ? 1 : 0);
+        const robCount = (u.commandCounts['rob'] || 0) + (logicalCommandName === 'rob' ? 1 : 0);
+        const gangCount = (u.commandCounts['gang'] || 0) + (logicalCommandName === 'gang' ? 1 : 0)
+          + (u.commandCounts['atak'] || 0) + (u.commandCounts['haracz'] || 0) + (u.commandCounts['awans'] || 0);
+        const earningsCount = workCount + crimeCount + dailyCount + tipCount + robCount + gangCount;
 
-        if (totalCommands >= 10) {
-          const isMostlyEarnings = (earningsCount / totalCommands) >= 0.80;
-          if (isMostlyEarnings) {
-            u.multiAccountWarnings = (u.multiAccountWarnings || 0) + 1;
-            if (u.multiAccountWarnings >= 4 || totalCommands >= 13) {
-              u.isMultiAccount = true;
-              u.unblockMessageTarget = (u.messageCount || 0) + 100;
-              const isRestricted = checkIfRestricted(command.name, args);
-              if (isRestricted) {
-                isBlocked = true;
+        if (normalMessages < totalCommands) {
+          if (totalCommands >= 10) {
+            const isMostlyEarnings = (earningsCount / totalCommands) >= 0.80;
+            if (isMostlyEarnings) {
+              u.multiAccountWarnings = (u.multiAccountWarnings || 0) + 1;
+              if (u.multiAccountWarnings >= 4 || totalCommands >= 13) {
+                u.isMultiAccount = true;
+                u.unblockMessageTarget = (u.messageCount || 0) + 100;
+                const isRestricted = checkIfRestricted(command.name, args);
+                if (isRestricted) {
+                  isBlocked = true;
+                }
               }
+            } else {
+              u.multiAccountWarnings = 0;
             }
           } else {
             u.multiAccountWarnings = 0;
@@ -168,15 +184,7 @@ async function runTests() {
     assert(!u.isMultiAccount, 'Bypassed user is NOT marked as multi-account');
   });
 
-  const NEW_BYPASS_ID = '61571684725864';
-  for (let i = 1; i <= 15; i++) {
-    const res = await simulateCommand({}, NEW_BYPASS_ID, 'work');
-    assert(!res.isBlocked, `Bypassed user ${NEW_BYPASS_ID} command ${i} executed without block`);
-  }
-  await withData(store => {
-    const u = store.users[NEW_BYPASS_ID];
-    assert(!u.isMultiAccount, 'New bypassed user is NOT marked as multi-account');
-  });
+
 
   // TEST 2: Multi-Account Ban trigger at command 13 with 80% earnings ratio
   console.log('\n--- 2. Multi-Account Ban trigger ---');
@@ -233,6 +241,15 @@ async function runTests() {
 
   const resGangInfo = await simulateCommand({}, TEST_USER, 'gang', ['info']);
   assert(!resGangInfo.isBlocked, 'Gang info command is NOT blocked for banned user');
+
+  const resAtak = await simulateCommand({}, TEST_USER, 'atak');
+  assert(resAtak.isBlocked, 'Atak command IS blocked for banned user');
+
+  const resWojna = await simulateCommand({}, TEST_USER, 'wojna');
+  assert(resWojna.isBlocked, 'Wojna command IS blocked for banned user');
+
+  const resHaracz = await simulateCommand({}, TEST_USER, 'haracz');
+  assert(!resHaracz.isBlocked, 'Haracz command is NOT blocked for banned user (not restricted)');
 
   // TEST 4: Money Transfer Block to banned user
   console.log('\n--- 4. Money Transfer block to banned account ---');

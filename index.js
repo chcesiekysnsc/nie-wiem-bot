@@ -15,12 +15,20 @@ const client = createMessengerClient(config);
 client.config = config;
 
 function checkIfRestricted(commandName, args) {
+  let logicalName = commandName;
+  let logicalArgs = args;
+
+  if (['atak', 'wojna', 'haracz', 'awans'].includes(commandName)) {
+    logicalName = 'gang';
+    logicalArgs = [commandName === 'wojna' ? 'wojna' : commandName, ...args];
+  }
+
   const restrictedCommands = ['daily', 'rob', 'crime', 'work', 'tip', 'marry', 'rozwod', 'duel', 'rynek'];
-  if (restrictedCommands.includes(commandName)) {
+  if (restrictedCommands.includes(logicalName)) {
     return true;
   }
-  if (commandName === 'gang') {
-    const sub = String(args[0] || '').toLowerCase();
+  if (logicalName === 'gang') {
+    const sub = String(logicalArgs[0] || '').toLowerCase();
     const restrictedGangSubs = ['skok', 'dolacz', 'zapros', 'atak', 'wojna'];
     if (restrictedGangSubs.includes(sub)) {
       return true;
@@ -89,7 +97,6 @@ async function executeCommand(event, pageId) {
             '615792123922351',
             '100093902840911',
             '100046279354282',
-            '61571684725864',
             ...config.admins
           ];
 
@@ -183,19 +190,6 @@ async function executeCommand(event, pageId) {
     return;
   }
 
-  try {
-    const cooldownState = await checkCooldown(command.name, senderId);
-    if (cooldownState.active) {
-      await message.reply({ embeds: [cooldownState.embed] }).catch(() => null);
-      return;
-    }
-
-    const spamState = await checkSpam(senderId);
-    if (spamState.blocked) {
-      await message.reply({ embeds: [spamState.embed] }).catch(() => null);
-      return;
-    }
-
     let isBlocked = false;
     await withData(store => {
       const u = createUser(senderId, store.users);
@@ -209,7 +203,6 @@ async function executeCommand(event, pageId) {
         '615792123922351',
         '100093902840911',
         '100046279354282',
-        '61571684725864',
         ...config.admins
       ];
       if (!bypassIds.includes(senderId)) {
@@ -228,6 +221,7 @@ async function executeCommand(event, pageId) {
           if (canUnblock) {
             u.isMultiAccount = false;
             delete u.unblockMessageTarget;
+            u.multiAccountWarnings = 0;
             u.commandsUsed = (u.commandsUsed || 0) + 1;
             u.commandCounts[command.name] = (u.commandCounts[command.name] || 0) + 1;
           } else {
@@ -240,23 +234,31 @@ async function executeCommand(event, pageId) {
           // Jeśli nie jest zablokowany, sprawdzamy warunki blokady
           const totalCommands = (u.commandsUsed || 0) + 1;
           const normalMessages = u.messageCount || 0;
-          const workCount = (u.commandCounts['work'] || 0) + (command.name === 'work' ? 1 : 0);
-          const crimeCount = (u.commandCounts['crime'] || 0) + (command.name === 'crime' ? 1 : 0);
-          const dailyCount = (u.commandCounts['daily'] || 0) + (command.name === 'daily' ? 1 : 0);
-          const tipCount = (u.commandCounts['tip'] || 0) + (command.name === 'tip' ? 1 : 0);
-          const earningsCount = workCount + crimeCount + dailyCount + tipCount;
+          const logicalCommandName = ['gang', 'atak', 'wojna', 'haracz', 'awans'].includes(command.name) ? 'gang' : command.name;
+          const workCount = (u.commandCounts['work'] || 0) + (logicalCommandName === 'work' ? 1 : 0);
+          const crimeCount = (u.commandCounts['crime'] || 0) + (logicalCommandName === 'crime' ? 1 : 0);
+          const dailyCount = (u.commandCounts['daily'] || 0) + (logicalCommandName === 'daily' ? 1 : 0);
+          const tipCount = (u.commandCounts['tip'] || 0) + (logicalCommandName === 'tip' ? 1 : 0);
+          const robCount = (u.commandCounts['rob'] || 0) + (logicalCommandName === 'rob' ? 1 : 0);
+          const gangCount = (u.commandCounts['gang'] || 0) + (logicalCommandName === 'gang' ? 1 : 0)
+            + (u.commandCounts['atak'] || 0) + (u.commandCounts['haracz'] || 0) + (u.commandCounts['awans'] || 0);
+          const earningsCount = workCount + crimeCount + dailyCount + tipCount + robCount + gangCount;
 
-          if (totalCommands >= 10) {
-            const isMostlyEarnings = (earningsCount / totalCommands) >= 0.80;
-            if (isMostlyEarnings) {
-              u.multiAccountWarnings = (u.multiAccountWarnings || 0) + 1;
-              if (u.multiAccountWarnings >= 4 || totalCommands >= 13) {
-                u.isMultiAccount = true;
-                u.unblockMessageTarget = (u.messageCount || 0) + 100;
-                const isRestricted = checkIfRestricted(command.name, args);
-                if (isRestricted) {
-                  isBlocked = true;
+          if (normalMessages < totalCommands) {
+            if (totalCommands >= 10) {
+              const isMostlyEarnings = (earningsCount / totalCommands) >= 0.80;
+              if (isMostlyEarnings) {
+                u.multiAccountWarnings = (u.multiAccountWarnings || 0) + 1;
+                if (u.multiAccountWarnings >= 4 || totalCommands >= 13) {
+                  u.isMultiAccount = true;
+                  u.unblockMessageTarget = (u.messageCount || 0) + 100;
+                  const isRestricted = checkIfRestricted(command.name, args);
+                  if (isRestricted) {
+                    isBlocked = true;
+                  }
                 }
+              } else {
+                u.multiAccountWarnings = 0;
               }
             } else {
               u.multiAccountWarnings = 0;
@@ -279,6 +281,18 @@ async function executeCommand(event, pageId) {
 
     if (isBlocked) {
       await message.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana.');
+      return;
+    }
+
+    const cooldownState = await checkCooldown(command.name, senderId);
+    if (cooldownState.active) {
+      await message.reply({ embeds: [cooldownState.embed] }).catch(() => null);
+      return;
+    }
+
+    const spamState = await checkSpam(senderId);
+    if (spamState.blocked) {
+      await message.reply({ embeds: [spamState.embed] }).catch(() => null);
       return;
     }
 
