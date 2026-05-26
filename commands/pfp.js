@@ -148,6 +148,8 @@ module.exports = {
           balance: user.balance,
           bank: user.bank,
           level: user.level,
+          xp: user.xp || 0,
+          prestige: user.prestige || 0,
           gamesPlayed: user.gamesPlayed,
           wins: user.wins || 0,
           losses: user.losses || 0,
@@ -235,6 +237,7 @@ module.exports = {
       walletText = `${formatCurrency(ownBal)} (+ ${formatCurrency(profileData.activeLoan.originalAmount)} z pożyczki)`;
     }
 
+    const prestigeStr = profileData.prestige > 0 ? ` [Prestiż ${profileData.prestige}]` : '';
     const response = 
       `👤 **Profil: ${username}**\n` +
       `🆔 ID: **${targetId}**\n` +
@@ -242,7 +245,7 @@ module.exports = {
       `🎮 Gry: ${formatNumber(profileData.gamesPlayed)} | ⌨️ Komendy: ${formatNumber(profileData.commandsUsed)}\n` +
       `💬 Wiadomości: **${formatNumber(profileData.messageCount)}** (**${formatNumber(profileData.groupSpecificCount)}** na tej grupie)\n` +
       `📈 Wygrane: **${formatNumber(profileData.wins)}** | 📉 Przegrane: **${formatNumber(profileData.losses)}**\n` +
-      `🏆 Poziom: ${profileData.level} (${profileData.xp}/${xpForLevel(profileData.level, profileData.prestige)} XP)\n` +
+      `🏆 Poziom: ${profileData.level}${prestigeStr} (${profileData.xp}/${xpForLevel(profileData.level, profileData.prestige)} XP)\n` +
       `💍 Małżeństwo: **${partnerName}**\n` +
       `🎖️ Odznaki: ${profileData.badges.length ? profileData.badges.join(', ') : 'Brak'}`;
 

@@ -278,6 +278,23 @@ async function executeCommand(event, pageId) {
         u.commandsUsed = (u.commandsUsed || 0) + 1;
         u.commandCounts[command.name] = (u.commandCounts[command.name] || 0) + 1;
       }
+
+      if (!isBlocked) {
+        const { addXp, ensureInventoryRecord, getMilestoneRewardDescription } = require('./utils/economy');
+        const inv = ensureInventoryRecord(store.inventory, senderId);
+        const xpResult = addXp(u, 15, inv);
+        if (xpResult.leveledUp) {
+          let lvlMsg = `🎉 **AWANS!** Awansowałeś na **poziom ${xpResult.newLevel}** za użycie komendy!`;
+          if (xpResult.milestonesGained && xpResult.milestonesGained.length > 0) {
+            for (const lvl of xpResult.milestonesGained) {
+              lvlMsg += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+            }
+          }
+          setTimeout(() => {
+            message.reply(lvlMsg).catch(() => null);
+          }, 500);
+        }
+      }
     });
 
     if (isBlocked) {

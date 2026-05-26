@@ -42,16 +42,16 @@ function resolveAmount(input, available) {
 }
 
 const MILESTONE_REWARDS = {
-  10: { coins: 5000, items: { paczka_brazowa: 1 } },
-  20: { coins: 15000, items: { klodka: 1 } },
-  30: { coins: 30000, items: { bomba: 1 } },
-  40: { coins: 60000, items: { piwo: 1 } },
-  50: { coins: 100000, items: { paczka_tytanowa: 1 } },
-  60: { coins: 150000, items: { klodka: 1, bomba: 1 } },
-  70: { coins: 200000, items: { paczka_zlota: 1 } },
-  80: { coins: 300000, items: { paczka_diamentowa: 1 } },
-  90: { coins: 450000, items: { paczka_tytanowa: 1, klodka: 1 } },
-  100: { coins: 1000000, items: { paczka_tytanowa: 1, paczka_diamentowa: 1 } }
+  10: { coins: 150000, items: { paczka_brazowa: 1 } },
+  20: { coins: 250000, items: { klodka: 1 } },
+  30: { coins: 350000, items: { bomba: 1, klodka: 1 } },
+  40: { coins: 600000, items: { piwo: 1, bomba: 1, klodka: 1 } },
+  50: { coins: 800000, items: { paczka_zlota: 1, piwo: 1 } },
+  60: { coins: 1000000, items: { paczka_srebrna: 1, paczka_zlota: 1 } },
+  70: { coins: 1200000, items: { paczka_diamentowa: 1 } },
+  80: { coins: 1500000, items: { paczka_diamentowa: 1, paczka_zlota: 1, paczka_srebrna: 1, piwo: 1, klodka: 1 } },
+  90: { coins: 1500000, items: { paczka_diamentowa: 2, paczka_zlota: 1, bomba: 2 } },
+  100: { coins: 2000000, items: { paczka_tytanowa: 1, paczka_diamentowa: 2, paczka_zlota: 2, paczka_srebrna: 3 } }
 };
 
 function getMilestoneRewardDescription(level) {
@@ -86,9 +86,11 @@ function giveMilestoneReward(user, newLevel, inventoryRecord) {
 
 function xpForLevel(level, prestige = 0) {
   const safeLevel = Math.max(1, Math.floor(level || 1));
-  const safePrestige = Math.max(0, Math.floor(prestige || 0));
-  const baseThreshold = config.economy.xpPerLevelBase + safeLevel * config.economy.xpPerLevelGrowth + safePrestige * 40;
-  return Math.floor(baseThreshold * 1.20);
+  const safePrestige = Math.min(15, Math.max(0, Math.floor(prestige || 0)));
+  const baseThreshold = config.economy.xpPerLevelBase + safeLevel * config.economy.xpPerLevelGrowth;
+  const baseXP = Math.floor(baseThreshold * 1.20);
+  const prestigeBonus = safePrestige * 65 + Math.floor(safePrestige * 0.05 * baseXP);
+  return baseXP + prestigeBonus;
 }
 
 function addXp(user, amount, inventoryRecord = null) {
@@ -107,12 +109,19 @@ function addXp(user, amount, inventoryRecord = null) {
       giveMilestoneReward(user, user.level, inventoryRecord);
       milestonesGained.push(user.level);
     }
+
+    if (user.level === 100) {
+      if ((user.prestige || 0) < 15) {
+        user.level = 1;
+        user.prestige = (user.prestige || 0) + 1;
+      }
+    }
   }
 
   return {
     leveledUp,
     oldLevel,
-    newLevel: user.level,
+    newLevel: user.prestige > 0 ? `${user.level} [Prestiż ${user.prestige}]` : user.level,
     milestonesGained
   };
 }

@@ -330,6 +330,15 @@ async function withData(callback) {
       }
     }
 
+    // Automatyczne odświeżanie odznak dla wszystkich użytkowników na bieżąco
+    const { refreshBadges, ensureInventoryRecord } = require('./economy');
+    for (const [userId, user] of Object.entries(store.users)) {
+      if (user) {
+        const inv = ensureInventoryRecord(store.inventory, userId);
+        refreshBadges(user, inv);
+      }
+    }
+
     saveData('users', store.users);
     saveData('profiles', store.profiles);
     saveData('inventory', store.inventory);

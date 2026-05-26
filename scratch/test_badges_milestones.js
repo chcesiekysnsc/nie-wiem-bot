@@ -71,6 +71,7 @@ async function runTests() {
     user.level = 9;
     user.xp = 0;
     user.balance = 0;
+    user.prestige = 0;
     const inv = economy.ensureInventoryRecord(store.inventory, 'test_milestone_user');
     delete inv.paczka_brazowa;
     
@@ -79,7 +80,7 @@ async function runTests() {
     economy.addXp(user, needed, inv);
     
     console.log(`Milestone level 10: level is ${user.level}, balance is ${user.balance}, paczka_brazowa is ${inv.paczka_brazowa}`);
-    const hasCoins = user.balance === 500 + 10 * 40 + 5000; // base lvl up reward + milestone reward
+    const hasCoins = user.balance === 500 + 10 * 40 + 150000; // base lvl up reward + milestone reward
     const hasItem = inv.paczka_brazowa === 1;
 
     if (hasCoins && hasItem) {
@@ -117,18 +118,18 @@ async function runTests() {
   await withData(store => {
     const userBog = createUser('test_interest_bog', store.users);
     userBog.balance = 0;
-    userBog.bank = 100000;
-    userBog.badges = [config.badges.bogacz]; // 2% + 0.5% = 2.5% -> 2500 coins
+    userBog.bank = 300000;
+    userBog.badges = [config.badges.bogacz]; // 2% + 0.5% = 2.5% -> 7500 coins
 
     const userMil = createUser('test_interest_mil', store.users);
     userMil.balance = 0;
-    userMil.bank = 100000;
-    userMil.badges = [config.badges.milioner]; // 2% + 1% = 3% -> 3000 coins
+    userMil.bank = 3000000;
+    userMil.badges = [config.badges.milioner]; // 2% + 1% = 3% -> 90000 coins
 
     const userMiliar = createUser('test_interest_miliar', store.users);
     userMiliar.balance = 0;
-    userMiliar.bank = 100000;
-    userMiliar.badges = [config.badges.miliarder]; // 2% + 2% = 4% -> 4000 coins
+    userMiliar.bank = 30000000;
+    userMiliar.badges = [config.badges.miliarder]; // 2% + 2% = 4% -> 1200000 coins
 
     store.profiles.lastInterestPayout = Date.now() - 13 * 60 * 60 * 1000; // Trigger interest payout
   });
@@ -139,11 +140,11 @@ async function runTests() {
     const userMil = store.users['test_interest_mil'];
     const userMiliar = store.users['test_interest_miliar'];
 
-    console.log(`Bogacz interest payout: ${userBog.balance} (expected: 2500)`);
-    console.log(`Milioner interest payout: ${userMil.balance} (expected: 3000)`);
-    console.log(`Miliarder interest payout: ${userMiliar.balance} (expected: 4000)`);
+    console.log(`Bogacz interest payout: ${userBog.balance} (expected: 7500)`);
+    console.log(`Milioner interest payout: ${userMil.balance} (expected: 90000)`);
+    console.log(`Miliarder interest payout: ${userMiliar.balance} (expected: 1200000)`);
 
-    if (userBog.balance === 2500 && userMil.balance === 3000 && userMiliar.balance === 4000) {
+    if (userBog.balance === 7500 && userMil.balance === 90000 && userMiliar.balance === 1200000) {
       console.log('✅ Wealth badges interest payout test passed!');
     } else {
       console.error('❌ Wealth badges interest payout test failed!');
@@ -155,47 +156,83 @@ async function runTests() {
   await withData(async (store) => {
     const userNormal = createUser('test_cd_normal', store.users);
     userNormal.badges = [];
+    userNormal.commandsUsed = 0;
     
     const userKlik = createUser('test_cd_klik', store.users);
     userKlik.badges = [config.badges.klikacz];
-
+    userKlik.commandsUsed = 300;
+ 
     const userWlad = createUser('test_cd_wlad', store.users);
     userWlad.badges = [config.badges.wladcaBota];
+    userWlad.commandsUsed = 3000;
   });
 
-  // Set the cooldowns
-  await cooldowns.checkCooldown('daily', 'test_cd_normal');
-  await cooldowns.checkCooldown('daily', 'test_cd_klik');
-  await cooldowns.checkCooldown('daily', 'test_cd_wlad');
+  // Clear cooldowns first to ensure we write new ones
+  await withData(store => {
+    delete store.cooldowns.commands['test_cd_normal'];
+    delete store.cooldowns.commands['test_cd_klik'];
+    delete store.cooldowns.commands['test_cd_wlad'];
+  });
 
-  // Now check them
-  const stateNormal = await cooldowns.checkCooldown('daily', 'test_cd_normal');
-  const stateKlik = await cooldowns.checkCooldown('daily', 'test_cd_klik');
-  const stateWlad = await cooldowns.checkCooldown('daily', 'test_cd_wlad');
+  // Set the cooldowns using mocked Date.now
+  const originalNow = Date.now;
+  const fixedNow = 100000000;
+  global.Date.now = () => fixedNow;
 
-  // Since cooldown registers a timestamp and sets it, we check remaining cooldowns
-  console.log(`Normal daily cooldown expires in: ${stateNormal.remaining}`);
-  console.log(`Klikacz daily cooldown expires in: ${stateKlik.remaining}`);
-  console.log(`Wladca Bota daily cooldown expires in: ${stateWlad.remaining}`);
+  try {
+    await cooldowns.checkCooldown('daily', 'test_cd_normal');
+    await cooldowns.checkCooldown('daily', 'test_cd_klik');
+    await cooldowns.checkCooldown('daily', 'test_cd_wlad');
 
-  // Let's verify that Klikacz has ~97% duration and Wladca Bota has ~95% duration
-  // Duration for daily is config.cooldowns.daily (5 seconds) * 1000 = 5000ms
-  // Klikacz duration should be 4850ms, Wladca Bota should be 4750ms
-  // Let's account for elapsed time since we set the cooldowns
-  const elapsedNormal = 5000 - stateNormal.remaining;
-  const elapsedKlik = 4850 - stateKlik.remaining;
-  const elapsedWlad = 4750 - stateWlad.remaining;
+    let timeNormal, timeKlik, timeWlad;
+    await withData(store => {
+      timeNormal = store.cooldowns.commands['test_cd_normal']['daily'] || 0;
+      timeKlik = store.cooldowns.commands['test_cd_klik']['daily'] || 0;
+      timeWlad = store.cooldowns.commands['test_cd_wlad']['daily'] || 0;
+    });
 
-  console.log(`Elapsed times since setting cooldowns: Normal: ${elapsedNormal}ms, Klikacz: ${elapsedKlik}ms, Wladca Bota: ${elapsedWlad}ms`);
+    console.log(`Timestamps set: Normal: ${timeNormal}, Klikacz: ${timeKlik}, Wladca Bota: ${timeWlad}`);
 
-  const diffKlik = Math.abs(elapsedNormal - elapsedKlik);
-  const diffWlad = Math.abs(elapsedNormal - elapsedWlad);
-  
-  if (diffKlik < 100 && diffWlad < 100) {
-    console.log('✅ Cooldown reductions test passed!');
-  } else {
-    console.error('❌ Cooldown reductions test failed! KlikDiff:', diffKlik, 'WladDiff:', diffWlad);
+    const durNormal = timeNormal - fixedNow;
+    const durKlik = timeKlik - fixedNow;
+    const durWlad = timeWlad - fixedNow;
+
+    console.log(`Durations: Normal: ${durNormal}ms, Klikacz: ${durKlik}ms, Wladca Bota: ${durWlad}ms`);
+
+    if (durNormal === 5000 && durKlik === 4850 && durWlad === 4750) {
+      console.log('✅ Cooldown reductions test passed!');
+    } else {
+      console.error('❌ Cooldown reductions test failed! Durations did not match expected values.');
+    }
+  } finally {
+    global.Date.now = originalNow;
   }
+
+  // Test 8: Level 100 reset and prestige growth
+  console.log('\n--- TEST 8: Level 100 reset & Prestige growth ---');
+  await withData(store => {
+    const user = createUser('test_prestige_user', store.users);
+    user.level = 99;
+    user.xp = 0;
+    user.prestige = 1;
+    user.balance = 0;
+    const inv = economy.ensureInventoryRecord(store.inventory, 'test_prestige_user');
+    
+    // Level up from 99 to 100
+    const needed = economy.xpForLevel(99, 1);
+    economy.addXp(user, needed, inv);
+    
+    console.log(`After leveling past 100: level is ${user.level} (expected: 1), prestige is ${user.prestige} (expected: 2)`);
+    
+    const xpLvl2Prestige2 = economy.xpForLevel(2, 2);
+    console.log(`XP needed for lvl 2 at prestige 2: ${xpLvl2Prestige2} (expected: 512)`);
+    
+    if (user.level === 1 && user.prestige === 2 && xpLvl2Prestige2 === 512) {
+      console.log('✅ Level 100 reset and prestige growth test passed!');
+    } else {
+      console.error('❌ Level 100 reset and prestige growth test failed!');
+    }
+  });
 
   console.log('\n=== ALL TESTS FINISHED ===');
 }

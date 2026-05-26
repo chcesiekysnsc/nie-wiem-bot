@@ -453,6 +453,32 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: ["artf","artefakt"],
     additionalInfo: []
+  },
+  {
+    id: 35,
+    name: "lvl",
+    category: "UTILITY",
+    shortDescription: "nagrody za kamienie milowe",
+    description: "Pokazuje nagrody za kamienie milowe poziomów (do 100 lvl, po wbiciu którego poziom resetuje się do 1 i wzrasta Prestiż).",
+    usage: "!lvl",
+    examples: ["!lvl"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["milestones", "kamieniemilowe"],
+    additionalInfo: []
+  },
+  {
+    id: 36,
+    name: "odznaki",
+    category: "UTILITY",
+    shortDescription: "lista odznak i ich opisy",
+    description: "Pokazuje listę posiadanych/dostępnych odznak i ich krótkie opisy. Wpisz !odznaki help <nazwa_odznaki>, aby poznać szczegółowe wymagania i bonusy.",
+    usage: "!odznaki | !odznaki help <nazwa_odznaki>",
+    examples: ["!odznaki", "!odznaki help hazardzista"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: [],
+    additionalInfo: []
   }
 ];
 
