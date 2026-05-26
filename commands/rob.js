@@ -139,7 +139,7 @@ module.exports = {
         }
 
         const netStolen = stolen - tribute;
-        victim.balance -= baseStolen;
+        victim.balance -= stolen;
         robber.balance += netStolen;
 
         if (tribute > 0) {

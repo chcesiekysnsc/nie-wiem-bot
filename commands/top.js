@@ -174,7 +174,7 @@ module.exports = {
       `${globalLines.length ? globalLines.join('\n') : 'Brak danych.'}\n` +
       `👥 **Top 5 Grupy**\n` +
       `${groupLines.length ? groupLines.join('\n') : 'Brak danych grupowych.'}\n\n` +
-      `🌐 Jesteś **${myRank}** z **${totalPlayers}** graczy.`;
+      `🌎 Jesteś **${myRank}** z **${totalPlayers}** graczy.`;
 
     await message.reply(responseText);
   }
