@@ -55,14 +55,14 @@ const helpCommands = [
     id: 4,
     name: "crime",
     category: "ECONOMY",
-    shortDescription: "ryzykowna kradziez NPC",
-    description: "Napad na NPC — zysk lub strata.",
+    shortDescription: "ryzykowna kradziez NPC z patrolami policji",
+    description: "Napad na NPC. Losowo trafiasz na jednego z 4 policjantów: Posterunkowy (40% szans, 75% ucieczki, zysk 5k-15k, wpadka 4k-8k), Sierżant (30% szans, 60% ucieczki, zysk 15k-35k, wpadka 12k-25k), Dzielnicowy (20% szans, 40% ucieczki, zysk 35k-50k, wpadka 30k-50k) lub Funkcjonariusz CBŚ (10% szans, 20% ucieczki, zysk 50k-80k, wpadka 40k-70k).",
     usage: "!crime",
     examples: ["!crime"],
     cooldown: "12 sekund",
     requirements: "Brak.",
     aliases: [],
-    additionalInfo: ["Ryzykowna akcja."]
+    additionalInfo: ["Odznaki gangowe (członek +1.5%, zastępca +3%, boss +5%) zwiększają szansę na ucieczkę.", "Złodziejski Fach gangu zwiększa zyski przy sukcesie."]
   },
   {
     id: 5,

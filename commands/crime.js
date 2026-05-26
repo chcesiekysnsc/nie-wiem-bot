@@ -22,19 +22,47 @@ module.exports = {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
       
+      const roll = randomInt(0, 100);
+      let officer = '';
       let baseSuccessChance = 0.50;
+      let minGain = 0, maxGain = 0;
+      let minLoss = 0, maxLoss = 0;
+
+      if (roll < 40) {
+        officer = 'Posterunkowy';
+        baseSuccessChance = 0.75;
+        minGain = 5000; maxGain = 15000;
+        minLoss = 4000; maxLoss = 8000;
+      } else if (roll < 70) {
+        officer = 'Sierżant';
+        baseSuccessChance = 0.60;
+        minGain = 15000; maxGain = 35000;
+        minLoss = 12000; maxLoss = 25000;
+      } else if (roll < 90) {
+        officer = 'Dzielnicowy';
+        baseSuccessChance = 0.40;
+        minGain = 35000; maxGain = 50000;
+        minLoss = 30000; maxLoss = 50000;
+      } else {
+        officer = '☠️ Funkcjonariusz CBŚ';
+        baseSuccessChance = 0.20;
+        minGain = 50000; maxGain = 80000;
+        minLoss = 40000; maxLoss = 70000;
+      }
+
+      let finalSuccessChance = baseSuccessChance;
       if (user.badges) {
         if (user.badges.includes(config.badges.boss)) {
-          baseSuccessChance += 0.05;
+          finalSuccessChance += 0.05;
         } else if (user.badges.includes(config.badges.zastepca)) {
-          baseSuccessChance += 0.03;
+          finalSuccessChance += 0.03;
         } else if (user.badges.includes(config.badges.czlonek)) {
-          baseSuccessChance += 0.015;
+          finalSuccessChance += 0.015;
         }
       }
-      const success = Math.random() < baseSuccessChance;
 
-      let amount = randomInt(5000, 30000);
+      const success = Math.random() < finalSuccessChance;
+      let amount = success ? randomInt(minGain, maxGain + 1) : randomInt(minLoss, maxLoss + 1);
 
       // Zastosuj bonus gangowy: Złodziejski Fach
       let gangBonus = 0;
@@ -71,6 +99,7 @@ module.exports = {
         refreshBadges(user, inventory);
         return {
           success: true,
+          officer,
           amount: netAmount,
           tribute,
           gangBonus,
@@ -83,6 +112,7 @@ module.exports = {
         refreshBadges(user, inventory);
         return {
           success: false,
+          officer,
           amount,
           xpResult,
           text: failLines[Math.floor(Math.random() * failLines.length)]
@@ -93,13 +123,14 @@ module.exports = {
     let replyText = '';
     if (result.success) {
       const bonusText = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z fachu gangu)` : '';
+      const startText = `🎭 Napad (**${result.officer}**): ${result.text}`;
       if (result.tribute > 0) {
-        replyText = `🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}**${bonusText} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa)`;
+        replyText = `${startText} Zysk: **+${formatCurrency(result.amount)}**${bonusText} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa)`;
       } else {
-        replyText = `🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}**${bonusText}`;
+        replyText = `${startText} Zysk: **+${formatCurrency(result.amount)}**${bonusText}`;
       }
     } else {
-      replyText = `🚔 Wpadka: ${result.text} Strata: **-${formatCurrency(result.amount)}**`;
+      replyText = `🚔 Wpadka: Złapał Cię **${result.officer}** (${result.text}). Strata: **-${formatCurrency(result.amount)}**`;
     }
 
     if (result.xpResult && result.xpResult.leveledUp) {
