@@ -239,6 +239,7 @@ async function runTests() {
   await withData(store => {
     const userSender = createUser('test_sender_tip', store.users);
     userSender.balance = 10000;
+    userSender.tipsSent = {};
     const userReceiver = createUser('test_receiver_tip', store.users);
     userReceiver.balance = 0;
   });

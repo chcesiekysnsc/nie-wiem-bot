@@ -484,13 +484,13 @@ const helpCommands = [
     id: 37,
     name: "shamewall",
     category: "UTILITY",
-    shortDescription: "mur wstydu dłużników",
-    description: "Pokazuje ranking top 5 najbardziej zadłużonych kont w banku wirtualnym.",
+    shortDescription: "ściana wstydu",
+    description: "Pokazuje ranking top 5 kont z najniższym/najbardziej ujemnym saldem ogólnym na całym bocie.",
     usage: "!shamewall",
     examples: ["!shamewall"],
     cooldown: "3 sekundy",
     requirements: "Brak.",
-    aliases: ["murwstydu", "zadluzeni", "dluznicy"],
+    aliases: ["scianawstydu", "zadluzeni", "dluznicy"],
     additionalInfo: []
   }
 ];
