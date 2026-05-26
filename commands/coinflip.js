@@ -34,14 +34,37 @@ module.exports = {
 
       user.balance -= bet;
 
-      let winChance = 0.50;
-      if (user.badges) {
-        if (user.badges.includes(config.badges.bog)) winChance += 0.02;
-        else if (user.badges.includes(config.badges.rekin)) winChance += 0.01;
-        else if (user.badges.includes(config.badges.hazardzista)) winChance += 0.005;
+      const crypto = require('crypto');
+      const roll = crypto.randomInt(0, 2);
+      const rawFlip = roll === 0 ? 'heads' : 'tails';
+
+      let won = rawFlip === choice;
+      let secondChanceSaved = false;
+      let badgeUsed = '';
+
+      // Apply badge win chance bonus if they lost the raw flip
+      if (!won && user.badges) {
+        let saveChance = 0;
+        if (user.badges.includes(config.badges.bog)) {
+          saveChance = 0.04;
+          badgeUsed = config.badges.bog;
+        } else if (user.badges.includes(config.badges.rekin)) {
+          saveChance = 0.02;
+          badgeUsed = config.badges.rekin;
+        } else if (user.badges.includes(config.badges.hazardzista)) {
+          saveChance = 0.01;
+          badgeUsed = config.badges.hazardzista;
+        }
+
+        if (saveChance > 0) {
+          const saveRoll = crypto.randomInt(0, 10000);
+          if (saveRoll < saveChance * 10000) {
+            won = true;
+            secondChanceSaved = true;
+          }
+        }
       }
 
-      const won = Math.random() < winChance;
       const flip = won ? choice : (choice === 'heads' ? 'tails' : 'heads');
 
       let payout = won ? bet * 2 : 0;
@@ -54,7 +77,7 @@ module.exports = {
       const xpResult = recordGame(user, net, 25, inventory);
       refreshBadges(user, inventory);
 
-      return { won, bet, payout, net, flip, xpResult };
+      return { won, bet, payout, net, flip, xpResult, secondChanceSaved, badgeUsed };
     });
 
     if (result.error) {
@@ -65,6 +88,10 @@ module.exports = {
     const outcome = displayChoice(result.flip);
     const winText = result.won ? `Wygrana! +${formatCurrency(result.net)}` : `Przegrana. -${formatCurrency(result.bet)}`;
     let replyText = `🪙 Coinflip: Wypadło **${outcome}**. ${winText}`;
+
+    if (result.secondChanceSaved && result.badgeUsed) {
+      replyText += `\n🍀 Odznaka **${result.badgeUsed}** aktywowała drugą szansę i uratowała Cię przed przegraną!`;
+    }
 
     if (result.xpResult && result.xpResult.leveledUp) {
       replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
