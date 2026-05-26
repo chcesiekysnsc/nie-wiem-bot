@@ -122,6 +122,16 @@ async function checkCooldown(commandName, userId) {
       }
     }
 
+    // Klikacz / Wladca Bota cooldown reduction
+    const user = store.users[userId];
+    if (user && user.badges) {
+      if (user.badges.includes(config.badges.wladcaBota)) {
+        duration = Math.floor(duration * 0.95);
+      } else if (user.badges.includes(config.badges.klikacz)) {
+        duration = Math.floor(duration * 0.97);
+      }
+    }
+
     const userCooldowns = store.cooldowns.commands[userId] && typeof store.cooldowns.commands[userId] === 'object'
       ? store.cooldowns.commands[userId]
       : {};

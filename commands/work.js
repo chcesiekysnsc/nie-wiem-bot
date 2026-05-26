@@ -42,15 +42,19 @@ module.exports = {
         reward = Math.floor(reward * config.economy.workVipBonus);
       }
 
+      if (user.badges && user.badges.includes(config.badges.krolSpamu)) {
+        reward = Math.floor(reward * 1.05);
+      }
+
       // Zastosuj bonus gangowy: Legalne Biznesy
       let gangBonus = 0;
       if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
         const gang = store.profiles.gangs[user.gangId];
-        const bizLvl = gang.levelBiznesy || 0;
+        const idxBiz = gang.levelBiznesy || 0;
         const multipliers = [1.0, 1.10, 1.20, 1.30];
-        const multiplier = multipliers[bizLvl] || 1.0;
-        if (bizLvl > 0) {
-          gangBonus = [0, 10, 20, 30][bizLvl] || 0;
+        const multiplier = multipliers[idxBiz] || 1.0;
+        if (idxBiz > 0) {
+          gangBonus = [0, 10, 20, 30][idxBiz] || 0;
         }
         reward = Math.floor(reward * multiplier);
       }
@@ -76,14 +80,14 @@ module.exports = {
       }
 
       user.lastWorkTime = now;
-      const leveledUp = addXp(user, randomInt(12, 24));
+      const xpResult = addXp(user, randomInt(12, 24), inventory);
       refreshBadges(user, inventory);
 
       return {
         reward,
         tributeAmount,
         gangBonus,
-        leveledUp,
+        xpResult,
         text: jobs[randomInt(0, jobs.length - 1)]
       };
     });
@@ -95,10 +99,24 @@ module.exports = {
 
     const bonusText = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z biznesów gangu)` : '';
     const finalReward = result.reward - result.tributeAmount;
+    let replyText = '';
+
     if (result.tributeAmount > 0) {
-      await message.reply(`👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText} (pobrano **${formatCurrency(result.tributeAmount)}** haraczu dla Bossa)`);
+      replyText = `👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText} (pobrano **${formatCurrency(result.tributeAmount)}** haraczu dla Bossa)`;
     } else {
-      await message.reply(`👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText}`);
+      replyText = `👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText}`;
     }
+
+    if (result.xpResult && result.xpResult.leveledUp) {
+      replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
+      if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
+        const { getMilestoneRewardDescription } = require('../utils/economy');
+        for (const lvl of result.xpResult.milestonesGained) {
+          replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+        }
+      }
+    }
+
+    await message.reply(replyText);
   }
 };

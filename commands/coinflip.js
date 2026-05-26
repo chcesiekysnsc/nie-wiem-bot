@@ -34,16 +34,27 @@ module.exports = {
 
       user.balance -= bet;
 
-      const flip = Math.random() < 0.5 ? 'heads' : 'tails';
-      const won = flip === choice;
-      const payout = won ? bet * 2 : 0;
+      let winChance = 0.50;
+      if (user.badges) {
+        if (user.badges.includes(config.badges.bog)) winChance += 0.02;
+        else if (user.badges.includes(config.badges.rekin)) winChance += 0.01;
+        else if (user.badges.includes(config.badges.hazardzista)) winChance += 0.005;
+      }
+
+      const won = Math.random() < winChance;
+      const flip = won ? choice : (choice === 'heads' ? 'tails' : 'heads');
+
+      let payout = won ? bet * 2 : 0;
+      if (won && user.badges && user.badges.includes(config.badges.uzalezniony)) {
+        payout += Math.round(bet * 0.03);
+      }
       user.balance += payout;
 
       const net = payout - bet;
-      recordGame(user, net);
+      const xpResult = recordGame(user, net, 25, inventory);
       refreshBadges(user, inventory);
 
-      return { won, bet, payout, net, flip };
+      return { won, bet, payout, net, flip, xpResult };
     });
 
     if (result.error) {
@@ -52,8 +63,19 @@ module.exports = {
     }
 
     const outcome = displayChoice(result.flip);
-    const winText = result.won ? `Wygrana! +${formatCurrency(result.bet)}` : `Przegrana. -${formatCurrency(result.bet)}`;
+    const winText = result.won ? `Wygrana! +${formatCurrency(result.net)}` : `Przegrana. -${formatCurrency(result.bet)}`;
+    let replyText = `🪙 Coinflip: Wypadło **${outcome}**. ${winText}`;
 
-    await message.reply(`🪙 Coinflip: Wypadło **${outcome}**. ${winText}`);
+    if (result.xpResult && result.xpResult.leveledUp) {
+      replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
+      if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
+        const { getMilestoneRewardDescription } = require('../utils/economy');
+        for (const lvl of result.xpResult.milestonesGained) {
+          replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+        }
+      }
+    }
+
+    await message.reply(replyText);
   }
 };

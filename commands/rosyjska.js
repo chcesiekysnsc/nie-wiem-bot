@@ -68,21 +68,30 @@ module.exports = {
         const winner = store.users[winnerId];
         const loser = store.users[loserId];
 
-        winner.balance += request.amount;
+        let winAmount = request.amount;
+        if (winner.badges && winner.badges.includes(config.badges.uzalezniony)) {
+          winAmount = Math.round(winAmount * 1.03);
+        }
+        winner.balance += winAmount;
         loser.balance -= request.amount;
 
-        recordGame(winner, request.amount);
-        recordGame(loser, -request.amount);
+        const winnerInv = ensureInventoryRecord(store.inventory, winnerId);
+        const loserInv = ensureInventoryRecord(store.inventory, loserId);
 
-        refreshBadges(winner, ensureInventoryRecord(store.inventory, winnerId));
-        refreshBadges(loser, ensureInventoryRecord(store.inventory, loserId));
+        const winnerXpResult = recordGame(winner, winAmount, 25, winnerInv);
+        const loserXpResult = recordGame(loser, -request.amount, 25, loserInv);
+
+        refreshBadges(winner, winnerInv);
+        refreshBadges(loser, loserInv);
 
         return {
           success: true,
           turns,
           winnerId,
           loserId,
-          amount: request.amount
+          amount: request.amount,
+          winnerXpResult,
+          loserXpResult
         };
       });
 
@@ -113,6 +122,29 @@ module.exports = {
       const loserName = result.loserId === request.challengerId ? challengerName : targetName;
 
       await message.reply(`🏆 **${winnerName}** wygrywa **+${formatCurrency(result.amount)}**! 💀 **${loserName}** ginie.`);
+
+      let lvlUpMessage = '';
+      if (result.winnerXpResult && result.winnerXpResult.leveledUp) {
+        lvlUpMessage += `\n🎉 **${winnerName}** awansował na **poziom ${result.winnerXpResult.newLevel}**!`;
+        if (result.winnerXpResult.milestonesGained && result.winnerXpResult.milestonesGained.length > 0) {
+          const { getMilestoneRewardDescription } = require('../utils/economy');
+          for (const lvl of result.winnerXpResult.milestonesGained) {
+            lvlUpMessage += `\n🎁 Otrzymał nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+          }
+        }
+      }
+      if (result.loserXpResult && result.loserXpResult.leveledUp) {
+        lvlUpMessage += `\n🎉 **${loserName}** awansował na **poziom ${result.loserXpResult.newLevel}**!`;
+        if (result.loserXpResult.milestonesGained && result.loserXpResult.milestonesGained.length > 0) {
+          const { getMilestoneRewardDescription } = require('../utils/economy');
+          for (const lvl of result.loserXpResult.milestonesGained) {
+            lvlUpMessage += `\n🎁 Otrzymał nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+          }
+        }
+      }
+      if (lvlUpMessage) {
+        await message.reply(lvlUpMessage);
+      }
       return;
     }
 
@@ -176,23 +208,28 @@ module.exports = {
         // Rosyjska ruletka: 2/6 szansy na porażkę
         const isDead = Math.random() < (2 / 6);
 
+        let net = 0;
         if (isDead) {
           user.balance -= amount;
+          net = -amount;
         } else {
-          // Payout 1.333x (zysk 33.3% stawki)
-          user.balance += Math.floor(amount * 0.333);
+          let win = Math.floor(amount * 0.333);
+          if (user.badges && user.badges.includes(config.badges.uzalezniony)) {
+            win = Math.round(win * 1.03);
+          }
+          user.balance += win;
+          net = win;
         }
 
-        const net = isDead ? -amount : Math.floor(amount * 0.333);
-        recordGame(user, net);
-
+        const xpResult = recordGame(user, net, 25, ensureInventoryRecord(store.inventory, message.author.id));
         refreshBadges(user, ensureInventoryRecord(store.inventory, message.author.id));
 
         return {
           success: true,
           isDead,
           amount,
-          newBalance: user.balance
+          newBalance: user.balance,
+          xpResult
         };
       });
 
@@ -210,8 +247,18 @@ module.exports = {
         response += `💰 Twój portfel: **${formatCurrency(result.newBalance)}**`;
       } else {
         response += `*...klik!* (Pusto. Słychać tylko suche kliknięcie iglicy)\n`;
-        response += `🏆 Udało Ci się przeżyć! Wygrywasz **+${formatCurrency(Math.floor(result.amount * 0.333))}** (zysk 33.3%).\n`;
+        response += `🏆 Udało Ci się przeżyć! Wygrywasz **+${formatCurrency(result.xpResult.net)}**.\n`;
         response += `💰 Twój portfel: **${formatCurrency(result.newBalance)}**`;
+      }
+
+      if (result.xpResult && result.xpResult.leveledUp) {
+        response += `\n\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
+        if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
+          const { getMilestoneRewardDescription } = require('../utils/economy');
+          for (const lvl of result.xpResult.milestonesGained) {
+            response += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+          }
+        }
       }
 
       await message.reply(response);

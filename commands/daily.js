@@ -72,6 +72,22 @@ module.exports = {
         reward = Math.floor(reward * config.economy.dailyVipBonus);
       }
 
+      let dailyBonusMult = 1.0;
+      if (user.badges) {
+        if (user.badges.includes(config.badges.krolSpamu)) {
+          dailyBonusMult += 0.12;
+        } else if (user.badges.includes(config.badges.spamer)) {
+          dailyBonusMult += 0.08;
+        } else if (user.badges.includes(config.badges.gadatliwy)) {
+          dailyBonusMult += 0.04;
+        }
+
+        if (user.badges.includes(config.badges.married)) {
+          dailyBonusMult += 0.02;
+        }
+      }
+      reward = Math.floor(reward * dailyBonusMult);
+
       user.balance += reward;
       const tomorrowMidnight = getPolishMidnight(new Date(todayMidnight + 26 * 60 * 60 * 1000));
       user.dailyCooldown = tomorrowMidnight;

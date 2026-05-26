@@ -78,12 +78,31 @@ module.exports = {
       user.balance -= bet;
 
       const symbols = [pullSymbol(false), pullSymbol(false), pullSymbol(false)];
-      const multiplier = getMultiplier(symbols, false);
-      const payout = Math.floor(bet * multiplier);
+      let multiplier = getMultiplier(symbols, false);
+      if (multiplier <= 0) {
+        let helperChance = 0;
+        if (user.badges) {
+          if (user.badges.includes(config.badges.bog)) helperChance = 0.02;
+          else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
+          else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
+        }
+        if (helperChance > 0 && Math.random() < helperChance) {
+          symbols[0] = '🍒';
+          symbols[1] = '🍒';
+          symbols[2] = '🍋';
+          multiplier = getMultiplier(symbols, false);
+        }
+      }
+
+      let payout = Math.floor(bet * multiplier);
+      if (payout > bet && user.badges && user.badges.includes(config.badges.uzalezniony)) {
+        const profit = payout - bet;
+        payout += Math.round(profit * 0.03);
+      }
       user.balance += payout;
 
       const net = payout - bet;
-      recordGame(user, net);
+      const xpResult = recordGame(user, net, 25, inventory);
       refreshBadges(user, inventory);
 
       return {
@@ -91,6 +110,7 @@ module.exports = {
         bet,
         payout,
         net,
+        xpResult,
         balance: user.balance
       };
     });
@@ -102,6 +122,18 @@ module.exports = {
 
     const won = result.net >= 0;
     const winText = won ? `Wygrana! **+${formatCurrency(result.net)}**` : `Przegrana. **-${formatCurrency(Math.abs(result.net))}**`;
-    await message.reply(`🎰 Slots: ${result.symbols.join(' | ')}. ${winText}. Twój balans: **${formatCurrency(result.balance)}**`);
+    let replyText = `🎰 Slots: ${result.symbols.join(' | ')}. ${winText}. Twój balans: **${formatCurrency(result.balance)}**`;
+
+    if (result.xpResult && result.xpResult.leveledUp) {
+      replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
+      if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
+        const { getMilestoneRewardDescription } = require('../utils/economy');
+        for (const lvl of result.xpResult.milestonesGained) {
+          replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+        }
+      }
+    }
+
+    await message.reply(replyText);
   }
 };

@@ -41,28 +41,95 @@ function resolveAmount(input, available) {
   return Math.floor(amount);
 }
 
+const MILESTONE_REWARDS = {
+  10: { coins: 5000, items: { paczka_brazowa: 1 } },
+  20: { coins: 15000, items: { klodka: 1 } },
+  30: { coins: 30000, items: { bomba: 1 } },
+  40: { coins: 60000, items: { piwo: 1 } },
+  50: { coins: 100000, items: { paczka_tytanowa: 1 } },
+  60: { coins: 150000, items: { klodka: 1, bomba: 1 } },
+  70: { coins: 200000, items: { paczka_zlota: 1 } },
+  80: { coins: 300000, items: { paczka_diamentowa: 1 } },
+  90: { coins: 450000, items: { paczka_tytanowa: 1, klodka: 1 } },
+  100: { coins: 1000000, items: { paczka_tytanowa: 1, paczka_diamentowa: 1 } }
+};
+
+function getMilestoneRewardDescription(level) {
+  const reward = MILESTONE_REWARDS[level];
+  if (!reward) return '';
+  const parts = [];
+  if (reward.coins) {
+    parts.push(`+${formatCurrency(reward.coins)}`);
+  }
+  if (reward.items) {
+    for (const [itemId, qty] of Object.entries(reward.items)) {
+      const item = config.shopItems[itemId] || { name: itemId, emoji: '' };
+      parts.push(`+${qty}x ${item.emoji} ${item.name}`);
+    }
+  }
+  return parts.join(', ');
+}
+
+function giveMilestoneReward(user, newLevel, inventoryRecord) {
+  const reward = MILESTONE_REWARDS[newLevel];
+  if (!reward) return;
+
+  if (reward.coins) {
+    user.balance += reward.coins;
+  }
+  if (reward.items && inventoryRecord) {
+    for (const [itemId, qty] of Object.entries(reward.items)) {
+      addItem(inventoryRecord, itemId, qty);
+    }
+  }
+}
+
 function xpForLevel(level, prestige = 0) {
   const safeLevel = Math.max(1, Math.floor(level || 1));
   const safePrestige = Math.max(0, Math.floor(prestige || 0));
-  return config.economy.xpPerLevelBase + safeLevel * config.economy.xpPerLevelGrowth + safePrestige * 40;
+  const baseThreshold = config.economy.xpPerLevelBase + safeLevel * config.economy.xpPerLevelGrowth + safePrestige * 40;
+  return Math.floor(baseThreshold * 1.20);
 }
 
-function addXp(user, amount) {
+function addXp(user, amount, inventoryRecord = null) {
   user.xp += Math.max(0, Math.floor(amount || 0));
+  const oldLevel = user.level;
   let leveledUp = false;
+  const milestonesGained = [];
 
   while (user.xp >= xpForLevel(user.level, user.prestige)) {
     user.xp -= xpForLevel(user.level, user.prestige);
     user.level += 1;
     user.balance += 500 + user.level * 40;
     leveledUp = true;
+
+    if (MILESTONE_REWARDS[user.level]) {
+      giveMilestoneReward(user, user.level, inventoryRecord);
+      milestonesGained.push(user.level);
+    }
   }
 
-  return leveledUp;
+  return {
+    leveledUp,
+    oldLevel,
+    newLevel: user.level,
+    milestonesGained
+  };
 }
 
-function recordGame(user, net, xpGain = randomInt(15, 35)) {
+function recordGame(user, net, xpGain = 25, inventoryRecord = null) {
   user.gamesPlayed += 1;
+
+  let finalXpGain = xpGain;
+  if (user.badges) {
+    if (user.badges.includes(config.badges.uzalezniony)) {
+      finalXpGain = Math.round(finalXpGain * 1.12);
+    } else if (user.badges.includes(config.badges.weteran)) {
+      finalXpGain = Math.round(finalXpGain * 1.08);
+    } else if (user.badges.includes(config.badges.gracz)) {
+      finalXpGain = Math.round(finalXpGain * 1.05);
+    }
+  }
 
   if (net >= 0) {
     user.totalWon += net;
@@ -72,7 +139,7 @@ function recordGame(user, net, xpGain = randomInt(15, 35)) {
     user.losses = (user.losses || 0) + 1;
   }
 
-  return addXp(user, xpGain);
+  return addXp(user, finalXpGain, inventoryRecord);
 }
 
 function ensureInventoryRecord(inventoryData, userId) {
@@ -128,6 +195,12 @@ function getBankCapacity(user, inventoryRecord) {
     capacity += config.economy.goldenCardBonus || 50000;
   }
 
+  if (user.badges && user.badges.includes(config.badges.miliarder)) {
+    capacity += 50000;
+  } else if (user.badges && user.badges.includes(config.badges.milioner)) {
+    capacity += 25000;
+  }
+
   return capacity;
 }
 
@@ -142,29 +215,29 @@ function refreshBadges(user, inventoryRecord) {
 
   // Wealth (Bogacz / Milioner / Miliarder)
   const totalWealth = (user.balance || 0) + (user.bank || 0);
-  if (totalWealth >= 10000000) {
+  if (totalWealth >= 30000000) {
     staticBadges.push(config.badges.miliarder);
-  } else if (totalWealth >= 1000000) {
+  } else if (totalWealth >= 3000000) {
     staticBadges.push(config.badges.milioner);
-  } else if (totalWealth >= 150000) {
+  } else if (totalWealth >= 300000) {
     staticBadges.push(config.badges.bogacz);
   }
 
   // Grinder (Gracz / Weteran / Uzależniony)
-  if (user.gamesPlayed >= 2500) {
+  if (user.gamesPlayed >= 7500) {
     staticBadges.push(config.badges.uzalezniony);
-  } else if (user.gamesPlayed >= 500) {
+  } else if (user.gamesPlayed >= 1500) {
     staticBadges.push(config.badges.weteran);
-  } else if (user.gamesPlayed >= 100) {
+  } else if (user.gamesPlayed >= 250) {
     staticBadges.push(config.badges.gracz);
   }
 
   // Gambler (Hazardzista / Rekin / Bóg)
-  if (user.totalWon >= 5000000) {
+  if (user.totalWon >= 50000000) {
     staticBadges.push(config.badges.bog);
-  } else if (user.totalWon >= 500000) {
+  } else if (user.totalWon >= 5000000) {
     staticBadges.push(config.badges.rekin);
-  } else if (user.totalWon >= 50000) {
+  } else if (user.totalWon >= 500000) {
     staticBadges.push(config.badges.hazardzista);
   }
 
@@ -172,32 +245,32 @@ function refreshBadges(user, inventoryRecord) {
   if (user.marriedTo) staticBadges.push(config.badges.married);
 
   // Messages Sent (Gadatliwy / Spamer / Król Spamu)
-  if (user.messageCount >= 25000) {
+  if (user.messageCount >= 75000) {
     staticBadges.push(config.badges.krolSpamu);
-  } else if (user.messageCount >= 5000) {
+  } else if (user.messageCount >= 15000) {
     staticBadges.push(config.badges.spamer);
-  } else if (user.messageCount >= 1000) {
+  } else if (user.messageCount >= 3000) {
     staticBadges.push(config.badges.gadatliwy);
   }
 
   // Commands Used (Klikacz / Władca Bota)
-  if (user.commandsUsed >= 1000) {
+  if (user.commandsUsed >= 3000) {
     staticBadges.push(config.badges.wladcaBota);
-  } else if (user.commandsUsed >= 100) {
+  } else if (user.commandsUsed >= 300) {
     staticBadges.push(config.badges.klikacz);
   }
 
   // Level (Nowicjusz / Ekspert / Mistrz)
   if (user.level >= 50) {
     staticBadges.push(config.badges.mistrz);
-  } else if (user.level >= 30) {
+  } else if (user.level >= 35) {
     staticBadges.push(config.badges.ekspert);
-  } else if (user.level >= 10) {
+  } else if (user.level >= 15) {
     staticBadges.push(config.badges.nowicjusz);
   }
 
   // Wins
-  if (user.wins >= 100) staticBadges.push(config.badges.zwyciezca);
+  if (user.wins >= 300) staticBadges.push(config.badges.zwyciezca);
 
   // Gang Membership
   if (user.gangId && user.gangRole) {
@@ -251,5 +324,7 @@ module.exports = {
   addItem,
   removeItem,
   getBankCapacity,
-  refreshBadges
+  refreshBadges,
+  MILESTONE_REWARDS,
+  getMilestoneRewardDescription
 };

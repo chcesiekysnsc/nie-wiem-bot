@@ -106,9 +106,12 @@ module.exports = {
         robber.piwoActive = false; // zużyj aktywne piwo
       }
 
-      // Szanse: 60% sukces, 40% wpadka. Krwawy Żeton daje +6%
+      // Szanse: 60% sukces, 40% wpadka. Krwawy Żeton daje +6%. Odznaka Zwycięzca daje +5%
       const robberHasZeton = hasItem(robberInv, 'krwawy_zeton');
-      const baseSuccessChance = robberHasZeton ? 0.66 : 0.60;
+      let baseSuccessChance = robberHasZeton ? 0.66 : 0.60;
+      if (robber.badges && robber.badges.includes(config.badges.zwyciezca)) {
+        baseSuccessChance += 0.05;
+      }
       const success = Math.random() < baseSuccessChance;
 
       if (success) {

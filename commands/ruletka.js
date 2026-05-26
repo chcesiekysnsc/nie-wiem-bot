@@ -88,11 +88,30 @@ module.exports = {
         multiplier = rolledNumber === 0 ? 18 : 12;
       }
 
-      const payout = won ? bet * multiplier : 0;
+      if (!won) {
+        let helperChance = 0;
+        if (user.badges) {
+          if (user.badges.includes(config.badges.bog)) helperChance = 0.02;
+          else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
+          else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
+        }
+        if (helperChance > 0 && Math.random() < helperChance) {
+          won = true;
+          multiplier = target.type === 'color' ? (target.value === 'green' ? 36 : 2) : 2;
+        }
+      }
+
+      let payout = won ? bet * multiplier : 0;
+      if (won && user.badges && user.badges.includes(config.badges.uzalezniony)) {
+        const profit = payout - bet;
+        if (profit > 0) {
+          payout += Math.round(profit * 0.03);
+        }
+      }
       user.balance += payout;
 
       const net = payout - bet;
-      recordGame(user, net);
+      const xpResult = recordGame(user, net, 25, inventory);
       refreshBadges(user, inventory);
 
       return {
@@ -102,7 +121,8 @@ module.exports = {
         net,
         rolledNumber,
         rolledColor,
-        label: target.label
+        label: target.label,
+        xpResult
       };
     });
 
@@ -114,7 +134,18 @@ module.exports = {
     const colorLabel = result.rolledColor === 'red' ? 'Czerwone' : result.rolledColor === 'black' ? 'Czarne' : 'Zielone';
     const outcome = `${result.rolledNumber} (${colorLabel})`;
     const winText = result.won ? `Wygrana! +${formatCurrency(result.net)}` : `Przegrana. -${formatCurrency(result.bet)}`;
+    let replyText = `🎰 Ruletka: Wypadło **${outcome}**. Typ: **${result.label}**. ${winText}`;
 
-    await message.reply(`🎰 Ruletka: Wypadło **${outcome}**. Typ: **${result.label}**. ${winText}`);
+    if (result.xpResult && result.xpResult.leveledUp) {
+      replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
+      if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
+        const { getMilestoneRewardDescription } = require('../utils/economy');
+        for (const lvl of result.xpResult.milestonesGained) {
+          replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+        }
+      }
+    }
+
+    await message.reply(replyText);
   }
 };

@@ -164,19 +164,34 @@ module.exports = {
       const dbResult = await withData(store => {
         const user = createUser(authorId, store.users);
         const inventory = ensureInventoryRecord(store.inventory, authorId);
+        if (payout > bet && user.badges && user.badges.includes(config.badges.uzalezniony)) {
+          const profit = payout - bet;
+          payout += Math.round(profit * 0.03);
+          net = payout - bet;
+        }
         user.balance += payout;
-        recordGame(user, net);
+        const xpResult = recordGame(user, net, 25, inventory);
         refreshBadges(user, inventory);
-        return user.balance;
+        return { balance: user.balance, xpResult };
       });
 
-      await message.reply(
-        `🃏 **Gra w Blackjacka rozstrzygnięta!**\n\n` +
+      let replyText = `🃏 **Gra w Blackjacka rozstrzygnięta!**\n\n` +
         `👨‍💼 Krupier: ${renderHand(dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
         `👤 Twoja Ręka: ${renderHand(playerCards)} (Wartość: 21 pkt)\n\n` +
         `${outcome}\n` +
-        `Twój balans: **${formatCurrency(dbResult)}**`
-      );
+        `Twój balans: **${formatCurrency(dbResult.balance)}**`;
+
+      if (dbResult.xpResult && dbResult.xpResult.leveledUp) {
+        replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${dbResult.xpResult.newLevel}**!`;
+        if (dbResult.xpResult.milestonesGained && dbResult.xpResult.milestonesGained.length > 0) {
+          const { getMilestoneRewardDescription } = require('../utils/economy');
+          for (const lvl of dbResult.xpResult.milestonesGained) {
+            replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+          }
+        }
+      }
+
+      await message.reply(replyText);
       return;
     }
 
@@ -222,17 +237,45 @@ module.exports = {
         const dbResult = await withData(store => {
           const user = createUser(authorId, store.users);
           const inventory = ensureInventoryRecord(store.inventory, authorId);
-          recordGame(user, -game.bet);
+          
+          let payout = 0;
+          let net = -game.bet;
+          let outcomeText = `Tracisz **${formatCurrency(game.bet)}**.`;
+
+          let helperChance = 0;
+          if (user.badges) {
+            if (user.badges.includes(config.badges.bog)) helperChance = 0.02;
+            else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
+            else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
+          }
+          if (helperChance > 0 && Math.random() < helperChance) {
+            payout = game.bet;
+            net = 0;
+            outcomeText = ` Uratowany! Dzięki Twojej odznace hazardowej unikasz porażki i otrzymujesz zwrot stawki.`;
+          }
+
+          user.balance += payout;
+          const xpResult = recordGame(user, net, 25, inventory);
           refreshBadges(user, inventory);
-          return user.balance;
+          return { balance: user.balance, xpResult, outcomeText };
         });
 
-        await message.reply(
-          `💥 **Przegrana (Bust!)** - przekroczyłeś 21 punktów.${cheatNote}\n\n` +
+        let replyText = `💥 **Przegrana (Bust!)** - przekroczyłeś 21 punktów.${cheatNote}\n\n` +
           `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
           `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)\n\n` +
-          `Tracisz **${formatCurrency(game.bet)}**. Twój balans: **${formatCurrency(dbResult)}**`
-        );
+          `${dbResult.outcomeText} Twój balans: **${formatCurrency(dbResult.balance)}**`;
+
+        if (dbResult.xpResult && dbResult.xpResult.leveledUp) {
+          replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${dbResult.xpResult.newLevel}**!`;
+          if (dbResult.xpResult.milestonesGained && dbResult.xpResult.milestonesGained.length > 0) {
+            const { getMilestoneRewardDescription } = require('../utils/economy');
+            for (const lvl of dbResult.xpResult.milestonesGained) {
+              replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+            }
+          }
+        }
+
+        await message.reply(replyText);
         client.activeBlackjackGames.delete(authorId);
       } else if (playerValue === 21) {
         // Automatyczny stand przy 21
@@ -283,17 +326,45 @@ module.exports = {
         const dbResult = await withData(store => {
           const user = createUser(authorId, store.users);
           const inventory = ensureInventoryRecord(store.inventory, authorId);
-          recordGame(user, -game.bet);
+          
+          let payout = 0;
+          let net = -game.bet;
+          let outcomeText = `Tracisz **${formatCurrency(game.bet)}**.`;
+
+          let helperChance = 0;
+          if (user.badges) {
+            if (user.badges.includes(config.badges.bog)) helperChance = 0.02;
+            else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
+            else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
+          }
+          if (helperChance > 0 && Math.random() < helperChance) {
+            payout = game.bet;
+            net = 0;
+            outcomeText = ` Uratowany! Dzięki Twojej odznace hazardowej unikasz porażki i otrzymujesz zwrot stawki.`;
+          }
+
+          user.balance += payout;
+          const xpResult = recordGame(user, net, 25, inventory);
           refreshBadges(user, inventory);
-          return user.balance;
+          return { balance: user.balance, xpResult, outcomeText };
         });
 
-        await message.reply(
-          `💥 **Przegrana (Bust!) przy podwojeniu** - przekroczyłeś 21 punktów.${cheatNote}\n\n` +
+        let replyText = `💥 **Przegrana (Bust!) przy podwojeniu** - przekroczyłeś 21 punktów.${cheatNote}\n\n` +
           `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
           `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)\n\n` +
-          `Tracisz **${formatCurrency(game.bet)}**. Twój balans: **${formatCurrency(dbResult)}**`
-        );
+          `${dbResult.outcomeText} Twój balans: **${formatCurrency(dbResult.balance)}**`;
+
+        if (dbResult.xpResult && dbResult.xpResult.leveledUp) {
+          replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${dbResult.xpResult.newLevel}**!`;
+          if (dbResult.xpResult.milestonesGained && dbResult.xpResult.milestonesGained.length > 0) {
+            const { getMilestoneRewardDescription } = require('../utils/economy');
+            for (const lvl of dbResult.xpResult.milestonesGained) {
+              replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+            }
+          }
+        }
+
+        await message.reply(replyText);
         client.activeBlackjackGames.delete(authorId);
       } else {
         // Automatyczne zatrzymanie (stand) po dobraniu 1 karty przy double
@@ -343,19 +414,54 @@ module.exports = {
     const dbResult = await withData(store => {
       const user = createUser(authorId, store.users);
       const inventory = ensureInventoryRecord(store.inventory, authorId);
-      user.balance += payout;
-      recordGame(user, net);
+      
+      let finalPayout = payout;
+      let finalNet = net;
+      let finalOutcome = outcome;
+
+      if (payout === 0 && net < 0) {
+        let helperChance = 0;
+        if (user.badges) {
+          if (user.badges.includes(config.badges.bog)) helperChance = 0.02;
+          else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
+          else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
+        }
+        if (helperChance > 0 && Math.random() < helperChance) {
+          finalPayout = game.bet;
+          finalNet = 0;
+          finalOutcome = `⚖️ **Push (Uratowany!)** - Dzięki Twojej odznace hazardowej unikasz porażki i otrzymujesz zwrot stawki.`;
+        }
+      }
+
+      if (finalPayout > game.bet && user.badges && user.badges.includes(config.badges.uzalezniony)) {
+        const profit = finalPayout - game.bet;
+        finalPayout += Math.round(profit * 0.03);
+        finalNet = finalPayout - game.bet;
+      }
+
+      user.balance += finalPayout;
+      const xpResult = recordGame(user, finalNet, 25, inventory);
       refreshBadges(user, inventory);
-      return user.balance;
+      return { balance: user.balance, xpResult, outcome: finalOutcome };
     });
 
-    await message.reply(
-      `🃏 **Koniec gry w Blackjacka!**${cheatNote}\n\n` +
+    let replyText = `🃏 **Koniec gry w Blackjacka!**${cheatNote}\n\n` +
       `👨‍💼 Krupier: ${renderHand(game.dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
       `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)\n\n` +
-      `${outcome}\n` +
-      `Twój balans: **${formatCurrency(dbResult)}**`
-    );
+      `${dbResult.outcome}\n` +
+      `Twój balans: **${formatCurrency(dbResult.balance)}**`;
+
+    if (dbResult.xpResult && dbResult.xpResult.leveledUp) {
+      replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${dbResult.xpResult.newLevel}**!`;
+      if (dbResult.xpResult.milestonesGained && dbResult.xpResult.milestonesGained.length > 0) {
+        const { getMilestoneRewardDescription } = require('../utils/economy');
+        for (const lvl of dbResult.xpResult.milestonesGained) {
+          replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+        }
+      }
+    }
+
+    await message.reply(replyText);
 
     client.activeBlackjackGames.delete(authorId);
   }

@@ -258,14 +258,24 @@ async function withData(callback) {
       logs: loadData('logs')
     };
 
-    // Oblicz odsetki bankowe co 12h (2% do salda)
+    // Oblicz odsetki bankowe co 12h (2% do salda z bonusami odznaki)
     store.profiles.lastInterestPayout = store.profiles.lastInterestPayout || Date.now();
     const intervalMs = 12 * 60 * 60 * 1000;
     let timePassed = Date.now() - store.profiles.lastInterestPayout;
     while (timePassed >= intervalMs) {
       for (const [userId, user] of Object.entries(store.users)) {
         if (user && user.bank > 0) {
-          const interest = Math.floor(user.bank * 0.02);
+          let rate = 0.02;
+          if (user.badges) {
+            if (user.badges.includes(config.badges.miliarder)) {
+              rate += 0.02;
+            } else if (user.badges.includes(config.badges.milioner)) {
+              rate += 0.01;
+            } else if (user.badges.includes(config.badges.bogacz)) {
+              rate += 0.005;
+            }
+          }
+          const interest = Math.floor(user.bank * rate);
           if (interest > 0) {
             user.balance = (user.balance || 0) + interest;
           }

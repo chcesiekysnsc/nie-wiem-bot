@@ -803,14 +803,25 @@ module.exports = {
           return;
         }
 
-        const heistSuccess = Math.random() < 0.50; // Zawsze 50% na powodzenie
-
         const heistOutcome = await withData(store => {
           store.profiles.gangs = store.profiles.gangs || {};
           const currentGang = store.profiles.gangs[startResult.gangId];
           if (!currentGang) return { cancelled: true };
 
           currentGang.lastHeistTime = Date.now();
+
+          // Calculate success chance: base 50% + gang role bonuses (boss/deputy)
+          let successChance = 0.50;
+          for (const pid of listParticipants) {
+            const pUser = createUser(pid, store.users);
+            if (pUser.gangRole === 'boss') {
+              successChance = Math.max(successChance, 0.55);
+            } else if (pUser.gangRole === 'deputy') {
+              successChance = Math.max(successChance, 0.525);
+            }
+          }
+
+          const heistSuccess = Math.random() < successChance;
 
           if (!heistSuccess) {
             return { success: false };

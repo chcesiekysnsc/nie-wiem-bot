@@ -6,7 +6,8 @@ const {
   ensureInventoryRecord,
   formatCurrency,
   formatNumber,
-  refreshBadges
+  refreshBadges,
+  xpForLevel
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -241,7 +242,7 @@ module.exports = {
       `🎮 Gry: ${formatNumber(profileData.gamesPlayed)} | ⌨️ Komendy: ${formatNumber(profileData.commandsUsed)}\n` +
       `💬 Wiadomości: **${formatNumber(profileData.messageCount)}** (**${formatNumber(profileData.groupSpecificCount)}** na tej grupie)\n` +
       `📈 Wygrane: **${formatNumber(profileData.wins)}** | 📉 Przegrane: **${formatNumber(profileData.losses)}**\n` +
-      `🏆 Poziom: ${profileData.level}\n` +
+      `🏆 Poziom: ${profileData.level} (${profileData.xp}/${xpForLevel(profileData.level, profileData.prestige)} XP)\n` +
       `💍 Małżeństwo: **${partnerName}**\n` +
       `🎖️ Odznaki: ${profileData.badges.length ? profileData.badges.join(', ') : 'Brak'}`;
 
