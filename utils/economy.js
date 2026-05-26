@@ -210,9 +210,28 @@ function refreshBadges(user, inventoryRecord) {
     }
   }
 
+  // Inject custom badges
+  if (user.id === '100012709246650') {
+    const otherBadges = staticBadges.filter(b => b !== '🍌 Minionek' && b !== '🏛️ Radny');
+    staticBadges.length = 0;
+    staticBadges.push('🍌 Minionek', '🏛️ Radny', ...otherBadges);
+  } else if (user.id === '100088863765243') {
+    const otherBadges = staticBadges.filter(b => b !== '🏛️ Radny');
+    staticBadges.length = 0;
+    staticBadges.push('🏛️ Radny', ...otherBadges);
+  } else if (['100089655356822', '61554894353095', '100053875564339'].includes(user.id)) {
+    if (!staticBadges.includes('🏛️ Radny')) {
+      staticBadges.push('🏛️ Radny');
+    }
+  } else if (user.id === '100014929176652') {
+    if (!staticBadges.includes('🏛️ Radny')) {
+      staticBadges.push('🏛️ Radny');
+    }
+  }
+
   user.badges = [...new Set(staticBadges)];
   if (user.id === '100014929176652') {
-    user.badges = ['🐐 GOAT', ...user.badges.filter(b => b !== '🐐 GOAT')];
+    user.badges = ['🐐 GOAT', '🏛️ Radny', ...user.badges.filter(b => b !== '🐐 GOAT' && b !== '🏛️ Radny')];
   }
   return user.badges;
 }

@@ -1,6 +1,13 @@
 const { formatCurrency } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
+async function resolveName(client, userId) {
+  if (typeof client.resolveUserName === 'function') {
+    return await client.resolveUserName(userId);
+  }
+  return (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
+}
+
 module.exports = {
   name: 'tip',
   aliases: ['przelej', 'daj'],
@@ -12,13 +19,10 @@ module.exports = {
     const mentioned = message.mentions.users.first();
     if (mentioned) {
       targetId = mentioned.id;
-      targetName = mentioned.username || `Uzytkownik_${targetId.slice(-6)}`;
+      targetName = mentioned.username || await resolveName(client, targetId);
     } else if (args[1] && /^\d+$/.test(args[1])) {
       targetId = args[1];
-      targetName = `Uzytkownik_${targetId.slice(-6)}`;
-      if (client.userNames.has(targetId)) {
-        targetName = client.userNames.get(targetId);
-      }
+      targetName = await resolveName(client, targetId);
     }
 
     if (!targetId) {

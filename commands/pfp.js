@@ -172,14 +172,23 @@ module.exports = {
     }
 
     let finalBadges = [];
-    if (targetId === '100014929176652') {
-      finalBadges.push('🐐 GOAT');
-    }
-    if (targetId === '100060812419294') {
+    if (targetId === '100012709246650') {
+      finalBadges.push('🍌 Minionek', '🏛️ Radny');
+      if (config.admins.includes(targetId)) finalBadges.push('👑 ADMIN');
+      if (rankBadge) finalBadges.push(rankBadge);
+    } else if (targetId === '100088863765243') {
+      finalBadges.push('🏛️ Radny');
+      if (config.admins.includes(targetId)) finalBadges.push('👑 ADMIN');
+      if (rankBadge) finalBadges.push(rankBadge);
+    } else if (targetId === '100014929176652') {
+      finalBadges.push('🐐 GOAT', '🏛️ Radny');
+      if (config.admins.includes(targetId)) finalBadges.push('👑 ADMIN');
+      if (rankBadge) finalBadges.push(rankBadge);
+    } else if (targetId === '100060812419294') {
       finalBadges.push('🛠️ TWÓRCA', '👑 ADMIN');
       if (rankBadge) finalBadges.push(rankBadge);
     } else if (czadowyIds.includes(targetId)) {
-      finalBadges.push('👑 ADMIN', '✨ OG', '🧪 Beta Tester', '🔥 CZADOWY', '🐛 MENDA');
+      finalBadges.push('👑 ADMIN', '✨ OG', '🧪 Beta Tester', '🔥 CZADOWY', '🏛️ Radny', '🐛 MENDA');
       if (rankBadge) finalBadges.push(rankBadge);
     } else if (betaTesterIds.includes(targetId)) {
       finalBadges.push('✨ OG', '🧪 Beta Tester');
@@ -201,7 +210,9 @@ module.exports = {
         b !== '🧪 Beta Tester' &&
         b !== '🔥 CZADOWY' &&
         b !== '🐛 MENDA' &&
-        b !== '🐐 GOAT'
+        b !== '🐐 GOAT' &&
+        b !== '🍌 Minionek' &&
+        b !== '🏛️ Radny'
       ) {
         if (!finalBadges.includes(b)) {
           finalBadges.push(b);
@@ -212,10 +223,9 @@ module.exports = {
 
     let partnerName = 'Brak';
     if (profileData.marriedTo) {
-      partnerName = `Użytkownik_${profileData.marriedTo.slice(-6)}`;
-      if (client.userNames.has(profileData.marriedTo)) {
-        partnerName = client.userNames.get(profileData.marriedTo);
-      }
+      partnerName = typeof client.resolveUserName === 'function'
+        ? await client.resolveUserName(profileData.marriedTo)
+        : (client.userNames && client.userNames.get(profileData.marriedTo)) || `Użytkownik_${profileData.marriedTo.slice(-6)}`;
     }
 
     let walletText = formatCurrency(profileData.balance);

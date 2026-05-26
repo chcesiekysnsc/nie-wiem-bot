@@ -1,11 +1,11 @@
 const { ensureInventoryRecord, refreshBadges, formatCurrency } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
-function getPartnerLabel(client, userId) {
-  if (client.userNames.has(userId)) {
-    return client.userNames.get(userId);
+async function getPartnerLabel(client, userId) {
+  if (typeof client.resolveUserName === 'function') {
+    return await client.resolveUserName(userId);
   }
-  return `Użytkownik_${userId.slice(-6)}`;
+  return (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
 }
 
 module.exports = {
@@ -40,7 +40,7 @@ module.exports = {
       });
 
       if (status.marriedTo) {
-        let replyMsg = `💍 Status związku: Jesteś w związku z **${getPartnerLabel(client, status.marriedTo)}**.\n`;
+        let replyMsg = `💍 Status związku: Jesteś w związku z **${await getPartnerLabel(client, status.marriedTo)}**.\n`;
         if (status.bankInfo) {
           replyMsg += `🏦 Wspólny bank małżeński: **${formatCurrency(status.bankInfo.balance)}** (Twój wkład: **${formatCurrency(status.bankInfo.myContribution)}/100 000**).\n` +
                       `💡 Wpłać: **!marry wplac <kwota>** | Wypłać: **!marry wyplac <kwota>**`;
@@ -227,7 +227,7 @@ module.exports = {
       client.marriageRequests.delete(requestId);
 
       if (action === 'decline') {
-        await message.reply(`💍 Odrzuciłeś propozycję ślubu od **${getPartnerLabel(client, proposerId)}**.`);
+        await message.reply(`💍 Odrzuciłeś propozycję ślubu od **${await getPartnerLabel(client, proposerId)}**.`);
         return;
       }
 
@@ -256,7 +256,7 @@ module.exports = {
         return;
       }
 
-      await message.reply(`🎉 Ślub zawarty! Jesteście teraz małżeństwem z **${getPartnerLabel(client, proposerId)}**!`);
+      await message.reply(`🎉 Ślub zawarty! Jesteście teraz małżeństwem z **${await getPartnerLabel(client, proposerId)}**!`);
       return;
     }
 
@@ -267,13 +267,10 @@ module.exports = {
     const mentioned = message.mentions.users.first();
     if (mentioned) {
       targetId = mentioned.id;
-      targetName = mentioned.username || `Uzytkownik_${targetId.slice(-6)}`;
+      targetName = mentioned.username || await getPartnerLabel(client, targetId);
     } else if (args[0] && /^\d+$/.test(args[0])) {
       targetId = args[0];
-      targetName = `Uzytkownik_${targetId.slice(-6)}`;
-      if (client.userNames.has(targetId)) {
-        targetName = client.userNames.get(targetId);
-      }
+      targetName = await getPartnerLabel(client, targetId);
     }
 
     if (!targetId) {
@@ -297,11 +294,11 @@ module.exports = {
       refreshBadges(partner, ensureInventoryRecord(store.inventory, targetId));
 
       if (proposer.marriedTo) {
-        return { error: `❌ Jesteś już w związku z **${getPartnerLabel(client, proposer.marriedTo)}**.` };
+        return { errorType: 'already_married', marriedTo: proposer.marriedTo };
       }
 
       if (partner.marriedTo) {
-        return { error: `❌ **${targetName}** jest już w związku małżeńskim.` };
+        return { errorType: 'partner_already_married' };
       }
 
       return { success: true };
@@ -309,6 +306,17 @@ module.exports = {
 
     if (validation.error) {
       await message.reply(validation.error);
+      return;
+    }
+
+    if (validation.errorType === 'already_married') {
+      const partnerLabel = await getPartnerLabel(client, validation.marriedTo);
+      await message.reply(`❌ Jesteś już w związku z **${partnerLabel}**.`);
+      return;
+    }
+
+    if (validation.errorType === 'partner_already_married') {
+      await message.reply(`❌ **${targetName}** jest już w związku małżeńskim.`);
       return;
     }
 

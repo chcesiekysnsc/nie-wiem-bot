@@ -5,6 +5,13 @@ const { createUser, withData } = require('../utils/storage');
 const robCooldowns = new Map();   // userId -> timestamp wolny od kiedy
 const caughtBan = new Map();      // userId -> timestamp do kiedy zbanowany
 
+async function resolveName(client, userId) {
+  if (typeof client.resolveUserName === 'function') {
+    return await client.resolveUserName(userId);
+  }
+  return (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
+}
+
 module.exports = {
   name: 'rob',
   aliases: ['okradnij'],
@@ -34,13 +41,10 @@ module.exports = {
     const mentioned = message.mentions.users.first();
     if (mentioned) {
       targetId = mentioned.id;
-      targetName = mentioned.username || `Uzytkownik_${targetId.slice(-6)}`;
+      targetName = mentioned.username || await resolveName(client, targetId);
     } else if (args[0] && /^\d+$/.test(args[0])) {
       targetId = args[0];
-      targetName = `Uzytkownik_${targetId.slice(-6)}`;
-      if (client.userNames.has(targetId)) {
-        targetName = client.userNames.get(targetId);
-      }
+      targetName = await resolveName(client, targetId);
     }
 
     if (!targetId) {
@@ -174,7 +178,7 @@ module.exports = {
       return;
     }
 
-    const robberName = message.author.username || `Użytkownik_${authorId.slice(-6)}`;
+    const robberName = await resolveName(client, authorId);
     const currentThreadId = message.guild?.id || message.rawEvent?.threadID;
 
     const sendWithMention = (body, targetName, targetId, threadId, replyToMessageId = null) => {

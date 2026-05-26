@@ -292,6 +292,8 @@ function createMessengerClient(clientConfig) {
     commands: new Map(),
     marriageRequests: new Map(),
     processedMessages: new Map(),
+    userNames: new Map(),
+    resolvedUserNames: new Set(),
     users: {
       cache: new Map(),
       fetch: async userId => client.fetchUser(userId)
@@ -495,6 +497,20 @@ function createMessengerClient(clientConfig) {
     }
 
     return client.cacheUser(userId);
+  };
+
+  client.resolveUserName = async (apiOrUserId, maybeUserId) => {
+    const userId = typeof apiOrUserId === 'object' && apiOrUserId !== null ? maybeUserId : apiOrUserId;
+    if (client.resolvedUserNames.has(userId) && client.userNames.has(userId)) {
+      return client.userNames.get(userId);
+    }
+    const user = await client.cacheUser(userId).catch(() => null);
+    if (user && user.profile && user.profile.name) {
+      client.userNames.set(userId, user.profile.name);
+      client.resolvedUserNames.add(userId);
+      return user.profile.name;
+    }
+    return client.userNames.get(userId) || `Użytkownik_${String(userId).slice(-6)}`;
   };
 
   return client;

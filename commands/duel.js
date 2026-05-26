@@ -1,6 +1,13 @@
 const { formatCurrency, refreshBadges, ensureInventoryRecord } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
+async function resolveName(client, userId) {
+  if (typeof client.resolveUserName === 'function') {
+    return await client.resolveUserName(userId);
+  }
+  return (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
+}
+
 module.exports = {
   name: 'duel',
   aliases: ['pojedynek'],
@@ -65,8 +72,8 @@ module.exports = {
         return;
       }
 
-      const challengerName = client.userNames.get(request.challengerId) || `Użytkownik_${request.challengerId.slice(-6)}`;
-      const targetName = message.author.username || `Użytkownik_${targetId.slice(-6)}`;
+      const challengerName = await resolveName(client, request.challengerId);
+      const targetName = await resolveName(client, targetId);
 
       if (result.challengerWins) {
         await message.reply(`⚔️ Pojedynek rozstrzygnięty! Wygrywa **${challengerName}** (+${formatCurrency(result.amount)}), przegrywa **${targetName}** (-${formatCurrency(result.amount)}).`);
@@ -87,7 +94,7 @@ module.exports = {
       }
 
       client.duelRequests.delete(targetId);
-      const challengerName = client.userNames.get(request.challengerId) || `Użytkownik_${request.challengerId.slice(-6)}`;
+      const challengerName = await resolveName(client, request.challengerId);
       await message.reply(`⚔️ Odrzucono pojedynek od **${challengerName}**.`);
       return;
     }
@@ -101,13 +108,10 @@ module.exports = {
     const mentioned = message.mentions.users.first();
     if (mentioned) {
       targetId = mentioned.id;
-      targetName = mentioned.username || `Uzytkownik_${targetId.slice(-6)}`;
+      targetName = mentioned.username || await resolveName(client, targetId);
     } else if (args[1] && /^\d+$/.test(args[1])) {
       targetId = args[1];
-      targetName = `Uzytkownik_${targetId.slice(-6)}`;
-      if (client.userNames.has(targetId)) {
-        targetName = client.userNames.get(targetId);
-      }
+      targetName = await resolveName(client, targetId);
     }
 
     if (!targetId || !rawAmount) {
@@ -164,7 +168,7 @@ module.exports = {
       }
     }, 120000).unref();
 
-    const challengerName = message.author.username || `Użytkownik_${message.author.id.slice(-6)}`;
+    const challengerName = await resolveName(client, message.author.id);
     await message.reply(`⚔️ Pojedynek! **${challengerName}** wyzywa **${targetName}** na pojedynek o **${formatCurrency(validation.amount)}**! Wpisz **!duel acc** lub **!duel dec** w ciągu 2 minut.`);
   }
 };

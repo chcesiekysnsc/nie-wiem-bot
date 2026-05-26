@@ -50,10 +50,9 @@ module.exports = {
       return;
     }
 
-    let partnerName = `Użytkownik_${result.partnerId.slice(-6)}`;
-    if (client.userNames.has(result.partnerId)) {
-      partnerName = client.userNames.get(result.partnerId);
-    }
+    const partnerName = typeof client.resolveUserName === 'function'
+      ? await client.resolveUserName(result.partnerId)
+      : (client.userNames && client.userNames.get(result.partnerId)) || `Użytkownik_${result.partnerId.slice(-6)}`;
 
     let payoutText = '';
     if (result.divorcePayoutInfo) {

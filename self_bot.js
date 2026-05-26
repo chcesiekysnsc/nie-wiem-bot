@@ -96,11 +96,23 @@ const client = {
   lastLotteryDraw: 0,
   lastTaxCollection: 0,
   activeThreadIds: new Set(),
-  async resolveUserName(api, userId) {
+  async resolveUserName(apiOrUserId, maybeUserId) {
+    let api = null;
+    let userId = null;
+    if (typeof apiOrUserId === 'object' && apiOrUserId !== null) {
+      api = apiOrUserId;
+      userId = maybeUserId;
+    } else {
+      userId = apiOrUserId;
+      api = this.api;
+    }
     if (this.resolvedUserNames.has(userId) && this.userNames.has(userId)) {
       return this.userNames.get(userId);
     }
     return new Promise((resolve) => {
+      if (!api) {
+        return resolve(this.userNames.get(userId) || `Użytkownik_${userId.slice(-6)}`);
+      }
       api.getUserInfo(userId, (err, ret) => {
         if (!err && ret && ret[userId]) {
           const name = ret[userId].name;
@@ -108,7 +120,7 @@ const client = {
           this.resolvedUserNames.add(userId);
           resolve(name);
         } else {
-          const fallback = this.userNames.get(userId) || `Uzytkownik_${userId.slice(-6)}`;
+          const fallback = this.userNames.get(userId) || `Użytkownik_${userId.slice(-6)}`;
           resolve(fallback);
         }
       });
@@ -245,6 +257,8 @@ login({ appState }, (loginErr, api) => {
     console.error('[SELF-BOT] Logowanie nie powiodlo sie:', loginErr);
     process.exit(1);
   }
+
+  client.api = api;
 
   console.log('[SELF-BOT] Zalogowano pomyslnie! Rozpoczynanie nasluchiwania wiadomosci...');
   
