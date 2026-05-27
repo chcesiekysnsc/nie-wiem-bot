@@ -193,19 +193,26 @@ module.exports = {
           bossUser.balance += tribute;
         }
 
-        // Vampiric Dagger cooldown reset
+        // Vampiric Dagger cooldown reset (limited to once per 12h)
+        let sztyletResetTriggered = false;
         if (hasItem(robberInv, 'wampirzy_sztylet')) {
-          robber.lastWorkTime = 0;
-          if (store.cooldowns && store.cooldowns.commands && store.cooldowns.commands[authorId]) {
-            delete store.cooldowns.commands[authorId]['work'];
-            delete store.cooldowns.commands[authorId]['crime'];
+          const lastReset = robber.lastSztyletResetTime || 0;
+          const twelveHours = 12 * 60 * 60 * 1000;
+          if (now - lastReset >= twelveHours) {
+            robber.lastWorkTime = 0;
+            if (store.cooldowns && store.cooldowns.commands && store.cooldowns.commands[authorId]) {
+              delete store.cooldowns.commands[authorId]['work'];
+              delete store.cooldowns.commands[authorId]['crime'];
+            }
+            robber.lastSztyletResetTime = now;
+            sztyletResetTriggered = true;
           }
         }
 
         robber.gamesPlayed += 1;
         refreshBadges(robber, robberInv);
         refreshBadges(victim, victimInv);
-        return { success: true, stolen: netStolen, tribute, gangBonus, beer: hasBeer, victimLastActiveThreadId, robberHasZeton, sztyletBonus };
+        return { success: true, stolen: netStolen, tribute, gangBonus, beer: hasBeer, victimLastActiveThreadId, robberHasZeton, sztyletBonus, sztyletResetTriggered };
       } else {
         const losePercent = hasBeer ? 0.40 : 0.30;
         let fine = Math.max(1, Math.floor(robber.balance * losePercent));
@@ -272,7 +279,14 @@ module.exports = {
       if (result.success) {
         const beerNote = result.beer ? ' (Wypite Piwo +25%!)' : '';
         const zetonNote = result.robberHasZeton ? ' (Krwawy Żeton +4%!)' : '';
-        const sztyletNote = result.sztyletBonus ? ` (w tym **+${formatCurrency(result.sztyletBonus)}** z Wampirzego Sztyletu, który zresetował Twoje cooldowny!)` : '';
+        let sztyletNote = '';
+        if (result.sztyletBonus) {
+          if (result.sztyletResetTriggered) {
+            sztyletNote = ` (w tym **+${formatCurrency(result.sztyletBonus)}** z Wampirzego Sztyletu, który zresetował Twoje cooldowny!)`;
+          } else {
+            sztyletNote = ` (w tym **+${formatCurrency(result.sztyletBonus)}** z Wampirzego Sztyletu)`;
+          }
+        }
         const bonusNote = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z fachu gangu)` : '';
         if (result.tribute > 0) {
           replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}${zetonNote}${sztyletNote} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa).${beerNote}`;
