@@ -34,52 +34,25 @@ module.exports = {
 
       user.balance -= bet;
 
-      user.coinflipBag = user.coinflipBag || [];
       const crypto = require('crypto');
-
-      if (user.coinflipBag.length === 0) {
-        const tempBag = [];
-        for (let i = 0; i < 5; i++) {
-          tempBag.push(crypto.randomInt(0, 2) === 0 ? 'heads' : 'tails');
-        }
-        // Fisher-Yates shuffle
-        for (let i = tempBag.length - 1; i > 0; i--) {
-          const j = crypto.randomInt(0, i + 1);
-          const temp = tempBag[i];
-          tempBag[i] = tempBag[j];
-          tempBag[j] = temp;
-        }
-        user.coinflipBag = tempBag;
-      }
-
-      const rawFlip = user.coinflipBag.shift();
-
-      let won = rawFlip === choice;
-      let secondChanceSaved = false;
+      let baseChance = 0.45;
       let badgeUsed = '';
 
-      // Apply badge win chance bonus if they lost the raw flip
-      if (!won && user.badges) {
-        let saveChance = 0;
+      if (user.badges) {
         if (user.badges.includes(config.badges.bog)) {
-          saveChance = 0.04;
+          baseChance += 0.04;
           badgeUsed = config.badges.bog;
         } else if (user.badges.includes(config.badges.rekin)) {
-          saveChance = 0.02;
+          baseChance += 0.02;
           badgeUsed = config.badges.rekin;
         } else if (user.badges.includes(config.badges.hazardzista)) {
-          saveChance = 0.01;
+          baseChance += 0.01;
           badgeUsed = config.badges.hazardzista;
         }
-
-        if (saveChance > 0) {
-          const saveRoll = crypto.randomInt(0, 10000);
-          if (saveRoll < saveChance * 10000) {
-            won = true;
-            secondChanceSaved = true;
-          }
-        }
       }
+
+      const roll = crypto.randomInt(0, 10000);
+      const won = roll < (baseChance * 10000);
 
       const flip = won ? choice : (choice === 'heads' ? 'tails' : 'heads');
 
@@ -93,7 +66,7 @@ module.exports = {
       const xpResult = recordGame(user, net, 25, inventory);
       refreshBadges(user, inventory);
 
-      return { won, bet, payout, net, flip, xpResult, secondChanceSaved, badgeUsed };
+      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: false, badgeUsed };
     });
 
     if (result.error) {
