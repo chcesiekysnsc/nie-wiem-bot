@@ -49,12 +49,15 @@ module.exports = {
         // 50/50 szansa
         const challengerWins = Math.random() < 0.5;
 
+        const tax = Math.floor(request.amount * 0.05);
+        const netWin = request.amount - tax;
+
         if (challengerWins) {
-          challenger.balance += request.amount;
+          challenger.balance += netWin;
           target.balance -= request.amount;
         } else {
           challenger.balance -= request.amount;
-          target.balance += request.amount;
+          target.balance += netWin;
         }
 
         refreshBadges(challenger, ensureInventoryRecord(store.inventory, request.challengerId));
@@ -63,7 +66,9 @@ module.exports = {
         return {
           success: true,
           challengerWins,
-          amount: request.amount
+          amount: request.amount,
+          netWin,
+          tax
         };
       });
 
@@ -76,9 +81,9 @@ module.exports = {
       const targetName = await resolveName(client, targetId);
 
       if (result.challengerWins) {
-        await message.reply(`⚔️ Pojedynek rozstrzygnięty! Wygrywa **${challengerName}** (+${formatCurrency(result.amount)}), przegrywa **${targetName}** (-${formatCurrency(result.amount)}).`);
+        await message.reply(`⚔️ Pojedynek rozstrzygnięty! Wygrywa **${challengerName}** (+${formatCurrency(result.netWin)} po potrąceniu 5% podatku), przegrywa **${targetName}** (-${formatCurrency(result.amount)}).`);
       } else {
-        await message.reply(`⚔️ Pojedynek rozstrzygnięty! Wygrywa **${targetName}** (+${formatCurrency(result.amount)}), przegrywa **${challengerName}** (-${formatCurrency(result.amount)}).`);
+        await message.reply(`⚔️ Pojedynek rozstrzygnięty! Wygrywa **${targetName}** (+${formatCurrency(result.netWin)} po potrąceniu 5% podatku), przegrywa **${challengerName}** (-${formatCurrency(result.amount)}).`);
       }
       return;
     }

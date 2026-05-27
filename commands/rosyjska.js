@@ -68,7 +68,8 @@ module.exports = {
         const winner = store.users[winnerId];
         const loser = store.users[loserId];
 
-        let winAmount = request.amount;
+        const tax = Math.floor(request.amount * 0.05);
+        let winAmount = request.amount - tax;
         if (winner.badges && winner.badges.includes(config.badges.uzalezniony)) {
           winAmount = Math.round(winAmount * 1.03);
         }
@@ -90,6 +91,8 @@ module.exports = {
           winnerId,
           loserId,
           amount: request.amount,
+          winAmount,
+          tax,
           winnerXpResult,
           loserXpResult
         };
@@ -121,7 +124,7 @@ module.exports = {
       const winnerName = result.winnerId === request.challengerId ? challengerName : targetName;
       const loserName = result.loserId === request.challengerId ? challengerName : targetName;
 
-      await message.reply(`🏆 **${winnerName}** wygrywa **+${formatCurrency(result.amount)}**! 💀 **${loserName}** ginie.`);
+      await message.reply(`🏆 **${winnerName}** wygrywa **+${formatCurrency(result.winAmount)}** (po potrąceniu 5% podatku: -${formatCurrency(result.tax)})! 💀 **${loserName}** ginie.`);
 
       let lvlUpMessage = '';
       if (result.winnerXpResult && result.winnerXpResult.leveledUp) {

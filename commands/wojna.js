@@ -193,11 +193,14 @@ module.exports = {
           const winnerId = players[0];
           const winnerName = await client.resolveUserName(winnerId);
 
+          const tax = Math.floor(pot * 0.05);
+          const potAfterTax = pot - tax;
+
           const resolution = await withData(store => {
             const winnerUser = createUser(winnerId, store.users);
-            winnerUser.balance += pot;
+            winnerUser.balance += potAfterTax;
 
-            const net = pot - active.bet;
+            const net = potAfterTax - active.bet;
             const winnerInv = ensureInventoryRecord(store.inventory, winnerId);
             const xpResult = recordGame(winnerUser, net, 25, winnerInv);
             refreshBadges(winnerUser, winnerInv);
@@ -220,7 +223,7 @@ module.exports = {
 
           let winMsg = `🏆 **WOJNA ZAKOŃCZONA!** 🏆\n\n` +
             `👑 Zwycięzcą zostaje: **${winnerName}**!\n` +
-            `💰 Wygrana pula: **+${formatCurrency(pot)}** (netto: +${formatCurrency(pot - active.bet)})\n`;
+            `💰 Wygrana pula: **+${formatCurrency(potAfterTax)}** (netto: +${formatCurrency(potAfterTax - active.bet)}, po potrąceniu 5% podatku: -${formatCurrency(tax)})\n`;
 
           if (resolution.xpResult && resolution.xpResult.leveledUp) {
             winMsg += `\n🎉 **AWANS!** ${winnerName} awansował na **poziom ${resolution.xpResult.newLevel}**!`;
