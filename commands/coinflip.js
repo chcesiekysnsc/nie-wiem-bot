@@ -35,7 +35,7 @@ module.exports = {
       user.balance -= bet;
 
       const crypto = require('crypto');
-      let baseChance = 0.425;
+      let baseChance = 0.45;
       let badgeUsed = '';
 
       if (user.badges) {

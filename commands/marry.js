@@ -180,14 +180,17 @@ module.exports = {
           return { error: `❌ We wspólnym banku nie ma tylu monet. Stan konta: **${formatCurrency(bank.balance)}**` };
         }
 
-        user.balance += withdrawAmount;
+        const tax = Math.floor(withdrawAmount * 0.05);
+        const netWithdraw = withdrawAmount - tax;
+
+        user.balance += netWithdraw;
         bank.balance -= withdrawAmount;
 
         // Reduce this partner's contribution count by the amount withdrawn, capped at 0
         bank.contributions[message.author.id] = bank.contributions[message.author.id] || 0;
         bank.contributions[message.author.id] = Math.max(0, bank.contributions[message.author.id] - withdrawAmount);
 
-        return { success: true, withdrawAmount, bankBalance: bank.balance, contribution: bank.contributions[message.author.id] };
+        return { success: true, withdrawAmount, netWithdraw, tax, bankBalance: bank.balance, contribution: bank.contributions[message.author.id] };
       });
 
       if (result.error) {
@@ -195,7 +198,7 @@ module.exports = {
         return;
       }
 
-      await message.reply(`🏦 Wypłaciłeś **${formatCurrency(result.withdrawAmount)}** ze wspólnego banku małżeńskiego do swojego portfela.\n` +
+      await message.reply(`🏦 Wypłaciłeś **${formatCurrency(result.netWithdraw)}** ze wspólnego banku małżeńskiego do swojego portfela (po potrąceniu 5% podatku: -${formatCurrency(result.tax)}).\n` +
                           `💰 Stan konta wspólnego: **${formatCurrency(result.bankBalance)}**\n` +
                           `📊 Twój wkład po wypłacie: **${formatCurrency(result.contribution)}/100k**`);
       return;
