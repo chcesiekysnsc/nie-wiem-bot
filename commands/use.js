@@ -45,7 +45,7 @@ module.exports = {
     if (itemId.startsWith('paczka_')) {
       const otworzCommand = require('./otworz.js');
       const packShortName = itemId.replace('paczka_', '');
-      await otworzCommand.execute(client, message, [packShortName]);
+      await otworzCommand.execute(client, message, [packShortName, args[1]]);
       return;
     }
 

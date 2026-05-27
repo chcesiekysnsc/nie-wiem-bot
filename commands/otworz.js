@@ -1,4 +1,4 @@
-const { formatCurrency, randomInt, addItem, removeItem, hasItem, ensureInventoryRecord } = require('../utils/economy');
+const { formatCurrency, randomInt, addItem, removeItem, hasItem, ensureInventoryRecord, getItemQuantity } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 // Normalizacja polskich liter z wejścia gracza
@@ -123,47 +123,70 @@ module.exports = {
 
     const pack = PACZKI[packKey];
 
+    const countInput = String(args[1] || '').trim().toLowerCase();
+
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
-      // Sprawdź czy ma paczkę w ekwipunku
-      if (!hasItem(inventory, pack.id)) {
+      const ownedQty = getItemQuantity(inventory, pack.id);
+      if (ownedQty <= 0) {
         return { error: `❌ Nie masz żadnej **${pack.emoji} ${pack.name}** w ekwipunku.\n💡 Kup ją w sklepie: **!sklep**` };
       }
 
-      // Zdejmij paczkę z ekwipunku
-      removeItem(inventory, pack.id, 1);
+      let count = 1;
+      if (countInput === 'all' || countInput === 'max') {
+        count = ownedQty;
+      } else if (countInput) {
+        count = parseInt(countInput, 10);
+        if (isNaN(count) || count <= 0) {
+          return { error: `❌ Podaj poprawną liczbę paczek do otwarcia (np. *!otworz ${packKey} 5* lub *!otworz ${packKey} all*).` };
+        }
+        if (count > ownedQty) {
+          return { error: `❌ Posiadasz tylko **${ownedQty}x** ${pack.emoji} ${pack.name} (chcesz otworzyć: ${count}).` };
+        }
+      }
 
-      // Losuj gotówkę (równomierny rozkład w przedziale)
-      const cash = randomInt(pack.minCash, pack.maxCash);
+      // Zdejmij paczki z ekwipunku
+      removeItem(inventory, pack.id, count);
 
-      // Losuj drop przedmiotu
-      const droppedLabels = [];
-      let usedFallback = false;
-      const drop = rollDrop(pack.drops);
+      let totalCash = 0;
+      const itemsSummary = {};
+      let fallbackCount = 0;
 
-      if (drop) {
-        for (const item of drop.items) {
-          if (item.permanent && hasItem(inventory, item.id)) {
-            // Gracz już posiada ten permanent item — daj zamienniki
-            const fallback = FALLBACKS[item.id] || [];
-            for (const fb of fallback) {
-              addItem(inventory, fb.id, fb.qty);
-              droppedLabels.push(fb.label);
+      for (let i = 0; i < count; i++) {
+        const cash = randomInt(pack.minCash, pack.maxCash);
+        totalCash += cash;
+
+        const drop = rollDrop(pack.drops);
+        if (drop) {
+          for (const item of drop.items) {
+            if (item.permanent && hasItem(inventory, item.id)) {
+              const fallback = FALLBACKS[item.id] || [];
+              for (const fb of fallback) {
+                addItem(inventory, fb.id, fb.qty);
+                const labelName = fb.label.includes(' x') ? fb.label.split(' x')[0] : fb.label;
+                if (!itemsSummary[fb.id]) {
+                  itemsSummary[fb.id] = { label: labelName, qty: 0 };
+                }
+                itemsSummary[fb.id].qty += fb.qty;
+              }
+              fallbackCount++;
+            } else {
+              addItem(inventory, item.id, item.qty);
+              const labelName = item.label;
+              if (!itemsSummary[item.id]) {
+                itemsSummary[item.id] = { label: labelName, qty: 0 };
+              }
+              itemsSummary[item.id].qty += item.qty;
             }
-            usedFallback = true;
-          } else {
-            addItem(inventory, item.id, item.qty);
-            droppedLabels.push(item.label);
           }
         }
       }
 
-      // Dodaj gotówkę do portfela
-      user.balance = (user.balance || 0) + cash;
+      user.balance = (user.balance || 0) + totalCash;
 
-      return { cash, balance: user.balance, droppedLabels, usedFallback };
+      return { count, totalCash, balance: user.balance, itemsSummary, fallbackCount };
     });
 
     if (result.error) {
@@ -171,27 +194,51 @@ module.exports = {
       return;
     }
 
-    // Buduj wiadomość wynikową
-    let dropLine;
-    if (result.droppedLabels.length > 0) {
-      const itemsStr = result.droppedLabels.join(' + ');
-      if (result.usedFallback) {
-        dropLine = `🔄 **BONUS DROP** (zamiennik — masz już ten przedmiot): ${itemsStr}`;
-      } else {
-        dropLine = `🎁 **BONUS DROP!** Otrzymujesz: ${itemsStr}`;
-      }
-    } else {
-      dropLine = `💨 *Brak dodatkowego dropu tym razem...*`;
-    }
+    const droppedItems = Object.values(result.itemsSummary);
 
-    await message.reply(
-      `${pack.emoji} **OTWIERANIE — ${pack.name.toUpperCase()}**\n` +
-      `🔑 Wkładanie klucza...\n` +
-      `🔓 *Skrzynia się otwiera...*\n\n` +
-      `✨ **BUM!** ✨\n` +
-      `💰 Wygrałeś: **${formatCurrency(result.cash)}**!\n` +
-      `${dropLine}\n\n` +
-      `👛 Portfel: **${formatCurrency(result.balance)}**`
-    );
+    if (result.count === 1) {
+      let dropLine;
+      if (droppedItems.length > 0) {
+        const itemsStr = droppedItems.map(item => `${item.label}${item.qty > 1 ? ` x${item.qty}` : ''}`).join(' + ');
+        if (result.fallbackCount > 0) {
+          dropLine = `🔄 **BONUS DROP** (zamiennik — masz już ten przedmiot): ${itemsStr}`;
+        } else {
+          dropLine = `🎁 **BONUS DROP!** Otrzymujesz: ${itemsStr}`;
+        }
+      } else {
+        dropLine = `💨 *Brak dodatkowego dropu tym razem...*`;
+      }
+
+      await message.reply(
+        `${pack.emoji} **OTWIERANIE — ${pack.name.toUpperCase()}**\n` +
+        `🔑 Wkładanie klucza...\n` +
+        `🔓 *Skrzynia się otwiera...*\n\n` +
+        `✨ **BUM!** ✨\n` +
+        `💰 Wygrałeś: **${formatCurrency(result.totalCash)}**!\n` +
+        `${dropLine}\n\n` +
+        `👛 Portfel: **${formatCurrency(result.balance)}**`
+      );
+    } else {
+      let dropLine;
+      if (droppedItems.length > 0) {
+        const itemsList = droppedItems.map(item => `  • ${item.label} x${item.qty}`).join('\n');
+        dropLine = `🎁 **Zsumowany bonus drop:**\n${itemsList}`;
+        if (result.fallbackCount > 0) {
+          dropLine += `\n🔄 *(w tym ${result.fallbackCount}x zamiennik za posiadane przedmioty)*`;
+        }
+      } else {
+        dropLine = `💨 *Brak dodatkowych dropów z tych paczek...*`;
+      }
+
+      await message.reply(
+        `${pack.emoji} **MASOWE OTWIERANIE — ${result.count}x ${pack.name.toUpperCase()}**\n` +
+        `🔑 Wkładanie kluczy do ${result.count} skrzyń...\n` +
+        `🔓 *Skrzynie się otwierają...*\n\n` +
+        `✨ **PODSUMOWANIE OTWARCIA** ✨\n` +
+        `💰 Łączna wygrana gotówka: **+${formatCurrency(result.totalCash)}**!\n\n` +
+        `${dropLine}\n\n` +
+        `👛 Portfel: **${formatCurrency(result.balance)}**`
+      );
+    }
   }
 };
