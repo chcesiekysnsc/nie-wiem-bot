@@ -51,6 +51,10 @@ module.exports = {
         }
       }
 
+      if (hasItem(inventory, 'szkarlatne_oko')) {
+        baseChance += 0.015;
+      }
+
       const roll = crypto.randomInt(0, 10000);
       const won = roll < (baseChance * 10000);
 

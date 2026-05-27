@@ -19,17 +19,23 @@ module.exports = {
     const authorId = message.author.id;
     const now = Date.now();
 
-    const isJail = await withData(store => {
+    const robCheck = await withData(store => {
       const u = createUser(authorId, store.users);
-      if (u.jailUntil && u.jailUntil > now) {
-        return u.jailUntil;
-      }
-      return null;
+      const totalCmds = Object.values(u.commandCounts || {}).reduce((a, b) => a + b, 0);
+      return {
+        jailUntil: (u.jailUntil && u.jailUntil > now) ? u.jailUntil : null,
+        totalCmds
+      };
     });
 
-    if (isJail) {
-      const left = Math.ceil((isJail - now) / 60000);
+    if (robCheck.jailUntil) {
+      const left = Math.ceil((robCheck.jailUntil - now) / 60000);
       await message.reply(`❌ Jesteś w więzieniu! Wyjdziesz za **${left} min**.`);
+      return;
+    }
+
+    if (robCheck.totalCmds < 50) {
+      await message.reply(`❌ Musisz trochę pograć, zanim będziesz mógł okradać innych.`);
       return;
     }
 
@@ -41,7 +47,16 @@ module.exports = {
       return;
     }
 
-    // Sprawdź cooldown 30min
+    // Sprawdź cooldown 30min (lub 22.5min dla Cień Nocy)
+    const hasCienNocy = await withData(store => {
+      const inv = ensureInventoryRecord(store.inventory, authorId);
+      return hasItem(inv, 'cien_nocy');
+    });
+    let robCooldownDuration = 30 * 60 * 1000;
+    if (hasCienNocy) {
+      robCooldownDuration = Math.floor(robCooldownDuration * 0.75);
+    }
+
     const coolUntil = robCooldowns.get(authorId) || 0;
     if (now < coolUntil) {
       const left = Math.ceil((coolUntil - now) / 60000);
@@ -153,6 +168,11 @@ module.exports = {
           stolen = Math.floor(stolen * 1.04);
         }
 
+        let sztyletBonus = 0;
+        if (hasItem(robberInv, 'wampirzy_sztylet')) {
+          sztyletBonus = Math.floor(stolen * 0.05);
+        }
+
         let tribute = 0;
         if (robber.gangId && store.profiles.gangs && store.profiles.gangs[robber.gangId]) {
           const gang = store.profiles.gangs[robber.gangId];
@@ -163,8 +183,8 @@ module.exports = {
           }
         }
 
-        const netStolen = stolen - tribute;
-        victim.balance -= stolen;
+        const netStolen = stolen - tribute + sztyletBonus;
+        victim.balance = Math.max(0, victim.balance - (stolen + sztyletBonus));
         robber.balance += netStolen;
 
         if (tribute > 0) {
@@ -173,10 +193,19 @@ module.exports = {
           bossUser.balance += tribute;
         }
 
+        // Vampiric Dagger cooldown reset
+        if (hasItem(robberInv, 'wampirzy_sztylet')) {
+          robber.lastWorkTime = 0;
+          if (store.cooldowns && store.cooldowns.commands && store.cooldowns.commands[authorId]) {
+            delete store.cooldowns.commands[authorId]['work'];
+            delete store.cooldowns.commands[authorId]['crime'];
+          }
+        }
+
         robber.gamesPlayed += 1;
         refreshBadges(robber, robberInv);
         refreshBadges(victim, victimInv);
-        return { success: true, stolen: netStolen, tribute, gangBonus, beer: hasBeer, victimLastActiveThreadId, robberHasZeton };
+        return { success: true, stolen: netStolen, tribute, gangBonus, beer: hasBeer, victimLastActiveThreadId, robberHasZeton, sztyletBonus };
       } else {
         const losePercent = hasBeer ? 0.40 : 0.30;
         let fine = Math.max(1, Math.floor(robber.balance * losePercent));
@@ -223,18 +252,19 @@ module.exports = {
     let replyMsg = '';
     let notifyMsg = '';
 
+    const cdMinutes = Math.ceil(robCooldownDuration / 60000);
     if (result.blockedBy) {
-      robCooldowns.set(authorId, now + 30 * 60 * 1000); // 30min cooldown
+      robCooldowns.set(authorId, now + robCooldownDuration);
       if (result.blockedBy === 'bomba') {
-        replyMsg = `💣 **BUM!** Trafiłeś na bombę u użytkownika **${targetName}**! Straciłeś **40% swojego portfela** (**-${formatCurrency(result.fine)}**), które otrzymała ofiara. Cooldown na okradanie: 30 min.`;
+        replyMsg = `💣 **BUM!** Trafiłeś na bombę u użytkownika **${targetName}**! Straciłeś **40% swojego portfela** (**-${formatCurrency(result.fine)}**), które otrzymała ofiara. Cooldown na okradanie: ${cdMinutes} min.`;
         notifyMsg = `💣 **ALARM BOMBOWY!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale trafił na Twoją bombę! Stracił **40% portfela** (**+${formatCurrency(result.fine)}**) na Twoją rzecz!`;
       } else {
-        replyMsg = `🔒 Kradzież zablokowana! **${targetName}** miał aktywną kłódkę. Cooldown na okradanie: 30 min.`;
+        replyMsg = `🔒 Kradzież zablokowana! **${targetName}** miał aktywną kłódkę. Cooldown na okradanie: ${cdMinutes} min.`;
         notifyMsg = `🔒 **ALARM!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale Twoja kłódka go powstrzymała!`;
       }
     } else {
       // Ustaw cooldowny
-      robCooldowns.set(authorId, now + 30 * 60 * 1000); // 30min
+      robCooldowns.set(authorId, now + robCooldownDuration);
       if (!result.success) {
         caughtBan.set(authorId, now + 60 * 60 * 1000);    // 1h ban
       }
@@ -242,13 +272,14 @@ module.exports = {
       if (result.success) {
         const beerNote = result.beer ? ' (Wypite Piwo +25%!)' : '';
         const zetonNote = result.robberHasZeton ? ' (Krwawy Żeton +4%!)' : '';
+        const sztyletNote = result.sztyletBonus ? ` (w tym **+${formatCurrency(result.sztyletBonus)}** z Wampirzego Sztyletu, który zresetował Twoje cooldowny!)` : '';
         const bonusNote = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z fachu gangu)` : '';
         if (result.tribute > 0) {
-          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}${zetonNote} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa).${beerNote}`;
+          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}${zetonNote}${sztyletNote} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa).${beerNote}`;
         } else {
-          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}${zetonNote}.${beerNote}`;
+          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}${zetonNote}${sztyletNote}.${beerNote}`;
         }
-        notifyMsg = `💰 **ALARM!** Użytkownik **${robberName}** okradł **${targetName}** na kwotę **${formatCurrency(result.stolen)}**!${bonusNote}${zetonNote}${beerNote}`;
+        notifyMsg = `💰 **ALARM!** Użytkownik **${robberName}** okradł **${targetName}** na kwotę **${formatCurrency(result.stolen)}**!${bonusNote}${zetonNote}${sztyletNote}${beerNote}`;
       } else {
         const beerNote = result.beer ? ' (Wypite Piwo -40%!)' : '';
         const zetonNote = result.robberHasZeton ? ' (w tym **+8%** kary z Krwawego Żetonu)' : '';

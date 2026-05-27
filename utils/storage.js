@@ -249,6 +249,120 @@ function appendLog(logsData, entry) {
   return record;
 }
 
+function performMonthlyReset(store) {
+  console.log('[MONTHLY RESET] Triggering automated reset and distributing reward items...');
+
+  // 1. Gather all users and sort them by total wealth (balance + bank)
+  const allUsers = Object.entries(store.users)
+    .map(([userId, u]) => ({
+      userId,
+      balance: u.balance || 0,
+      bank: u.bank || 0,
+      total: (u.balance || 0) + (u.bank || 0),
+      commandCounts: u.commandCounts || {},
+      commandsUsed: u.commandsUsed || 0
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  // Helper check for bot-like activity (70% or more commands are work, crime, daily, tip)
+  const isExcludedFromEventItem = (u) => {
+    const cmdCounts = u.commandCounts || {};
+    const workCount = cmdCounts['work'] || 0;
+    const crimeCount = cmdCounts['crime'] || 0;
+    const dailyCount = cmdCounts['daily'] || 0;
+    const tipCount = cmdCounts['tip'] || 0;
+    const sumTarget = workCount + crimeCount + dailyCount + tipCount;
+    const totalCommands = Object.values(cmdCounts).reduce((a, b) => a + b, 0);
+    if (totalCommands > 0) {
+      const pct = sumTarget / totalCommands;
+      if (pct >= 0.70) {
+        return true; // Excluded!
+      }
+    }
+    return false;
+  };
+
+  // Filter out automated users
+  const eligibleUsers = allUsers.filter(u => !isExcludedFromEventItem(u));
+
+  // 2. Distribute items to TOP 5 eligible users
+  const rewards = [
+    'szkarlatne_oko',
+    'cien_nocy',
+    'wampirzy_sztylet',
+    'szwajcarski_klucz',
+    'krysztal_doswiadczenia'
+  ];
+
+  for (let i = 0; i < Math.min(5, eligibleUsers.length); i++) {
+    const topUser = eligibleUsers[i];
+    const itemId = rewards[i];
+    
+    store.inventory[topUser.userId] = store.inventory[topUser.userId] || {};
+    store.inventory[topUser.userId][itemId] = 1;
+    console.log(`[MONTHLY RESET] Awarded ${itemId} to top player ${topUser.userId} (Rank ${i + 1})`);
+  }
+
+  // 3. Reset balances and non-permanent inventory for all users
+  const keepKeys = [
+    'vip',
+    'sejf',
+    'szkarlatne_oko',
+    'cien_nocy',
+    'wampirzy_sztylet',
+    'szwajcarski_klucz',
+    'krysztal_doswiadczenia'
+  ];
+
+  for (const [userId, user] of Object.entries(store.users)) {
+    if (user) {
+      // Keep only permanent/event items in inventory
+      const inv = store.inventory[userId] || {};
+      const newInv = {};
+      for (const key of keepKeys) {
+        if (inv[key] > 0) {
+          newInv[key] = inv[key];
+        }
+      }
+      store.inventory[userId] = newInv;
+
+      // Reset balance & bank
+      user.balance = config.economy.defaultUser.balance || 5000;
+      user.bank = config.economy.defaultUser.bank || 10000;
+      user.activeLoan = null;
+
+      // Reset command counts & message count
+      user.commandsUsed = 0;
+      user.commandCounts = {};
+      user.messageCount = 0;
+      user.lastWorkTime = 0;
+
+      // Unblacklist negative balance users
+      if (user.blacklistedForNegativeBalance) {
+        user.blacklistedForNegativeBalance = null;
+        if (store.profiles.blacklist) {
+          store.profiles.blacklist = store.profiles.blacklist.filter(id => id !== userId);
+        }
+      }
+    }
+  }
+
+  // 4. Reset all gang vaults & upgrades
+  if (store.profiles.gangs) {
+    for (const gangId of Object.keys(store.profiles.gangs)) {
+      const gang = store.profiles.gangs[gangId];
+      if (gang) {
+        gang.vault = 0;
+        gang.levelDziupla = 0;
+        gang.levelBiznesy = 0;
+        gang.levelFach = 0;
+      }
+    }
+  }
+
+  console.log('[MONTHLY RESET] Completed successfully!');
+}
+
 async function withData(callback) {
   const run = async () => {
     ensureDataFiles();
@@ -260,6 +374,20 @@ async function withData(callback) {
       cooldowns: loadData('cooldowns'),
       logs: loadData('logs')
     };
+
+    // Automatyczny reset ekonomii na początku nowego miesiąca
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    if (store.profiles.lastResetYear === undefined || store.profiles.lastResetMonth === undefined) {
+      store.profiles.lastResetYear = currentYear;
+      store.profiles.lastResetMonth = currentMonth;
+    } else if (store.profiles.lastResetYear !== currentYear || store.profiles.lastResetMonth !== currentMonth) {
+      performMonthlyReset(store);
+      store.profiles.lastResetYear = currentYear;
+      store.profiles.lastResetMonth = currentMonth;
+    }
 
     // Oblicz odsetki bankowe co 12h (2% do salda z bonusami odznaki)
     store.profiles.lastInterestPayout = store.profiles.lastInterestPayout || Date.now();

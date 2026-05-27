@@ -531,6 +531,19 @@ const helpCommands = [
     requirements: "Minimum 2 graczy, maksymalnie 12. Wymaga posiadania kwoty wpisowej.",
     aliases: ["cardwar"],
     additionalInfo: ["Stawka jest pobierana przy dołączeniu.", "Czas na zapisy to 90s.", "Jeśli nikt nie dołączy, stawka jest zwracana hostowi."]
+  },
+  {
+    id: 41,
+    name: "zasady",
+    category: "UTILITY",
+    shortDescription: "wyswietla zasady korzystania z bota",
+    description: "Wyświetla oficjalne zasady i regulamin korzystania z bota.",
+    usage: "!zasady",
+    examples: ["!zasady"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["rules"],
+    additionalInfo: []
   }
 ];
 

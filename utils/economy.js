@@ -94,7 +94,11 @@ function xpForLevel(level, prestige = 0) {
 }
 
 function addXp(user, amount, inventoryRecord = null) {
-  user.xp += Math.max(0, Math.floor(amount || 0));
+  let finalAmount = amount;
+  if (inventoryRecord && hasItem(inventoryRecord, 'krysztal_doswiadczenia')) {
+    finalAmount = Math.round(finalAmount * 1.15);
+  }
+  user.xp += Math.max(0, Math.floor(finalAmount || 0));
   const oldLevel = user.level;
   let leveledUp = false;
   const milestonesGained = [];
@@ -205,6 +209,10 @@ function getBankCapacity(user, inventoryRecord) {
 
   if (hasItem(inventoryRecord, 'zlota_karta')) {
     capacity += config.economy.goldenCardBonus || 50000;
+  }
+
+  if (hasItem(inventoryRecord, 'szwajcarski_klucz')) {
+    capacity += 100000;
   }
 
   if (user.badges && user.badges.includes(config.badges.milioner)) {

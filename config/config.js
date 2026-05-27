@@ -256,6 +256,56 @@ module.exports = {
       description: 'Otwórz komendą: !otworz tytanowa\nZawartość: losowa kwota od 550 000 do 1 000 000 viccoinów.\nBonus drop (2%): 🧠 Przekupiony Krupier.\nDodatkowo 40% szans na wylosowanie bomby, piwa lub kłódki.',
       type: 'stackable',
       buyable: true
+    },
+    szkarlatne_oko: {
+      name: 'Szkarłatne Oko Krupiera',
+      emoji: '👁️',
+      price: 0,
+      shortDesc: 'Event: +1.5% szansy w kasynie.',
+      description: 'Permanentny przedmiot eventowy. Daje stałe +1.5% szansy na wygraną w blackjacku, slots, ruletce, bet i coinflip.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 1 sezonu!'
+    },
+    cien_nocy: {
+      name: 'Cień Nocy',
+      emoji: '🥷',
+      price: 0,
+      shortDesc: 'Event: -25% cooldownu na !rob.',
+      description: 'Permanentny przedmiot eventowy. Skraca cooldown na okradanie o 25%.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 2 sezonu!'
+    },
+    wampirzy_sztylet: {
+      name: 'Wampirzy Sztylet',
+      emoji: '🩸',
+      price: 0,
+      shortDesc: 'Event: Skok na cooldowny + 5% bonus łup z ofiary.',
+      description: 'Permanentny przedmiot eventowy. Udany rob resetuje cooldowny komend !work oraz !crime i kradnie dodatkowe 5% portfela ofiary.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 3 sezonu!'
+    },
+    szwajcarski_klucz: {
+      name: 'Szwajcarski Klucz',
+      emoji: '🔑',
+      price: 0,
+      shortDesc: 'Event: +100k miejsca w banku.',
+      description: 'Permanentny przedmiot eventowy. Zwiększa pojemność banku o 100 000 monet. Efekty się stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 4 sezonu!'
+    },
+    krysztal_doswiadczenia: {
+      name: 'Kryształ Doświadczenia',
+      emoji: '🔮',
+      price: 0,
+      shortDesc: 'Event: +15% XP ze wszystkich gier.',
+      description: 'Permanentny przedmiot eventowy. Zwiększa zdobywane XP o 15%. Efekty się stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 5 sezonu!'
     }
   },
   badges: {

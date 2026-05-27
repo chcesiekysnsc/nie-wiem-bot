@@ -248,10 +248,13 @@ module.exports = {
             else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
             else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
           }
+          if (hasItem(inventory, 'szkarlatne_oko')) {
+            helperChance += 0.015;
+          }
           if (helperChance > 0 && Math.random() < helperChance) {
             payout = game.bet;
             net = 0;
-            outcomeText = ` Uratowany! Dzięki Twojej odznace hazardowej unikasz porażki i otrzymujesz zwrot stawki.`;
+            outcomeText = ` Uratowany! Dzięki Twoim bonusom (odznaki/przedmioty) unikasz porażki i otrzymujesz zwrot stawki.`;
           }
 
           user.balance += payout;
@@ -337,10 +340,13 @@ module.exports = {
             else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
             else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
           }
+          if (hasItem(inventory, 'szkarlatne_oko')) {
+            helperChance += 0.015;
+          }
           if (helperChance > 0 && Math.random() < helperChance) {
             payout = game.bet;
             net = 0;
-            outcomeText = ` Uratowany! Dzięki Twojej odznace hazardowej unikasz porażki i otrzymujesz zwrot stawki.`;
+            outcomeText = ` Uratowany! Dzięki Twoim bonusom (odznaki/przedmioty) unikasz porażki i otrzymujesz zwrot stawki.`;
           }
 
           user.balance += payout;
@@ -426,10 +432,13 @@ module.exports = {
           else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
           else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
         }
+        if (hasItem(inventory, 'szkarlatne_oko')) {
+          helperChance += 0.015;
+        }
         if (helperChance > 0 && Math.random() < helperChance) {
           finalPayout = game.bet;
           finalNet = 0;
-          finalOutcome = `⚖️ **Push (Uratowany!)** - Dzięki Twojej odznace hazardowej unikasz porażki i otrzymujesz zwrot stawki.`;
+          finalOutcome = `⚖️ **Push (Uratowany!)** - Dzięki Twoim bonusom (odznaki/przedmioty) unikasz porażki i otrzymujesz zwrot stawki.`;
         }
       }
 

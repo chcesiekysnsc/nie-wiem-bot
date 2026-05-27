@@ -53,6 +53,9 @@ module.exports = {
         else if (user.badges.includes(config.badges.rekin)) chanceBonus += 1.0;
         else if (user.badges.includes(config.badges.hazardzista)) chanceBonus += 0.5;
       }
+      if (hasItem(inventory, 'szkarlatne_oko')) {
+        chanceBonus += 1.5;
+      }
 
       // Losowanie liczby 0-99
       const rolledNumber = Math.floor(Math.random() * 100);

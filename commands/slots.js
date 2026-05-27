@@ -86,6 +86,9 @@ module.exports = {
           else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
           else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
         }
+        if (hasItem(inventory, 'szkarlatne_oko')) {
+          helperChance += 0.015;
+        }
         if (helperChance > 0 && Math.random() < helperChance) {
           symbols[0] = '🍒';
           symbols[1] = '🍒';
