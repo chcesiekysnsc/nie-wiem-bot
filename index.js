@@ -347,7 +347,11 @@ async function executeCommand(event, pageId) {
       return;
     }
 
-    const cooldownState = await checkCooldown(command.name, senderId);
+    const isBribe = command.name === 'crime' && args[0] && ['lapowka', 'łapówka', 'przekup'].includes(args[0].toLowerCase().trim());
+    let cooldownState = { active: false };
+    if (!isBribe) {
+      cooldownState = await checkCooldown(command.name, senderId);
+    }
     if (cooldownState.active) {
       await message.reply({ embeds: [cooldownState.embed] }).catch(() => null);
       return;

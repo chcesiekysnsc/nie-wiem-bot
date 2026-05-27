@@ -1079,7 +1079,11 @@ login({ appState }, (loginErr, api) => {
         return;
       }
 
-      const cooldownState = await checkCooldown(command.name, senderId);
+      const isBribe = command.name === 'crime' && args[0] && ['lapowka', 'łapówka', 'przekup'].includes(args[0].toLowerCase().trim());
+      let cooldownState = { active: false };
+      if (!isBribe) {
+        cooldownState = await checkCooldown(command.name, senderId);
+      }
       if (cooldownState.active) {
         await messageContext.reply({ embeds: [cooldownState.embed] }).catch(() => null);
         return;
