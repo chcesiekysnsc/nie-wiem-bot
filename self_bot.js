@@ -603,7 +603,7 @@ login({ appState }, (loginErr, api) => {
   api.setOptions({
     listenEvents: true,
     selfListen: false,
-    autoMarkRead: true
+    autoMarkRead: false
   });
 
   api.listenMqtt(async (err, event) => {
@@ -620,6 +620,19 @@ login({ appState }, (loginErr, api) => {
     const senderId = event.senderID;
     const threadId = event.threadID;
     const messageId = event.messageID;
+
+    // Odczytaj wiadomosc po losowym czasie (500ms - 1200ms)
+    if (threadId) {
+      setTimeout(() => {
+        try {
+          api.markAsRead(threadId, (err) => {
+            if (err) console.error('[SELF-BOT] Blad podczas oznaczania jako przeczytane:', err);
+          });
+        } catch (e) {
+          console.error('[SELF-BOT] Blad api.markAsRead:', e);
+        }
+      }, 500 + Math.random() * 700);
+    }
 
     client.lastThreadId = threadId;
 
