@@ -3,6 +3,7 @@ const {
   ensureInventoryRecord,
   formatCurrency,
   formatNumber,
+  hasItem,
   recordGame,
   refreshBadges,
   resolveAmount
