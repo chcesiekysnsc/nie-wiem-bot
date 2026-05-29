@@ -100,14 +100,7 @@ module.exports = {
         return;
       }
 
-      const redirectUri = process.env.SPOTIFY_REDIRECT_URI;
-      let connectUrl;
-      try {
-        const parsed = new URL(redirectUri);
-        connectUrl = `${parsed.protocol}//${parsed.host}/spotify/connect?user=${message.author.id}`;
-      } catch (_) {
-        connectUrl = spotify.getAuthUrl(message.author.id); // Fallback do bezpośredniego linku Spotify
-      }
+      const connectUrl = spotify.getAuthUrl(message.author.id);
 
       await message.reply(`🔌 **POŁĄCZENIE KONTĄ SPOTIFY**\n\nOto Twój indywidualny link do połączenia konta Spotify z botem:\n👉 ${connectUrl}\n\n*Po zalogowaniu i zaakceptowaniu uprawnień powrócisz tutaj.*`);
       return;
