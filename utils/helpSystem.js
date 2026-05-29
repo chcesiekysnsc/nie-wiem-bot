@@ -299,7 +299,7 @@ const helpCommands = [
     additionalInfo: ["Wyzwanie trwa 2 minuty.","Pojedynek toczy się do pierwszego strzału ze wzrastającym ryzykiem."]
   },
   {
-    id: 38,
+    id: 23,
     name: "gielda",
     category: "GAMBLING",
     shortDescription: "multiplayer inwestycje gieldowe",
@@ -312,7 +312,20 @@ const helpCommands = [
     additionalInfo: ["Aktywa to: Bank (-5% do +10%), Srebro (-15% do +20%), Złoto (-25% do +35%), Diamenty (-50% do +80%).", "Wszystkie procenty są w pełni losowane przy każdej sesji w przedziałach zmian."]
   },
   {
-    id: 23,
+    id: 24,
+    name: "wojna",
+    category: "GAMBLING",
+    shortDescription: "multiplayer wojna karciana",
+    description: "Gra karciana multiplayer (Wojna). Otwiera lobby dla maksymalnie 12 graczy ze stawką wejściową. W każdej rundzie odpada 40% graczy z najsłabszymi kartami (w przypadku remisu decyduje kolor: Pik > Kier > Karo > Trefl). Ostatni pozostały gracz wygrywa całą pulę.",
+    usage: "!wojna <kwota> | !wojna dolacz | !wojna",
+    examples: ["!wojna 50k", "!wojna dolacz", "!wojna"],
+    cooldown: "Zależy od czasu trwania gry.",
+    requirements: "Minimum 2 graczy, maksymalnie 12. Wymaga posiadania kwoty wpisowej.",
+    aliases: ["cardwar"],
+    additionalInfo: ["Stawka jest pobierana przy dołączeniu.", "Czas na zapisy to 90s.", "Jeśli nikt nie dołączy, stawka jest zwracana hostowi."]
+  },
+  {
+    id: 25,
     name: "rob",
     category: "SOCIAL",
     shortDescription: "okradnij gracza",
@@ -325,7 +338,7 @@ const helpCommands = [
     additionalInfo: ["Kłódka broni, Piwo modyfikuje szanse."]
   },
   {
-    id: 24,
+    id: 26,
     name: "marry",
     category: "SOCIAL",
     shortDescription: "slub z graczem",
@@ -338,7 +351,7 @@ const helpCommands = [
     additionalInfo: ["Oświadczyny trwają 2 minuty."]
   },
   {
-    id: 25,
+    id: 27,
     name: "pfp",
     category: "SOCIAL",
     shortDescription: "profil kasynowy",
@@ -351,7 +364,7 @@ const helpCommands = [
     additionalInfo: ["Pokazuje stan konta i odznaki."]
   },
   {
-    id: 26,
+    id: 28,
     name: "rozwod",
     category: "SOCIAL",
     shortDescription: "rozwod z graczem",
@@ -364,7 +377,7 @@ const helpCommands = [
     additionalInfo: ["Czyści stan małżeństwa."]
   },
   {
-    id: 27,
+    id: 29,
     name: "kick",
     category: "SOCIAL",
     shortDescription: "wyrzucenie czlonka z grupy",
@@ -377,7 +390,7 @@ const helpCommands = [
     additionalInfo: ["Nie można wyrzucić samego siebie ani twórcy bota."]
   },
   {
-    id: 28,
+    id: 30,
     name: "duel",
     category: "SOCIAL",
     shortDescription: "pojedynek o monety",
@@ -390,7 +403,7 @@ const helpCommands = [
     additionalInfo: ["Akceptacja: !duel acc, Odrzucenie: !duel dec."]
   },
   {
-    id: 29,
+    id: 31,
     name: "gang",
     category: "SOCIAL",
     shortDescription: "zarzadzanie i interakcje gangu",
@@ -403,7 +416,7 @@ const helpCommands = [
     additionalInfo: ["Boss i Zastępcy zarządzają gangiem.","Ulepszenia dają bonusy do pracy i kradzieży."]
   },
   {
-    id: 30,
+    id: 32,
     name: "awans",
     category: "SOCIAL",
     shortDescription: "awansuj czlonka gangu",
@@ -416,7 +429,7 @@ const helpCommands = [
     additionalInfo: ["Zastępcy mogą zapraszać i wyrzucać zwykłych członków."]
   },
   {
-    id: 31,
+    id: 33,
     name: "haracz",
     category: "SOCIAL",
     shortDescription: "ustawia haracz w gangu",
@@ -429,7 +442,7 @@ const helpCommands = [
     additionalInfo: ["Tribute pobierany jest ze zwycięskich komend !rob i !crime zwykłych członków (z wyłączeniem zastępców).","Wartość musi być liczbą całkowitą od 0 do 100."]
   },
   {
-    id: 32,
+    id: 34,
     name: "atak",
     category: "SOCIAL",
     shortDescription: "wojna gangow o sejf",
@@ -442,7 +455,19 @@ const helpCommands = [
     additionalInfo: ["Po ataku gang broniący otrzymuje 6h tarczy ochronnej.","Wydarzenie trwa 2 minuty i zależy od siły graczy oraz poziomu ulepszenia Fach."]
   },
   {
-    id: 33,
+    id: 35,
+    name: "add",
+    category: "SOCIAL",
+    shortDescription: "dodaje uzytkownika do grupy",
+    description: "Dodaje wskazanego użytkownika do konwersacji grupowej na podstawie podanego linku profilu, nazwy użytkownika (vanity) lub bezpośredniego identyfikatora ID.",
+    usage: "!add <link konta fb / nazwa użytkownika / ID>",
+    examples: ["!add https://www.facebook.com/zuck", "!add zuck", "!add 4"],
+    cooldown: "3 sekundy",
+    requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
+    aliases: []
+  },
+  {
+    id: 36,
     name: "help",
     category: "UTILITY",
     shortDescription: "wyswietla pomoc",
@@ -455,7 +480,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 34,
+    id: 37,
     name: "artefakty",
     category: "UTILITY",
     shortDescription: "wyswietla Twoje pasywne przedmioty",
@@ -468,7 +493,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 35,
+    id: 38,
     name: "lvl",
     category: "UTILITY",
     shortDescription: "nagrody za kamienie milowe",
@@ -481,7 +506,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 36,
+    id: 39,
     name: "odznaki",
     category: "UTILITY",
     shortDescription: "lista odznak i ich opisy",
@@ -494,7 +519,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 37,
+    id: 40,
     name: "shamewall",
     category: "UTILITY",
     shortDescription: "ściana wstydu",
@@ -505,32 +530,6 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: ["scianawstydu", "zadluzeni", "dluznicy"],
     additionalInfo: []
-  },
-  {
-    id: 39,
-    name: "gangreset",
-    category: "ADMIN",
-    shortDescription: "resetuje cooldowny gangow (admin)",
-    description: "Resetuje czas oczekiwania (cooldown) na skoki gangu oraz ataki dla wszystkich gangów w bazie danych.",
-    usage: "!gangreset",
-    examples: ["!gangreset"],
-    cooldown: "Brak.",
-    requirements: "Wymaga uprawnień administratora bota.",
-    aliases: [],
-    additionalInfo: []
-  },
-  {
-    id: 40,
-    name: "wojna",
-    category: "GAMBLING",
-    shortDescription: "multiplayer wojna karciana",
-    description: "Gra karciana multiplayer (Wojna). Otwiera lobby dla maksymalnie 12 graczy ze stawką wejściową. W każdej rundzie odpada 40% graczy z najsłabszymi kartami (w przypadku remisu decyduje kolor: Pik > Kier > Karo > Trefl). Ostatni pozostały gracz wygrywa całą pulę.",
-    usage: "!wojna <kwota> | !wojna dolacz | !wojna",
-    examples: ["!wojna 50k", "!wojna dolacz", "!wojna"],
-    cooldown: "Zależy od czasu trwania gry.",
-    requirements: "Minimum 2 graczy, maksymalnie 12. Wymaga posiadania kwoty wpisowej.",
-    aliases: ["cardwar"],
-    additionalInfo: ["Stawka jest pobierana przy dołączeniu.", "Czas na zapisy to 90s.", "Jeśli nikt nie dołączy, stawka jest zwracana hostowi."]
   },
   {
     id: 41,
@@ -568,21 +567,10 @@ const helpCommands = [
     examples: ["!afkdel"],
     cooldown: "30 sekund",
     requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
-    aliases: [],
+    aliases: []
   },
   {
     id: 44,
-    name: "add",
-    category: "SOCIAL",
-    shortDescription: "dodaje uzytkownika do grupy",
-    description: "Dodaje wskazanego użytkownika do konwersacji grupowej na podstawie podanego linku profilu, nazwy użytkownika (vanity) lub bezpośredniego identyfikatora ID.",
-    usage: "!add <link konta fb / nazwa użytkownika / ID>",
-    examples: ["!add https://www.facebook.com/zuck", "!add zuck", "!add 4"],
-    cooldown: "3 sekundy",
-    requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
-  },
-  {
-    id: 45,
     name: "fm",
     category: "UTILITY",
     shortDescription: "integracja z muzyka Last.fm",
@@ -592,6 +580,19 @@ const helpCommands = [
     cooldown: "3 sekundy",
     requirements: "Konto Last.fm musi być publiczne.",
     aliases: ["lastfm"],
+    additionalInfo: []
+  },
+  {
+    id: 45,
+    name: "gangreset",
+    category: "ADMIN",
+    shortDescription: "resetuje cooldowny gangow (admin)",
+    description: "Resetuje czas oczekiwania (cooldown) na skoki gangu oraz ataki dla wszystkich gangów w bazie danych.",
+    usage: "!gangreset",
+    examples: ["!gangreset"],
+    cooldown: "Brak.",
+    requirements: "Wymaga uprawnień administratora bota.",
+    aliases: [],
     additionalInfo: []
   }
 ];
@@ -605,7 +606,7 @@ function getHelpCommandByName(input) {
 
   return helpCommands.find(command => (
     command.name === normalized
-    || command.aliases.some(alias => alias.toLowerCase() === normalized)
+    || (command.aliases && command.aliases.some(alias => alias.toLowerCase() === normalized))
   )) || null;
 }
 
