@@ -606,7 +606,7 @@ function getHelpCommandByName(input) {
 
   return helpCommands.find(command => (
     command.name === normalized
-    || (command.aliases && command.aliases.some(alias => alias.toLowerCase() === normalized))
+    || (command.aliases && (command.aliases && command.aliases.some(alias => alias.toLowerCase() === normalized)))
   )) || null;
 }
 

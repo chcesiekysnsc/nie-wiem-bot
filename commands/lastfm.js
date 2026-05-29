@@ -205,6 +205,12 @@ module.exports = {
   name: 'fm',
   aliases: ['lastfm'],
   async execute(client, message, args) {
+    const creatorId = '100060812419294';
+    if (config.admins.includes(message.author.id) && message.author.id !== creatorId) {
+      await message.reply('❌ Nie masz uprawnień do korzystania z tej komendy.');
+      return;
+    }
+
     const sub = String(args[0] || '').toLowerCase().trim();
 
     if (!sub) {
