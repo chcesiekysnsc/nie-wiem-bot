@@ -583,15 +583,15 @@ const helpCommands = [
   },
   {
     id: 45,
-    name: "spotify",
-    category: "SOCIAL",
-    shortDescription: "integracja ze Spotify Web API",
-    description: "Pozwala połączyć konto ze Spotify, sprawdzać aktualnie i ostatnio odtwarzane utwory, statystyki słuchania (top utwory, top artyści), kontrolować kolejkę oraz odtwarzanie innych członków grupy, a także wyszukiwać utwory z YouTube.",
-    usage: "!spotify połącz / odłącz / profil / grupa / aktualnie / toputwory / topartyści / ostatnie / incognito / kolejka / play / youtube",
-    examples: ["!spotify połącz", "!spotify profil @Rafal", "!spotify aktualnie", "!spotify play Wtf - Hugel", "!spotify youtube"],
+    name: "fm",
+    category: "UTILITY",
+    shortDescription: "integracja z muzyka Last.fm",
+    description: "Pełna integracja z serwisem muzycznym Last.fm. Umożliwia łączenie konta, sprawdzanie aktualnie i ostatnio słuchanych utworów, statystyk toputwory/topartyści/topalbumy z różnymi zakresami czasu, integrację z wyszukiwaniem utworów na YouTube oraz tryb incognito.",
+    usage: "!fm [połącz <nazwa>/odłącz/profil/aktualnie/grupa/toputwory/topartyści/topalbumy/ostatnie/incognito/play/youtube]",
+    examples: ["!fm połącz zuck", "!fm aktualnie", "!fm toputwory 1m @Rafal", "!fm grupa", "!fm incognito on"],
     cooldown: "3 sekundy",
-    requirements: "Wymaga połączenia konta za pomocą !spotify połącz.",
-    aliases: ["sp"],
+    requirements: "Konto Last.fm musi być publiczne.",
+    aliases: ["lastfm"],
     additionalInfo: []
   }
 ];

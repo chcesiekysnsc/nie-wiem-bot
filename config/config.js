@@ -332,10 +332,5 @@ module.exports = {
     boss: '👑 Boss Gangu',
     zastepca: '⭐ Zastępca',
     czlonek: '👤 Członek Gangu'
-  },
-  spotify: {
-    clientId: process.env.SPOTIFY_CLIENT_ID || 'c3f00841dd3b4805b8fa6a94468c3044',
-    clientSecret: process.env.SPOTIFY_CLIENT_SECRET || '4c0a9eecbb814f199889c9ffdb705b6c',
-    redirectUri: process.env.SPOTIFY_REDIRECT_URI || 'http://localhost:8080/spotify-callback'
   }
 };
