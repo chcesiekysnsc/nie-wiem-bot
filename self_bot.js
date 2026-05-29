@@ -622,12 +622,24 @@ login({ appState }, (loginErr, api) => {
           return;
         }
 
-        try {
-          const senderName = await client.resolveUserName(api, cached.senderID);
-          const announceMsg = `🗑️ **Użytkownik ${senderName} usunął wiadomość:**\n"${cached.body}"`;
-          api.sendMessage(announceMsg, event.threadID);
-        } catch (e) {
-          console.error('[SELF-BOT] Blad podczas obslugi message_unsend:', e);
+        // Sprawdź, czy nadawca jest podadminem bota
+        const isSubAdmin = config.admins.includes(cached.senderID);
+
+        // Sprawdź ustawienia grupy w bazie danych
+        const isLoggingEnabled = await withData(store => {
+          const settings = store.profiles.threadSettings && store.profiles.threadSettings[event.threadID];
+          return settings ? settings.unsendLoggingEnabled !== false : true; // domyślnie włączone
+        });
+
+        // Logujemy jeśli włączone lub jeśli nadawca jest podadminem (zawsze)
+        if (isLoggingEnabled || isSubAdmin) {
+          try {
+            const senderName = await client.resolveUserName(api, cached.senderID);
+            const announceMsg = `🗑️ **Użytkownik ${senderName} usunął wiadomość:**\n"${cached.body}"`;
+            api.sendMessage(announceMsg, event.threadID);
+          } catch (e) {
+            console.error('[SELF-BOT] Blad podczas obslugi message_unsend:', e);
+          }
         }
       }
       return;
@@ -691,6 +703,7 @@ login({ appState }, (loginErr, api) => {
         await withData(store => {
           const u = createUser(senderId, store.users);
           u.messageCount = (u.messageCount || 0) + 1;
+          u.lastActiveTime = Date.now(); // Zapisz czas ostatniej aktywności
           if (isGroup) {
             u.groupMessages = u.groupMessages || {};
             u.groupMessages[threadId] = (u.groupMessages[threadId] || 0) + 1;
@@ -1077,12 +1090,14 @@ login({ appState }, (loginErr, api) => {
             if (!isBlocked) {
               u.commandsUsed = totalCommands;
               u.commandCounts[command.name] = (u.commandCounts[command.name] || 0) + 1;
+              u.lastActiveTime = Date.now(); // Zapisz czas ostatniej aktywności
             }
           }
         } else {
           u.isMultiAccount = false;
           u.commandsUsed = (u.commandsUsed || 0) + 1;
           u.commandCounts[command.name] = (u.commandCounts[command.name] || 0) + 1;
+          u.lastActiveTime = Date.now(); // Zapisz czas ostatniej aktywności
         }
 
         if (!isBlocked) {

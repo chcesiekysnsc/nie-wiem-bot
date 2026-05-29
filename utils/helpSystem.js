@@ -544,6 +544,32 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: ["rules"],
     additionalInfo: []
+  },
+  {
+    id: 42,
+    name: "wiadomosci",
+    category: "UTILITY",
+    shortDescription: "wlacza/wylacza logowanie usunietych wiadomosci",
+    description: "Pozwala administratorom grupy włączyć lub wyłączyć logowanie (oznaczanie) usuniętych wiadomości na tej grupie. Wiadomości usunięte przez podadminów bota są wysyłane zawsze, a przez twórcę nigdy.",
+    usage: "!wiadomosci <on/off>",
+    examples: ["!wiadomosci on", "!wiadomosci off"],
+    cooldown: "3 sekundy",
+    requirements: "Musisz być administratorem grupy lub bota.",
+    aliases: ["wiadomości", "delmsglog"],
+    additionalInfo: []
+  },
+  {
+    id: 43,
+    name: "afkdel",
+    category: "UTILITY",
+    shortDescription: "usuwa nieaktywnych czlonkow grupy (30 dni)",
+    description: "Analizuje historię wiadomości grupy i usuwa z niej wszystkich użytkowników, którzy nie wysłali żadnej wiadomości w ciągu ostatnich 30 dni (również przed dodaniem komendy). Nie usuwa adminów grupy, adminów bota ani samego bota.",
+    usage: "!afkdel",
+    examples: ["!afkdel"],
+    cooldown: "30 sekund",
+    requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
+    aliases: [],
+    additionalInfo: []
   }
 ];
 
