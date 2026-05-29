@@ -1,446 +1,457 @@
-const https = require('https');
-const config = require('../config/config');
-const spotify = require('../utils/spotify');
-
-// Pomocnicza funkcja do wyszukiwania wideo na YouTube
-function searchYouTube(query) {
-  return new Promise((resolve, reject) => {
-    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-    const options = {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7',
-      }
-    };
-    https.get(url, options, (res) => {
-      let data = '';
-      res.on('data', chunk => { data += chunk; });
-      res.on('end', () => {
-        const videoIdRegex = /"videoId":"([a-zA-Z0-9_-]{11})"/;
-        const match = data.match(videoIdRegex);
-        if (match && match[1]) {
-          return resolve(match[1]);
-        }
-        const watchRegex = /\/watch\?v=([a-zA-Z0-9_-]{11})/;
-        const match2 = data.match(watchRegex);
-        if (match2 && match2[1]) {
-          return resolve(match2[1]);
-        }
-        reject(new Error('Brak wyników wyszukiwania na YouTube.'));
-      });
-    }).on('error', reject);
-  });
-}
-
-// Pomocnicza funkcja do parsowania parametrów i odnajdowania celu (tag/ID)
-function resolveTargetUser(message, args) {
-  const mentioned = message.mentions.users.first();
-  if (mentioned) {
-    const cleanedArgs = args.filter(a => !a.startsWith('@'));
-    return { id: mentioned.id, name: mentioned.username, cleanedArgs };
-  }
-  
-  // Szukamy ID numerycznego w argumentach
-  for (let i = 0; i < args.length; i++) {
-    if (/^\d{14,16}$/.test(args[i])) {
-      const id = args[i];
-      const name = `Użytkownik_${id.slice(-6)}`;
-      const cleanedArgs = args.filter((_, idx) => idx !== i);
-      return { id, name, cleanedArgs };
-    }
-  }
-  
-  return { id: message.author.id, name: message.author.username, cleanedArgs: args };
-}
+const spotifyUtil = require('../utils/spotify');
 
 module.exports = {
   name: 'spotify',
   aliases: ['sp'],
   async execute(client, message, args) {
-    if (!client.api) {
-      await message.reply('❌ Brak połączenia z API Messengera.');
+    const threadId = message.guild?.id || message.rawEvent?.threadID;
+    if (!threadId) {
+      await message.reply('❌ Ta komenda może być używana tylko w konwersacjach grupowych.');
       return;
     }
 
-    // Wyświetlanie pomocy, jeśli brak argumentów
-    if (!args[0]) {
-      const helpMsg = 
-        `🎛️ **PRAWIDŁOWE UŻYCIE KOMENDY !spotify**\n\n` +
-        `🔌 **!spotify polacz** • Umożliwia sparowanie konta Spotify\n` +
-        `🔥 **!spotify odlacz** • Rozłącza Twoje konto Spotify od bota\n` +
-        `🤠 **!spotify profil <@użytkownik>** • Wyświetla informacje o profilu Spotify\n` +
-        `🧐 **!spotify grupa** • Pokazuje czego słuchają członkowie grupy\n` +
-        `🎧 **!spotify aktualnie <@użytkownik>** • Sprawdza, co jest obecnie odtwarzane\n` +
-        `⭐ **!spotify toputwory 1m/6m/12m <@użytkownik>** • Najchętniej słuchane utwory\n` +
-        `🤩 **!spotify topartyści 1m/6m/12m <@użytkownik>** • Najchętniej słuchani artyści\n` +
-        `🕰 **!spotify ostatnie <@użytkownik>** • Pokazuje historię ostatnio odtwarzanych utworów\n` +
-        `🥸 **!spotify incognito on/off** • Przełącza widoczność Twoich statystyk dla innych\n` +
-        `📋 **!spotify kolejka <utwór/@użytkownik>** • Dodaje utwór do Twojej kolejki odtwarzania\n` +
-        `💿 **!spotify play <utwór/@użytkownik>** • Odtwarza wybrany utwór na Twoim koncie\n` +
-        `🎶 **!spotify youtube <@użytkownik>** • Wyszukuje aktualny utwór na YouTube`;
-      await message.reply(helpMsg);
+    const sub = String(args[0] || '').toLowerCase().trim();
+
+    const helpMessage = 
+      `🎛️ **Prawidłowe użycie komendy !spotify:**\n\n` +
+      `🔌 **!spotify połącz** • Pozwala połączyć Ambienta z kontem Spotify\n\n` +
+      `🔥 **!spotify odłącz** • Pozwala odłączyć Ambienta od konta Spotify\n\n` +
+      `🤠 **!spotify profil <@użytkownik (opcjonalnie)>** • Pozwala sprawdzić informacje o Twoim lub oznaczonego użytkownika profilu Spotify\n\n` +
+      `🧐 **!spotify grupa** • Pozwala sprawdzić czego obecnie słuchają członkowie tej grupy\n\n` +
+      `🎧 **!spotify aktualnie <@użytkownik (opcjonalnie)>** • Pozwala sprawdzić czego obecnie słuchasz Ty lub oznaczony użytkownik\n\n` +
+      `⭐ **!spotify toputwory 1m/6m/12m <@użytkownik (opcjonalnie)>** • Pozwala sprawdzić Twoje najczęściej słuchane utwory lub oznaczonego użytkownika w podanym zakresie czasu\n\n` +
+      `🤩 **!spotify topartyści 1m/6m/12m <@użytkownik (opcjonalnie)>** • Pozwala sprawdzić Twoich najczęściej słuchanych artystów lub oznaczonego użytkownika w podanym zakresie czasu\n\n` +
+      `🕰 **!spotify ostatnie <@użytkownik (opcjonalnie)>** • Pozwala sprawdzić czego ostatnio słuchałeś Ty lub oznaczony użytkownik\n\n` +
+      `🥸 **!spotify incognito on/off** • Pozwala wybrać, czy inni członkowie grupy mają mieć możliwość sprawdzania Twoich statystyk Spotify\n\n` +
+      `📋 **!spotify kolejka <utwór lub @użytkownik>** • Pozwala dodać do Twojej kolejki odtwarzania wybrany utwór lub ten, którego słucha oznaczony użytkownik\n\n` +
+      `💿 **!spotify play <utwór lub @użytkownik>** • Pozwala odtworzyć na Twoim koncie Spotify wybrany utwór lub ten, którego słucha oznaczony użytkownik\n\n` +
+      `🎶 **!spotify youtube <@użytkownik (opcjonalnie)>** • Wysyła utwór którego słuchasz Ty lub oznaczony użytkownik z YouTube`;
+
+    if (!sub || sub === 'help' || sub === 'pomoc') {
+      await message.reply(helpMessage);
       return;
     }
-
-    const sub = args[0].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Normalizacja (polskie znaki)
-    const subArgs = args.slice(1);
 
     // 1. POŁĄCZ
-    if (sub === 'polacz') {
-      if (!spotify.isConfigured()) {
-        const setupInfo = 
-          `⚠️ **Brak konfiguracji Spotify po stronie bota!** ⚠️\n\n` +
-          `Aby włączyć funkcję integracji ze Spotify, administrator bota musi dodać do pliku \`.env\` następujące wpisy:\n` +
-          `\`\`\`\n` +
-          `SPOTIFY_CLIENT_ID=Twój_Client_ID\n` +
-          `SPOTIFY_CLIENT_SECRET=Twój_Client_Secret\n` +
-          `SPOTIFY_REDIRECT_URI=Adres_URL_przekierowania_bota/spotify/callback\n` +
-          `\`\`\``;
-        await message.reply(setupInfo);
-        return;
-      }
-
-      const connectUrl = spotify.getAuthUrl(message.author.id);
-
-      await message.reply(`🔌 **POŁĄCZENIE KONTĄ SPOTIFY**\n\nOto Twój indywidualny link do połączenia konta Spotify z botem:\n👉 ${connectUrl}\n\n*Po zalogowaniu i zaakceptowaniu uprawnień powrócisz tutaj.*`);
+    if (sub === 'połącz' || sub === 'polacz' || sub === 'connect') {
+      const url = spotifyUtil.getAuthUrl(message.author.id, threadId);
+      await message.reply(
+        `🔌 **Spotify Connect**\n\n` +
+        `Aby połączyć swoje konto Spotify z botem Ambient, kliknij w poniższy link autoryzacyjny:\n\n` +
+        `🔗 ${url}\n\n` +
+        `*Uwaga: Po zatwierdzeniu uprawnień na stronie Spotify, zostaniesz przekierowany na stronę potwierdzającą, a na tym czacie pojawi się powiadomienie.*`
+      );
       return;
     }
 
     // 2. ODŁĄCZ
-    if (sub === 'odlacz') {
-      const success = spotify.disconnectUser(message.author.id);
-      if (success) {
-        await message.reply('🔥 Pomyślnie odłączono Twoje konto Spotify i usunięto Twoje dane autoryzacyjne.');
-      } else {
-        await message.reply('ℹ️ Twoje konto nie było połączone ze Spotify.');
+    if (sub === 'odłącz' || sub === 'odlacz' || sub === 'disconnect') {
+      const db = spotifyUtil.loadSpotifyDb();
+      if (!db[message.author.id]) {
+        await message.reply('❌ Twoje konto Spotify nie jest połączone z botem.');
+        return;
       }
+      delete db[message.author.id];
+      spotifyUtil.saveSpotifyDb(db);
+      await message.reply('🔥 Pomyślnie odłączono Twoje konto Spotify od bota Ambient.');
       return;
+    }
+
+    // Wspólny parser celu (@wzmianka / ID) dla pozostałych komend
+    let targetId = message.author.id;
+    let targetName = message.author.username || 'Ty';
+
+    const mentioned = message.mentions?.users?.first ? message.mentions.users.first() : null;
+    if (mentioned) {
+      targetId = mentioned.id;
+      targetName = mentioned.username || `Użytkownik_${targetId.slice(-6)}`;
+    } else {
+      // Szukaj numerycznego ID w argumentach (z pominięciem filtrów czasowych)
+      const possibleId = args.slice(1).find(a => a && /^\d+$/.test(a) && !['1m', '6m', '12m'].includes(a));
+      if (possibleId) {
+        targetId = possibleId;
+        targetName = `Użytkownik_${targetId.slice(-6)}`;
+        if (client.userNames.has(targetId)) {
+          targetName = client.userNames.get(targetId);
+        }
+      }
     }
 
     // 3. INCOGNITO
     if (sub === 'incognito') {
-      if (!subArgs[0]) {
-        const current = spotify.isIncognito(message.author.id);
-        await message.reply(`🥸 Twój tryb incognito jest obecnie: **${current ? 'WŁĄCZONY 🟢' : 'WYŁĄCZONY 🔴'}**.\nWpisz \`!spotify incognito on\` lub \`off\` aby to zmienić.`);
+      const db = spotifyUtil.loadSpotifyDb();
+      if (!db[message.author.id]) {
+        await message.reply('❌ Twoje konto Spotify nie jest połączone z botem. Połącz je wpisując `!spotify połącz`.');
         return;
       }
-      const val = subArgs[0].toLowerCase();
-      if (val === 'on' || val === 'wlaczone' || val === 'wlacz') {
-        spotify.setIncognito(message.author.id, true);
-        await message.reply('🥸 **Włączono tryb incognito.** Inni członkowie grupy nie mogą już sprawdzać tego, czego słuchasz.');
-      } else if (val === 'off' || val === 'wylaczone' || val === 'wylacz') {
-        spotify.setIncognito(message.author.id, false);
-        await message.reply('🥸 **Wyłączono tryb incognito.** Twoje statystyki i aktualnie słuchany utwór są widoczne dla grupy.');
+
+      const statusStr = String(args[1] || '').toLowerCase().trim();
+      if (statusStr === 'on' || statusStr === 'włącz' || statusStr === 'wlacz') {
+        db[message.author.id].incognito = true;
+        spotifyUtil.saveSpotifyDb(db);
+        await message.reply('🥸 Tryb incognito został **włączony**. Inni członkowie grupy nie mogą sprawdzać Twoich statystyk Spotify.');
+      } else if (statusStr === 'off' || statusStr === 'wyłącz' || statusStr === 'wylacz') {
+        db[message.author.id].incognito = false;
+        spotifyUtil.saveSpotifyDb(db);
+        await message.reply('🥸 Tryb incognito został **wyłączony**. Inni członkowie grupy mogą teraz sprawdzać Twoje statystyki Spotify.');
       } else {
-        await message.reply('❌ Nieprawidłowy parametr. Wpisz `!spotify incognito on` lub `off`.');
+        const currentStatus = db[message.author.id].incognito ? 'Włączony 🟢' : 'Wyłączony 🔴';
+        await message.reply(`🥸 Twój obecny status incognito: **${currentStatus}**\n\nAby go zmienić, wpisz: \`!spotify incognito on\` lub \`!spotify incognito off\``);
       }
       return;
     }
 
-    // Pozostałe podkomendy wymagają połączenia Spotify (lub sprawdzamy inne konto, które musi być połączone)
-    // Zidentyfikujmy cel zapytania
-    const target = resolveTargetUser(message, subArgs);
-    const isSelf = target.id === message.author.id;
-
-    // Sprawdź czy cel ma włączone incognito i nie jest to ta sama osoba
-    if (!isSelf && spotify.isIncognito(target.id)) {
-      await message.reply('🥸 Ten użytkownik włączył tryb incognito i nie zezwala na podgląd swoich statystyk Spotify.');
-      return;
-    }
-
-    // Helper do formatowania milisekund do m:ss
-    const formatMs = ms => {
-      const minutes = Math.floor(ms / 60000);
-      const seconds = ((ms % 60000) / 1000).toFixed(0);
-      return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-    };
-
-    try {
-      // 4. PROFIL
-      if (sub === 'profil') {
-        const profile = await spotify.getProfile(target.id);
-        const name = profile.display_name || target.name;
-        const followers = profile.followers?.total || 0;
-        const product = profile.product || 'free';
-        const country = profile.country || 'PL';
-        const url = profile.external_urls?.spotify || 'Brak linku';
-
-        const profileMsg = 
-          `🤠 **PROFIL SPOTIFY - ${name.toUpperCase()}**\n\n` +
-          `👤 Nazwa wyświetlana: **${name}**\n` +
-          `🌍 Kraj: **${country}**\n` +
-          `💎 Subskrypcja: **${product.toUpperCase()}**\n` +
-          `👥 Obserwujący: **${followers}**\n` +
-          `🔗 Link do profilu: ${url}`;
-        await message.reply(profileMsg);
+    // 4. GRUPA
+    if (sub === 'grupa' || sub === 'group') {
+      if (!client.api) {
+        await message.reply('❌ Brak połączenia z API Messengera.');
         return;
       }
 
-      // 5. AKTUALNIE
-      if (sub === 'aktualnie') {
-        const currently = await spotify.getCurrentlyPlaying(target.id);
-        if (!currently || !currently.item) {
-          await message.reply(isSelf ? '🎧 Nie odtwarzasz obecnie żadnego utworu na swoim Spotify.' : `🎧 Użytkownik **${target.name}** nie odtwarza obecnie żadnego utworu.`);
+      client.api.getThreadInfo(threadId, async (err, info) => {
+        if (err || !info) {
+          await message.reply('❌ Nie udało się pobrać informacji o grupie.');
           return;
         }
 
-        const track = currently.item;
-        const trackName = track.name;
-        const artists = track.artists.map(a => a.name).join(', ');
-        const album = track.album.name;
-        const popularity = track.popularity || 0;
-        const link = track.external_urls?.spotify || '';
-
-        // Pasek postępu
-        const progressMs = currently.progress_ms || 0;
-        const durationMs = track.duration_ms || 1;
-        const barSize = 12;
-        const percent = Math.min(1, progressMs / durationMs);
-        const filled = Math.round(barSize * percent);
-        const empty = barSize - filled;
-        const bar = '█'.repeat(filled) + '░'.repeat(empty);
-
-        const currentlyMsg = 
-          `🎧 **AKTUALNIE ODTWARZANE - ${target.name.toUpperCase()}**\n\n` +
-          `🎶 Utwór: **${trackName}**\n` +
-          `👤 Wykonawca: **${artists}**\n` +
-          `💿 Album: **${album}**\n` +
-          `🔥 Popularność: **${popularity}/100**\n` +
-          `⏱️ Postęp: \`[${bar}] ${formatMs(progressMs)} / ${formatMs(durationMs)}\`\n` +
-          `🔗 Link: ${link}`;
-        await message.reply(currentlyMsg);
-        return;
-      }
-
-      // 6. TOP UTWORY
-      if (sub === 'toputwory' || sub === 'toputwory') {
-        // Sprawdź czy pierwszy parametr subArgs to zakres czasu (1m/6m/12m)
-        let timeRange = '6m';
-        if (target.cleanedArgs[0] && ['1m', '6m', '12m'].includes(target.cleanedArgs[0])) {
-          timeRange = target.cleanedArgs[0];
-        }
-
-        const topTracks = await spotify.getTopTracks(target.id, timeRange);
-        if (!topTracks || !topTracks.items || topTracks.items.length === 0) {
-          await message.reply('❌ Nie znaleziono żadnych najczęściej słuchanych utworów w tym przedziale czasowym.');
-          return;
-        }
-
-        const rangeLabel = timeRange === '1m' ? 'ostatni miesiąc' : (timeRange === '12m' ? 'ostatni rok' : 'ostatnie 6 miesięcy');
-        let tracksList = `⭐ **TOP UTWORY - ${target.name.toUpperCase()} (${rangeLabel})**\n\n`;
-        topTracks.items.forEach((item, index) => {
-          const artists = item.artists.map(a => a.name).join(', ');
-          tracksList += `${index + 1}. **${item.name}** — ${artists}\n`;
-        });
-        await message.reply(tracksList);
-        return;
-      }
-
-      // 7. TOP ARTYŚCI
-      if (sub === 'topartysci' || sub === 'topartysci') {
-        let timeRange = '6m';
-        if (target.cleanedArgs[0] && ['1m', '6m', '12m'].includes(target.cleanedArgs[0])) {
-          timeRange = target.cleanedArgs[0];
-        }
-
-        const topArtists = await spotify.getTopArtists(target.id, timeRange);
-        if (!topArtists || !topArtists.items || topArtists.items.length === 0) {
-          await message.reply('❌ Nie znaleziono żadnych najczęściej słuchanych artystów w tym przedziale czasowym.');
-          return;
-        }
-
-        const rangeLabel = timeRange === '1m' ? 'ostatni miesiąc' : (timeRange === '12m' ? 'ostatni rok' : 'ostatnie 6 miesięcy');
-        let artistsList = `🤩 **TOP ARTYŚCI - ${target.name.toUpperCase()} (${rangeLabel})**\n\n`;
-        topArtists.items.forEach((item, index) => {
-          const genres = item.genres?.slice(0, 2).join(', ') || 'brak gatunku';
-          artistsList += `${index + 1}. **${item.name}** [${genres}]\n`;
-        });
-        await message.reply(artistsList);
-        return;
-      }
-
-      // 8. OSTATNIE
-      if (sub === 'ostatnie') {
-        const recently = await spotify.getRecentlyPlayed(target.id);
-        if (!recently || !recently.items || recently.items.length === 0) {
-          await message.reply('❌ Nie udało się pobrać historii ostatnio odtwarzanych utworów.');
-          return;
-        }
-
-        let recentlyList = `🕰 **OSTATNIO SŁUCHANE - ${target.name.toUpperCase()}**\n\n`;
-        recently.items.forEach((record, index) => {
-          const track = record.track;
-          const artists = track.artists.map(a => a.name).join(', ');
-          recentlyList += `${index + 1}. **${track.name}** — ${artists}\n`;
-        });
-        await message.reply(recentlyList);
-        return;
-      }
-
-      // 9. GRUPA
-      if (sub === 'grupa') {
-        // Pobierz listę uczestników czatu
-        const threadInfo = await new Promise((resolve, reject) => {
-          client.api.getThreadInfo(threadId, (err, ret) => {
-            if (err) return reject(err);
-            resolve(ret);
-          });
-        });
-
-        if (!threadInfo || !threadInfo.participantIDs || threadInfo.participantIDs.length === 0) {
-          await message.reply('❌ Nie udało się pobrać członków grupy.');
-          return;
-        }
-
-        const participants = threadInfo.participantIDs;
-        const db = spotify.loadSpotifyDb();
-        const promises = [];
+        const participants = info.participantIDs || [];
+        const listening = [];
 
         for (const pId of participants) {
-          // Jeśli jest w bazie Spotify i nie jest incognito
-          if (db.users[pId] && !db.users[pId].incognito) {
-            promises.push((async () => {
-              try {
-                const username = await client.resolveUserName(client.api, pId);
-                const currently = await spotify.getCurrentlyPlaying(pId);
-                if (currently && currently.item) {
-                  const track = currently.item;
-                  const artists = track.artists.map(a => a.name).join(', ');
-                  return `👤 **${username}** słucha: **${track.name}** — ${artists}`;
-                }
-              } catch (_) {}
-              return null;
-            })());
-          }
+          const token = await spotifyUtil.getAccessToken(pId);
+          if (!token) continue;
+
+          const db = spotifyUtil.loadSpotifyDb();
+          if (db[pId].incognito) continue;
+
+          try {
+            const current = await spotifyUtil.getCurrentlyPlaying(token);
+            if (current && current.is_playing && current.item) {
+              const pName = await client.resolveUserName(client.api, pId);
+              const artists = current.item.artists.map(a => a.name).join(', ');
+              listening.push(`👤 **${pName}** słucha:\n   🎵 **${current.item.name}** — ${artists}`);
+            }
+          } catch (_) {}
         }
 
-        const activeList = (await Promise.all(promises)).filter(Boolean);
-        if (activeList.length === 0) {
-          await message.reply('🧐 Nikt z połączonych członków grupy nie odtwarza obecnie niczego na Spotify (lub ich statystyki są ukryte).');
+        if (listening.length === 0) {
+          await message.reply('🧐 Żaden z połączonych członków grupy nie słucha obecnie muzyki na Spotify.');
           return;
         }
 
-        const groupMsg = `🧐 **CZEGO SŁUCHA GRUPA?**\n\n${activeList.join('\n')}`;
-        await message.reply(groupMsg);
-        return;
-      }
-
-      // 10. KOLEJKA
-      if (sub === 'kolejka') {
-        const queryText = target.cleanedArgs.join(' ').trim();
-        if (!queryText) {
-          await message.reply('❌ Podaj nazwę utworu lub oznacz osobę, której piosenkę chcesz dodać do kolejki: **!spotify kolejka <nazwa/@osoba>**');
-          return;
-        }
-
-        let trackUri = null;
-        let trackDetails = '';
-
-        // Jeśli w argumencie oznaczono inną osobę, ściągamy jej piosenkę
-        const otherUser = resolveTargetUser(message, subArgs);
-        if (otherUser.id !== message.author.id) {
-          if (spotify.isIncognito(otherUser.id)) {
-            await message.reply('🥸 Użytkownik ma włączone incognito — nie można skopiować jego odtwarzania.');
-            return;
-          }
-          const currently = await spotify.getCurrentlyPlaying(otherUser.id);
-          if (!currently || !currently.item) {
-            await message.reply(`❌ Użytkownik **${otherUser.name}** nie odtwarza obecnie niczego na Spotify.`);
-            return;
-          }
-          trackUri = currently.item.uri;
-          trackDetails = `**${currently.item.name}** — ${currently.item.artists.map(a => a.name).join(', ')}`;
-        } else {
-          // W przeciwnym wypadku traktujemy jako wyszukiwanie
-          const foundTrack = await spotify.searchTrack(message.author.id, queryText);
-          if (!foundTrack) {
-            await message.reply(`❌ Nie znaleziono utworu o nazwie "${queryText}" w katalogu Spotify.`);
-            return;
-          }
-          trackUri = foundTrack.uri;
-          trackDetails = `**${foundTrack.name}** — ${foundTrack.artists.map(a => a.name).join(', ')}`;
-        }
-
-        if (trackUri) {
-          await spotify.addToQueue(message.author.id, trackUri);
-          await message.reply(`📋 Pomyślnie dodano do Twojej kolejki Spotify: ${trackDetails}`);
-        }
-        return;
-      }
-
-      // 11. PLAY
-      if (sub === 'play') {
-        const queryText = target.cleanedArgs.join(' ').trim();
-        if (!queryText) {
-          await message.reply('❌ Podaj nazwę utworu lub oznacz osobę, której piosenkę chcesz odtworzyć: **!spotify play <nazwa/@osoba>**');
-          return;
-        }
-
-        let trackUri = null;
-        let trackDetails = '';
-
-        // Jeśli w argumencie oznaczono inną osobę, ściągamy jej piosenkę
-        const otherUser = resolveTargetUser(message, subArgs);
-        if (otherUser.id !== message.author.id) {
-          if (spotify.isIncognito(otherUser.id)) {
-            await message.reply('🥸 Użytkownik ma włączone incognito — nie można skopiować jego odtwarzania.');
-            return;
-          }
-          const currently = await spotify.getCurrentlyPlaying(otherUser.id);
-          if (!currently || !currently.item) {
-            await message.reply(`❌ Użytkownik **${otherUser.name}** nie odtwarza obecnie niczego na Spotify.`);
-            return;
-          }
-          trackUri = currently.item.uri;
-          trackDetails = `**${currently.item.name}** — ${currently.item.artists.map(a => a.name).join(', ')}`;
-        } else {
-          // W przeciwnym wypadku traktujemy jako wyszukiwanie
-          const foundTrack = await spotify.searchTrack(message.author.id, queryText);
-          if (!foundTrack) {
-            await message.reply(`❌ Nie znaleziono utworu o nazwie "${queryText}" w katalogu Spotify.`);
-            return;
-          }
-          trackUri = foundTrack.uri;
-          trackDetails = `**${foundTrack.name}** — ${foundTrack.artists.map(a => a.name).join(', ')}`;
-        }
-
-        if (trackUri) {
-          await spotify.playTrack(message.author.id, trackUri);
-          await message.reply(`💿 Odtwarzanie na Twoim koncie Spotify: ${trackDetails}`);
-        }
-        return;
-      }
-
-      // 12. YOUTUBE
-      if (sub === 'youtube') {
-        const currently = await spotify.getCurrentlyPlaying(target.id);
-        if (!currently || !currently.item) {
-          await message.reply(isSelf ? '🎧 Nie odtwarzasz obecnie żadnego utworu na swoim Spotify.' : `🎧 Użytkownik **${target.name}** nie odtwarza obecnie żadnego utworu.`);
-          return;
-        }
-
-        const track = currently.item;
-        const artists = track.artists.map(a => a.name).join(', ');
-        const searchName = `${track.name} ${artists}`;
-
-        const loadingMsg = await message.reply(`🔍 Szukam utworu **${track.name}** — ${artists} na YouTube...`);
-        try {
-          const videoId = await searchYouTube(searchName);
-          const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
-          await message.reply(`🎶 **YouTube: ${track.name} — ${artists}**\n👉 ${ytUrl}`);
-        } catch (ytErr) {
-          console.error('[SPOTIFY YT] Search failed:', ytErr);
-          await message.reply(`❌ Nie udało się znaleźć tego utworu na YouTube.`);
-        }
-        return;
-      }
-
-      // Nieznana podkomenda
-      await message.reply('❌ Nieznana podkomenda. Wpisz `!spotify` aby zobaczyć listę dostępnych opcji.');
-
-    } catch (apiErr) {
-      console.error('[SPOTIFY COMMAND ERR]:', apiErr);
-      await message.reply(`❌ Błąd Spotify: ${apiErr.message}`);
+        await message.reply(`🧐 **Czego obecnie słuchają członkowie grupy?**\n\n${listening.join('\n\n')}`);
+      });
+      return;
     }
+
+    // Sprawdzenie powiązania konta Spotify i trybu incognito dla pozostałych komend z zapytaniem API
+    const token = await spotifyUtil.getAccessToken(targetId);
+    if (!token) {
+      await message.reply(targetId === message.author.id
+        ? '❌ Twoje konto Spotify nie jest połączone z botem. Połącz je za pomocą `!spotify połącz`.'
+        : `❌ Użytkownik **${targetName}** nie połączył jeszcze swojego konta Spotify.`);
+      return;
+    }
+
+    const db = spotifyUtil.loadSpotifyDb();
+    if (targetId !== message.author.id && db[targetId].incognito) {
+      await message.reply(`❌ Użytkownik **${targetName}** ma włączony tryb incognito.`);
+      return;
+    }
+
+    // 5. PROFIL
+    if (sub === 'profil' || sub === 'profile') {
+      try {
+        const profile = await spotifyUtil.getProfile(token);
+        const infoMsg =
+          `🤠 **Profil Spotify — ${targetName}**\n\n` +
+          `👤 Nazwa na Spotify: **${profile.display_name || profile.id}**\n` +
+          `📈 Obserwujący: **${profile.followers?.total || 0}**\n` +
+          `📦 Typ konta: **${profile.product || 'unknown'}**\n` +
+          `🔗 Link do profilu: ${profile.external_urls?.spotify || 'Brak'}`;
+        await message.reply(infoMsg);
+      } catch (err) {
+        await message.reply(`❌ Błąd podczas pobierania profilu Spotify: ${err.message}`);
+      }
+      return;
+    }
+
+    // 6. AKTUALNIE
+    if (sub === 'aktualnie' || sub === 'currently' || sub === 'now') {
+      try {
+        const current = await spotifyUtil.getCurrentlyPlaying(token);
+        if (!current || !current.item) {
+          await message.reply(targetId === message.author.id
+            ? '🎧 Nie słuchasz obecnie niczego na Spotify (lub Twoje odtwarzanie jest wstrzymane).'
+            : `🎧 Użytkownik **${targetName}** nie słucha obecnie niczego na Spotify.`);
+          return;
+        }
+
+        const track = current.item;
+        const progressMs = current.progress_ms;
+        const durationMs = track.duration_ms;
+
+        // Pasek postępu
+        const barSize = 15;
+        const dotPosition = Math.min(barSize - 1, Math.floor((progressMs / durationMs) * barSize));
+        let bar = '';
+        for (let i = 0; i < barSize; i++) {
+          bar += i === dotPosition ? '🔘' : '▬';
+        }
+
+        const mToReadable = (ms) => {
+          const mins = Math.floor(ms / 60000);
+          const secs = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0');
+          return `${mins}:${secs}`;
+        };
+
+        const artists = track.artists.map(a => a.name).join(', ');
+        const replyMsg =
+          `🎧 **Obecnie słucha — ${targetName}**\n\n` +
+          `🎵 Utwór: **${track.name}**\n` +
+          `👤 Artysta: **${artists}**\n` +
+          `💿 Album: **${track.album.name}**\n\n` +
+          `▶️ ${bar} [${mToReadable(progressMs)} / ${mToReadable(durationMs)}]\n\n` +
+          `🔗 Słuchaj na Spotify: ${track.external_urls?.spotify || 'Brak'}`;
+
+        await message.reply(replyMsg);
+      } catch (err) {
+        await message.reply(`❌ Błąd podczas pobierania obecnie odtwarzanego utworu: ${err.message}`);
+      }
+      return;
+    }
+
+    // 7. OSTATNIE
+    if (sub === 'ostatnie' || sub === 'recent' || sub === 'last') {
+      try {
+        const recent = await spotifyUtil.getRecentlyPlayed(token, 5);
+        if (!recent.items || recent.items.length === 0) {
+          await message.reply(`🕰 Użytkownik **${targetName}** nie posiada ostatnio odtwarzanych utworów.`);
+          return;
+        }
+
+        const lines = recent.items.map((item, idx) => {
+          const artists = item.track.artists.map(a => a.name).join(', ');
+          const playedAt = new Date(item.played_at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });
+          return `${idx + 1}. **${item.track.name}** — ${artists} *(o ${playedAt})*`;
+        }).join('\n');
+
+        await message.reply(`🕰 **Ostatnio słuchane utwory — ${targetName}**\n\n${lines}`);
+      } catch (err) {
+        await message.reply(`❌ Błąd podczas pobierania ostatnio słuchanych utworów: ${err.message}`);
+      }
+      return;
+    }
+
+    // Rozpoznawanie zakresu czasowego dla top utwory/artyści
+    let range = 'medium_term';
+    let rangeLabel = 'ostatnie 6 miesięcy';
+    const rangeArg = args.slice(1).find(a => ['1m', '6m', '12m'].includes(String(a).toLowerCase()));
+    if (rangeArg) {
+      const r = rangeArg.toLowerCase();
+      if (r === '1m') {
+        range = 'short_term';
+        rangeLabel = 'ostatni miesiąc';
+      } else if (r === '12m') {
+        range = 'long_term';
+        rangeLabel = 'ostatnie 12 miesięcy';
+      }
+    }
+
+    // 8. TOPUTWORY
+    if (sub === 'toputwory' || sub === 'toptracks') {
+      try {
+        const top = await spotifyUtil.getTopTracks(token, range, 5);
+        if (!top.items || top.items.length === 0) {
+          await message.reply(`⭐ Brak danych o najczęściej słuchanych utworach dla **${targetName}**.`);
+          return;
+        }
+
+        const lines = top.items.map((track, idx) => {
+          const artists = track.artists.map(a => a.name).join(', ');
+          return `${idx + 1}. **${track.name}** — ${artists}`;
+        }).join('\n');
+
+        await message.reply(`⭐ **Top utwory (${rangeLabel}) — ${targetName}**\n\n${lines}`);
+      } catch (err) {
+        await message.reply(`❌ Błąd podczas pobierania top utworów: ${err.message}`);
+      }
+      return;
+    }
+
+    // 9. TOPARTYŚCI
+    if (sub === 'topartyści' || sub === 'topartysci' || sub === 'topartists') {
+      try {
+        const top = await spotifyUtil.getTopArtists(token, range, 5);
+        if (!top.items || top.items.length === 0) {
+          await message.reply(`🤩 Brak danych o najczęściej słuchanych artystach dla **${targetName}**.`);
+          return;
+        }
+
+        const lines = top.items.map((artist, idx) => {
+          return `${idx + 1}. **${artist.name}** — ${artist.genres.slice(0, 2).join(', ') || 'pop'}`;
+        }).join('\n');
+
+        await message.reply(`🤩 **Top artyści (${rangeLabel}) — ${targetName}**\n\n${lines}`);
+      } catch (err) {
+        await message.reply(`❌ Błąd podczas pobierania top artystów: ${err.message}`);
+      }
+      return;
+    }
+
+    // 10. KOLEJKA
+    if (sub === 'kolejka' || sub === 'queue') {
+      // Dla kolejki autorem operacji jest nadawca wiadomości (dodajemy do jego kolejki)
+      const userToken = await spotifyUtil.getAccessToken(message.author.id);
+      if (!userToken) {
+        await message.reply('❌ Twoje konto Spotify nie jest połączone z botem. Połącz je wpisując `!spotify połącz`.');
+        return;
+      }
+
+      let trackUri = null;
+      let trackName = '';
+      let trackArtists = '';
+
+      const targetMention = message.mentions?.users?.first ? message.mentions.users.first() : null;
+      if (targetMention) {
+        const targetToken = await spotifyUtil.getAccessToken(targetMention.id);
+        if (!targetToken) {
+          await message.reply(`❌ Użytkownik **${targetMention.username}** nie połączył konta ze Spotify.`);
+          return;
+        }
+        const db = spotifyUtil.loadSpotifyDb();
+        if (db[targetMention.id].incognito) {
+          await message.reply(`❌ Użytkownik **${targetMention.username}** ma włączony tryb incognito.`);
+          return;
+        }
+
+        const current = await spotifyUtil.getCurrentlyPlaying(targetToken);
+        if (!current || !current.item) {
+          await message.reply(`❌ Użytkownik **${targetMention.username}** nie słucha obecnie niczego.`);
+          return;
+        }
+        trackUri = current.item.uri;
+        trackName = current.item.name;
+        trackArtists = current.item.artists.map(a => a.name).join(', ');
+      } else {
+        const query = args.slice(1).join(' ');
+        if (!query) {
+          await message.reply('❌ Podaj nazwę utworu lub oznacz użytkownika: **!spotify kolejka <utwór / @użytkownik>**');
+          return;
+        }
+
+        const searchResult = await spotifyUtil.searchTrack(userToken, query);
+        if (!searchResult) {
+          await message.reply(`❌ Nie znaleziono utworu dla zapytania: "${query}"`);
+          return;
+        }
+        trackUri = searchResult.uri;
+        trackName = searchResult.name;
+        trackArtists = searchResult.artists.map(a => a.name).join(', ');
+      }
+
+      try {
+        await spotifyUtil.addToQueue(userToken, trackUri);
+        await message.reply(`📋 Dodano do Twojej kolejki odtwarzania Spotify:\n🎵 **${trackName}** — ${trackArtists}`);
+      } catch (err) {
+        if (err.message === 'device_not_found') {
+          await message.reply('❌ Brak aktywnego odtwarzacza Spotify. Otwórz aplikację Spotify na dowolnym urządzeniu i spróbuj ponownie.');
+        } else {
+          await message.reply(`❌ Błąd podczas dodawania do kolejki: ${err.message}`);
+        }
+      }
+      return;
+    }
+
+    // 11. PLAY
+    if (sub === 'play' || sub === 'odtwórz' || sub === 'odtworz') {
+      const userToken = await spotifyUtil.getAccessToken(message.author.id);
+      if (!userToken) {
+        await message.reply('❌ Twoje konto Spotify nie jest połączone z botem. Połącz je wpisując `!spotify połącz`.');
+        return;
+      }
+
+      let trackUri = null;
+      let trackName = '';
+      let trackArtists = '';
+
+      const targetMention = message.mentions?.users?.first ? message.mentions.users.first() : null;
+      if (targetMention) {
+        const targetToken = await spotifyUtil.getAccessToken(targetMention.id);
+        if (!targetToken) {
+          await message.reply(`❌ Użytkownik **${targetMention.username}** nie połączył konta ze Spotify.`);
+          return;
+        }
+        const db = spotifyUtil.loadSpotifyDb();
+        if (db[targetMention.id].incognito) {
+          await message.reply(`❌ Użytkownik **${targetMention.username}** ma włączony tryb incognito.`);
+          return;
+        }
+
+        const current = await spotifyUtil.getCurrentlyPlaying(targetToken);
+        if (!current || !current.item) {
+          await message.reply(`❌ Użytkownik **${targetMention.username}** nie słucha obecnie niczego.`);
+          return;
+        }
+        trackUri = current.item.uri;
+        trackName = current.item.name;
+        trackArtists = current.item.artists.map(a => a.name).join(', ');
+      } else {
+        const query = args.slice(1).join(' ');
+        if (!query) {
+          await message.reply('❌ Podaj nazwę utworu lub oznacz użytkownika: **!spotify play <utwór / @użytkownik>**');
+          return;
+        }
+
+        const searchResult = await spotifyUtil.searchTrack(userToken, query);
+        if (!searchResult) {
+          await message.reply(`❌ Nie znaleziono utworu dla zapytania: "${query}"`);
+          return;
+        }
+        trackUri = searchResult.uri;
+        trackName = searchResult.name;
+        trackArtists = searchResult.artists.map(a => a.name).join(', ');
+      }
+
+      try {
+        await spotifyUtil.playTrack(userToken, trackUri);
+        await message.reply(`💿 Odtwarzam na Twoim koncie Spotify:\n🎵 **${trackName}** — ${trackArtists}`);
+      } catch (err) {
+        if (err.message === 'device_not_found') {
+          await message.reply('❌ Brak aktywnego odtwarzacza Spotify. Otwórz aplikację Spotify na dowolnym urządzeniu i spróbuj ponownie.');
+        } else {
+          await message.reply(`❌ Błąd podczas odtwarzania: ${err.message}`);
+        }
+      }
+      return;
+    }
+
+    // 12. YOUTUBE
+    if (sub === 'youtube' || sub === 'yt') {
+      try {
+        const current = await spotifyUtil.getCurrentlyPlaying(token);
+        if (!current || !current.item) {
+          await message.reply(targetId === message.author.id
+            ? '❌ Nie słuchasz obecnie niczego na Spotify.'
+            : `❌ Użytkownik **${targetName}** nie słucha obecnie niczego.`);
+          return;
+        }
+
+        const track = current.item;
+        const artists = track.artists.map(a => a.name).join(', ');
+        const query = `${artists} - ${track.name}`;
+
+        await message.reply(`🔍 Trwa wyszukiwanie utworu "${query}" na YouTube...`);
+        const ytLink = await spotifyUtil.searchYouTubeVideo(query);
+
+        await message.reply(`🎶 **YouTube — ${track.name}**\n\n🔗 Obejrzyj/Posłuchaj na YouTube:\n${ytLink}`);
+      } catch (err) {
+        await message.reply(`❌ Błąd podczas szukania na YouTube: ${err.message}`);
+      }
+      return;
+    }
+
+    // Fallback do pomocy
+    await message.reply(helpMessage);
   }
 };

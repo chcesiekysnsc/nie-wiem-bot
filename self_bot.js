@@ -1,8 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-const https = require('https');
-const urlModule = require('url');
 const login = require('@dongdev/fca-unofficial');
 
 require('dotenv').config();
@@ -13,7 +11,6 @@ const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
 const { formatCurrency, msToReadable } = require('./utils/economy');
-const spotify = require('./utils/spotify');
 
 // Algorytm Levenshteina do wykrywania litowek
 function levenshtein(a, b) {
@@ -1202,187 +1199,103 @@ login({ appState }, (loginErr, api) => {
   });
 });
 
-// Serwer HTTP dla sprawdzenia poprawnosci działania (Railway Health Check / Spotify OAuth)
+// Serwer HTTP dla sprawdzenia poprawnosci działania i callbacku Spotify
 const PORT = process.env.PORT || 8080;
-http.createServer(async (req, res) => {
+const urlModule = require('url');
+const spotifyUtil = require('./utils/spotify');
+
+http.createServer((req, res) => {
   const parsedUrl = urlModule.parse(req.url, true);
-
-  if (parsedUrl.pathname === '/spotify/connect') {
-    const userId = parsedUrl.query.user;
-    if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Błąd: Brak parametru "user" w adresie URL.');
-      return;
-    }
-
-    const authUrl = spotify.getAuthUrl(userId);
-    if (!authUrl) {
-      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Błąd: Brak konfiguracji aplikacji Spotify (Client ID / Redirect URI) w pliku .env.');
-      return;
-    }
-
-    res.writeHead(302, { 'Location': authUrl });
-    res.end();
-    return;
-  }
-
-  if (parsedUrl.pathname === '/spotify/callback') {
+  
+  if (parsedUrl.pathname === '/spotify-callback') {
     const code = parsedUrl.query.code;
-    const userId = parsedUrl.query.state;
-
-    if (!code || !userId) {
+    const state = parsedUrl.query.state;
+    
+    if (!code || !state) {
       res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(`
-        <!DOCTYPE html>
-        <html lang="pl">
-        <head>
-          <meta charset="UTF-8"><title>Błąd połączenia</title>
-          <style>body { background: #121212; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; } .card { background: #1e1e1e; padding: 30px; border-radius: 12px; max-width: 400px; text-align: center; border: 1px solid #ff4444; }</style>
-        </head>
-        <body>
-          <div class="card">
-            <h2 style="color: #ff4444;">Błąd Autoryzacji</h2>
-            <p>Nieprawidłowe zapytanie lub brak kodu autoryzacji Spotify.</p>
-          </div>
-        </body>
-        </html>
-      `);
+      res.end('<h1>Błąd</h1><p>Brak wymaganych parametrów (code lub state).</p>');
       return;
     }
-
-    try {
-      const tokens = await spotify.exchangeCode(code);
-      const db = spotify.loadSpotifyDb();
-      db.users[userId] = {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        expiresAt: tokens.expiresAt,
-        incognito: false
-      };
-      spotify.saveSpotifyDb(db);
-
-      // Wyślij powiadomienie na Messengerze
-      if (client.api) {
-        const username = client.userNames.get(userId) || `Użytkownik_${userId.slice(-6)}`;
-        client.api.sendMessage(`🔌 **SPOTIFY POŁĄCZONE** 🔌\n\nSiemanko **${username}**! Twoje konto Spotify zostało pomyślnie sparowane z botem.\nMożesz teraz sprawdzać statystyki i kontrolować odtwarzanie za pomocą komendy \`!spotify\`.`, userId);
-      }
-
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(`
-        <!DOCTYPE html>
-        <html lang="pl">
-        <head>
-          <meta charset="UTF-8">
-          <title>Konto Spotify Połączone!</title>
-          <link rel="preconnect" href="https://fonts.googleapis.com">
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-          <style>
-            body {
-              background: radial-gradient(circle at center, #181c26 0%, #0d0f14 100%);
-              color: #ffffff;
-              font-family: 'Outfit', sans-serif;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              height: 100vh;
-              margin: 0;
-              overflow: hidden;
-            }
-            .card {
-              background: rgba(255, 255, 255, 0.03);
-              backdrop-filter: blur(16px);
-              -webkit-backdrop-filter: blur(16px);
-              border: 1px solid rgba(255, 255, 255, 0.08);
-              border-radius: 24px;
-              padding: 48px;
-              text-align: center;
-              max-width: 420px;
-              box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-              animation: fadeInUp 0.8s ease-out;
-            }
-            .icon {
-              font-size: 64px;
-              margin-bottom: 24px;
-              animation: pulse 2s infinite ease-in-out;
-            }
-            h1 {
-              font-size: 28px;
-              font-weight: 800;
-              margin: 0 0 16px 0;
-              background: linear-gradient(135deg, #1DB954 0%, #1ed760 100%);
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-            }
-            p {
-              color: #b3b3b3;
-              font-size: 16px;
-              line-height: 1.6;
-              margin: 0 0 28px 0;
-            }
-            .btn {
-              background: linear-gradient(135deg, #1DB954 0%, #1ed760 100%);
-              color: #ffffff;
-              border: none;
-              padding: 14px 28px;
-              border-radius: 50px;
-              font-weight: 600;
-              font-size: 15px;
-              cursor: pointer;
-              text-decoration: none;
-              box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
-              transition: all 0.3s ease;
-              display: inline-block;
-            }
-            .btn:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 6px 20px rgba(29, 185, 84, 0.5);
-            }
-            @keyframes fadeInUp {
-              from { opacity: 0; transform: translateY(20px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes pulse {
-              0% { transform: scale(1); }
-              50% { transform: scale(1.05); }
-              100% { transform: scale(1); }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="icon">💚</div>
-            <h1>Połączono konto Spotify!</h1>
-            <p>Twoje konto Spotify zostało pomyślnie powiązane z botem. Możesz teraz zamknąć to okno i wrócić do komunikatora.</p>
-            <a href="https://www.messenger.com" class="btn">Wróć do Messengera</a>
-          </div>
-        </body>
-        </html>
-      `);
-
-    } catch (err) {
-      console.error('[SPOTIFY CALLBACK] Error during code exchange:', err);
-      res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(`
-        <!DOCTYPE html>
-        <html lang="pl">
-        <head>
-          <meta charset="UTF-8"><title>Błąd połączenia</title>
-          <style>body { background: #121212; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; } .card { background: #1e1e1e; padding: 30px; border-radius: 12px; max-width: 400px; text-align: center; border: 1px solid #ff4444; }</style>
-        </head>
-        <body>
-          <div class="card">
-            <h2 style="color: #ff4444;">Wystąpił Błąd</h2>
-            <p>${err.message}</p>
-          </div>
-        </body>
-        </html>
-      `);
+    
+    const [userId, threadId] = state.split('_');
+    if (!userId || !threadId) {
+      res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end('<h1>Błąd</h1><p>Nieprawidłowy parametr state.</p>');
+      return;
     }
+    
+    spotifyUtil.exchangeCodeForTokens(code)
+      .then(async (tokens) => {
+        const profile = await spotifyUtil.getProfile(tokens.access_token);
+        
+        const db = spotifyUtil.loadSpotifyDb();
+        db[userId] = {
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          expiresAt: Date.now() + (tokens.expires_in * 1000),
+          spotifyUsername: profile.display_name || profile.id,
+          incognito: false
+        };
+        spotifyUtil.saveSpotifyDb(db);
+        
+        // Wyślij powiadomienie na Messengerze
+        if (client.api) {
+          try {
+            const senderName = await client.resolveUserName(client.api, userId);
+            client.api.sendMessage(`🟢 Użytkownik **${senderName}** pomyślnie połączył swoje konto ze Spotify!`, threadId);
+          } catch (mErr) {
+            client.api.sendMessage(`🟢 Użytkownik pomyślnie połączył swoje konto ze Spotify!`, threadId);
+          }
+        }
+        
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Spotify - Połączono!</title>
+            <style>
+              body {
+                font-family: 'Helvetica Neue', Arial, sans-serif;
+                background: #121212;
+                color: #ffffff;
+                text-align: center;
+                padding: 100px 50px;
+              }
+              .container {
+                background: #181818;
+                border-radius: 12px;
+                display: inline-block;
+                padding: 50px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+                max-width: 500px;
+              }
+              h1 { color: #1DB954; margin-bottom: 20px; font-size: 32px; }
+              p { font-size: 18px; line-height: 1.6; color: #b3b3b3; margin-bottom: 20px; }
+              .user { color: #ffffff; font-weight: bold; background: #282828; padding: 10px; border-radius: 6px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>🟢 Połączono!</h1>
+              <p>Witaj, <span class="user">${profile.display_name || profile.id}</span>!</p>
+              <p>Twoje konto Spotify zostało pomyślnie połączone z botem Ambient.</p>
+              <p>Możesz teraz zamknąć to okno i wrócić do Messengera, aby korzystać z komend Spotify.</p>
+            </div>
+          </body>
+          </html>
+        `);
+      })
+      .catch((err) => {
+        console.error('[SPOTIFY CALLBACK ERROR]:', err);
+        res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(`<h1>Błąd serwera</h1><p>Nie udało się połączyć ze Spotify: ${err.message}</p>`);
+      });
+      
     return;
   }
-
+  
   res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('Messenger casino self-bot is running.');
 }).listen(PORT, '0.0.0.0', () => {

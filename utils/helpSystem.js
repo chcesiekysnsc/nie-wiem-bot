@@ -580,19 +580,17 @@ const helpCommands = [
     examples: ["!add https://www.facebook.com/zuck", "!add zuck", "!add 4"],
     cooldown: "3 sekundy",
     requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
-    aliases: ["dodaj"],
-    additionalInfo: []
   },
   {
     id: 45,
     name: "spotify",
     category: "SOCIAL",
-    shortDescription: "integracja ze Spotify",
-    description: "Komenda pozwala zintegrować Twoje konto Spotify z botem.\n\nDostępne podkomendy:\n🔌 !spotify polacz • Generuje link do połączenia konta\n🔥 !spotify odlacz • Odłącza konto Spotify i usuwa dane\n🤠 !spotify profil <@osoba> • Pokazuje profil Spotify użytkownika\n🧐 !spotify grupa • Sprawdza, czego słuchają obecnie członkowie grupy\n🎧 !spotify aktualnie <@osoba> • Pokazuje aktualnie słuchany utwór z paskiem postępu\n⭐ !spotify toputwory 1m/6m/12m <@osoba> • Top 5 słuchanych utworów\n🤩 !spotify topartysci 1m/6m/12m <@osoba> • Top 5 słuchanych artystów\n🕰 !spotify ostatnie <@osoba> • Pokazuje 5 ostatnio słuchanych utworów\n🥸 !spotify incognito on/off • Włącza/wyłącza tryb ukrywania statystyk\n📋 !spotify kolejka <utwór/@osoba> • Dodaje utwór do Twojej kolejki Spotify\n💿 !spotify play <utwór/@osoba> • Odtwarza utwór bezpośrednio na Twoim koncie\n🎶 !spotify youtube <@osoba> • Wyszukuje aktualny utwór na YouTube i wysyła link",
-    usage: "!spotify [polacz/odlacz/profil/grupa/aktualnie/toputwory/topartysci/ostatnie/incognito/kolejka/play/youtube] [opcje/wyszukiwanie]",
-    examples: ["!spotify polacz", "!spotify aktualnie @Kowalski", "!spotify play Blinding Lights", "!spotify youtube"],
+    shortDescription: "integracja ze Spotify Web API",
+    description: "Pozwala połączyć konto ze Spotify, sprawdzać aktualnie i ostatnio odtwarzane utwory, statystyki słuchania (top utwory, top artyści), kontrolować kolejkę oraz odtwarzanie innych członków grupy, a także wyszukiwać utwory z YouTube.",
+    usage: "!spotify połącz / odłącz / profil / grupa / aktualnie / toputwory / topartyści / ostatnie / incognito / kolejka / play / youtube",
+    examples: ["!spotify połącz", "!spotify profil @Rafal", "!spotify aktualnie", "!spotify play Wtf - Hugel", "!spotify youtube"],
     cooldown: "3 sekundy",
-    requirements: "Wymaga jednorazowego połączenia konta Spotify komendą `!spotify polacz`.",
+    requirements: "Wymaga połączenia konta za pomocą !spotify połącz.",
     aliases: ["sp"],
     additionalInfo: []
   }

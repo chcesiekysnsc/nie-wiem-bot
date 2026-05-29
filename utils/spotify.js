@@ -1,314 +1,327 @@
 const fs = require('fs');
-const path = require('path');
 const https = require('https');
-const http = require('http');
+const path = require('path');
+const config = require('../config/config');
 
 const SPOTIFY_DB_PATH = path.join(__dirname, '..', 'data', 'spotify.json');
 
-// Helper do bezpiecznego ładowania bazy danych Spotify
-function loadSpotifyDb() {
-  try {
-    if (fs.existsSync(SPOTIFY_DB_PATH)) {
-      return JSON.parse(fs.readFileSync(SPOTIFY_DB_PATH, 'utf8'));
-    }
-  } catch (err) {
-    console.error('[SPOTIFY DB] Error loading:', err);
-  }
-  return { users: {} };
-}
-
-// Helper do zapisywania bazy danych Spotify
-function saveSpotifyDb(db) {
-  try {
-    const dir = path.dirname(SPOTIFY_DB_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(SPOTIFY_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
-  } catch (err) {
-    console.error('[SPOTIFY DB] Error saving:', err);
-  }
-}
-
-// Helper do wysyłania zapytań HTTP
-function makeRequest(url, options = {}, body = null) {
+// Helper to make HTTPS requests
+function makeRequest(url, options = {}, postData = null) {
   return new Promise((resolve, reject) => {
-    try {
-      const parsedUrl = new URL(url);
-      const reqOptions = {
-        hostname: parsedUrl.hostname,
-        port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
-        path: parsedUrl.pathname + parsedUrl.search,
-        method: options.method || 'GET',
-        headers: options.headers || {}
-      };
+    const parsedUrl = new URL(url);
+    const requestOptions = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || 443,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: options.method || 'GET',
+      headers: options.headers || {}
+    };
 
-      const client = parsedUrl.protocol === 'https:' ? https : http;
-      const req = client.request(reqOptions, (res) => {
-        let responseData = '';
-        res.on('data', chunk => { responseData += chunk; });
-        res.on('end', () => {
-          resolve({
-            statusCode: res.statusCode,
-            headers: res.headers,
-            body: responseData
-          });
+    const req = https.request(requestOptions, (res) => {
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        resolve({
+          statusCode: res.statusCode,
+          headers: res.headers,
+          body: body
         });
       });
+    });
 
-      req.on('error', (err) => {
-        reject(err);
-      });
+    req.on('error', (err) => {
+      reject(err);
+    });
 
-      if (body) {
-        req.write(body);
-      }
-      req.end();
-    } catch (e) {
-      reject(e);
+    if (postData) {
+      req.write(postData);
     }
+    req.end();
   });
 }
 
-// Sprawdza czy zmienne środowiskowe do Spotify są skonfigurowane
-function isConfigured() {
-  return !!(
-    process.env.SPOTIFY_CLIENT_ID &&
-    process.env.SPOTIFY_CLIENT_SECRET &&
-    process.env.SPOTIFY_REDIRECT_URI
-  );
+function loadSpotifyDb() {
+  try {
+    if (!fs.existsSync(SPOTIFY_DB_PATH)) {
+      fs.writeFileSync(SPOTIFY_DB_PATH, JSON.stringify({}), 'utf8');
+      return {};
+    }
+    const raw = fs.readFileSync(SPOTIFY_DB_PATH, 'utf8');
+    return JSON.parse(raw) || {};
+  } catch (err) {
+    console.error('[SPOTIFY] Error loading database:', err);
+    return {};
+  }
 }
 
-// Generuje link autoryzacyjny Spotify z zachowaniem ID użytkownika Messenger jako state
-function getAuthUrl(userId) {
-  if (!isConfigured()) return null;
-  const scopes = [
+function saveSpotifyDb(db) {
+  try {
+    fs.writeFileSync(SPOTIFY_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
+  } catch (err) {
+    console.error('[SPOTIFY] Error saving database:', err);
+  }
+}
+
+// Generate Auth link for Spotify OAuth 2.0
+function getAuthUrl(userId, threadId) {
+  const clientId = config.spotify.clientId;
+  const redirectUri = encodeURIComponent(config.spotify.redirectUri);
+  const state = `${userId}_${threadId}`;
+  const scopes = encodeURIComponent([
     'user-read-currently-playing',
+    'user-read-playback-state',
+    'user-modify-playback-state',
     'user-read-recently-played',
     'user-top-read',
-    'user-modify-playback-state',
-    'user-read-playback-state'
-  ].join(' ');
+    'user-read-private'
+  ].join(' '));
 
-  return `https://accounts.spotify.com/authorize?` +
-    `client_id=${process.env.SPOTIFY_CLIENT_ID}&` +
-    `response_type=code&` +
-    `redirect_uri=${encodeURIComponent(process.env.SPOTIFY_REDIRECT_URI)}&` +
-    `scope=${encodeURIComponent(scopes)}&` +
-    `state=${userId}`;
+  return `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scopes}&state=${state}`;
 }
 
-// Wymienia kod autoryzacji na tokeny
-async function exchangeCode(code) {
-  if (!isConfigured()) throw new Error('Brak konfiguracji Spotify w zmiennych środowiskowych.');
+// Exchange Code for Access/Refresh Tokens
+async function exchangeCodeForTokens(code) {
+  const clientId = config.spotify.clientId;
+  const clientSecret = config.spotify.clientSecret;
+  const redirectUri = config.spotify.redirectUri;
+  const authHeader = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
-  const authHeader = Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64');
-  const body = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(process.env.SPOTIFY_REDIRECT_URI)}`;
+  const postData = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code: code,
+    redirect_uri: redirectUri
+  }).toString();
 
-  const res = await makeRequest('https://accounts.spotify.com/api/token', {
+  const response = await makeRequest('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: {
-      'Authorization': `Basic ${authHeader}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
+      'Authorization': authHeader,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Length': Buffer.byteLength(postData)
     }
-  }, body);
+  }, postData);
 
-  if (res.statusCode !== 200) {
-    throw new Error(`Token exchange failed (HTTP ${res.statusCode}): ${res.body}`);
+  if (response.statusCode !== 200) {
+    throw new Error(`Błąd autoryzacji Spotify (HTTP ${response.statusCode}): ${response.body}`);
   }
 
-  const tokenData = JSON.parse(res.body);
-  return {
-    accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token,
-    expiresAt: Date.now() + (tokenData.expires_in * 1000)
-  };
+  return JSON.parse(response.body);
 }
 
-// Odświeża token dostępu użytkownika
-async function refreshAccessToken(userId, refreshToken) {
-  if (!isConfigured()) throw new Error('Brak konfiguracji Spotify.');
+// Refresh Access Token
+async function refreshAccessToken(refreshToken) {
+  const clientId = config.spotify.clientId;
+  const clientSecret = config.spotify.clientSecret;
+  const authHeader = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
-  const authHeader = Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64');
-  const body = `grant_type=refresh_token&refresh_token=${refreshToken}`;
+  const postData = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken
+  }).toString();
 
-  const res = await makeRequest('https://accounts.spotify.com/api/token', {
+  const response = await makeRequest('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: {
-      'Authorization': `Basic ${authHeader}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
+      'Authorization': authHeader,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Length': Buffer.byteLength(postData)
     }
-  }, body);
+  }, postData);
 
-  if (res.statusCode !== 200) {
-    throw new Error(`Token refresh failed (HTTP ${res.statusCode}): ${res.body}`);
+  if (response.statusCode !== 200) {
+    throw new Error(`Błąd odświeżania tokenu Spotify (HTTP ${response.statusCode}): ${response.body}`);
   }
 
-  const tokenData = JSON.parse(res.body);
-  const db = loadSpotifyDb();
-  
-  db.users[userId] = db.users[userId] || {};
-  db.users[userId].accessToken = tokenData.access_token;
-  db.users[userId].expiresAt = Date.now() + (tokenData.expires_in * 1000);
-  if (tokenData.refresh_token) {
-    db.users[userId].refreshToken = tokenData.refresh_token;
-  }
-  
-  saveSpotifyDb(db);
-  return tokenData.access_token;
+  return JSON.parse(response.body);
 }
 
-// Pobiera ważny token dostępu (odświeża go w razie potrzeby)
+// Get Access Token for User (with auto-refresh)
 async function getAccessToken(userId) {
   const db = loadSpotifyDb();
-  const userSpotify = db.users[userId];
-
-  if (!userSpotify || !userSpotify.refreshToken) {
-    throw new Error('Twoje konto Spotify nie jest połączone z botem. Wpisz `!spotify polacz` aby połączyć.');
-  }
-
-  // Jeśli wygasa za mniej niż 30 sekund lub już wygasł, odświeżamy
-  if (Date.now() + 30000 >= userSpotify.expiresAt) {
-    return await refreshAccessToken(userId, userSpotify.refreshToken);
-  }
-
-  return userSpotify.accessToken;
-}
-
-// Ogólny helper do zapytań Spotify API
-async function spotifyRequest(userId, endpoint, method = 'GET', bodyData = null) {
-  const token = await getAccessToken(userId);
-  const url = `https://api.spotify.com/v1/${endpoint}`;
-  
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
-  };
-
-  const body = bodyData ? JSON.stringify(bodyData) : null;
-  const res = await makeRequest(url, { method, headers }, body);
-
-  // Zwracaj parsed JSON jeśli status to 200/201/202, w przeciwnym razie jeśli pusty (np. 204 No Content) zwracaj null
-  if (res.statusCode === 204) {
+  const user = db[userId];
+  if (!user || !user.accessToken) {
     return null;
   }
 
-  if (res.statusCode >= 200 && res.statusCode < 300) {
+  // Odśwież token na 60 sekund przed wygaśnięciem
+  if (Date.now() >= (user.expiresAt - 60000)) {
+    console.log(`[SPOTIFY] Token dla użytkownika ${userId} wygasł lub wygasa. Odświeżanie...`);
     try {
-      return JSON.parse(res.body);
-    } catch (_) {
-      return res.body;
+      const refreshed = await refreshAccessToken(user.refreshToken);
+      user.accessToken = refreshed.access_token;
+      user.expiresAt = Date.now() + (refreshed.expires_in * 1000);
+      if (refreshed.refresh_token) {
+        user.refreshToken = refreshed.refresh_token;
+      }
+      db[userId] = user;
+      saveSpotifyDb(db);
+    } catch (err) {
+      console.error(`[SPOTIFY] Nie udało się odświeżyć tokenu dla użytkownika ${userId}:`, err);
+      return null;
     }
   }
 
-  throw new Error(`Spotify API returned status ${res.statusCode}: ${res.body}`);
+  return user.accessToken;
 }
 
-// ----------------------------------------------------
-// IMPLEMENTACJA FUNKCJI SPOTIFY
-// ----------------------------------------------------
-
-// Pobiera profil użytkownika Spotify
-async function getProfile(userId) {
-  return await spotifyRequest(userId, 'me');
+// Spotify API - Profil
+async function getProfile(accessToken) {
+  const response = await makeRequest('https://api.spotify.com/v1/me', {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+  if (response.statusCode !== 200) {
+    throw new Error(`Blad API (HTTP ${response.statusCode})`);
+  }
+  return JSON.parse(response.body);
 }
 
-// Pobiera aktualnie odtwarzany utwór
-async function getCurrentlyPlaying(userId) {
-  return await spotifyRequest(userId, 'me/player/currently-playing');
+// Spotify API - Obecnie odtwarzane
+async function getCurrentlyPlaying(accessToken) {
+  const response = await makeRequest('https://api.spotify.com/v1/me/player/currently-playing', {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+  if (response.statusCode === 204 || response.statusCode === 404) {
+    return null;
+  }
+  if (response.statusCode !== 200) {
+    throw new Error(`Blad API (HTTP ${response.statusCode})`);
+  }
+  return JSON.parse(response.body);
 }
 
-// Pobiera ostatnio odtwarzane utwory (limit 5)
-async function getRecentlyPlayed(userId) {
-  return await spotifyRequest(userId, 'me/player/recently-played?limit=5');
+// Spotify API - Ostatnio odtwarzane
+async function getRecentlyPlayed(accessToken, limit = 5) {
+  const response = await makeRequest(`https://api.spotify.com/v1/me/player/recently-played?limit=${limit}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+  if (response.statusCode !== 200) {
+    throw new Error(`Blad API (HTTP ${response.statusCode})`);
+  }
+  return JSON.parse(response.body);
 }
 
-// Pobiera najchętniej słuchane utwory (limit 5)
-async function getTopTracks(userId, timeRange = 'medium_term') {
-  // mapowanie 1m, 6m, 12m do formatu Spotify
-  const rangeMap = {
-    '1m': 'short_term',
-    '6m': 'medium_term',
-    '12m': 'long_term'
-  };
-  const spotifyRange = rangeMap[timeRange] || 'medium_term';
-  return await spotifyRequest(userId, `me/top/tracks?limit=5&time_range=${spotifyRange}`);
+// Spotify API - Top Utwory
+async function getTopTracks(accessToken, timeRange = 'medium_term', limit = 5) {
+  const response = await makeRequest(`https://api.spotify.com/v1/me/top/tracks?limit=${limit}&time_range=${timeRange}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+  if (response.statusCode !== 200) {
+    throw new Error(`Blad API (HTTP ${response.statusCode})`);
+  }
+  return JSON.parse(response.body);
 }
 
-// Pobiera najchętniej słuchanych artystów (limit 5)
-async function getTopArtists(userId, timeRange = 'medium_term') {
-  const rangeMap = {
-    '1m': 'short_term',
-    '6m': 'medium_term',
-    '12m': 'long_term'
-  };
-  const spotifyRange = rangeMap[timeRange] || 'medium_term';
-  return await spotifyRequest(userId, `me/top/artists?limit=5&time_range=${spotifyRange}`);
+// Spotify API - Top Artyści
+async function getTopArtists(accessToken, timeRange = 'medium_term', limit = 5) {
+  const response = await makeRequest(`https://api.spotify.com/v1/me/top/artists?limit=${limit}&time_range=${timeRange}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+  if (response.statusCode !== 200) {
+    throw new Error(`Blad API (HTTP ${response.statusCode})`);
+  }
+  return JSON.parse(response.body);
 }
 
-// Wyszukuje utwór w Spotify
-async function searchTrack(userId, query) {
-  const res = await spotifyRequest(userId, `search?q=${encodeURIComponent(query)}&type=track&limit=1`);
-  if (res && res.tracks && res.tracks.items && res.tracks.items.length > 0) {
-    return res.tracks.items[0];
+// Spotify API - Wyszukiwanie utworu
+async function searchTrack(accessToken, query) {
+  const response = await makeRequest(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=1`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+  if (response.statusCode !== 200) {
+    throw new Error(`Blad API (HTTP ${response.statusCode})`);
+  }
+  const data = JSON.parse(response.body);
+  if (data.tracks && data.tracks.items && data.tracks.items.length > 0) {
+    return data.tracks.items[0];
   }
   return null;
 }
 
-// Dodaje utwór do kolejki
-async function addToQueue(userId, trackUri) {
-  await spotifyRequest(userId, `me/player/queue?uri=${encodeURIComponent(trackUri)}`, 'POST');
-}
+// Spotify API - Odtwórz utwór (PUT /play)
+async function playTrack(accessToken, trackUri) {
+  const postData = JSON.stringify({ uris: [trackUri] });
+  const response = await makeRequest('https://api.spotify.com/v1/me/player/play', {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(postData)
+    }
+  }, postData);
 
-// Odtwarza dany utwór (startuje odtwarzanie)
-async function playTrack(userId, trackUri) {
-  const body = { uris: [trackUri] };
-  await spotifyRequest(userId, 'me/player/play', 'PUT', body);
-}
-
-// Sprawdza czy użytkownik ma włączony tryb incognito
-function isIncognito(userId) {
-  const db = loadSpotifyDb();
-  return !!(db.users[userId] && db.users[userId].incognito);
-}
-
-// Przełącza tryb incognito
-function setIncognito(userId, value) {
-  const db = loadSpotifyDb();
-  db.users[userId] = db.users[userId] || {};
-  db.users[userId].incognito = !!value;
-  saveSpotifyDb(db);
-}
-
-// Odłącza konto Spotify
-function disconnectUser(userId) {
-  const db = loadSpotifyDb();
-  if (db.users[userId]) {
-    delete db.users[userId];
-    saveSpotifyDb(db);
-    return true;
+  if (response.statusCode === 404) {
+    throw new Error('device_not_found');
   }
-  return false;
+  if (response.statusCode !== 204 && response.statusCode !== 200) {
+    throw new Error(`Blad API (HTTP ${response.statusCode})`);
+  }
+  return true;
+}
+
+// Spotify API - Dodaj do kolejki (POST /queue)
+async function addToQueue(accessToken, trackUri) {
+  const response = await makeRequest(`https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(trackUri)}`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+
+  if (response.statusCode === 404) {
+    throw new Error('device_not_found');
+  }
+  if (response.statusCode !== 204 && response.statusCode !== 200) {
+    throw new Error(`Blad API (HTTP ${response.statusCode})`);
+  }
+  return true;
+}
+
+// YouTube Search Scraper to resolve track to YouTube link
+async function searchYouTubeVideo(query) {
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+  try {
+    const response = await makeRequest(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8'
+      }
+    });
+
+    if (response.statusCode === 200) {
+      // Find first /watch?v=... that isn't related to channel or ads
+      const regex = /\/watch\?v=([a-zA-Z0-9_-]{11})/g;
+      let m;
+      const matches = [];
+      while ((m = regex.exec(response.body)) !== null) {
+        matches.push(m[1]);
+      }
+      
+      const unique = [...new Set(matches)];
+      if (unique.length > 0) {
+        return `https://www.youtube.com/watch?v=${unique[0]}`;
+      }
+    }
+  } catch (err) {
+    console.error('[SPOTIFY-YT] Error scraping YouTube:', err);
+  }
+  // Fallback to normal search url
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
 }
 
 module.exports = {
-  isConfigured,
+  loadSpotifyDb,
+  saveSpotifyDb,
   getAuthUrl,
-  exchangeCode,
+  exchangeCodeForTokens,
   getAccessToken,
-  spotifyRequest,
   getProfile,
   getCurrentlyPlaying,
   getRecentlyPlayed,
   getTopTracks,
   getTopArtists,
   searchTrack,
-  addToQueue,
   playTrack,
-  isIncognito,
-  setIncognito,
-  disconnectUser,
-  loadSpotifyDb,
-  saveSpotifyDb
+  addToQueue,
+  searchYouTubeVideo
 };
