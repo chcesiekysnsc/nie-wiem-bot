@@ -569,6 +569,31 @@ const helpCommands = [
     cooldown: "30 sekund",
     requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
     aliases: [],
+  },
+  {
+    id: 44,
+    name: "add",
+    category: "SOCIAL",
+    shortDescription: "dodaje uzytkownika do grupy",
+    description: "Dodaje wskazanego użytkownika do konwersacji grupowej na podstawie podanego linku profilu, nazwy użytkownika (vanity) lub bezpośredniego identyfikatora ID.",
+    usage: "!add <link konta fb / nazwa użytkownika / ID>",
+    examples: ["!add https://www.facebook.com/zuck", "!add zuck", "!add 4"],
+    cooldown: "3 sekundy",
+    requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
+    aliases: ["dodaj"],
+    additionalInfo: []
+  },
+  {
+    id: 45,
+    name: "spotify",
+    category: "SOCIAL",
+    shortDescription: "integracja ze Spotify",
+    description: "Komenda pozwala zintegrować Twoje konto Spotify z botem.\n\nDostępne podkomendy:\n🔌 !spotify polacz • Generuje link do połączenia konta\n🔥 !spotify odlacz • Odłącza konto Spotify i usuwa dane\n🤠 !spotify profil <@osoba> • Pokazuje profil Spotify użytkownika\n🧐 !spotify grupa • Sprawdza, czego słuchają obecnie członkowie grupy\n🎧 !spotify aktualnie <@osoba> • Pokazuje aktualnie słuchany utwór z paskiem postępu\n⭐ !spotify toputwory 1m/6m/12m <@osoba> • Top 5 słuchanych utworów\n🤩 !spotify topartysci 1m/6m/12m <@osoba> • Top 5 słuchanych artystów\n🕰 !spotify ostatnie <@osoba> • Pokazuje 5 ostatnio słuchanych utworów\n🥸 !spotify incognito on/off • Włącza/wyłącza tryb ukrywania statystyk\n📋 !spotify kolejka <utwór/@osoba> • Dodaje utwór do Twojej kolejki Spotify\n💿 !spotify play <utwór/@osoba> • Odtwarza utwór bezpośrednio na Twoim koncie\n🎶 !spotify youtube <@osoba> • Wyszukuje aktualny utwór na YouTube i wysyła link",
+    usage: "!spotify [polacz/odlacz/profil/grupa/aktualnie/toputwory/topartysci/ostatnie/incognito/kolejka/play/youtube] [opcje/wyszukiwanie]",
+    examples: ["!spotify polacz", "!spotify aktualnie @Kowalski", "!spotify play Blinding Lights", "!spotify youtube"],
+    cooldown: "3 sekundy",
+    requirements: "Wymaga jednorazowego połączenia konta Spotify komendą `!spotify polacz`.",
+    aliases: ["sp"],
     additionalInfo: []
   }
 ];
