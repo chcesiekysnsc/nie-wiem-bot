@@ -142,7 +142,7 @@ function parseLastFMHTML(data) {
 }
 
 function parseArgs(message, args) {
-  let range = '1m';
+  let range = 'all';
   let targetId = message.author.id;
   let targetName = message.author.username || `Użytkownik_${targetId.slice(-6)}`;
   let searchQuery = '';
@@ -215,9 +215,9 @@ module.exports = {
         `🤠 \`!fm profil [@użytkownik]\` • Pozwala sprawdzić informacje o profilu Spotify/Last.fm\n` +
         `🧐 \`!fm grupa\` • Pozwala sprawdzić czego obecnie słuchają członkowie grupy\n` +
         `🎧 \`!fm aktualnie [@użytkownik]\` • Pozwala sprawdzić czego obecnie słuchasz Ty lub oznaczony użytkownik\n` +
-        `⭐ \`!fm toputwory [1m/6m/12m/all] [@osoba]\` • Najczęściej słuchane utwory w podanym zakresie czasu\n` +
-        `🤩 \`!fm topartyści [1m/6m/12m/all] [@osoba]\` • Najczęściej słuchani artyści w podanym zakresie czasu\n` +
-        `💿 \`!fm topalbumy [1m/6m/12m/all] [@osoba]\` • Najczęściej słuchane albumy w podanym zakresie czasu\n` +
+        `⭐ \`!fm toputwory [okres] [@osoba]\` • Top utwory (okres: 1m/3m/6m/12m/all, domyślnie: overall)\n` +
+        `🤩 \`!fm topartyści [okres] [@osoba]\` • Top artyści (okres: 1m/3m/6m/12m/all, domyślnie: overall)\n` +
+        `💿 \`!fm topalbumy [okres] [@osoba]\` • Top albumy (okres: 1m/3m/6m/12m/all, domyślnie: overall)\n` +
         `🕰 \`!fm ostatnie [@użytkownik]\` • Czego ostatnio słuchałeś Ty lub oznaczony użytkownik\n` +
         `🥸 \`!fm incognito <on/off>\` • Czy inni mogą sprawdzać Twoje statystyki w grupie\n` +
         `💿 \`!fm play <utwór / @użytkownik>\` • Szukaj i odtwórz utwór na YouTube\n` +
