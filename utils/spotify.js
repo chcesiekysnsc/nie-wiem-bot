@@ -309,5 +309,6 @@ module.exports = {
   isIncognito,
   setIncognito,
   disconnectUser,
-  loadSpotifyDb
+  loadSpotifyDb,
+  saveSpotifyDb
 };
