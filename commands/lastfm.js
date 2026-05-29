@@ -221,7 +221,8 @@ module.exports = {
         `🕰 \`!fm ostatnie [@użytkownik]\` • Czego ostatnio słuchałeś Ty lub oznaczony użytkownik\n` +
         `🥸 \`!fm incognito <on/off>\` • Czy inni mogą sprawdzać Twoje statystyki w grupie\n` +
         `💿 \`!fm play <utwór / @użytkownik>\` • Szukaj i odtwórz utwór na YouTube\n` +
-        `🎶 \`!fm youtube [@użytkownik]\` • Link YouTube do aktualnie odtwarzanego utworu`
+        `🎶 \`!fm youtube [@użytkownik]\` • Link YouTube do aktualnie odtwarzanego utworu\n` +
+        `🏆 \`!fm top\` • Pokazuje ranking Top 5 osób w grupie z największą liczbą scrobbli`
       );
       return;
     }
@@ -274,6 +275,123 @@ module.exports = {
         await message.reply('🔥 **Konto Last.fm zostało pomyślnie odłączone.**');
       } else {
         await message.reply('ℹ️ Twoje konto nie jest połączone z Last.fm.');
+      }
+      return;
+    }
+
+    // 2.5 TOP
+    if (['top', 'ranking', 'liderzy'].includes(sub)) {
+      async function getName(id) {
+        if (client.userNames && client.userNames.has(id)) {
+          return client.userNames.get(id);
+        }
+        if (client.resolveUserName) {
+          try {
+            const name = await client.resolveUserName(client.api, id);
+            if (name) return name;
+          } catch (_) {}
+        }
+        return `Użytkownik_${String(id).slice(-6)}`;
+      }
+
+      try {
+        const threadId = message.guild?.id || message.rawEvent?.threadID;
+        if (!threadId) {
+          await message.reply('❌ Nie można pobrać ID konwersacji.');
+          return;
+        }
+
+        const threadInfo = await new Promise((resolve, reject) => {
+          client.api.getThreadInfo(threadId, (err, ret) => {
+            if (err) return reject(err);
+            resolve(ret);
+          });
+        });
+
+        const participantIDs = threadInfo.participantIDs || [];
+        const connections = {};
+
+        // Pobierz wszystkie połączenia
+        await withData(store => {
+          if (store.profiles.lastfmConnections) {
+            for (const pid of participantIDs) {
+              if (store.profiles.lastfmConnections[pid]) {
+                connections[pid] = store.profiles.lastfmConnections[pid];
+              }
+            }
+          }
+        });
+
+        const activeProfiles = Object.entries(connections);
+        if (activeProfiles.length === 0) {
+          await message.reply('🧐 Nikt z tej grupy nie połączył swojego konta z Last.fm.');
+          return;
+        }
+
+        const statusMsg = await message.reply(`📊 Pobieranie scrobbli dla ${activeProfiles.length} członków grupy...`);
+
+        // Pobieranie profili w sposób zrównoleglony z obsłużeniem błędów
+        const results = [];
+        await Promise.all(
+          activeProfiles.map(async ([pid, conn]) => {
+            // Sprawdzenie incognito: jeśli użytkownik włączył incognito i nie jest nadawcą wiadomości, pomijamy go w rankingu
+            if (conn.incognito === true && pid !== message.author.id) {
+              return;
+            }
+
+            const name = await getName(pid);
+            try {
+              const html = await fetchLastFMPage(`https://www.last.fm/user/${conn.username}`);
+              const parsed = parseProfile(html);
+              const scrobblesNum = parseInt(parsed.scrobbles.replace(/[^\d]/g, ''), 10) || 0;
+              results.push({
+                pid,
+                name,
+                username: conn.username,
+                scrobbles: scrobblesNum,
+                scrobblesStr: parsed.scrobbles
+              });
+            } catch (e) {
+              // W razie błędu dodajemy z 0 scrobbli, by chociaż figurował w liście
+              results.push({
+                pid,
+                name,
+                username: conn.username,
+                scrobbles: 0,
+                scrobblesStr: '0'
+              });
+            }
+          })
+        );
+
+        // Sortowanie po scrobbles malejąco
+        results.sort((a, b) => b.scrobbles - a.scrobbles);
+
+        // Tworzenie rankingu Top 5
+        const top5 = results.slice(0, 5);
+        const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+        const lines = top5.map((r, i) => {
+          return `${medals[i]} **${r.name}** (${r.username}) — **${r.scrobblesStr}** scrobbli`;
+        }).join('\n');
+
+        // Znajdź pozycję nadawcy wiadomości
+        const myIndex = results.findIndex(r => r.pid === message.author.id);
+        let myRankText = '';
+        if (myIndex !== -1) {
+          myRankText = `Twoje miejsce w grupie: **${myIndex + 1} z ${results.length}** użytkowników z połączonym Last.fm`;
+        } else {
+          myRankText = `Nie ma Cię w rankingu (brak połączonego konta Last.fm lub jesteś incognito)`;
+        }
+
+        const responseText = 
+          `🏆 **Ranking Last.fm w Grupie (Top 5)**\n\n` +
+          `${lines || 'Brak danych.'}\n\n` +
+          `ℹ️ *${myRankText}*`;
+
+        await message.reply(responseText);
+      } catch (err) {
+        console.error('[LASTFM TOP ERROR]', err);
+        await message.reply(`❌ Wystąpił błąd podczas generowania rankingu: ${err.message}`);
       }
       return;
     }
