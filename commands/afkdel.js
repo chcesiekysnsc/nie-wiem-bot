@@ -101,7 +101,7 @@ module.exports = {
       let keepFetching = true;
       let totalFetched = 0;
 
-      while (keepFetching && totalFetched < 15000) { // Limit bezpieczeństwa na 15 000 wiadomości
+      while (keepFetching && totalFetched < 20000) { // Limit bezpieczeństwa na 20 000 wiadomości
         const history = await getThreadHistoryPage(client.api, threadId, 500, oldestTimestamp);
         if (!history || history.length === 0) {
           break;
