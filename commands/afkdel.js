@@ -92,97 +92,124 @@ module.exports = {
         return p;
       }).filter(Boolean);
 
-      await message.reply('🔍 **Skanowanie aktywności w toku...**\nPobieram historię wiadomości z ostatnich 30 dni z serwerów Facebooka. Może to chwilę potrwać...');
+      const pendingKey = `${threadId}-${senderId}`;
+      client.pendingConfirmations = client.pendingConfirmations || new Map();
 
-      // 2. Pobierz historię wiadomości z ostatnich 30 dni
-      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      const activeUsers = new Set();
-      let oldestTimestamp = null;
-      let keepFetching = true;
-      let totalFetched = 0;
+      if (client.pendingConfirmations.has(pendingKey)) {
+        clearTimeout(client.pendingConfirmations.get(pendingKey).timeout);
+      }
 
-      while (keepFetching && totalFetched < 20000) { // Limit bezpieczeństwa na 20 000 wiadomości
-        const history = await getThreadHistoryPage(client.api, threadId, 500, oldestTimestamp);
-        if (!history || history.length === 0) {
-          break;
+      const timeout = setTimeout(() => {
+        if (client.pendingConfirmations && client.pendingConfirmations.has(pendingKey)) {
+          client.pendingConfirmations.delete(pendingKey);
+          message.reply('⌛ Czas na potwierdzenie minął. Akcja !afkdel została anulowana.');
         }
+      }, 30000); // 30 sekund na odpowiedź
 
-        totalFetched += history.length;
-        let pageOldest = Infinity;
+      client.pendingConfirmations.set(pendingKey, {
+        commandName: 'afkdel',
+        timeout,
+        callback: async () => {
+          await message.reply('🔍 **Skanowanie aktywności w toku...**\nPobieram historię wiadomości z ostatnich 30 dni z serwerów Facebooka. Może to chwilę potrwać...');
 
-        for (const msg of history) {
-          const ts = Number(msg.timestamp);
-          if (ts < pageOldest) {
-            pageOldest = ts;
-          }
-          if (ts >= thirtyDaysAgo) {
-            if (msg.senderID) {
-              activeUsers.add(msg.senderID.toString());
+          // 2. Pobierz historię wiadomości z ostatnich 30 dni
+          const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+          const activeUsers = new Set();
+          let oldestTimestamp = null;
+          let keepFetching = true;
+          let totalFetched = 0;
+
+          while (keepFetching && totalFetched < 30000) { // Limit bezpieczeństwa na 30 000 wiadomości
+            const history = await getThreadHistoryPage(client.api, threadId, 500, oldestTimestamp);
+            if (!history || history.length === 0) {
+              break;
+            }
+
+            totalFetched += history.length;
+            let pageOldest = Infinity;
+
+            for (const msg of history) {
+              const ts = Number(msg.timestamp);
+              if (ts < pageOldest) {
+                pageOldest = ts;
+              }
+              if (ts >= thirtyDaysAgo) {
+                if (msg.senderID) {
+                  activeUsers.add(msg.senderID.toString());
+                }
+              }
+            }
+
+            // Jeśli pobrano mniej niż rozmiar strony (500), osiągnięto początek historii grupy
+            if (history.length < 500) {
+              keepFetching = false;
+            } else if (pageOldest < thirtyDaysAgo) {
+              keepFetching = false;
+            } else {
+              oldestTimestamp = pageOldest;
             }
           }
-        }
 
-        // Jeśli pobrano mniej niż rozmiar strony (500), osiągnięto początek historii grupy
-        if (history.length < 500) {
-          keepFetching = false;
-        } else if (pageOldest < thirtyDaysAgo) {
-          keepFetching = false;
-        } else {
-          oldestTimestamp = pageOldest;
-        }
-      }
+          // 3. Wytypuj osoby do usunięcia
+          // Odrzucamy: aktywne ID, samego bota, administratorów grupy, administratorów bota
+          const toRemove = participantIDs.filter(userId => {
+            const isBot = (userId === botId);
+            const isGroupAdmin = adminIDs.includes(userId);
+            const isGlobalAdmin = config.admins.includes(userId);
+            const isActive = activeUsers.has(userId);
 
-      // 3. Wytypuj osoby do usunięcia
-      // Odrzucamy: aktywne ID, samego bota, administratorów grupy, administratorów bota
-      const toRemove = participantIDs.filter(userId => {
-        const isBot = (userId === botId);
-        const isGroupAdmin = adminIDs.includes(userId);
-        const isGlobalAdmin = config.admins.includes(userId);
-        const isActive = activeUsers.has(userId);
-
-        return !isBot && !isGroupAdmin && !isGlobalAdmin && !isActive;
-      });
-
-      if (toRemove.length === 0) {
-        await message.reply('✅ Skanowanie zakończone! Wszyscy obecni członkowie grupy (poza botami i adminami) wykazali aktywność w ciągu ostatnich 30 dni.');
-        return;
-      }
-
-      await message.reply(`📉 Znaleziono **${toRemove.length}** nieaktywnych użytkowników (brak wiadomości przez 30 dni). Rozpoczynam usuwanie...`);
-
-      let removedCount = 0;
-      const removedNames = [];
-
-      for (const userId of toRemove) {
-        try {
-          await new Promise((resolve, reject) => {
-            client.api.removeUserFromGroup(userId, threadId, (err) => {
-              if (err) return reject(err);
-              resolve();
-            });
+            return !isBot && !isGroupAdmin && !isGlobalAdmin && !isActive;
           });
 
-          // Pobierz nazwę usuniętego użytkownika
-          let name = `Użytkownik_${userId.slice(-6)}`;
-          try {
-            name = await client.resolveUserName(client.api, userId);
-          } catch (_) {}
+          if (toRemove.length === 0) {
+            await message.reply('✅ Skanowanie zakończone! Wszyscy obecni członkowie grupy (poza botami i adminami) wykazali aktywność w ciągu ostatnich 30 dni.');
+            return;
+          }
 
-          removedNames.push(name);
-          removedCount++;
+          await message.reply(`📉 Znaleziono **${toRemove.length}** nieaktywnych użytkowników (brak wiadomości przez 30 dni). Rozpoczynam usuwanie...`);
 
-          // Odczekaj 1 sekundę przed kolejnym kickiem, aby uniknąć limitów FB
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        } catch (removeErr) {
-          console.error(`[AFKDEL] Blad podczas usuwania ${userId}:`, removeErr);
+          let removedCount = 0;
+          const removedNames = [];
+
+          for (const userId of toRemove) {
+            try {
+              await new Promise((resolve, reject) => {
+                client.api.removeUserFromGroup(userId, threadId, (err) => {
+                  if (err) return reject(err);
+                  resolve();
+                });
+              });
+
+              // Pobierz nazwę usuniętego użytkownika
+              let name = `Użytkownik_${userId.slice(-6)}`;
+              try {
+                name = await client.resolveUserName(client.api, userId);
+              } catch (_) {}
+
+              removedNames.push(name);
+              removedCount++;
+
+              // Odczekaj 1 sekundę przed kolejnym kickiem, aby uniknąć limitów FB
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } catch (removeErr) {
+              console.error(`[AFKDEL] Blad podczas usuwania ${userId}:`, removeErr);
+            }
+          }
+
+          if (removedCount > 0) {
+            await message.reply(`✅ Pomyślnie usunięto **${removedCount}** nieaktywnych użytkowników:\n👉 **${removedNames.join(', ')}**`);
+          } else {
+            await message.reply('❌ Nie udało się usunąć żadnego z nieaktywnych użytkowników (możliwy błąd uprawnień).');
+          }
         }
-      }
+      });
 
-      if (removedCount > 0) {
-        await message.reply(`✅ Pomyślnie usunięto **${removedCount}** nieaktywnych użytkowników:\n👉 **${removedNames.join(', ')}**`);
-      } else {
-        await message.reply('❌ Nie udało się usunąć żadnego z nieaktywnych użytkowników (możliwy błąd uprawnień).');
-      }
+      await message.reply(
+        `⚠️ **OSTRZEŻENIE:** Jeśli bot został dodany do grupy niedawno, nie ma dostępu do całej historii czatu z ostatnich 30 dni (serwery Facebooka mogą ograniczać widoczność wiadomości wstecz dla nowych kont).\n` +
+        `Istnieje szansa, że bot wyrzuci aktywne osoby, które pisały przed dodaniem bota.\n\n` +
+        `👉 Napisz **ok**, aby potwierdzić i rozpocząć skanowanie oraz usuwanie.\n` +
+        `👉 Napisz **stop**, aby przerwać akcję.`
+      );
 
     } catch (err) {
       console.error('[AFKDEL] Blad glowny komendy:', err);

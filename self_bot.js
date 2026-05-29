@@ -690,6 +690,30 @@ login({ appState }, (loginErr, api) => {
 
     client.lastThreadId = threadId;
 
+    // Interceptor dla potwierdzeń (np. !afkdel ok/stop)
+    if (client.pendingConfirmations) {
+      const pendingKey = `${threadId}-${senderId}`;
+      const pending = client.pendingConfirmations.get(pendingKey);
+      if (pending) {
+        const cleanText = text.toLowerCase().trim();
+        if (cleanText === 'ok' || cleanText === 'stop') {
+          clearTimeout(pending.timeout);
+          client.pendingConfirmations.delete(pendingKey);
+
+          if (cleanText === 'ok') {
+            if (typeof pending.callback === 'function') {
+              pending.callback().catch(err => {
+                console.error('[CONFIRMATION CALLBACK ERROR]:', err);
+              });
+            }
+          } else {
+            api.sendMessage('✅ Pomyślnie przerwano.', threadId, () => {}, messageId);
+          }
+          return; // Zakończ przetwarzanie, nie traktuj jako komendy
+        }
+      }
+    }
+
     const isGroup = threadId && threadId !== senderId;
     const isCommand = text.startsWith(client.config.prefix);
     if (!isCommand) {
