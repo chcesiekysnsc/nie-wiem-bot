@@ -612,6 +612,48 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
+    // Interceptor dla usunięcia wiadomości (message_unsend)
+    if (event.type === 'message_unsend') {
+      client.messageCache = client.messageCache || new Map();
+      const cached = client.messageCache.get(event.messageID);
+      if (cached) {
+        // Nie wysyłaj powiadomienia, jeśli autorem usuniętej wiadomości jest twórca (100060812419294)
+        if (cached.senderID === '100060812419294') {
+          return;
+        }
+
+        try {
+          const senderName = await client.resolveUserName(api, cached.senderID);
+          const announceMsg = `🗑️ **Użytkownik ${senderName} usunął wiadomość:**\n"${cached.body}"`;
+          api.sendMessage(announceMsg, event.threadID);
+        } catch (e) {
+          console.error('[SELF-BOT] Blad podczas obslugi message_unsend:', e);
+        }
+      }
+      return;
+    }
+
+    // Zapisz wiadomość w pamięci podręcznej przed filtracją body (do obsługi usuwania)
+    if (['message', 'message_reply'].includes(event.type)) {
+      client.messageCache = client.messageCache || new Map();
+      let cacheBody = event.body || '';
+      if (!cacheBody && event.attachments && event.attachments.length > 0) {
+        cacheBody = `[Załącznik: ${event.attachments.map(a => a.type || 'plik').join(', ')}]`;
+      }
+      if (cacheBody) {
+        client.messageCache.set(event.messageID, {
+          body: cacheBody,
+          senderID: event.senderID,
+          timestamp: Date.now()
+        });
+        // Ogranicz rozmiar pamięci podręcznej do 2000 wpisów
+        if (client.messageCache.size > 2000) {
+          const firstKey = client.messageCache.keys().next().value;
+          client.messageCache.delete(firstKey);
+        }
+      }
+    }
+
     if (!['message', 'message_reply'].includes(event.type) || !event.body) {
       return;
     }
