@@ -10,12 +10,27 @@ function getThreadInfo(api, threadID) {
   });
 }
 
-// Helper to get thread history as promise
+// Helper to get thread history as promise with a safety timeout
 function getThreadHistoryPage(api, threadID, amount, timestamp) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
+    let completed = false;
+    const timeout = setTimeout(() => {
+      if (!completed) {
+        completed = true;
+        console.warn(`[AFKDEL] getThreadHistory timed out for thread ${threadID}`);
+        resolve([]);
+      }
+    }, 10000); // 10 sekund limitu na odpowiedź od FB
+
     api.getThreadHistory(threadID, amount, timestamp, (err, history) => {
-      if (err) return reject(err);
-      resolve(history);
+      clearTimeout(timeout);
+      if (completed) return;
+      completed = true;
+      if (err) {
+        console.error('[AFKDEL] getThreadHistory error:', err);
+        return resolve([]);
+      }
+      resolve(history || []);
     });
   });
 }
@@ -107,7 +122,10 @@ module.exports = {
           }
         }
 
-        if (pageOldest < thirtyDaysAgo) {
+        // Jeśli pobrano mniej niż rozmiar strony (500), osiągnięto początek historii grupy
+        if (history.length < 500) {
+          keepFetching = false;
+        } else if (pageOldest < thirtyDaysAgo) {
           keepFetching = false;
         } else {
           oldestTimestamp = pageOldest;
