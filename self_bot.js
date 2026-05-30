@@ -712,6 +712,29 @@ login({ appState }, (loginErr, api) => {
                 } else {
                   console.log(`[LOOP] Pomyślnie dodano użytkownika ${userId} z powrotem do grupy ${threadId}.`);
                   api.sendMessage(`🔁 **Zapętlony użytkownik został dodany z powrotem do grupy.**`, threadId);
+
+                  // Sprawdź, czy użytkownik ma zablokowany pseudonim (guardnick) i go przywróć
+                  (async () => {
+                    let guard = null;
+                    await withData(store => {
+                      if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].nicknameGuard) {
+                        guard = store.profiles.threadSettings[threadId].nicknameGuard;
+                      }
+                    });
+
+                    if (guard && String(guard.userId) === String(userId)) {
+                      console.log(`[LOOP] Przywracanie zablokowanego pseudonimu "${guard.nickname}" po powrocie dla ${userId}...`);
+                      setTimeout(() => {
+                        api.changeNickname(guard.nickname, threadId, userId, (nickErr) => {
+                          if (nickErr) {
+                            console.error('[LOOP NICKNAME RESTORE ERROR]', nickErr);
+                          } else {
+                            console.log(`[LOOP] Pomyślnie przywrócono zablokowany pseudonim "${guard.nickname}" dla ${userId}.`);
+                          }
+                        });
+                      }, 1500).unref();
+                    }
+                  })();
                 }
               });
             }

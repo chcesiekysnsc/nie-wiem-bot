@@ -113,6 +113,21 @@ async function runTests() {
               await new Promise((resolve) => {
                 mockApi.addUserToGroup(userId, tId, () => resolve());
               });
+
+              // Przywracanie pseudonimu
+              let guard = null;
+              await withData(store => {
+                if (store.profiles.threadSettings && store.profiles.threadSettings[tId] && store.profiles.threadSettings[tId].nicknameGuard) {
+                  guard = store.profiles.threadSettings[tId].nicknameGuard;
+                }
+              });
+
+              if (guard && String(guard.userId) === String(userId)) {
+                console.log(`[SIMULATOR] Przywracanie zablokowanego pseudonimu "${guard.nickname}" po powrocie dla ${userId}...`);
+                await new Promise((resolve) => {
+                  mockApi.changeNickname(guard.nickname, tId, userId, () => resolve());
+                });
+              }
               return 'ADDED_BACK';
             }
           }
