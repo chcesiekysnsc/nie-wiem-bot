@@ -32,11 +32,9 @@ module.exports = {
       targetId = cleanArgs[0];
       targetName = `Użytkownik_${targetId.slice(-6)}`;
       cleanArgs.shift();
-    }
-
-    if (!targetId) {
-      await message.reply('❌ Oznacz osobę lub podaj jej ID: **!nick <@osoba | ID> [pseudonim]**');
-      return;
+    } else {
+      targetId = message.author.id;
+      targetName = message.author.username || 'siebie';
     }
 
     let nickname = '';

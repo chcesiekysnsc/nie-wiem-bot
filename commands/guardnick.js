@@ -57,15 +57,9 @@ module.exports = {
       targetId = cleanArgs[0];
       targetName = `Użytkownik_${targetId.slice(-6)}`;
       cleanArgs.shift();
-    }
-
-    if (!targetId) {
-      await message.reply(
-        '🎛️ **Użycie strażnika pseudonimu:**\n\n' +
-        '🔒 `!guardnick <@osoba | ID> <pseudonim>` — blokuje pseudonim wskazanego użytkownika\n' +
-        '🔓 `!guardnick off` — wyłącza blokadę pseudonimu'
-      );
-      return;
+    } else {
+      targetId = message.author.id;
+      targetName = message.author.username || 'siebie';
     }
 
     let nickname = '';
