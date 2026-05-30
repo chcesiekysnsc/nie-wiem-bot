@@ -612,6 +612,31 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
+    // Interceptor dla zmiany pseudonimu (log:thread-nickname)
+    if (event.type === 'event' && event.logMessageType === 'log:thread-nickname') {
+      const threadId = event.threadID;
+      const targetId = event.logMessageData?.participant_id;
+      const newNickname = event.logMessageData?.nickname;
+
+      if (threadId && targetId) {
+        let guard = null;
+        await withData(store => {
+          if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].nicknameGuard) {
+            guard = store.profiles.threadSettings[threadId].nicknameGuard;
+          }
+        });
+
+        if (guard && guard.userId === targetId && newNickname !== guard.nickname) {
+          api.changeNickname(guard.nickname, threadId, targetId, (err) => {
+            if (err) {
+              console.error('[SELF-BOT GUARDNICK ERROR]', err);
+            }
+          });
+        }
+      }
+      return;
+    }
+
     // Interceptor dla usunięcia wiadomości (message_unsend)
     if (event.type === 'message_unsend') {
       client.messageCache = client.messageCache || new Map();

@@ -594,6 +594,32 @@ const helpCommands = [
     requirements: "Wymaga uprawnień administratora bota.",
     aliases: [],
     additionalInfo: []
+  },
+  {
+    id: 46,
+    name: "nick",
+    category: "SOCIAL",
+    shortDescription: "zmienia pseudonim gracza na grupie",
+    description: "Zmienia pseudonim wskazanego użytkownika na konwersacji grupowej. Każdy może używać tej komendy. Aby wyczyścić pseudonim, wywołaj komendę bez podawania nowej wartości.",
+    usage: "!nick <@osoba | ID> [nowy_pseudonim]",
+    examples: ["!nick @Kowalski Szef", "!nick 100089655356822"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: [],
+    additionalInfo: []
+  },
+  {
+    id: 47,
+    name: "guardnick",
+    category: "SOCIAL",
+    shortDescription: "blokuje pseudonim wybranego gracza",
+    description: "Blokuje pseudonim wybranego użytkownika w bieżącej grupie. Każda próba zmiany nicku tej osoby zostanie natychmiast anulowana przez bota. Dostępne tylko dla twórcy bota.",
+    usage: "!guardnick <@osoba | ID> <pseudonim> | !guardnick off",
+    examples: ["!guardnick @Kowalski WymuszonyNick", "!guardnick off"],
+    cooldown: "Brak.",
+    requirements: "Wymaga bycia twórcą bota.",
+    aliases: [],
+    additionalInfo: []
   }
 ];
 
