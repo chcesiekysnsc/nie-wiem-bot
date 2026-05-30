@@ -615,20 +615,29 @@ login({ appState }, (loginErr, api) => {
 
     // Interceptor dla zmiany pseudonimu (log:thread-nickname lub log:user-nickname)
     const isNicknameEvent = (event.type === 'event' && (event.logMessageType === 'log:thread-nickname' || event.logMessageType === 'log:user-nickname')) 
-                         || (event.type === 'log:thread-nickname' || event.type === 'log:user-nickname');
+                         || (event.type === 'log:thread-nickname' || event.type === 'log:user-nickname')
+                         || (event.logMessageType === 'log:thread-nickname' || event.logMessageType === 'log:user-nickname');
     if (isNicknameEvent) {
       const threadId = event.threadID;
       const targetId = event.logMessageData?.participant_id 
+                    || event.logMessageData?.participantID 
                     || event.logMessageData?.participantId 
                     || event.logMessageData?.target_id 
+                    || event.logMessageData?.targetID 
                     || event.logMessageData?.targetId
                     || event.participantID
                     || event.targetID;
       
-      const newNickname = event.logMessageData?.nickname 
-                       || event.logMessageData?.newNickname
-                       || event.logMessageData?.value
-                       || event.nickname;
+      let newNickname = undefined;
+      if (event.logMessageData?.nickname !== undefined && event.logMessageData?.nickname !== null) {
+        newNickname = event.logMessageData.nickname;
+      } else if (event.logMessageData?.newNickname !== undefined && event.logMessageData?.newNickname !== null) {
+        newNickname = event.logMessageData.newNickname;
+      } else if (event.logMessageData?.value !== undefined && event.logMessageData?.value !== null) {
+        newNickname = event.logMessageData.value;
+      } else if (event.nickname !== undefined && event.nickname !== null) {
+        newNickname = event.nickname;
+      }
 
       if (threadId && targetId) {
         let guard = null;
@@ -640,7 +649,8 @@ login({ appState }, (loginErr, api) => {
 
         // Ignoruj zmiany wykonane przez samego bota tylko wtedy, gdy przywrócił poprawny zablokowany nick (zapobiega pętlom)
         const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
-        if (guard && botId && event.author && String(event.author) === String(botId) && newNickname === guard.nickname) {
+        const authorId = event.author || event.senderID || event.participantID;
+        if (guard && botId && authorId && String(authorId) === String(botId) && newNickname === guard.nickname) {
           return;
         }
 
