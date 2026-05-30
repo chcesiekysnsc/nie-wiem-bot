@@ -11,6 +11,7 @@ const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
 const { formatCurrency, msToReadable } = require('./utils/economy');
+const { extractTikTokLink, getTikTokVideoData, downloadFile } = require('./utils/tiktok');
 
 // Algorytm Levenshteina do wykrywania litowek
 function levenshtein(a, b) {
@@ -719,6 +720,72 @@ login({ appState }, (loginErr, api) => {
     const senderId = event.senderID;
     const threadId = event.threadID;
     const messageId = event.messageID;
+
+    // Automatyczny pobieracz wideo z TikToka
+    const tiktokLink = extractTikTokLink(text);
+    if (tiktokLink && !text.startsWith(client.config.prefix)) {
+      console.log(`[TIKTOK] Wykryto link do TikToka od ${senderId} w wątku ${threadId}: ${tiktokLink}`);
+      api.setMessageReaction('⏳', messageId, () => {});
+
+      (async () => {
+        const tempFile = path.join(__dirname, 'data', `tiktok_${messageId}.mp4`);
+        try {
+          const data = await getTikTokVideoData(tiktokLink);
+          const MAX_SIZE = 25 * 1024 * 1024; // 25 MB
+
+          if (data.size > MAX_SIZE) {
+            console.log(`[TIKTOK] Film jest zbyt duży (${(data.size / 1024 / 1024).toFixed(2)} MB). Wysyłam link bezpośredni.`);
+            api.sendMessage(
+              `⚠️ **Wideo jest zbyt duże (${(data.size / 1024 / 1024).toFixed(2)} MB), aby wysłać je bezpośrednio.**\n\n` +
+              `👤 Autor: @${data.author}\n` +
+              `📝 Tytuł: ${data.title}\n` +
+              `🔗 Link bez znaku wodnego:\n${data.playUrl}`,
+              threadId,
+              (err) => {
+                if (err) console.error('[TIKTOK SEND MSG ERROR]', err);
+                api.setMessageReaction('❌', messageId, () => {});
+              },
+              messageId
+            );
+            return;
+          }
+
+          console.log(`[TIKTOK] Pobieranie wideo (${(data.size / 1024 / 1024).toFixed(2)} MB) do: ${tempFile}`);
+          await downloadFile(data.playUrl, tempFile);
+
+          console.log(`[TIKTOK] Wysyłanie wideo do wątku ${threadId}...`);
+          api.sendMessage({
+            body: `🎥 **TikTok od @${data.author}**\n${data.title}`,
+            attachment: fs.createReadStream(tempFile)
+          }, threadId, (err) => {
+            if (err) {
+              console.error('[TIKTOK SEND VIDEO ERROR]', err);
+              api.setMessageReaction('❌', messageId, () => {});
+              api.sendMessage(`❌ Nie udało się wysłać pobranego wideo.`, threadId, () => {}, messageId);
+            } else {
+              api.setMessageReaction('✅', messageId, () => {});
+            }
+          }, messageId);
+
+        } catch (err) {
+          console.error('[TIKTOK ERROR]', err.message);
+          api.setMessageReaction('❌', messageId, () => {});
+          api.sendMessage(`❌ Nie udało się pobrać wideo z TikToka.`, threadId, () => {}, messageId);
+        } finally {
+          // Czyszczenie pliku tymczasowego (poczekaj 5s, by upewnić się, że strumień FB został zamknięty)
+          setTimeout(() => {
+            if (fs.existsSync(tempFile)) {
+              try {
+                fs.unlinkSync(tempFile);
+                console.log(`[TIKTOK] Wyczyszczono plik tymczasowy: ${tempFile}`);
+              } catch (e) {
+                console.error('[TIKTOK CLEANUP ERROR]', e.message);
+              }
+            }
+          }, 5000).unref();
+        }
+      })();
+    }
 
     // Odczytaj wiadomosc po losowym czasie (500ms - 1200ms)
     if (threadId) {
