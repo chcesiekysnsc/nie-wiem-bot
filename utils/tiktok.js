@@ -40,7 +40,11 @@ async function getTikTokVideoData(videoUrl) {
         playUrl: res.data.data.play, // Link bez znaku wodnego
         title: res.data.data.title || 'Wideo z TikToka',
         size: res.data.data.size || 0, // Rozmiar w bajtach
-        author: res.data.data.author?.unique_id || 'autor'
+        author: res.data.data.author?.unique_id || 'autor',
+        views: res.data.data.play_count || 0,
+        likes: res.data.data.digg_count || 0,
+        comments: res.data.data.comment_count || 0,
+        shares: res.data.data.share_count || 0
       };
     } else {
       // Próba zapasowa za pomocą GET na api.tikwm.com
@@ -57,7 +61,11 @@ async function getTikTokVideoData(videoUrl) {
           playUrl: resGet.data.data.play,
           title: resGet.data.data.title || 'Wideo z TikToka',
           size: resGet.data.data.size || 0,
-          author: resGet.data.data.author?.unique_id || 'autor'
+          author: resGet.data.data.author?.unique_id || 'autor',
+          views: resGet.data.data.play_count || 0,
+          likes: resGet.data.data.digg_count || 0,
+          comments: resGet.data.data.comment_count || 0,
+          shares: resGet.data.data.share_count || 0
         };
       }
 

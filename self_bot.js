@@ -617,12 +617,6 @@ login({ appState }, (loginErr, api) => {
     const isNicknameEvent = (event.type === 'event' && (event.logMessageType === 'log:thread-nickname' || event.logMessageType === 'log:user-nickname')) 
                          || (event.type === 'log:thread-nickname' || event.type === 'log:user-nickname');
     if (isNicknameEvent) {
-      // Ignoruj zmiany wykonane przez samego bota, aby zapobiec pętlom i rate-limitom
-      const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
-      if (botId && event.author && String(event.author) === String(botId)) {
-        return;
-      }
-
       const threadId = event.threadID;
       const targetId = event.logMessageData?.participant_id 
                     || event.logMessageData?.participantId 
@@ -644,6 +638,12 @@ login({ appState }, (loginErr, api) => {
           }
         });
 
+        // Ignoruj zmiany wykonane przez samego bota tylko wtedy, gdy przywrócił poprawny zablokowany nick (zapobiega pętlom)
+        const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
+        if (guard && botId && event.author && String(event.author) === String(botId) && newNickname === guard.nickname) {
+          return;
+        }
+
         if (guard && String(guard.userId) === String(targetId) && newNickname !== guard.nickname) {
           console.log(`[GUARDNICK] Wykryto zmianę pseudonimu użytkownika ${targetId} na "${newNickname || '<brak>'}" w wątku ${threadId}. Przywracanie do "${guard.nickname}"...`);
           api.changeNickname(guard.nickname, threadId, targetId, (err) => {
@@ -653,6 +653,57 @@ login({ appState }, (loginErr, api) => {
               console.log(`[GUARDNICK] Pomyślnie przywrócono pseudonim "${guard.nickname}" dla ${targetId}.`);
             }
           });
+        }
+      }
+      return;
+    }
+
+    // Interceptor dla wyjścia z grupy (log:unsubscribe) - loop
+    const isUnsubscribeEvent = (event.type === 'event' && event.logMessageType === 'log:unsubscribe') || (event.type === 'log:unsubscribe');
+    if (isUnsubscribeEvent) {
+      const threadId = event.threadID;
+      
+      // Wyciągamy ID usuniętych użytkowników
+      const removedUsers = [];
+      const dataParticipants = event.logMessageData?.removedParticipants;
+      if (Array.isArray(dataParticipants)) {
+        for (const p of dataParticipants) {
+          if (p && typeof p === 'object') {
+            const uid = p.userFbId || p.userID || p.id;
+            if (uid) removedUsers.push(String(uid));
+          } else if (p) {
+            removedUsers.push(String(p));
+          }
+        }
+      }
+      if (event.participantID) {
+        removedUsers.push(String(event.participantID));
+      }
+
+      const uniqueRemoved = [...new Set(removedUsers)];
+
+      if (threadId && uniqueRemoved.length > 0) {
+        let loopUsers = [];
+        await withData(store => {
+          if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].loopUsers) {
+            loopUsers = [...store.profiles.threadSettings[threadId].loopUsers];
+          }
+        });
+
+        if (loopUsers.length > 0) {
+          for (const userId of uniqueRemoved) {
+            if (loopUsers.includes(userId)) {
+              console.log(`[LOOP] Wykryto wyjście/wyrzucenie zapętlonego użytkownika ${userId} z wątku ${threadId}. Dodawanie z powrotem...`);
+              api.addUserToGroup(userId, threadId, (err) => {
+                if (err) {
+                  console.error(`[LOOP ERROR] Nie udało się dodać użytkownika ${userId} z powrotem:`, err);
+                } else {
+                  console.log(`[LOOP] Pomyślnie dodano użytkownika ${userId} z powrotem do grupy ${threadId}.`);
+                  api.sendMessage(`🔁 **Zapętlony użytkownik został dodany z powrotem do grupy.**`, threadId);
+                }
+              });
+            }
+          }
         }
       }
       return;
@@ -738,7 +789,8 @@ login({ appState }, (loginErr, api) => {
             api.sendMessage(
               `⚠️ **Wideo jest zbyt duże (${(data.size / 1024 / 1024).toFixed(2)} MB), aby wysłać je bezpośrednio.**\n\n` +
               `👤 Autor: @${data.author}\n` +
-              `📝 Tytuł: ${data.title}\n` +
+              `📝 Tytuł: ${data.title}\n\n` +
+              `👀 ${data.views.toLocaleString()} | ❤️ ${data.likes.toLocaleString()} | 💬 ${data.comments.toLocaleString()} | 🔁 ${data.shares.toLocaleString()}\n\n` +
               `🔗 Link bez znaku wodnego:\n${data.playUrl}`,
               threadId,
               (err) => {
@@ -755,7 +807,9 @@ login({ appState }, (loginErr, api) => {
 
           console.log(`[TIKTOK] Wysyłanie wideo do wątku ${threadId}...`);
           api.sendMessage({
-            body: `🎥 **TikTok od @${data.author}**\n${data.title}`,
+            body: `🎥 **TikTok od @${data.author}**\n` +
+                  `${data.title}\n\n` +
+                  `👀 ${data.views.toLocaleString()} | ❤️ ${data.likes.toLocaleString()} | 💬 ${data.comments.toLocaleString()} | 🔁 ${data.shares.toLocaleString()}`,
             attachment: fs.createReadStream(tempFile)
           }, threadId, (err) => {
             if (err) {
