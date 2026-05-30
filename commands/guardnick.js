@@ -21,21 +21,77 @@ module.exports = {
       return;
     }
 
-    const sub = String(args[0] || '').toLowerCase().trim();
+    const firstArg = String(args[0] || '').toLowerCase().trim();
 
-    if (sub === 'off' || sub === 'reset') {
+    if (firstArg === 'off' || firstArg === 'reset') {
+      const secondArg = String(args[1] || '').toLowerCase().trim();
+      
+      // Sprawdź czy chcą wyłączyć dla wszystkich
+      if (secondArg === 'all' || secondArg === 'wszystko' || secondArg === 'wszyscy') {
+        let disabled = false;
+        await withData(store => {
+          if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
+            const settings = store.profiles.threadSettings[threadId];
+            if (settings.nicknameGuards || settings.nicknameGuard) {
+              delete settings.nicknameGuard;
+              delete settings.nicknameGuards;
+              disabled = true;
+            }
+          }
+        });
+
+        if (disabled) {
+          await message.reply('🔓 **Wyłączono strażnika pseudonimu dla wszystkich użytkowników w tej grupie.**');
+        } else {
+          await message.reply('ℹ️ Strażnik pseudonimu nie był włączony dla żadnego użytkownika w tej grupie.');
+        }
+        return;
+      }
+
+      // Sprawdź cel (wzmiankowany lub podany przez ID, domyślnie autor)
+      let targetId = null;
+      let targetName = 'Użytkownik';
+
+      const mentioned = message.mentions.users.first();
+      const cleanArgs = args.slice(1);
+
+      if (mentioned) {
+        targetId = mentioned.id;
+        targetName = mentioned.username || `Użytkownik_${targetId.slice(-6)}`;
+      } else if (cleanArgs[0] && /^\d+$/.test(cleanArgs[0]) && cleanArgs[0].length >= 8) {
+        targetId = cleanArgs[0];
+        targetName = `Użytkownik_${targetId.slice(-6)}`;
+      } else {
+        targetId = message.author.id;
+        targetName = message.author.username || 'siebie';
+      }
+
       let disabled = false;
       await withData(store => {
-        if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].nicknameGuard) {
-          delete store.profiles.threadSettings[threadId].nicknameGuard;
-          disabled = true;
+        if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
+          const settings = store.profiles.threadSettings[threadId];
+          
+          // Migracja starego nicknameGuard
+          if (settings.nicknameGuard) {
+            settings.nicknameGuards = settings.nicknameGuards || {};
+            settings.nicknameGuards[settings.nicknameGuard.userId] = settings.nicknameGuard.nickname;
+            delete settings.nicknameGuard;
+          }
+
+          if (settings.nicknameGuards && settings.nicknameGuards[targetId]) {
+            delete settings.nicknameGuards[targetId];
+            disabled = true;
+            if (Object.keys(settings.nicknameGuards).length === 0) {
+              delete settings.nicknameGuards;
+            }
+          }
         }
       });
 
       if (disabled) {
-        await message.reply('🔓 **Wyłączono strażnika pseudonimu dla tej grupy.**');
+        await message.reply(`🔓 **Wyłączono strażnika pseudonimu dla użytkownika: ${targetName}** (ID: ${targetId})`);
       } else {
-        await message.reply('ℹ️ Strażnik pseudonimu nie był włączony dla tej grupy.');
+        await message.reply(`ℹ️ Użytkownik **${targetName}** (ID: ${targetId}) nie ma aktywnego strażnika pseudonimu.`);
       }
       return;
     }
@@ -86,10 +142,18 @@ module.exports = {
     await withData(store => {
       store.profiles.threadSettings = store.profiles.threadSettings || {};
       store.profiles.threadSettings[threadId] = store.profiles.threadSettings[threadId] || {};
-      store.profiles.threadSettings[threadId].nicknameGuard = {
-        userId: targetId,
-        nickname: nickname
-      };
+      
+      const settings = store.profiles.threadSettings[threadId];
+      
+      // Migracja starego nicknameGuard
+      if (settings.nicknameGuard) {
+        settings.nicknameGuards = settings.nicknameGuards || {};
+        settings.nicknameGuards[settings.nicknameGuard.userId] = settings.nicknameGuard.nickname;
+        delete settings.nicknameGuard;
+      }
+
+      settings.nicknameGuards = settings.nicknameGuards || {};
+      settings.nicknameGuards[targetId] = nickname;
     });
 
     // Natychmiastowe wymuszenie pseudonimu

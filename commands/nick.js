@@ -55,15 +55,20 @@ module.exports = {
     }
 
     // Sprawdź czy target ma strażnika pseudonimów
-    let guard = null;
+    let guardNickname = null;
     await withData(store => {
-      if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].nicknameGuard) {
-        guard = store.profiles.threadSettings[threadId].nicknameGuard;
+      if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
+        const settings = store.profiles.threadSettings[threadId];
+        if (settings.nicknameGuards && settings.nicknameGuards[targetId]) {
+          guardNickname = settings.nicknameGuards[targetId];
+        } else if (settings.nicknameGuard && String(settings.nicknameGuard.userId) === String(targetId)) {
+          guardNickname = settings.nicknameGuard.nickname;
+        }
       }
     });
 
-    if (guard && String(guard.userId) === String(targetId) && nickname !== guard.nickname) {
-      await message.reply(`❌ Użytkownik ma zablokowany pseudonim przez strażnika (**${guard.nickname}**).`);
+    if (guardNickname && nickname !== guardNickname) {
+      await message.reply(`❌ Użytkownik ma zablokowany pseudonim przez strażnika (**${guardNickname}**).`);
       return;
     }
 

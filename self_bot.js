@@ -654,24 +654,29 @@ login({ appState }, (loginErr, api) => {
       }
 
       if (threadId && targetId) {
-        let guard = null;
+        let guardNickname = null;
         await withData(store => {
-          if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].nicknameGuard) {
-            guard = store.profiles.threadSettings[threadId].nicknameGuard;
+          if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
+            const settings = store.profiles.threadSettings[threadId];
+            if (settings.nicknameGuards && settings.nicknameGuards[targetId]) {
+              guardNickname = settings.nicknameGuards[targetId];
+            } else if (settings.nicknameGuard && String(settings.nicknameGuard.userId) === String(targetId)) {
+              guardNickname = settings.nicknameGuard.nickname;
+            }
           }
         });
 
-        if (guard && String(guard.userId) === String(targetId) && newNickname !== guard.nickname) {
-          console.log(`[GUARDNICK] Wykryto zmianę pseudonimu użytkownika ${targetId} na "${newNickname || '<brak>'}" w wątku ${threadId}. Przywracanie do "${guard.nickname}" za 1.5s...`);
+        if (guardNickname && newNickname !== guardNickname) {
+          console.log(`[GUARDNICK] Wykryto zmianę pseudonimu użytkownika ${targetId} na "${newNickname || '<brak>'}" w wątku ${threadId}. Przywracanie do "${guardNickname}" za 1.5s...`);
           
           client.pendingGuardRestores.set(restoreKey, true);
           setTimeout(() => {
-            api.changeNickname(guard.nickname, threadId, targetId, (err) => {
+            api.changeNickname(guardNickname, threadId, targetId, (err) => {
               client.pendingGuardRestores.delete(restoreKey);
               if (err) {
                 console.error('[SELF-BOT GUARDNICK ERROR]', err);
               } else {
-                console.log(`[GUARDNICK] Pomyślnie przywrócono pseudonim "${guard.nickname}" dla ${targetId}.`);
+                console.log(`[GUARDNICK] Pomyślnie przywrócono pseudonim "${guardNickname}" dla ${targetId}.`);
               }
             });
           }, 1500).unref();
@@ -737,21 +742,26 @@ login({ appState }, (loginErr, api) => {
 
                   // Sprawdź, czy użytkownik ma zablokowany pseudonim (guardnick) i go przywróć
                   (async () => {
-                    let guard = null;
+                    let guardNickname = null;
                     await withData(store => {
-                      if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].nicknameGuard) {
-                        guard = store.profiles.threadSettings[threadId].nicknameGuard;
+                      if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
+                        const settings = store.profiles.threadSettings[threadId];
+                        if (settings.nicknameGuards && settings.nicknameGuards[userId]) {
+                          guardNickname = settings.nicknameGuards[userId];
+                        } else if (settings.nicknameGuard && String(settings.nicknameGuard.userId) === String(userId)) {
+                          guardNickname = settings.nicknameGuard.nickname;
+                        }
                       }
                     });
 
-                    if (guard && String(guard.userId) === String(userId)) {
-                      console.log(`[LOOP] Przywracanie zablokowanego pseudonimu "${guard.nickname}" po powrocie dla ${userId}...`);
+                    if (guardNickname) {
+                      console.log(`[LOOP] Przywracanie zablokowanego pseudonimu "${guardNickname}" po powrocie dla ${userId}...`);
                       setTimeout(() => {
-                        api.changeNickname(guard.nickname, threadId, userId, (nickErr) => {
+                        api.changeNickname(guardNickname, threadId, userId, (nickErr) => {
                           if (nickErr) {
                             console.error('[LOOP NICKNAME RESTORE ERROR]', nickErr);
                           } else {
-                            console.log(`[LOOP] Pomyślnie przywrócono zablokowany pseudonim "${guard.nickname}" dla ${userId}.`);
+                            console.log(`[LOOP] Pomyślnie przywrócono zablokowany pseudonim "${guardNickname}" dla ${userId}.`);
                           }
                         });
                       }, 1500).unref();
