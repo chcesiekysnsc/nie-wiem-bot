@@ -68,7 +68,21 @@ module.exports = {
       return;
     }
 
-    const nickname = cleanArgs.join(' ').trim();
+    let nickname = '';
+    if (mentioned && message.rawEvent?.mentions) {
+      const mentionText = message.rawEvent.mentions[targetId] || '';
+      const fullArgsText = args.join(' ');
+      
+      let cleanedText = fullArgsText;
+      if (mentionText) {
+        cleanedText = cleanedText.replace(`@${mentionText}`, '');
+        cleanedText = cleanedText.replace(mentionText, '');
+      }
+      cleanedText = cleanedText.replace(/^\s*@\S+/, '');
+      nickname = cleanedText.trim().replace(/\s+/g, ' ');
+    } else {
+      nickname = cleanArgs.join(' ').trim();
+    }
 
     if (!nickname) {
       await message.reply('❌ Musisz podać pseudonim, który ma być wymuszany: **!guardnick @osoba <pseudonim>**');

@@ -613,10 +613,20 @@ login({ appState }, (loginErr, api) => {
     }
 
     // Interceptor dla zmiany pseudonimu (log:thread-nickname)
-    if (event.type === 'event' && event.logMessageType === 'log:thread-nickname') {
+    const isNicknameEvent = (event.type === 'event' && event.logMessageType === 'log:thread-nickname') || (event.type === 'log:thread-nickname');
+    if (isNicknameEvent) {
       const threadId = event.threadID;
-      const targetId = event.logMessageData?.participant_id;
-      const newNickname = event.logMessageData?.nickname;
+      const targetId = event.logMessageData?.participant_id 
+                    || event.logMessageData?.participantId 
+                    || event.logMessageData?.target_id 
+                    || event.logMessageData?.targetId
+                    || event.participantID
+                    || event.targetID;
+      
+      const newNickname = event.logMessageData?.nickname 
+                       || event.logMessageData?.newNickname
+                       || event.logMessageData?.value
+                       || event.nickname;
 
       if (threadId && targetId) {
         let guard = null;
@@ -626,7 +636,7 @@ login({ appState }, (loginErr, api) => {
           }
         });
 
-        if (guard && guard.userId === targetId && newNickname !== guard.nickname) {
+        if (guard && String(guard.userId) === String(targetId) && newNickname !== guard.nickname) {
           api.changeNickname(guard.nickname, threadId, targetId, (err) => {
             if (err) {
               console.error('[SELF-BOT GUARDNICK ERROR]', err);
