@@ -1,4 +1,5 @@
 const config = require('../config/config');
+const { withData } = require('../utils/storage');
 
 module.exports = {
   name: 'nick',
@@ -51,6 +52,19 @@ module.exports = {
       nickname = cleanedText.trim().replace(/\s+/g, ' ');
     } else {
       nickname = cleanArgs.join(' ').trim();
+    }
+
+    // Sprawdź czy target ma strażnika pseudonimów
+    let guard = null;
+    await withData(store => {
+      if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].nicknameGuard) {
+        guard = store.profiles.threadSettings[threadId].nicknameGuard;
+      }
+    });
+
+    if (guard && String(guard.userId) === String(targetId) && nickname !== guard.nickname) {
+      await message.reply(`❌ Użytkownik ma zablokowany pseudonim przez strażnika (**${guard.nickname}**).`);
+      return;
     }
 
     client.api.changeNickname(nickname, threadId, targetId, (err) => {
