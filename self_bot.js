@@ -612,9 +612,16 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
-    // Interceptor dla zmiany pseudonimu (log:thread-nickname)
-    const isNicknameEvent = (event.type === 'event' && event.logMessageType === 'log:thread-nickname') || (event.type === 'log:thread-nickname');
+    // Interceptor dla zmiany pseudonimu (log:thread-nickname lub log:user-nickname)
+    const isNicknameEvent = (event.type === 'event' && (event.logMessageType === 'log:thread-nickname' || event.logMessageType === 'log:user-nickname')) 
+                         || (event.type === 'log:thread-nickname' || event.type === 'log:user-nickname');
     if (isNicknameEvent) {
+      // Ignoruj zmiany wykonane przez samego bota, aby zapobiec pętlom i rate-limitom
+      const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
+      if (botId && event.author && String(event.author) === String(botId)) {
+        return;
+      }
+
       const threadId = event.threadID;
       const targetId = event.logMessageData?.participant_id 
                     || event.logMessageData?.participantId 
@@ -637,9 +644,12 @@ login({ appState }, (loginErr, api) => {
         });
 
         if (guard && String(guard.userId) === String(targetId) && newNickname !== guard.nickname) {
+          console.log(`[GUARDNICK] Wykryto zmianę pseudonimu użytkownika ${targetId} na "${newNickname || '<brak>'}" w wątku ${threadId}. Przywracanie do "${guard.nickname}"...`);
           api.changeNickname(guard.nickname, threadId, targetId, (err) => {
             if (err) {
               console.error('[SELF-BOT GUARDNICK ERROR]', err);
+            } else {
+              console.log(`[GUARDNICK] Pomyślnie przywrócono pseudonim "${guard.nickname}" dla ${targetId}.`);
             }
           });
         }
