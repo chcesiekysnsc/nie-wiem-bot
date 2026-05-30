@@ -618,6 +618,13 @@ login({ appState }, (loginErr, api) => {
                          || (event.type === 'log:thread-nickname' || event.type === 'log:user-nickname')
                          || (event.logMessageType === 'log:thread-nickname' || event.logMessageType === 'log:user-nickname');
     if (isNicknameEvent) {
+      // 1. Unconditional self-ignore: Ignoruj WSZYSTKIE zmiany wykonane przez samego bota, aby zapobiec pętlom i blokadom Facebooka
+      const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
+      const authorId = event.author || event.senderID || event.participantID;
+      if (botId && authorId && String(authorId) === String(botId)) {
+        return;
+      }
+
       const threadId = event.threadID;
       const targetId = event.logMessageData?.participant_id 
                     || event.logMessageData?.participantID 
@@ -627,6 +634,13 @@ login({ appState }, (loginErr, api) => {
                     || event.logMessageData?.targetId
                     || event.participantID
                     || event.targetID;
+
+      // Unikaj równoległego przywracania pseudonimu dla tego samego użytkownika
+      client.pendingGuardRestores = client.pendingGuardRestores || new Map();
+      const restoreKey = `${threadId}_${targetId}`;
+      if (threadId && targetId && client.pendingGuardRestores.has(restoreKey)) {
+        return;
+      }
       
       let newNickname = undefined;
       if (event.logMessageData?.nickname !== undefined && event.logMessageData?.nickname !== null) {
@@ -647,22 +661,20 @@ login({ appState }, (loginErr, api) => {
           }
         });
 
-        // Ignoruj zmiany wykonane przez samego bota tylko wtedy, gdy przywrócił poprawny zablokowany nick (zapobiega pętlom)
-        const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
-        const authorId = event.author || event.senderID || event.participantID;
-        if (guard && botId && authorId && String(authorId) === String(botId) && newNickname === guard.nickname) {
-          return;
-        }
-
         if (guard && String(guard.userId) === String(targetId) && newNickname !== guard.nickname) {
-          console.log(`[GUARDNICK] Wykryto zmianę pseudonimu użytkownika ${targetId} na "${newNickname || '<brak>'}" w wątku ${threadId}. Przywracanie do "${guard.nickname}"...`);
-          api.changeNickname(guard.nickname, threadId, targetId, (err) => {
-            if (err) {
-              console.error('[SELF-BOT GUARDNICK ERROR]', err);
-            } else {
-              console.log(`[GUARDNICK] Pomyślnie przywrócono pseudonim "${guard.nickname}" dla ${targetId}.`);
-            }
-          });
+          console.log(`[GUARDNICK] Wykryto zmianę pseudonimu użytkownika ${targetId} na "${newNickname || '<brak>'}" w wątku ${threadId}. Przywracanie do "${guard.nickname}" za 1.5s...`);
+          
+          client.pendingGuardRestores.set(restoreKey, true);
+          setTimeout(() => {
+            api.changeNickname(guard.nickname, threadId, targetId, (err) => {
+              client.pendingGuardRestores.delete(restoreKey);
+              if (err) {
+                console.error('[SELF-BOT GUARDNICK ERROR]', err);
+              } else {
+                console.log(`[GUARDNICK] Pomyślnie przywrócono pseudonim "${guard.nickname}" dla ${targetId}.`);
+              }
+            });
+          }, 1500).unref();
         }
       }
       return;

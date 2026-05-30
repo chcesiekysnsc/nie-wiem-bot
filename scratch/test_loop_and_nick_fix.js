@@ -48,10 +48,10 @@ async function runTests() {
           }
         });
 
-        // Ignoruj zmiany wykonane przez samego bota tylko wtedy, gdy przywrócił poprawny zablokowany nick (zapobiega pętlom)
+        // Ignoruj zmiany wykonane przez samego bota, aby zapobiec pętlom i rate-limitom
         const currentBotId = typeof mockApi.getCurrentUserID === 'function' ? mockApi.getCurrentUserID() : '';
-        if (guard && currentBotId && event.author && String(event.author) === String(currentBotId) && newNickname === guard.nickname) {
-          console.log(`[SIMULATOR] Ignoruję własną zmianę pseudonimu bota na zablokowany (newNickname === guard.nickname)`);
+        if (currentBotId && event.author && String(event.author) === String(currentBotId)) {
+          console.log(`[SIMULATOR] Ignoruję własną zmianę pseudonimu bota (author: ${event.author})`);
           return 'IGNORED_SELF';
         }
 
