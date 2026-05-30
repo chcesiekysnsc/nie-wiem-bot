@@ -74,6 +74,10 @@ async function runTests() {
       const tId = event.threadID;
       
       const removedUsers = [];
+      if (event.logMessageData?.leftParticipantFbId) {
+        removedUsers.push(String(event.logMessageData.leftParticipantFbId));
+      }
+
       const dataParticipants = event.logMessageData?.removedParticipants;
       if (Array.isArray(dataParticipants)) {
         for (const p of dataParticipants) {
@@ -87,6 +91,9 @@ async function runTests() {
       }
       if (event.participantID) {
         removedUsers.push(String(event.participantID));
+      }
+      if (event.targetID) {
+        removedUsers.push(String(event.targetID));
       }
 
       const uniqueRemoved = [...new Set(removedUsers)];
@@ -172,14 +179,14 @@ async function runTests() {
     console.error('❌ TEST 2 FAILED!');
   }
 
-  // TEST 3: Wyjście użytkownika zapętlonego z grupy
-  console.log('\n--- TEST 3: Zapętlony użytkownik wychodzi z grupy ---');
+  // TEST 3: Wyjście użytkownika zapętlonego z grupy (usunięcie przez kogoś)
+  console.log('\n--- TEST 3: Zapętlony użytkownik zostaje wyrzucony z grupy ---');
   addUserCalls = [];
   const event3 = {
     type: 'event',
     logMessageType: 'log:unsubscribe',
     threadID: threadId,
-    author: targetId,
+    author: 'some_admin',
     logMessageData: {
       removedParticipants: [
         {
@@ -220,6 +227,26 @@ async function runTests() {
     console.log('✅ TEST 4 PASSED!');
   } else {
     console.error('❌ TEST 4 FAILED!');
+  }
+
+  // TEST 5: Dobrowolne wyjście użytkownika zapętlonego z grupy (leftParticipantFbId)
+  console.log('\n--- TEST 5: Zapętlony użytkownik dobrowolnie opuszcza grupę ---');
+  addUserCalls = [];
+  const event5 = {
+    type: 'event',
+    logMessageType: 'log:unsubscribe',
+    threadID: threadId,
+    author: targetId,
+    logMessageData: {
+      leftParticipantFbId: targetId
+    }
+  };
+  let res5 = await simulateUnsubscribeEvent(event5, mockApi);
+  console.log('Wynik Testu 5:', res5);
+  if (res5 === 'ADDED_BACK' && addUserCalls.length === 1 && addUserCalls[0].uid === targetId) {
+    console.log('✅ TEST 5 PASSED! (Dobrowolnie odchodzący użytkownik został dodany z powrotem)');
+  } else {
+    console.error('❌ TEST 5 FAILED!');
   }
 
   // Czyszczenie bazy testowej

@@ -663,8 +663,15 @@ login({ appState }, (loginErr, api) => {
     if (isUnsubscribeEvent) {
       const threadId = event.threadID;
       
-      // Wyciągamy ID usuniętych użytkowników
+      // Wyciągamy ID usuniętych/wychodzących użytkowników
       const removedUsers = [];
+      
+      // Jeśli użytkownik wyszedł dobrowolnie (leftParticipantFbId)
+      if (event.logMessageData?.leftParticipantFbId) {
+        removedUsers.push(String(event.logMessageData.leftParticipantFbId));
+      }
+      
+      // Jeśli użytkownik został usunięty/wyrzucony (removedParticipants)
       const dataParticipants = event.logMessageData?.removedParticipants;
       if (Array.isArray(dataParticipants)) {
         for (const p of dataParticipants) {
@@ -676,8 +683,13 @@ login({ appState }, (loginErr, api) => {
           }
         }
       }
+      
+      // Fallbacki dla innych wersji FCA/Messenger
       if (event.participantID) {
         removedUsers.push(String(event.participantID));
+      }
+      if (event.targetID) {
+        removedUsers.push(String(event.targetID));
       }
 
       const uniqueRemoved = [...new Set(removedUsers)];
