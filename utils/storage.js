@@ -305,8 +305,6 @@ function performMonthlyReset(store) {
 
   // 3. Reset balances and non-permanent inventory for all users
   const keepKeys = [
-    'vip',
-    'sejf',
     'szkarlatne_oko',
     'cien_nocy',
     'wampirzy_sztylet',
@@ -330,6 +328,7 @@ function performMonthlyReset(store) {
       user.balance = config.economy.defaultUser.balance || 5000;
       user.bank = config.economy.defaultUser.bank || 10000;
       user.activeLoan = null;
+      user.negativeSince = null;
 
       // Reset command counts & message count
       user.commandsUsed = 0;
