@@ -23,7 +23,7 @@ function checkIfRestricted(commandName, args) {
     logicalArgs = [commandName === 'wojna' ? 'wojna' : commandName, ...args];
   }
 
-  const restrictedCommands = ['daily', 'rob', 'crime', 'work', 'tip', 'marry', 'rozwod', 'duel', 'rynek'];
+  const restrictedCommands = ['daily', 'rob', 'crime', 'work', 'tip', 'marry', 'rozwod', 'duel', 'rynek', 'firma'];
   if (restrictedCommands.includes(logicalName)) {
     return true;
   }

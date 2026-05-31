@@ -620,30 +620,51 @@ const helpCommands = [
     requirements: "Wymaga bycia twórcą bota.",
     aliases: [],
     additionalInfo: []
+  },
+  {
+    id: 48,
+    name: "firma",
+    category: "ECONOMY",
+    shortDescription: "zarzadzanie wlasna firma i pasywny dochod",
+    description: "Pozwala na zakup jednej z 5 dostępnych firm generujących dochód pasywny co 3 godziny, ich sprzedaż, naprawę po awarii oraz odbiór wypłat.",
+    usage: "!firma | !firma kup <nazwa/nr> | !firma sprzedaj | !firma zbierz | !firma napraw",
+    examples: ["!firma", "!firma kup kiosk", "!firma sprzedaj", "!firma zbierz", "!firma napraw"],
+    cooldown: "3 sekundy",
+    requirements: "Posiadanie odpowiednich środków.",
+    aliases: [],
+    additionalInfo: []
   }
 ];
 
+function getActiveHelpCommands() {
+  const unlockTime = 1780264800000; // 2026-06-01T00:00:00+02:00
+  if (Date.now() < unlockTime) {
+    return helpCommands.filter(command => command.name !== 'firma');
+  }
+  return helpCommands;
+}
+
 function getHelpCommandById(id) {
-  return helpCommands.find(command => command.id === id) || null;
+  return getActiveHelpCommands().find(command => command.id === id) || null;
 }
 
 function getHelpCommandByName(input) {
   const normalized = String(input || '').toLowerCase();
 
-  return helpCommands.find(command => (
+  return getActiveHelpCommands().find(command => (
     command.name === normalized
     || (command.aliases && (command.aliases && command.aliases.some(alias => alias.toLowerCase() === normalized)))
   )) || null;
 }
 
 function getTotalPages() {
-  return Math.max(1, Math.ceil(helpCommands.length / HELP_PAGE_SIZE));
+  return Math.max(1, Math.ceil(getActiveHelpCommands().length / HELP_PAGE_SIZE));
 }
 
 function paginateCommands(page) {
   const safePage = Math.min(Math.max(1, page), getTotalPages());
   const start = (safePage - 1) * HELP_PAGE_SIZE;
-  const items = helpCommands.slice(start, start + HELP_PAGE_SIZE);
+  const items = getActiveHelpCommands().slice(start, start + HELP_PAGE_SIZE);
 
   return {
     page: safePage,
@@ -670,7 +691,7 @@ function buildHelpListEmbed(client) {
 
   const fields = [];
   for (const [catKey, catLabel] of Object.entries(categories)) {
-    const cmds = helpCommands.filter(c => c.category === catKey);
+    const cmds = getActiveHelpCommands().filter(c => c.category === catKey);
     if (cmds.length > 0) {
       const fieldContent = cmds.map(c => `• ${c.id}. !${c.name} - ${c.shortDescription}`).join('\n');
       fields.push({

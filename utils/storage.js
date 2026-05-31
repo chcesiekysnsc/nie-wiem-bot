@@ -177,6 +177,7 @@ function sanitizeUser(user) {
   merged.negativeSince = merged.negativeSince || null;
   merged.activeLoan = merged.activeLoan || null;
   merged.blacklistedForNegativeBalance = merged.blacklistedForNegativeBalance || false;
+  merged.company = merged.company && typeof merged.company === 'object' ? merged.company : null;
   merged.commandCounts = merged.commandCounts && typeof merged.commandCounts === 'object' && !Array.isArray(merged.commandCounts)
     ? merged.commandCounts
     : {};
@@ -329,6 +330,7 @@ function performMonthlyReset(store) {
       user.bank = config.economy.defaultUser.bank || 10000;
       user.activeLoan = null;
       user.negativeSince = null;
+      user.company = null;
 
       // Reset command counts & message count
       user.commandsUsed = 0;
