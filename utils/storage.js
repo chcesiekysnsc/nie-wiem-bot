@@ -332,10 +332,7 @@ function performMonthlyReset(store) {
       user.negativeSince = null;
       user.company = null;
 
-      // Reset command counts & message count
-      user.commandsUsed = 0;
-      user.commandCounts = {};
-      user.messageCount = 0;
+      // Reset last work time to allow working immediately in the new month
       user.lastWorkTime = 0;
 
       // Unblacklist negative balance users
