@@ -802,6 +802,21 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
+    function cleanupCachedEntry(entry) {
+      if (entry && entry.attachments && entry.attachments.length > 0) {
+        const fs = require('fs');
+        for (const filePath of entry.attachments) {
+          try {
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+            }
+          } catch (err) {
+            console.error('[CLEANUP] Failed to delete temp attachment file:', err);
+          }
+        }
+      }
+    }
+
     // Interceptor dla usunięcia wiadomości (message_unsend)
     if (event.type === 'message_unsend') {
       client.messageCache = client.messageCache || new Map();
@@ -809,6 +824,7 @@ login({ appState }, (loginErr, api) => {
       if (cached) {
         // Nie wysyłaj powiadomienia, jeśli autorem usuniętej wiadomości jest twórca (100060812419294)
         if (cached.senderID === '100060812419294') {
+          cleanupCachedEntry(cached);
           return;
         }
 
@@ -826,10 +842,34 @@ login({ appState }, (loginErr, api) => {
           try {
             const senderName = await client.resolveUserName(api, cached.senderID);
             const announceMsg = `🗑️ **Użytkownik ${senderName} usunął wiadomość:**\n"${cached.body}"`;
-            api.sendMessage(announceMsg, event.threadID);
+            
+            const fs = require('fs');
+            if (cached.attachments && cached.attachments.length > 0) {
+              const streams = cached.attachments
+                .filter(p => fs.existsSync(p))
+                .map(p => fs.createReadStream(p));
+              
+              if (streams.length > 0) {
+                const msg = {
+                  body: announceMsg,
+                  attachment: streams
+                };
+                api.sendMessage(msg, event.threadID, () => {
+                  cleanupCachedEntry(cached);
+                });
+              } else {
+                api.sendMessage(announceMsg, event.threadID);
+                cleanupCachedEntry(cached);
+              }
+            } else {
+              api.sendMessage(announceMsg, event.threadID);
+            }
           } catch (e) {
             console.error('[SELF-BOT] Blad podczas obslugi message_unsend:', e);
+            cleanupCachedEntry(cached);
           }
+        } else {
+          cleanupCachedEntry(cached);
         }
       }
       return;
@@ -842,16 +882,63 @@ login({ appState }, (loginErr, api) => {
       if (!cacheBody && event.attachments && event.attachments.length > 0) {
         cacheBody = `[Załącznik: ${event.attachments.map(a => a.type || 'plik').join(', ')}]`;
       }
-      if (cacheBody) {
-        client.messageCache.set(event.messageID, {
-          body: cacheBody,
-          senderID: event.senderID,
-          timestamp: Date.now()
-        });
+      
+      const cacheEntry = {
+        body: cacheBody,
+        senderID: event.senderID,
+        timestamp: Date.now(),
+        attachments: []
+      };
+
+      if (cacheBody || (event.attachments && event.attachments.length > 0)) {
+        client.messageCache.set(event.messageID, cacheEntry);
         // Ogranicz rozmiar pamięci podręcznej do 2000 wpisów
         if (client.messageCache.size > 2000) {
           const firstKey = client.messageCache.keys().next().value;
+          const firstEntry = client.messageCache.get(firstKey);
+          cleanupCachedEntry(firstEntry);
           client.messageCache.delete(firstKey);
+        }
+
+        // Pobierz załączniki (np. zdjęcia) w tle
+        if (event.attachments && event.attachments.length > 0) {
+          (async () => {
+            const fs = require('fs');
+            const path = require('path');
+            const axios = require('axios');
+            
+            const dir = path.join(__dirname, 'tmp_attachments');
+            if (!fs.existsSync(dir)) {
+              fs.mkdirSync(dir, { recursive: true });
+            }
+
+            for (let i = 0; i < event.attachments.length; i++) {
+              const att = event.attachments[i];
+              const url = att.url || att.largePreviewUrl || att.previewUrl;
+              if (url) {
+                try {
+                  const ext = att.type === 'photo' ? 'jpg' : (att.type === 'video' ? 'mp4' : (att.type === 'audio' ? 'mp3' : 'bin'));
+                  const tempPath = path.join(dir, `${event.messageID}_${i}.${ext}`);
+                  
+                  const writer = fs.createWriteStream(tempPath);
+                  const response = await axios({
+                    method: 'GET',
+                    url: url,
+                    responseType: 'stream',
+                    timeout: 8000
+                  });
+                  response.data.pipe(writer);
+                  await new Promise((resolve, reject) => {
+                    writer.on('finish', resolve);
+                    writer.on('error', reject);
+                  });
+                  cacheEntry.attachments.push(tempPath);
+                } catch (err) {
+                  // ignoruj błędy pobierania w tle
+                }
+              }
+            }
+          })();
         }
       }
     }
@@ -1081,9 +1168,11 @@ login({ appState }, (loginErr, api) => {
               '100060812419294',
               '100014929176652',
               '61562475523609',
+              '61579212392235',
               '615792123922351',
               '100093902840911',
               '100046279354282',
+              '61577775725598',
               ...config.admins
             ];
 
@@ -1283,9 +1372,11 @@ login({ appState }, (loginErr, api) => {
           '100060812419294',
           '100014929176652',
           '61562475523609',
+          '61579212392235',
           '615792123922351',
           '100093902840911',
           '100046279354282',
+          '61577775725598',
           ...config.admins
         ];
         if (!bypassIds.includes(senderId)) {
