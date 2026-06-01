@@ -26,6 +26,10 @@ async function runTest() {
     userNames: new Map([
       [testUserId, 'TestowyGracz']
     ]),
+    resolveUserName: async (api, userId) => {
+      if (userId === testUserId) return 'TestowyGracz';
+      return `Gracz_${userId.slice(-6)}`;
+    },
     api: {
       getCurrentUserID: () => 'bot_user_id_123',
       getThreadHistory: (threadID, amount, timestamp, callback) => {

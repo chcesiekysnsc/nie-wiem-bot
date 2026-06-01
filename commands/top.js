@@ -12,6 +12,23 @@ module.exports = {
       if (client.resolvedUserNames && client.resolvedUserNames.has(id) && client.userNames.has(id)) {
         return client.userNames.get(id);
       }
+      
+      // Sprawdź w bazie danych
+      let dbName = null;
+      try {
+        const { loadData } = require('../utils/storage');
+        const usersData = loadData('users');
+        if (usersData && usersData[id] && usersData[id].name) {
+          dbName = usersData[id].name;
+        }
+      } catch (_) {}
+
+      if (dbName) {
+        if (client.userNames) client.userNames.set(id, dbName);
+        if (client.resolvedUserNames) client.resolvedUserNames.add(id);
+        return dbName;
+      }
+
       if (client.api && typeof client.api.getUserInfo === 'function') {
         try {
           const info = await new Promise((resolve) => {
@@ -22,6 +39,14 @@ module.exports = {
                 if (client.resolvedUserNames) {
                   client.resolvedUserNames.add(id);
                 }
+                
+                // Zapisz asynchronicznie do bazy danych
+                withData(store => {
+                  if (store.users[id]) {
+                    store.users[id].name = name;
+                  }
+                }).catch(console.error);
+
                 resolve(name);
               } else {
                 resolve(null);
@@ -31,7 +56,53 @@ module.exports = {
           if (info) return info;
         } catch (_) {}
       }
-      return client.userNames.get(id) || `Uzytkownik_${String(id).slice(-6)}`;
+      return (client.userNames && client.userNames.get(id)) || `Uzytkownik_${String(id).slice(-6)}`;
+    }
+
+    async function preloadNames(ids) {
+      const unresolved = ids.filter(id => {
+        if (client.resolvedUserNames && client.resolvedUserNames.has(id)) return false;
+        return true;
+      });
+      if (unresolved.length === 0) return;
+
+      // Najpierw spróbujmy wczytać z bazy danych
+      const toQueryApi = [];
+      await withData(store => {
+        for (const id of unresolved) {
+          if (store.users[id] && store.users[id].name) {
+            client.userNames.set(id, store.users[id].name);
+            client.resolvedUserNames.add(id);
+          } else {
+            toQueryApi.push(id);
+          }
+        }
+      });
+
+      if (toQueryApi.length > 0 && client.api && typeof client.api.getUserInfo === 'function') {
+        try {
+          const ret = await new Promise((resolve) => {
+            client.api.getUserInfo(toQueryApi, (err, res) => {
+              if (!err && res) resolve(res);
+              else resolve({});
+            });
+          });
+          
+          await withData(store => {
+            for (const [id, info] of Object.entries(ret)) {
+              if (info && info.name) {
+                client.userNames.set(id, info.name);
+                client.resolvedUserNames.add(id);
+                if (store.users[id]) {
+                  store.users[id].name = info.name;
+                }
+              }
+            }
+          });
+        } catch (err) {
+          console.error('[TOP] Preload error:', err);
+        }
+      }
     }
 
     const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
@@ -47,6 +118,8 @@ module.exports = {
           .sort((a, b) => b.count - a.count)
           .slice(0, 10);
       });
+
+      await preloadNames(topUsers.map(u => u.id));
 
       const medals10 = ['🥇', '🥈', '🥉', '4.', '5.', '6.', '7.', '8.', '9.', '10.'];
       const lines = await Promise.all(
@@ -77,6 +150,8 @@ module.exports = {
       const sortedGangs = gangsList
         .sort((a, b) => b.vault - a.vault)
         .slice(0, 3);
+
+      await preloadNames(sortedGangs.map(g => g.bossId));
 
       const lines = await Promise.all(
         sortedGangs.map(async (g, i) => {
@@ -147,6 +222,9 @@ module.exports = {
 
       return { globalTop, groupMembers, showIds, myRank, totalPlayers };
     });
+
+    const allTopIds = [...new Set([...globalTop.map(u => u.id), ...groupMembers.map(u => u.id)])];
+    await preloadNames(allTopIds);
 
     const globalLines = await Promise.all(
       globalTop.map(async (u, i) => {

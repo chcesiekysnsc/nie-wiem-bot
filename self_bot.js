@@ -110,6 +110,23 @@ const client = {
     if (this.resolvedUserNames.has(userId) && this.userNames.has(userId)) {
       return this.userNames.get(userId);
     }
+
+    // Sprawdź najpierw w bazie danych, czy imię jest zapisane
+    let dbName = null;
+    try {
+      const { loadData } = require('./utils/storage');
+      const usersData = loadData('users');
+      if (usersData && usersData[userId] && usersData[userId].name) {
+        dbName = usersData[userId].name;
+      }
+    } catch (_) {}
+
+    if (dbName) {
+      this.userNames.set(userId, dbName);
+      this.resolvedUserNames.add(userId);
+      return dbName;
+    }
+
     return new Promise((resolve) => {
       if (!api) {
         return resolve(this.userNames.get(userId) || `Użytkownik_${userId.slice(-6)}`);
@@ -119,6 +136,15 @@ const client = {
           const name = ret[userId].name;
           this.userNames.set(userId, name);
           this.resolvedUserNames.add(userId);
+          
+          // Zapisz asynchronicznie do bazy danych
+          const { withData } = require('./utils/storage');
+          withData(store => {
+            if (store.users[userId]) {
+              store.users[userId].name = name;
+            }
+          }).catch(console.error);
+
           resolve(name);
         } else {
           const fallback = this.userNames.get(userId) || `Użytkownik_${userId.slice(-6)}`;

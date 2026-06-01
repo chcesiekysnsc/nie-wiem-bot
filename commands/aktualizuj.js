@@ -47,7 +47,7 @@ module.exports = {
       return;
     }
 
-    await message.reply('🔍 **Rozpoczynam proces odzyskiwania statystyk...**\nPobieram i analizuję historię czatu (do 40 000 wiadomości). Może to zająć od kilkunastu sekund do minuty...');
+    await message.reply('🔍 **Rozpoczynam proces odzyskiwania statystyk...**\nPobieram i analizuję historię czatu (do 100 000 wiadomości). Może to zająć od kilkunastu sekund do minuty...');
 
     const botId = typeof client.api.getCurrentUserID === 'function' ? client.api.getCurrentUserID() : '';
     const prefix = client.config?.prefix || '!';
@@ -59,7 +59,7 @@ module.exports = {
     let lastChunkIndex = 0;
 
     try {
-      while (keepFetching && totalFetched < 40000) {
+      while (keepFetching && totalFetched < 100000) {
         const history = await getThreadHistoryPage(client.api, threadId, 500, oldestTimestamp);
         if (!history || history.length === 0) {
           break;
@@ -120,33 +120,98 @@ module.exports = {
       }
 
       // Zapisujemy odzyskane dane do bazy danych stosując Math.max
-      const updatedUsers = [];
-      const result = await withData(async (store) => {
+      await withData(async (store) => {
         for (const [senderID, stats] of Object.entries(tempStats)) {
           const user = createUser(senderID, store.users);
           
-          // Podmień wartości tylko jeśli odzyskane są większe od obecnych (zapobiega nadpisywaniu nowszych aktywności)
+          // Podmień wartości tylko jeśli odzyskane są większe od obecnych
           user.messageCount = Math.max(user.messageCount || 0, stats.messageCount);
+          user.groupMessages = user.groupMessages || {};
+          user.groupMessages[threadId] = Math.max(user.groupMessages[threadId] || 0, stats.messageCount);
           user.commandsUsed = Math.max(user.commandsUsed || 0, stats.commandsUsed);
           
           user.commandCounts = user.commandCounts || {};
           for (const [cmd, count] of Object.entries(stats.commandCounts)) {
             user.commandCounts[cmd] = Math.max(user.commandCounts[cmd] || 0, count);
           }
-
-          let name = `Gracz_${senderID.slice(-6)}`;
-          try {
-            if (client.userNames && client.userNames.has(senderID)) {
-              name = client.userNames.get(senderID);
-            }
-          } catch (_) {}
-
-          updatedUsers.push({ name, msgs: user.messageCount, cmds: user.commandsUsed });
         }
-        return { success: true };
       });
 
-      if (result.success && updatedUsers.length > 0) {
+      // 1. Batch preload from thread info
+      if (client.api && typeof client.api.getThreadInfo === 'function') {
+        try {
+          const threadInfo = await new Promise((resolve) => {
+            client.api.getThreadInfo(threadId, (err, info) => {
+              if (!err && info) {
+                resolve(info);
+              } else {
+                resolve(null);
+              }
+            });
+          });
+          if (threadInfo && threadInfo.userInfo) {
+            for (const user of threadInfo.userInfo) {
+              if (user && user.id && user.name) {
+                client.userNames.set(user.id, user.name);
+                client.resolvedUserNames.add(user.id);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[AKTUALIZUJ] Error during thread preloading:', err);
+        }
+      }
+
+      // 2. Batch resolve former members who are not in the current thread participants
+      const unresolvedIDs = Object.keys(tempStats).filter(id => {
+        if (client.resolvedUserNames && client.resolvedUserNames.has(id)) return false;
+        return true;
+      });
+
+      if (unresolvedIDs.length > 0 && client.api && typeof client.api.getUserInfo === 'function') {
+        try {
+          const ret = await new Promise((resolve) => {
+            client.api.getUserInfo(unresolvedIDs, (err, res) => {
+              if (!err && res) {
+                resolve(res);
+              } else {
+                resolve({});
+              }
+            });
+          });
+          for (const [id, info] of Object.entries(ret)) {
+            if (info && info.name) {
+              client.userNames.set(id, info.name);
+              client.resolvedUserNames.add(id);
+            }
+          }
+        } catch (err) {
+          console.error('[AKTUALIZUJ] Batch getUserInfo failed:', err);
+        }
+      }
+
+      // 3. Save all resolved/cached names to the persistent database
+      await withData(store => {
+        for (const [id, name] of client.userNames.entries()) {
+          if (store.users[id]) {
+            store.users[id].name = name;
+          }
+        }
+      }).catch(console.error);
+
+      // Rozwiązujemy nazwy użytkowników poza blokadą bazy danych
+      const updatedUsers = [];
+      for (const senderID of Object.keys(tempStats)) {
+        let name = `Gracz_${senderID.slice(-6)}`;
+        try {
+          name = await client.resolveUserName(client.api, senderID);
+        } catch (_) {}
+
+        const stats = tempStats[senderID];
+        updatedUsers.push({ name, msgs: stats.messageCount, cmds: stats.commandsUsed });
+      }
+
+      if (updatedUsers.length > 0) {
         let summaryText = `✅ **ODZYSKIWANIE STATYSTYK ZAKOŃCZONE!**\n`;
         summaryText += `Przeanalizowano łącznie **${totalFetched}** wiadomości z tego czatu.\n\n`;
         summaryText += `📊 **Odzyskane dane graczy (najwyższe znalezione wartości):**\n`;

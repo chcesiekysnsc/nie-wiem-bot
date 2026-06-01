@@ -184,6 +184,7 @@ function sanitizeUser(user) {
   merged.claimedMilestones = Array.isArray(merged.claimedMilestones)
     ? [...new Set(merged.claimedMilestones.filter(m => typeof m === 'number'))]
     : [];
+  merged.name = typeof merged.name === 'string' ? merged.name.trim().slice(0, 100) : null;
 
   return merged;
 }

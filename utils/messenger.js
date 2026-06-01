@@ -504,10 +504,34 @@ function createMessengerClient(clientConfig) {
     if (client.resolvedUserNames.has(userId) && client.userNames.has(userId)) {
       return client.userNames.get(userId);
     }
+
+    // Sprawdź najpierw w bazie danych, czy imię jest zapisane
+    let dbName = null;
+    try {
+      const usersData = loadData('users');
+      if (usersData && usersData[userId] && usersData[userId].name) {
+        dbName = usersData[userId].name;
+      }
+    } catch (_) {}
+
+    if (dbName) {
+      client.userNames.set(userId, dbName);
+      client.resolvedUserNames.add(userId);
+      return dbName;
+    }
+
     const user = await client.cacheUser(userId).catch(() => null);
     if (user && user.profile && user.profile.name) {
       client.userNames.set(userId, user.profile.name);
       client.resolvedUserNames.add(userId);
+
+      // Zapisz do bazy danych
+      await withData(store => {
+        if (store.users[userId]) {
+          store.users[userId].name = user.profile.name;
+        }
+      }).catch(console.error);
+
       return user.profile.name;
     }
     return client.userNames.get(userId) || `Użytkownik_${String(userId).slice(-6)}`;
