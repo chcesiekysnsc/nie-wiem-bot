@@ -89,19 +89,40 @@ module.exports = {
         multiplier = rolledNumber === 0 ? 18 : 12;
       }
 
+      let badgeSaved = false;
+      let szkarlatneOkoSaved = false;
+      let activeBadgeName = '';
       if (!won) {
         let helperChance = 0;
+        let badgeChance = 0;
         if (user.badges) {
-          if (user.badges.includes(config.badges.bog)) helperChance = 0.02;
-          else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
-          else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
+          if (user.badges.includes(config.badges.bog)) {
+            badgeChance = 0.02;
+            activeBadgeName = config.badges.bog;
+          } else if (user.badges.includes(config.badges.rekin)) {
+            badgeChance = 0.01;
+            activeBadgeName = config.badges.rekin;
+          } else if (user.badges.includes(config.badges.hazardzista)) {
+            badgeChance = 0.005;
+            activeBadgeName = config.badges.hazardzista;
+          }
         }
-        if (hasItem(inventory, 'szkarlatne_oko')) {
+        helperChance += badgeChance;
+        const hasOko = hasItem(inventory, 'szkarlatne_oko');
+        if (hasOko) {
           helperChance += 0.015;
         }
-        if (helperChance > 0 && Math.random() < helperChance) {
-          won = true;
-          multiplier = target.type === 'color' ? (target.value === 'green' ? 36 : 2) : 2;
+        if (helperChance > 0) {
+          const secondRoll = Math.random();
+          if (secondRoll < helperChance) {
+            won = true;
+            multiplier = target.type === 'color' ? (target.value === 'green' ? 36 : 2) : 2;
+            if (hasOko && secondRoll >= badgeChance) {
+              szkarlatneOkoSaved = true;
+            } else if (badgeChance > 0) {
+              badgeSaved = true;
+            }
+          }
         }
       }
 
@@ -126,7 +147,10 @@ module.exports = {
         rolledNumber,
         rolledColor,
         label: target.label,
-        xpResult
+        xpResult,
+        badgeSaved,
+        szkarlatneOkoSaved,
+        activeBadgeName
       };
     });
 
@@ -139,6 +163,13 @@ module.exports = {
     const outcome = `${result.rolledNumber} (${colorLabel})`;
     const winText = result.won ? `Wygrana! +${formatCurrency(result.net)}` : `Przegrana. -${formatCurrency(result.bet)}`;
     let replyText = `🎰 Ruletka: Wypadło **${outcome}**. Typ: **${result.label}**. ${winText}`;
+
+    if (result.badgeSaved && result.activeBadgeName) {
+      replyText += `\n🍀 Odznaka **${result.activeBadgeName}** dała Ci dodatkową szansę i uratowała przed przegraną!`;
+    }
+    if (result.szkarlatneOkoSaved) {
+      replyText += `\n👁️ Przedmiot **Szkarłatne Oko Krupiera** dał Ci dodatkową szansę i uratował przed przegraną!`;
+    }
 
     if (result.xpResult && result.xpResult.leveledUp) {
       replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;

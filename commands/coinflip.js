@@ -51,12 +51,32 @@ module.exports = {
         }
       }
 
-      if (hasItem(inventory, 'szkarlatne_oko')) {
+      const hasOko = hasItem(inventory, 'szkarlatne_oko');
+      if (hasOko) {
         baseChance += 0.015;
       }
 
       const roll = crypto.randomInt(0, 10000);
       const won = roll < (baseChance * 10000);
+
+      let badgeBonusChance = 0;
+      if (badgeUsed) {
+        if (badgeUsed === config.badges.bog) badgeBonusChance = 0.04;
+        else if (badgeUsed === config.badges.rekin) badgeBonusChance = 0.02;
+        else if (badgeUsed === config.badges.hazardzista) badgeBonusChance = 0.01;
+      }
+
+      let badgeSaved = false;
+      let szkarlatneOkoSaved = false;
+      if (won) {
+        const baseThreshold = 0.45 * 10000;
+        const badgeThreshold = baseThreshold + (badgeBonusChance * 10000);
+        if (roll >= baseThreshold && roll < badgeThreshold) {
+          badgeSaved = true;
+        } else if (roll >= badgeThreshold && roll < badgeThreshold + (hasOko ? 150 : 0)) {
+          szkarlatneOkoSaved = true;
+        }
+      }
 
       const flip = won ? choice : (choice === 'heads' ? 'tails' : 'heads');
 
@@ -70,7 +90,7 @@ module.exports = {
       const xpResult = recordGame(user, net, 25, inventory);
       refreshBadges(user, inventory);
 
-      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: false, badgeUsed };
+      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, badgeUsed };
     });
 
     if (result.error) {
@@ -83,7 +103,10 @@ module.exports = {
     let replyText = `🪙 Coinflip: Wypadło **${outcome}**. ${winText}`;
 
     if (result.secondChanceSaved && result.badgeUsed) {
-      replyText += `\n🍀 Odznaka **${result.badgeUsed}** aktywowała drugą szansę i uratowała Cię przed przegraną!`;
+      replyText += `\n🍀 Odznaka **${result.badgeUsed}** dała Ci dodatkową szansę i uratowała przed przegraną!`;
+    }
+    if (result.szkarlatneOkoSaved) {
+      replyText += `\n👁️ Przedmiot **Szkarłatne Oko Krupiera** dał Ci dodatkową szansę i uratował przed przegraną!`;
     }
 
     if (result.xpResult && result.xpResult.leveledUp) {

@@ -243,18 +243,38 @@ module.exports = {
           let outcomeText = `Tracisz **${formatCurrency(game.bet)}**.`;
 
           let helperChance = 0;
+          let badgeChance = 0;
+          let activeBadgeName = '';
           if (user.badges) {
-            if (user.badges.includes(config.badges.bog)) helperChance = 0.02;
-            else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
-            else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
+            if (user.badges.includes(config.badges.bog)) {
+              badgeChance = 0.02;
+              activeBadgeName = config.badges.bog;
+            } else if (user.badges.includes(config.badges.rekin)) {
+              badgeChance = 0.01;
+              activeBadgeName = config.badges.rekin;
+            } else if (user.badges.includes(config.badges.hazardzista)) {
+              badgeChance = 0.005;
+              activeBadgeName = config.badges.hazardzista;
+            }
           }
-          if (hasItem(inventory, 'szkarlatne_oko')) {
+          helperChance += badgeChance;
+          const hasOko = hasItem(inventory, 'szkarlatne_oko');
+          if (hasOko) {
             helperChance += 0.015;
           }
-          if (helperChance > 0 && Math.random() < helperChance) {
-            payout = game.bet;
-            net = 0;
-            outcomeText = ` Uratowany! Dzięki Twoim bonusom (odznaki/przedmioty) unikasz porażki i otrzymujesz zwrot stawki.`;
+          if (helperChance > 0) {
+            const secondRoll = Math.random();
+            if (secondRoll < helperChance) {
+              payout = game.bet;
+              net = 0;
+              let saveSource = 'Twoim bonusom';
+              if (hasOko && secondRoll >= badgeChance) {
+                saveSource = 'pasywnemu przedmiotowi 👁️ Szkarłatne Oko Krupiera';
+              } else if (badgeChance > 0) {
+                saveSource = `odznace **${activeBadgeName}**`;
+              }
+              outcomeText = ` Uratowany! Dzięki ${saveSource} unikasz porażki i otrzymujesz zwrot stawki.`;
+            }
           }
 
           user.balance += payout;
@@ -335,18 +355,38 @@ module.exports = {
           let outcomeText = `Tracisz **${formatCurrency(game.bet)}**.`;
 
           let helperChance = 0;
+          let badgeChance = 0;
+          let activeBadgeName = '';
           if (user.badges) {
-            if (user.badges.includes(config.badges.bog)) helperChance = 0.02;
-            else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
-            else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
+            if (user.badges.includes(config.badges.bog)) {
+              badgeChance = 0.02;
+              activeBadgeName = config.badges.bog;
+            } else if (user.badges.includes(config.badges.rekin)) {
+              badgeChance = 0.01;
+              activeBadgeName = config.badges.rekin;
+            } else if (user.badges.includes(config.badges.hazardzista)) {
+              badgeChance = 0.005;
+              activeBadgeName = config.badges.hazardzista;
+            }
           }
-          if (hasItem(inventory, 'szkarlatne_oko')) {
+          helperChance += badgeChance;
+          const hasOko = hasItem(inventory, 'szkarlatne_oko');
+          if (hasOko) {
             helperChance += 0.015;
           }
-          if (helperChance > 0 && Math.random() < helperChance) {
-            payout = game.bet;
-            net = 0;
-            outcomeText = ` Uratowany! Dzięki Twoim bonusom (odznaki/przedmioty) unikasz porażki i otrzymujesz zwrot stawki.`;
+          if (helperChance > 0) {
+            const secondRoll = Math.random();
+            if (secondRoll < helperChance) {
+              payout = game.bet;
+              net = 0;
+              let saveSource = 'Twoim bonusom';
+              if (hasOko && secondRoll >= badgeChance) {
+                saveSource = 'pasywnemu przedmiotowi 👁️ Szkarłatne Oko Krupiera';
+              } else if (badgeChance > 0) {
+                saveSource = `odznace **${activeBadgeName}**`;
+              }
+              outcomeText = ` Uratowany! Dzięki ${saveSource} unikasz porażki i otrzymujesz zwrot stawki.`;
+            }
           }
 
           user.balance += payout;
@@ -427,18 +467,38 @@ module.exports = {
 
       if (payout === 0 && net < 0) {
         let helperChance = 0;
+        let badgeChance = 0;
+        let activeBadgeName = '';
         if (user.badges) {
-          if (user.badges.includes(config.badges.bog)) helperChance = 0.02;
-          else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
-          else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
+          if (user.badges.includes(config.badges.bog)) {
+            badgeChance = 0.02;
+            activeBadgeName = config.badges.bog;
+          } else if (user.badges.includes(config.badges.rekin)) {
+            badgeChance = 0.01;
+            activeBadgeName = config.badges.rekin;
+          } else if (user.badges.includes(config.badges.hazardzista)) {
+            badgeChance = 0.005;
+            activeBadgeName = config.badges.hazardzista;
+          }
         }
-        if (hasItem(inventory, 'szkarlatne_oko')) {
+        helperChance += badgeChance;
+        const hasOko = hasItem(inventory, 'szkarlatne_oko');
+        if (hasOko) {
           helperChance += 0.015;
         }
-        if (helperChance > 0 && Math.random() < helperChance) {
-          finalPayout = game.bet;
-          finalNet = 0;
-          finalOutcome = `⚖️ **Push (Uratowany!)** - Dzięki Twoim bonusom (odznaki/przedmioty) unikasz porażki i otrzymujesz zwrot stawki.`;
+        if (helperChance > 0) {
+          const secondRoll = Math.random();
+          if (secondRoll < helperChance) {
+            finalPayout = game.bet;
+            finalNet = 0;
+            let saveSource = 'Twoim bonusom';
+            if (hasOko && secondRoll >= badgeChance) {
+              saveSource = 'pasywnemu przedmiotowi 👁️ Szkarłatne Oko Krupiera';
+            } else if (badgeChance > 0) {
+              saveSource = `odznace **${activeBadgeName}**`;
+            }
+            finalOutcome = `⚖️ **Push (Uratowany!)** - Dzięki ${saveSource} unikasz porażki i otrzymujesz zwrot stawki.`;
+          }
         }
       }
 
@@ -459,6 +519,12 @@ module.exports = {
       `👤 Twoja Ręka: ${renderHand(game.playerCards)} (Wartość: ${playerValue} pkt)\n\n` +
       `${dbResult.outcome}\n` +
       `Twój balans: **${formatCurrency(dbResult.balance)}**`;
+
+    const wonHand = dbResult.outcome.includes('Wygrana');
+    const cheated = game.playerCards.some(c => c.isCheat);
+    if (wonHand && cheated) {
+      replyText += `\n🧠 Ta wygrana została ułatwiona przez pasywny przedmiot **Przekupiony Krupier**!`;
+    }
 
     if (dbResult.xpResult && dbResult.xpResult.leveledUp) {
       replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${dbResult.xpResult.newLevel}**!`;

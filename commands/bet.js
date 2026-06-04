@@ -48,20 +48,38 @@ module.exports = {
         return { error: `❌ Nie masz tylu monet. Posiadasz: ${formatCurrency(user.balance)}` };
       }
 
-      let chanceBonus = 0;
+      let badgeBonus = 0;
+      let activeBadgeName = '';
       if (user.badges) {
-        if (user.badges.includes(config.badges.bog)) chanceBonus += 2.0;
-        else if (user.badges.includes(config.badges.rekin)) chanceBonus += 1.0;
-        else if (user.badges.includes(config.badges.hazardzista)) chanceBonus += 0.5;
+        if (user.badges.includes(config.badges.bog)) {
+          badgeBonus = 2.0;
+          activeBadgeName = config.badges.bog;
+        } else if (user.badges.includes(config.badges.rekin)) {
+          badgeBonus = 1.0;
+          activeBadgeName = config.badges.rekin;
+        } else if (user.badges.includes(config.badges.hazardzista)) {
+          badgeBonus = 0.5;
+          activeBadgeName = config.badges.hazardzista;
+        }
       }
-      if (hasItem(inventory, 'szkarlatne_oko')) {
-        chanceBonus += 1.5;
-      }
+      const hasOko = hasItem(inventory, 'szkarlatne_oko');
+      const okoBonus = hasOko ? 1.5 : 0;
+      const totalBonus = badgeBonus + okoBonus;
 
       // Losowanie liczby 0-99
       const rolledNumber = Math.floor(Math.random() * 100);
-      const won = rolledNumber < (chosenNumber + chanceBonus);
+      const won = rolledNumber < (chosenNumber + totalBonus);
       const multiplier = MULTIPLIERS[chosenNumber];
+
+      let badgeSaved = false;
+      let szkarlatneOkoSaved = false;
+      if (won) {
+        if (rolledNumber >= chosenNumber && rolledNumber < chosenNumber + badgeBonus) {
+          badgeSaved = true;
+        } else if (rolledNumber >= chosenNumber + badgeBonus && rolledNumber < chosenNumber + totalBonus) {
+          szkarlatneOkoSaved = true;
+        }
+      }
 
       let winAmount = 0;
       if (won) {
@@ -83,7 +101,10 @@ module.exports = {
         rolledNumber,
         net,
         xpResult,
-        balance: user.balance
+        balance: user.balance,
+        badgeSaved,
+        szkarlatneOkoSaved,
+        activeBadgeName
       };
     });
 
@@ -94,6 +115,13 @@ module.exports = {
 
     const winText = result.won ? `Wygrana! **+${formatCurrency(result.net)}**` : `Przegrana. **-${formatCurrency(Math.abs(result.net))}**`;
     let replyText = `🎰 Bet: Wylosowano **${result.rolledNumber}** (Typ: < ${chosenNumber}). ${winText}. Twój balans: **${formatCurrency(result.balance)}**`;
+
+    if (result.badgeSaved && result.activeBadgeName) {
+      replyText += `\n🍀 Odznaka **${result.activeBadgeName}** dała Ci dodatkową szansę i uratowała przed przegraną!`;
+    }
+    if (result.szkarlatneOkoSaved) {
+      replyText += `\n👁️ Przedmiot **Szkarłatne Oko Krupiera** dał Ci dodatkową szansę i uratował przed przegraną!`;
+    }
 
     if (result.xpResult && result.xpResult.leveledUp) {
       replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;

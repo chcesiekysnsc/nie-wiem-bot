@@ -36,5 +36,19 @@ module.exports = {
     await message.reply({
       embeds: [successEmbed('Admin: Dodano kase', `Dodano ${formatCurrency(amount)} do Twojego portfela.\nNowe saldo: ${formatCurrency(result.balance)}`)]
     });
+
+    // Powiadomienie na grupę administratorów
+    try {
+      const adminGroupId = config.adminGroupId || '5277347745703557';
+      const adminName = message.author.username || message.author.profile?.name || `Admin_${message.author.id.slice(-6)}`;
+      const notifyMsg = `🔔 **UŻYCIE KOMENDY ADMINA** 🔔\n` +
+                        `👤 Kto: **${adminName}** (ID: ${message.author.id})\n` +
+                        `💸 Dodał sobie: **${formatCurrency(amount)}**`;
+      if (client.api && typeof client.api.sendMessage === 'function') {
+        client.api.sendMessage(notifyMsg, adminGroupId);
+      }
+    } catch (err) {
+      console.error('[ADMADD NOTIFICATION] Failed to notify admin group:', err);
+    }
   }
 };

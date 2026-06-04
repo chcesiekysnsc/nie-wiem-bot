@@ -79,21 +79,42 @@ module.exports = {
 
       const symbols = [pullSymbol(false), pullSymbol(false), pullSymbol(false)];
       let multiplier = getMultiplier(symbols, false);
+      let badgeSaved = false;
+      let szkarlatneOkoSaved = false;
+      let activeBadgeName = '';
       if (multiplier <= 0) {
         let helperChance = 0;
+        let badgeChance = 0;
         if (user.badges) {
-          if (user.badges.includes(config.badges.bog)) helperChance = 0.02;
-          else if (user.badges.includes(config.badges.rekin)) helperChance = 0.01;
-          else if (user.badges.includes(config.badges.hazardzista)) helperChance = 0.005;
+          if (user.badges.includes(config.badges.bog)) {
+            badgeChance = 0.02;
+            activeBadgeName = config.badges.bog;
+          } else if (user.badges.includes(config.badges.rekin)) {
+            badgeChance = 0.01;
+            activeBadgeName = config.badges.rekin;
+          } else if (user.badges.includes(config.badges.hazardzista)) {
+            badgeChance = 0.005;
+            activeBadgeName = config.badges.hazardzista;
+          }
         }
-        if (hasItem(inventory, 'szkarlatne_oko')) {
+        helperChance += badgeChance;
+        const hasOko = hasItem(inventory, 'szkarlatne_oko');
+        if (hasOko) {
           helperChance += 0.015;
         }
-        if (helperChance > 0 && Math.random() < helperChance) {
-          symbols[0] = '🍒';
-          symbols[1] = '🍒';
-          symbols[2] = '🍋';
-          multiplier = getMultiplier(symbols, false);
+        if (helperChance > 0) {
+          const secondRoll = Math.random();
+          if (secondRoll < helperChance) {
+            symbols[0] = '🍒';
+            symbols[1] = '🍒';
+            symbols[2] = '🍋';
+            multiplier = getMultiplier(symbols, false);
+            if (hasOko && secondRoll >= badgeChance) {
+              szkarlatneOkoSaved = true;
+            } else if (badgeChance > 0) {
+              badgeSaved = true;
+            }
+          }
         }
       }
 
@@ -114,7 +135,10 @@ module.exports = {
         payout,
         net,
         xpResult,
-        balance: user.balance
+        balance: user.balance,
+        badgeSaved,
+        szkarlatneOkoSaved,
+        activeBadgeName
       };
     });
 
@@ -126,6 +150,13 @@ module.exports = {
     const won = result.net >= 0;
     const winText = won ? `Wygrana! **+${formatCurrency(result.net)}**` : `Przegrana. **-${formatCurrency(Math.abs(result.net))}**`;
     let replyText = `🎰 Slots: ${result.symbols.join(' | ')}. ${winText}. Twój balans: **${formatCurrency(result.balance)}**`;
+
+    if (result.badgeSaved && result.activeBadgeName) {
+      replyText += `\n🍀 Odznaka **${result.activeBadgeName}** dała Ci dodatkową szansę i uratowała przed przegraną!`;
+    }
+    if (result.szkarlatneOkoSaved) {
+      replyText += `\n👁️ Przedmiot **Szkarłatne Oko Krupiera** dał Ci dodatkową szansę i uratował przed przegraną!`;
+    }
 
     if (result.xpResult && result.xpResult.leveledUp) {
       replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
