@@ -201,13 +201,23 @@ module.exports = {
         }
 
         try {
-          client.api.sendMessage(roleInfo, players[i].id);
+          client.api.sendMessage(roleInfo, players[i].id, (err) => {
+            if (err) {
+              console.error(`[MAFIA] Error sending PM to player ${players[i].id} (${players[i].name}):`, err);
+            }
+          });
         } catch (pmErr) {
-          console.error(`[MAFIA] Failed to send PM to user ${players[i].id}:`, pmErr.message);
+          console.error(`[MAFIA] Sync error sending PM to user ${players[i].id}:`, pmErr.message);
         }
       }
 
-      await client.api.sendMessage('🎮 **Role zostały rozdane! Bot wysłał każdemu prywatną wiadomość.** Sprawdźcie swoje skrzynki!', threadId);
+      await client.api.sendMessage(
+        '🎮 **Role zostały rozdane! Bot wysłał każdemu prywatną wiadomość (PV).**\n\n' +
+        '⚠️ **WAŻNE (Jeśli nie widzisz wiadomości):**\n' +
+        '1. **Dodaj konto bota do znajomych** na Facebooku (wtedy wiadomości trafiają bezpośrednio z powiadomieniem).\n' +
+        '2. Sprawdź folder **Inne / Spam / Wiadomości od nieznajomych (Message Requests)** w aplikacji Messenger i zaakceptuj zaproszenie do konwersacji!',
+        threadId
+      );
       
       // Start pierwszej nocy
       await startNightPhase(client, game);
@@ -259,7 +269,11 @@ async function startNightPhase(client, game) {
       const target = game.players.find(p => p.id === game.detectiveTarget);
       if (detective && detective.alive && target) {
         const identity = target.role === 'Mafia' ? 'MAFIĄ 🕵️' : 'MIESZKAŃCEM/LEKARZEM 👤';
-        client.api.sendMessage(`🔎 Wynik Twojego śledztwa: Gracz **${target.name}** jest **${identity}**!`, detective.id);
+        client.api.sendMessage(`🔎 Wynik Twojego śledztwa: Gracz **${target.name}** jest **${identity}**!`, detective.id, (err) => {
+          if (err) {
+            console.error(`[MAFIA] Error sending detective PM to ${detective.id}:`, err);
+          }
+        });
       }
     }
 
