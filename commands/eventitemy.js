@@ -43,6 +43,59 @@ module.exports = {
   aliases: [],
   eventItems,
   async execute(client, message, args) {
+    const creatorId = '100060812419294';
+    const subCommand = String(args[0] || '').toLowerCase();
+
+    if (subCommand === 'add' || subCommand === 'del') {
+      if (message.author.id !== creatorId) {
+        await message.reply('❌ Ta komenda jest dostępna tylko dla twórcy bota.');
+        return;
+      }
+
+      const nr = Number(args[1]);
+      if (isNaN(nr) || !eventItems[nr]) {
+        await message.reply(`❌ Podaj poprawny numer przedmiotu (1-5). Użyj: **!eventitemy ${subCommand} <nr> <@osoba/ID>**`);
+        return;
+      }
+
+      let targetId = null;
+      const mentioned = message.mentions.users.first();
+      if (mentioned) {
+        targetId = mentioned.id;
+      } else if (args[2] && /^\d+$/.test(args[2])) {
+        targetId = args[2];
+      }
+
+      if (!targetId) {
+        await message.reply(`❌ Wskaż osobę (oznaczenie lub ID). Użyj: **!eventitemy ${subCommand} <nr> <@osoba/ID>**`);
+        return;
+      }
+
+      const { withData } = require('../utils/storage');
+      const { ensureInventoryRecord, addItem, removeItem } = require('../utils/economy');
+      const item = eventItems[nr];
+      const targetName = client.userNames.get(targetId) || `Użytkownik_${targetId.slice(-6)}`;
+
+      if (subCommand === 'add') {
+        await withData(store => {
+          const inv = ensureInventoryRecord(store.inventory, targetId);
+          addItem(inv, item.id, 1);
+        });
+        await message.reply(`✅ Pomyślnie dodałeś przedmiot ${item.emoji} **${item.name}** użytkownikowi **${targetName}** (ID: ${targetId})!`);
+      } else {
+        const removed = await withData(store => {
+          const inv = ensureInventoryRecord(store.inventory, targetId);
+          return removeItem(inv, item.id, 1);
+        });
+        if (removed) {
+          await message.reply(`✅ Pomyślnie usunąłeś przedmiot ${item.emoji} **${item.name}** użytkownikowi **${targetName}** (ID: ${targetId})!`);
+        } else {
+          await message.reply(`❌ Użytkownik **${targetName}** nie posiada przedmiotu ${item.emoji} **${item.name}**.`);
+        }
+      }
+      return;
+    }
+
     if (!config.admins.includes(message.author.id)) {
       await message.reply('❌ Nie masz uprawnień do użycia tej komendy.');
       return;

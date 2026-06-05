@@ -8,11 +8,10 @@ const {
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
-let buyableCount = 0;
+let count = 0;
 const SHOP_ITEMS_ORDERED = Object.entries(config.shopItems).map(([id, item]) => {
-  const isBuyable = item.buyable !== false;
   return {
-    num: isBuyable ? ++buyableCount : null,
+    num: ++count,
     id,
     ...item
   };
@@ -96,7 +95,7 @@ module.exports = {
     const shopEntry = byNumber || SHOP_ITEMS_ORDERED.find(i => i.id === targetLower);
 
     if (!shopEntry) {
-      await message.reply(`❌ Nie znaleziono przedmiotu \"${targetArg}\". Wybierz numer 1–${SHOP_ITEMS_ORDERED.filter(i => i.buyable !== false).length} lub wpisz **!sklep**.`);
+      await message.reply(`❌ Nie znaleziono przedmiotu "${targetArg}". Sprawdź poprawny numer w sklepie lub wpisz **!sklep**.`);
       return;
     }
 

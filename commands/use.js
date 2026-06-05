@@ -8,11 +8,10 @@ const {
 const { createUser, withData } = require('../utils/storage');
 
 function getOrderedItems() {
-  let buyableCount = 0;
+  let count = 0;
   return Object.entries(config.shopItems).map(([id, item]) => {
-    const isBuyable = item.buyable !== false;
     return {
-      num: isBuyable ? ++buyableCount : null,
+      num: ++count,
       id,
       ...item
     };
@@ -26,7 +25,8 @@ module.exports = {
     const numArg = String(args[0] || '').trim();
 
     if (!numArg) {
-      const items = getOrderedItems().filter(i => i.num !== null);
+      const activeIds = ['klodka', 'bomba', 'piwo'];
+      const items = getOrderedItems().filter(i => activeIds.includes(i.id) || i.id.startsWith('paczka_'));
       const list = items.map(i => `${i.num}. ${i.emoji} **${i.name}**`).join('\n');
       await message.reply(`🎒 **Użycie przedmiotu**\nWpisz **!use <numer>** aby użyć:\n${list}`);
       return;
@@ -85,11 +85,14 @@ module.exports = {
         return { success: true, message: '🍺 **Wypito piwo!** Twój następny napad (!rob) będzie miał zmodyfikowane szanse (zysk 25% lub strata 40%).' };
       }
 
-      if (itemId === 'vip') {
-        return { error: `👑 ${entry.name} działa automatycznie i pasywnie (zwiększa nagrody i pojemność banku).` };
+      const isActive = ['klodka', 'bomba', 'piwo'].includes(itemId) || itemId.startsWith('paczka_');
+      if (!isActive) {
+        return {
+          success: true,
+          message: `${entry.emoji} **${entry.name}** (Przedmiot pasywny)\n` +
+                   `ℹ️ **Działanie**: ${entry.description || entry.shortDesc}`
+        };
       }
-
-      return { error: `❌ Przedmiot ${entry.name} nie może być użyty ręcznie.` };
     });
 
     if (result.error) {

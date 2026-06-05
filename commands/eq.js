@@ -8,11 +8,10 @@ const {
 const { createUser, withData } = require('../utils/storage');
 
 function getOrderedItems() {
-  let buyableCount = 0;
+  let count = 0;
   return Object.entries(config.shopItems).map(([id, item]) => {
-    const isBuyable = item.buyable !== false;
     return {
-      num: isBuyable ? ++buyableCount : null,
+      num: ++count,
       id,
       ...item
     };
@@ -48,8 +47,9 @@ module.exports = {
         .map(entry => {
           const qty = getItemQuantity(inventory, entry.id);
           if (qty < 1) return null;
-          const prefix = entry.num ? `${entry.num}. ` : '';
-          const passiveSuffix = entry.num ? '' : ' *(Pasywny)*';
+          const prefix = `${entry.num}. `;
+          const isActive = ['klodka', 'bomba', 'piwo'].includes(entry.id) || entry.id.startsWith('paczka_');
+          const passiveSuffix = isActive ? '' : ' *(Pasywny)*';
           return `${prefix}${entry.emoji} **${entry.name}** x${qty}${passiveSuffix}`;
         })
         .filter(Boolean);
