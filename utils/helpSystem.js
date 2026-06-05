@@ -633,6 +633,74 @@ const helpCommands = [
     requirements: "Posiadanie odpowiednich środków.",
     aliases: [],
     additionalInfo: []
+  },
+  {
+    id: 49,
+    name: "mafia",
+    category: "SOCIAL",
+    shortDescription: "gra towarzyska Mafia",
+    description: "Rozpoczyna rekrutację (90s) do gry towarzyskiej Mafia. Wymagane min. 4 osoby. Gracze otrzymują role na PV. W fazie nocy Mafia (!kill), Detektyw (!sprawdz) i Lekarz (!ulecz) wykonują ruchy na PV. W dzień mieszkańcy głosują na podejrzanego za pomocą !glos <nr>.",
+    usage: "!mafia | !mafia dolacz | !mafia status | !glos <numer_gracza>",
+    examples: ["!mafia", "!mafia dolacz", "!mafia status", "!glos 3"],
+    cooldown: "3 sekundy",
+    requirements: "Minimum 4 graczy.",
+    aliases: ["glos", "vote"],
+    additionalInfo: [
+      "Akcje nocne na PV: !kill <nr> (Mafia), !sprawdz <nr> (Detektyw), !ulecz <nr> (Lekarz).",
+      "Głosowanie odbywa się na czacie grupowym komendą !glos <nr_gracza>."
+    ]
+  },
+  {
+    id: 50,
+    name: "milosc",
+    category: "SOCIAL",
+    shortDescription: "kalkulator miłości",
+    description: "Mierzy w procentach dopasowanie miłosne dwójki osób i generuje humorystyczną przepowiednię ich przyszłości. Wynik jest w pełni deterministyczny.",
+    usage: "!milosc @osoba | !milosc @osoba1 @osoba2",
+    examples: ["!milosc @Kasia", "!milosc @Kasia @Tomek"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["love", "kalkulatormilosci"],
+    additionalInfo: []
+  },
+  {
+    id: 51,
+    name: "swataj",
+    category: "SOCIAL",
+    shortDescription: "dobiera parę dnia",
+    description: "Raz na 24h losowo i stabilnie dobiera parę dnia spośród aktywnych członków grupy.",
+    usage: "!swataj",
+    examples: ["!swataj"],
+    cooldown: "3 sekundy",
+    requirements: "Minimum 2 uczestników na grupie.",
+    aliases: ["matchmaker", "pare-dnia", "couple"],
+    additionalInfo: ["Para jest deterministyczna i zmienia się tylko raz na dobę."]
+  },
+  {
+    id: 52,
+    name: "wyzwanie",
+    category: "SOCIAL",
+    shortDescription: "wirtualna prawda czy wyzwanie",
+    description: "Wyzwij losowego lub wybranego gracza z grupy na zabawne zadanie w świecie realnym. Gracz ma 3 minuty na dostarczenie dowodu wykonania (zdjęcia/wiadomości) na czat grupowy.",
+    usage: "!wyzwanie | !wyzwanie @osoba",
+    examples: ["!wyzwanie", "!wyzwanie @Kowalski"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["dare", "wyzywam"],
+    additionalInfo: ["Po 3 minutach bot przypomni grupie o głosowaniu nad zaliczeniem wyzwania."]
+  },
+  {
+    id: 53,
+    name: "pogoda",
+    category: "UTILITY",
+    shortDescription: "sarkastyczna prognoza pogody",
+    description: "Pobiera prawdziwe dane pogodowe dla wybranego miasta z serwisu wttr.in, po czym generuje śmieszny i sarkastyczny opis aury oraz porady odnośnie ubioru.",
+    usage: "!pogoda [miasto]",
+    examples: ["!pogoda", "!pogoda Londyn"],
+    cooldown: "3 sekundy",
+    requirements: "Brak. Domyślnie sprawdza dla Warszawy.",
+    aliases: ["weather", "synoptyk"],
+    additionalInfo: []
   }
 ];
 
