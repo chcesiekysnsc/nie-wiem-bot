@@ -43,6 +43,47 @@ module.exports = {
       return;
     }
 
+    const threadId = message.guild?.id || message.rawEvent?.threadID;
+    const isMultiActive = client.activeMultiRoulettes && client.activeMultiRoulettes.has(threadId);
+
+    if (isMultiActive) {
+      const game = client.activeMultiRoulettes.get(threadId);
+      
+      const alreadyBet = game.bets.some(b => b.userId === message.author.id);
+      if (alreadyBet) {
+        await message.reply('❌ Postawiłeś już zakład w tej rundzie ruletki wieloosobowej!');
+        return;
+      }
+
+      const result = await withData(store => {
+        const user = createUser(message.author.id, store.users);
+        const bet = resolveAmount(args[0], user.balance);
+
+        if (!bet || bet <= 0) return { error: '❌ Podaj poprawną kwotę betu.' };
+        if (bet > 100000) return { error: '❌ Maksymalna stawka w ruletce wieloosobowej to 100 000 monet.' };
+        if (bet > user.balance) return { error: `❌ Brak wystarczających środków w portfelu. Posiadasz: ${formatCurrency(user.balance)}` };
+
+        user.balance -= bet;
+        return { success: true, bet };
+      });
+
+      if (result.error) {
+        await message.reply(result.error);
+        return;
+      }
+
+      const userName = message.author.username || message.author.profile?.name || `Gracz_${message.author.id.slice(-6)}`;
+      game.bets.push({
+        userId: message.author.id,
+        userName,
+        betAmount: result.bet,
+        target: target
+      });
+
+      await message.reply(`✅ **Obstawiono!** @${userName} postawił **${formatCurrency(result.bet)}** na **${target.label}**.`);
+      return;
+    }
+
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
