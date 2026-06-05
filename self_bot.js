@@ -1252,7 +1252,13 @@ login({ appState }, (loginErr, api) => {
     }
 
     const args = text.slice(client.config.prefix.length).trim().split(/\s+/).filter(Boolean);
-    const commandName = (args.shift() || '').toLowerCase();
+    let commandName = (args.shift() || '').toLowerCase();
+
+    // Obsługa !multi ruletka jako jednej komendy !multiruletka
+    if (commandName === 'multi' && args[0] && args[0].toLowerCase() === 'ruletka') {
+      commandName = 'multiruletka';
+      args.shift();
+    }
 
     if (!commandName) {
       return;
