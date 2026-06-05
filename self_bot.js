@@ -295,6 +295,13 @@ login({ appState }, (loginErr, api) => {
     if (!threadID) {
       return originalSendMessage.call(api, message, threadID, callback, messageID);
     }
+    
+    // Jeśli threadID to konwersacja prywatna (PV) - wyślij natychmiast i bezpośrednio bez opóźnienia i wskaźnika pisania
+    const isPV = client.activeThreadIds && !client.activeThreadIds.has(String(threadID));
+    if (isPV) {
+      return originalSendMessage.call(api, message, threadID, callback, messageID);
+    }
+
     let stopTyping = null;
     try {
       stopTyping = api.sendTypingIndicator(threadID, () => {});
