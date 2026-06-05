@@ -60,7 +60,6 @@ module.exports = {
         const bet = resolveAmount(args[0], user.balance);
 
         if (!bet || bet <= 0) return { error: '❌ Podaj poprawną kwotę betu.' };
-        if (bet > 100000) return { error: '❌ Maksymalna stawka w ruletce wieloosobowej to 100 000 monet.' };
         if (bet > user.balance) return { error: `❌ Brak wystarczających środków w portfelu. Posiadasz: ${formatCurrency(user.balance)}` };
 
         user.balance -= bet;

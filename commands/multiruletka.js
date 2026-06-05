@@ -37,8 +37,7 @@ module.exports = {
     await message.reply(
       `🎡 **RULETKA WIELOOSOBOWA ROZPOCZĘTA!** 🎡\n` +
       `Stół jest otwarty przez **45 sekund**. Dołączcie do gry, obstawiając własną stawkę!\n\n` +
-      `👉 Wpisz: **!ruletka <stawka> <czerwony/czarny/zielony/parzyste/nieparzyste/0-36>**\n` +
-      `*Maksymalny zakład: 100 000 monet.*`
+      `👉 Wpisz: **!ruletka <stawka> <czerwony/czarny/zielony/parzyste/nieparzyste/0-36>**`
     );
 
     // Uruchomienie odliczania (45s)
