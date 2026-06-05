@@ -7,7 +7,7 @@ module.exports = {
     const city = args.join(' ') || 'Warszawa';
 
     try {
-      const response = await axios.get(`https://wttr.in/${encodeURIComponent(city)}?format=%t|%C|%h|%w&lang=pl`);
+      const response = await axios.get(`https://wttr.in/${encodeURIComponent(city)}?format=%t|%C|%h|%w&lang=pl&m`);
       const data = response.data;
 
       if (data.includes('<html') || data.includes('<!DOCTYPE') || data.includes('Unknown location')) {

@@ -634,9 +634,8 @@ const helpCommands = [
     aliases: [],
     additionalInfo: []
   },
-
   {
-    id: 50,
+    id: 49,
     name: "milosc",
     category: "SOCIAL",
     shortDescription: "kalkulator miłości",
@@ -649,7 +648,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 51,
+    id: 50,
     name: "swataj",
     category: "SOCIAL",
     shortDescription: "dobiera parę dnia",
@@ -662,7 +661,7 @@ const helpCommands = [
     additionalInfo: ["Para jest deterministyczna i zmienia się tylko raz na dobę."]
   },
   {
-    id: 52,
+    id: 51,
     name: "wyzwanie",
     category: "SOCIAL",
     shortDescription: "wirtualna prawda czy wyzwanie",
@@ -675,11 +674,11 @@ const helpCommands = [
     additionalInfo: ["Po 3 minutach bot przypomni grupie o głosowaniu nad zaliczeniem odpowiedzi/wyzwania."]
   },
   {
-    id: 53,
+    id: 52,
     name: "pogoda",
     category: "UTILITY",
-    shortDescription: "sarkastyczna prognoza pogody",
-    description: "Pobiera prawdziwe dane pogodowe dla wybranego miasta z serwisu wttr.in, po czym generuje śmieszny i sarkastyczny opis aury oraz porady odnośnie ubioru.",
+    shortDescription: "prognoza pogody",
+    description: "Pobiera aktualne dane pogodowe (temperatura w °C, warunki, wilgotność, wiatr) dla wybranego miasta z serwisu wttr.in.",
     usage: "!pogoda [miasto]",
     examples: ["!pogoda", "!pogoda Londyn"],
     cooldown: "3 sekundy",
