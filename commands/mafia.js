@@ -204,10 +204,18 @@ module.exports = {
           client.api.sendMessage(roleInfo, players[i].id, (err) => {
             if (err) {
               console.error(`[MAFIA] Error sending PM to player ${players[i].id} (${players[i].name}):`, err);
+              const errMsg = err.error || err.message || JSON.stringify(err);
+              client.api.sendMessage(
+                `⚠️ **Błąd dostarczenia roli na PV** do gracza **@${players[i].name}**!\n` +
+                `🔴 **Błąd:** \`${errMsg}\`\n` +
+                `👉 *Upewnij się, że masz bota w znajomych i wysłałeś do niego wiadomość na PV!*`,
+                threadId
+              );
             }
           });
         } catch (pmErr) {
           console.error(`[MAFIA] Sync error sending PM to user ${players[i].id}:`, pmErr.message);
+          client.api.sendMessage(`⚠️ **Błąd krytyczny wysyłki roli** do gracza **@${players[i].name}**: ${pmErr.message}`, threadId);
         }
       }
 
@@ -272,6 +280,13 @@ async function startNightPhase(client, game) {
         client.api.sendMessage(`🔎 Wynik Twojego śledztwa: Gracz **${target.name}** jest **${identity}**!`, detective.id, (err) => {
           if (err) {
             console.error(`[MAFIA] Error sending detective PM to ${detective.id}:`, err);
+            const errMsg = err.error || err.message || JSON.stringify(err);
+            client.api.sendMessage(
+              `⚠️ **Błąd wysłania wyniku śledztwa** do Detektywa (**@${detective.name}**):\n` +
+              `🔴 **Błąd:** \`${errMsg}\`\n` +
+              `👉 *Upewnij się, że masz bota w znajomych i napisałeś do niego w PV!*`,
+              game.threadId
+            );
           }
         });
       }
