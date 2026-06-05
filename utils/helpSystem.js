@@ -666,13 +666,13 @@ const helpCommands = [
     name: "wyzwanie",
     category: "SOCIAL",
     shortDescription: "wirtualna prawda czy wyzwanie",
-    description: "Wyzwij losowego lub wybranego gracza z grupy na zabawne zadanie w świecie realnym. Gracz ma 3 minuty na dostarczenie dowodu wykonania (zdjęcia/wiadomości) na czat grupowy.",
+    description: "Wyzwij losowego lub wybranego gracza z grupy do gry w Prawdę czy Wyzwanie. Gracz otrzymuje losowo pytanie otwarte (Prawda) lub zadanie rzeczywiste (Wyzwanie) i ma 3 minuty na odpowiedź bądź dowód.",
     usage: "!wyzwanie | !wyzwanie @osoba",
     examples: ["!wyzwanie", "!wyzwanie @Kowalski"],
     cooldown: "3 sekundy",
     requirements: "Brak.",
     aliases: ["dare", "wyzywam"],
-    additionalInfo: ["Po 3 minutach bot przypomni grupie o głosowaniu nad zaliczeniem wyzwania."]
+    additionalInfo: ["Po 3 minutach bot przypomni grupie o głosowaniu nad zaliczeniem odpowiedzi/wyzwania."]
   },
   {
     id: 53,
