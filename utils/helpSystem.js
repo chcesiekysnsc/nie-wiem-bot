@@ -634,22 +634,7 @@ const helpCommands = [
     aliases: [],
     additionalInfo: []
   },
-  {
-    id: 49,
-    name: "mafia",
-    category: "SOCIAL",
-    shortDescription: "gra towarzyska Mafia",
-    description: "Rozpoczyna rekrutację (90s) do gry towarzyskiej Mafia. Wymagane min. 4 osoby. Gracze otrzymują role na PV. W fazie nocy Mafia (!kill), Detektyw (!sprawdz) i Lekarz (!ulecz) wykonują ruchy na PV. W dzień mieszkańcy głosują na podejrzanego za pomocą !glos <nr>.",
-    usage: "!mafia | !mafia dolacz | !mafia status | !glos <numer_gracza>",
-    examples: ["!mafia", "!mafia dolacz", "!mafia status", "!glos 3"],
-    cooldown: "3 sekundy",
-    requirements: "Minimum 4 graczy.",
-    aliases: ["glos", "vote"],
-    additionalInfo: [
-      "Akcje nocne na PV: !kill <nr> (Mafia), !sprawdz <nr> (Detektyw), !ulecz <nr> (Lekarz).",
-      "Głosowanie odbywa się na czacie grupowym komendą !glos <nr_gracza>."
-    ]
-  },
+
   {
     id: 50,
     name: "milosc",
