@@ -12,13 +12,13 @@ module.exports = {
 
       // Sprawdź czy wttr.in zwróciło stronę HTML (błąd wyszukiwania miasta)
       if (data.includes('<html') || data.includes('<!DOCTYPE') || data.includes('Unknown location')) {
-        await message.reply(`❌ Nie udało się znaleźć pogody dla miasta: **${city}**. Czy na pewno takie istnieje? 🗺️`);
+        await message.reply(`❌ Nie ma takiego miasta jak: **${city}**. Zmyśliłeś je.`);
         return;
       }
 
       const parts = data.split('|');
       if (parts.length < 4) {
-        await message.reply('❌ Błąd podczas przetwarzania danych pogodowych z serwera.');
+        await message.reply('❌ Serwer wttr.in sypie błędami.');
         return;
       }
 
@@ -27,61 +27,50 @@ module.exports = {
       const humidity = parts[2].trim();
       const wind = parts[3].trim();
 
-      // Wyciągnij samą liczbę temperatury
       const tempNum = parseInt(tempStr.replace(/[^0-9-]/g, ''));
 
-      // 1. Dobierz opis temperatury
-      let tempComment = '';
+      let comment = '';
       if (isNaN(tempNum)) {
-        tempComment = 'Temperatura jest tak dziwna, że bot zgłupiał.';
+        comment = 'Coś poszło nie tak z temperaturą.';
       } else if (tempNum < -5) {
-        tempComment = '🥶 Syberia wjechała na pełnej! Bez kalesonów ani rusz, chyba że planujesz krioterapię na świeżym powietrzu.';
+        comment = 'Syberia wjechała na pełnej. Zamrażalnik, zostań w domu.';
       } else if (tempNum < 5) {
-        tempComment = '❄️ Zimno jak w psiarni. Ubierz czapkę, grubą kurtkę i przygotuj się na narzekanie na wszystko dookoła.';
+        comment = 'Pizga złem. Bez grubej kurtki nawet nie podchodź.';
       } else if (tempNum < 15) {
-        tempComment = '🌬️ Niby nie ma mrozu, ale wiatr piździ tak, że i tak będziesz płakać. Ubierz się na tzw. cebulkę.';
+        comment = 'Niby spoko, ale wiatr i tak zepsuje ci humor. Ubierz się na cebulę.';
       } else if (tempNum < 25) {
-        tempComment = '⛅ Ludzkie warunki! Można wyjść w samej bluzie i udawać przed znajomymi, że jest się wysportowanym.';
+        comment = 'Znośnie. Idealny moment na udawanie, że masz życie towarzyskie.';
       } else if (tempNum < 32) {
-        tempComment = '🥵 Gorąco. Zaczynasz się pocić na samą myśl o wyjściu do sklepu. Czas na zimny napój i wiatrak ustawiony na maksimum.';
+        comment = 'Ciepło. Topisz się na samą myśl o wyjściu z piwnicy.';
       } else {
-        tempComment = '🔥 PIEKŁO! Asfalt się topi, ptaki chodzą na piechotę. Jeśli wyjdziesz z piwnicy, zostaniesz chrupiącą frytką.';
+        comment = 'Piekło. Słońce próbuje nas zabić. Pij wodę i nie umieraj.';
       }
 
-      // 2. Dobierz opis zjawiska pogodowego (warunku)
-      let conditionComment = 'Pogoda stabilna, jak Twoje finanse u bota.';
       const condLower = condition.toLowerCase();
-
       if (condLower.includes('deszcz') || condLower.includes('mżawka') || condLower.includes('ulewa')) {
-        conditionComment = '🌧️ Deszcz pada. Bierz parasol, chyba że lubisz zapach mokrego psa i zniszczone buty.';
+        comment += ' Do tego leje. Klasyczna depresja, bierz parasol.';
       } else if (condLower.includes('śnieg') || condLower.includes('śnieżyca') || condLower.includes('grad')) {
-        conditionComment = '❄️ Sypie białe gówno. Zima znowu zaskoczyła drogowców, a Ciebie zaraz zaskoczy odmrażanie szyb.';
+        comment += ' I sypie białe gówno. Zima znowu zaskoczyła wszystkich.';
       } else if (condLower.includes('mgła') || condLower.includes('zamglenie')) {
-        conditionComment = '🌫️ Mgła jak w Silent Hill. Idealny moment na nagły atak potworów albo zgubienie drogi do domu.';
+        comment += ' Mgła jak w horrorze. Idealnie żeby zniknąć bez śladu.';
       } else if (condLower.includes('słonecznie') || condLower.includes('czyste niebo') || condLower.includes('jasno')) {
-        conditionComment = '☀️ Słońce świeci! Szybko wychodź z piwnicy naładować witaminę D, zanim znowu zrobi się ciemno.';
+        comment += ' O dziwo świeci słońce. Wyjdź na chwilę do ludzi, zanim zniknie.';
       } else if (condLower.includes('pochmurno') || condLower.includes('chmury')) {
-        conditionComment = '☁️ Szaro, ponuro, depresyjnie. Klasyczna polska pogoda. Idealny dzień, żeby leżeć w łóżku i grać w blackjacka u bota.';
+        comment += ' Szaro i ponuro. Idealna pogoda pod spanie.';
       } else if (condLower.includes('burza')) {
-        conditionComment = '⚡ Grzmi i błyska! Wyłącz router z gniazdka, schowaj się pod kołdrę i udawaj, że Cię nie ma.';
+        comment += ' Napierdala burza. Wyłącz router z gniazdka i się módl.';
       }
 
       const responseText = 
-        `🌦️ **HUMORYSTYCZNY SYNOPTYK: ${city.toUpperCase()}** 🌦️\n\n` +
-        `🌡️ Temperatura: **${tempStr}**\n` +
-        `☁️ Stan nieba: **${condition}**\n` +
-        `💧 Wilgotność: **${humidity}**\n` +
-        `💨 Wiatr: **${wind}**\n\n` +
-        `📢 **Komentarz synoptyka:**\n` +
-        `• ${tempComment}\n` +
-        `• ${conditionComment}\n\n` +
-        `👉 *Prognoza dostarczona przez satelity szpiegowskie bota.*`;
+        `🌦️ **Pogoda: ${city.charAt(0).toUpperCase() + city.slice(1)}**\n` +
+        `🌡️ **${tempStr}** | **${condition}** *(wilgotność: ${humidity}, wiatr: ${wind})*\n\n` +
+        `📢 *${comment}*`;
 
       await message.reply(responseText);
 
     } catch (err) {
-      console.error('[POGODA] Błąd podczas pobierania pogody:', err);
-      await message.reply(`❌ Nie udało się pobrać pogody dla miasta **${city}**. Serwer synoptyczny wttr.in leży i kwiczy.`);
+      console.error('[POGODA] Błąd:', err);
+      await message.reply(`❌ Serwer wttr.in leży i kwiczy.`);
     }
   }
 };
