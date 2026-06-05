@@ -1089,7 +1089,7 @@ login({ appState }, (loginErr, api) => {
       }
     }
 
-    if (threadId) {
+    if (threadId && isGroup) {
       if (!client.activeThreadIds.has(threadId)) {
         client.activeThreadIds.add(threadId);
         try {
