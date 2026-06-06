@@ -28,6 +28,7 @@ module.exports = {
   async execute(client, message, args) {
     const rawBet = args[0];
     const rawNum = args[1];
+    const rawCount = args[2];
 
     const chosenNumber = Math.floor(Number(rawNum));
     if (isNaN(chosenNumber) || chosenNumber < 1 || chosenNumber > 90) {
@@ -35,100 +36,263 @@ module.exports = {
       return;
     }
 
-    const result = await withData(store => {
-      const user = createUser(message.author.id, store.users);
-      const inventory = ensureInventoryRecord(store.inventory, message.author.id);
-      const bet = resolveAmount(rawBet, user.balance);
+    let isMulti = false;
+    let count = 1;
 
-      if (!bet) {
-        return { error: '❌ Podaj poprawną kwotę betu.' };
+    if (rawCount !== undefined) {
+      count = parseInt(rawCount, 10);
+      if (isNaN(count) || count <= 0) {
+        await message.reply('❌ Podaj poprawną ilość betów (liczba dodatnia).');
+        return;
+      }
+      if (count > 1) {
+        if (!config.admins.includes(message.author.id)) {
+          await message.reply('❌ Seryjne obstawianie (multi-bet) jest dostępne tylko dla administratorów.');
+          return;
+        }
+        isMulti = true;
+      }
+    }
+
+    if (!isMulti) {
+      const result = await withData(store => {
+        const user = createUser(message.author.id, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+        const bet = resolveAmount(rawBet, user.balance);
+
+        if (!bet) {
+          return { error: '❌ Podaj poprawną kwotę betu.' };
+        }
+
+        if (bet > user.balance) {
+          return { error: `❌ Nie masz tylu monet. Posiadasz: ${formatCurrency(user.balance)}` };
+        }
+
+        let badgeBonus = 0;
+        let activeBadgeName = '';
+        if (user.badges) {
+          if (user.badges.includes(config.badges.bog)) {
+            badgeBonus = 2.0;
+            activeBadgeName = config.badges.bog;
+          } else if (user.badges.includes(config.badges.rekin)) {
+            badgeBonus = 1.0;
+            activeBadgeName = config.badges.rekin;
+          } else if (user.badges.includes(config.badges.hazardzista)) {
+            badgeBonus = 0.5;
+            activeBadgeName = config.badges.hazardzista;
+          }
+        }
+        const hasOko = hasItem(inventory, 'szkarlatne_oko');
+        const okoBonus = hasOko ? 1.5 : 0;
+        const totalBonus = badgeBonus + okoBonus;
+
+        const rolledNumber = Math.floor(Math.random() * 100);
+        const won = rolledNumber < (chosenNumber + totalBonus);
+        const multiplier = MULTIPLIERS[chosenNumber];
+
+        let badgeSaved = false;
+        let szkarlatneOkoSaved = false;
+        if (won) {
+          if (rolledNumber >= chosenNumber && rolledNumber < chosenNumber + badgeBonus) {
+            badgeSaved = true;
+          } else if (rolledNumber >= chosenNumber + badgeBonus && rolledNumber < chosenNumber + totalBonus) {
+            szkarlatneOkoSaved = true;
+          }
+        }
+
+        let winAmount = 0;
+        if (won) {
+          winAmount = Math.round(bet * multiplier) - bet;
+          if (user.badges && user.badges.includes(config.badges.uzalezniony)) {
+            winAmount = Math.round(winAmount * 1.03);
+          }
+          user.balance += winAmount;
+        } else {
+          user.balance -= bet;
+        }
+
+        const net = won ? winAmount : -bet;
+        const xpResult = recordGame(user, net, 25, inventory);
+        refreshBadges(user, inventory);
+
+        return {
+          won,
+          rolledNumber,
+          net,
+          xpResult,
+          balance: user.balance,
+          badgeSaved,
+          szkarlatneOkoSaved,
+          activeBadgeName
+        };
+      });
+
+      if (result.error) {
+        await message.reply(result.error);
+        return;
       }
 
-      if (bet > user.balance) {
-        return { error: `❌ Nie masz tylu monet. Posiadasz: ${formatCurrency(user.balance)}` };
+      const winText = result.won ? `Wygrana! **+${formatCurrency(result.net)}**` : `Przegrana. **-${formatCurrency(Math.abs(result.net))}**`;
+      let replyText = `🎰 Bet: Wylosowano **${result.rolledNumber}** (Typ: < ${chosenNumber}). ${winText}. Twój balans: **${formatCurrency(result.balance)}**`;
+
+      if (result.badgeSaved && result.activeBadgeName) {
+        replyText += `\n🍀 Odznaka **${result.activeBadgeName}** dała Ci dodatkową szansę i uratowała przed przegraną!`;
+      }
+      if (result.szkarlatneOkoSaved) {
+        replyText += `\n👁️ Przedmiot **Szkarłatne Oko Krupiera** dał Ci dodatkową szansę i uratował przed przegraną!`;
       }
 
-      let badgeBonus = 0;
-      let activeBadgeName = '';
-      if (user.badges) {
-        if (user.badges.includes(config.badges.bog)) {
-          badgeBonus = 2.0;
-          activeBadgeName = config.badges.bog;
-        } else if (user.badges.includes(config.badges.rekin)) {
-          badgeBonus = 1.0;
-          activeBadgeName = config.badges.rekin;
-        } else if (user.badges.includes(config.badges.hazardzista)) {
-          badgeBonus = 0.5;
-          activeBadgeName = config.badges.hazardzista;
+      if (result.xpResult && result.xpResult.leveledUp) {
+        replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
+        if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
+          const { getMilestoneRewardDescription } = require('../utils/economy');
+          for (const lvl of result.xpResult.milestonesGained) {
+            replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+          }
         }
       }
-      const hasOko = hasItem(inventory, 'szkarlatne_oko');
-      const okoBonus = hasOko ? 1.5 : 0;
-      const totalBonus = badgeBonus + okoBonus;
 
-      // Losowanie liczby 0-99
-      const rolledNumber = Math.floor(Math.random() * 100);
-      const won = rolledNumber < (chosenNumber + totalBonus);
-      const multiplier = MULTIPLIERS[chosenNumber];
-
-      let badgeSaved = false;
-      let szkarlatneOkoSaved = false;
-      if (won) {
-        if (rolledNumber >= chosenNumber && rolledNumber < chosenNumber + badgeBonus) {
-          badgeSaved = true;
-        } else if (rolledNumber >= chosenNumber + badgeBonus && rolledNumber < chosenNumber + totalBonus) {
-          szkarlatneOkoSaved = true;
-        }
-      }
-
-      let winAmount = 0;
-      if (won) {
-        winAmount = Math.round(bet * multiplier) - bet;
-        if (user.badges && user.badges.includes(config.badges.uzalezniony)) {
-          winAmount = Math.round(winAmount * 1.03);
-        }
-        user.balance += winAmount;
-      } else {
-        user.balance -= bet;
-      }
-
-      const net = won ? winAmount : -bet;
-      const xpResult = recordGame(user, net, 25, inventory);
-      refreshBadges(user, inventory);
-
-      return {
-        won,
-        rolledNumber,
-        net,
-        xpResult,
-        balance: user.balance,
-        badgeSaved,
-        szkarlatneOkoSaved,
-        activeBadgeName
-      };
-    });
-
-    if (result.error) {
-      await message.reply(result.error);
+      await message.reply(replyText);
       return;
     }
 
-    const winText = result.won ? `Wygrana! **+${formatCurrency(result.net)}**` : `Przegrana. **-${formatCurrency(Math.abs(result.net))}**`;
-    let replyText = `🎰 Bet: Wylosowano **${result.rolledNumber}** (Typ: < ${chosenNumber}). ${winText}. Twój balans: **${formatCurrency(result.balance)}**`;
-
-    if (result.badgeSaved && result.activeBadgeName) {
-      replyText += `\n🍀 Odznaka **${result.activeBadgeName}** dała Ci dodatkową szansę i uratowała przed przegraną!`;
-    }
-    if (result.szkarlatneOkoSaved) {
-      replyText += `\n👁️ Przedmiot **Szkarłatne Oko Krupiera** dał Ci dodatkową szansę i uratował przed przegraną!`;
+    if (count > 5000) {
+      await message.reply('❌ Maksymalna ilość betów w serii to **5000**.');
+      return;
     }
 
-    if (result.xpResult && result.xpResult.leveledUp) {
-      replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
-      if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
+    const result = await withData(store => {
+      const user = createUser(message.author.id, store.users);
+      const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+
+      const initialBalance = user.balance;
+      const startLevel = user.level;
+      const startPrestige = user.prestige;
+
+      let wins = 0;
+      let losses = 0;
+      let badgeSaves = 0;
+      let okoSaves = 0;
+      let totalBets = 0;
+      let accumulatedMilestones = [];
+
+      let interrupted = false;
+      let interruptedAt = 0;
+      let interruptedReason = '';
+
+      for (let i = 1; i <= count; i++) {
+        const betAmount = resolveAmount(rawBet, user.balance);
+        if (betAmount === null || betAmount <= 0) {
+          interrupted = true;
+          interruptedAt = i;
+          interruptedReason = `brak środków na koncie (balans: ${formatCurrency(user.balance)})`;
+          break;
+        }
+        if (betAmount > user.balance) {
+          interrupted = true;
+          interruptedAt = i;
+          interruptedReason = `brak wystarczających środków (potrzebne: ${formatCurrency(betAmount)}, posiadasz: ${formatCurrency(user.balance)})`;
+          break;
+        }
+
+        let badgeBonus = 0;
+        if (user.badges) {
+          if (user.badges.includes(config.badges.bog)) {
+            badgeBonus = 2.0;
+          } else if (user.badges.includes(config.badges.rekin)) {
+            badgeBonus = 1.0;
+          } else if (user.badges.includes(config.badges.hazardzista)) {
+            badgeBonus = 0.5;
+          }
+        }
+        const hasOko = hasItem(inventory, 'szkarlatne_oko');
+        const okoBonus = hasOko ? 1.5 : 0;
+        const totalBonus = badgeBonus + okoBonus;
+
+        const rolledNumber = Math.floor(Math.random() * 100);
+        const won = rolledNumber < (chosenNumber + totalBonus);
+        const multiplier = MULTIPLIERS[chosenNumber];
+
+        if (won) {
+          if (rolledNumber >= chosenNumber && rolledNumber < chosenNumber + badgeBonus) {
+            badgeSaves++;
+          } else if (rolledNumber >= chosenNumber + badgeBonus && rolledNumber < chosenNumber + totalBonus) {
+            okoSaves++;
+          }
+        }
+
+        let winAmount = 0;
+        if (won) {
+          winAmount = Math.round(betAmount * multiplier) - betAmount;
+          if (user.badges && user.badges.includes(config.badges.uzalezniony)) {
+            winAmount = Math.round(winAmount * 1.03);
+          }
+          user.balance += winAmount;
+          wins++;
+        } else {
+          user.balance -= betAmount;
+          losses++;
+        }
+
+        totalBets++;
+        const net = won ? winAmount : -betAmount;
+        const xpResult = recordGame(user, net, 25, inventory);
+
+        if (xpResult.leveledUp && xpResult.milestonesGained) {
+          accumulatedMilestones.push(...xpResult.milestonesGained);
+        }
+
+        refreshBadges(user, inventory);
+      }
+
+      const finalLevel = user.prestige > 0 ? `${user.level} [Prestiż ${user.prestige}]` : user.level;
+      const leveledUp = (user.level !== startLevel || user.prestige !== startPrestige);
+
+      return {
+        initialBalance,
+        finalBalance: user.balance,
+        wins,
+        losses,
+        badgeSaves,
+        okoSaves,
+        totalBets,
+        interrupted,
+        interruptedAt,
+        interruptedReason,
+        leveledUp,
+        finalLevel,
+        accumulatedMilestones
+      };
+    });
+
+    const netChange = result.finalBalance - result.initialBalance;
+    const netSign = netChange >= 0 ? '+' : '';
+
+    let replyText = '';
+    if (result.interrupted) {
+      replyText += `⚠️ **Seria betów została przerwana na ${result.interruptedAt}. becie!**\n`;
+      replyText += `**Powód:** ${result.interruptedReason}\n\n`;
+    } else {
+      replyText += `🎰 **Seria betów zakończona pomyślnie!**\n\n`;
+    }
+
+    replyText += `📊 **Statystyki serii:**\n`;
+    replyText += `• Wykonane zakłady: **${result.totalBets}**\n`;
+    replyText += `• Wygrane: **${result.wins}** ✅\n`;
+    replyText += `• Przegrane: **${result.losses}** ❌\n`;
+    replyText += `• Zmiana salda: **${netSign}${formatCurrency(netChange)}**\n`;
+    replyText += `• Obecny stan konta: **${formatCurrency(result.finalBalance)}**\n\n`;
+
+    replyText += `🛡️ **Uaktywnione przedmioty ratujące:**\n`;
+    replyText += `• Szkarłatne Oko Krupiera: **${result.okoSaves}** razy\n`;
+    replyText += `• Bonus z odznak: **${result.badgeSaves}** razy`;
+
+    if (result.leveledUp) {
+      replyText += `\n\n🎉 **AWANS!** Awansowałeś na **poziom ${result.finalLevel}**!`;
+      if (result.accumulatedMilestones && result.accumulatedMilestones.length > 0) {
         const { getMilestoneRewardDescription } = require('../utils/economy');
-        for (const lvl of result.xpResult.milestonesGained) {
-          replyText += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+        for (const lvl of result.accumulatedMilestones) {
+          replyText += `\n🎁 Nagroda za kamień milowy poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
         }
       }
     }
