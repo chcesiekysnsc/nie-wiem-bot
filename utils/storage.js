@@ -185,6 +185,7 @@ function sanitizeUser(user) {
     ? [...new Set(merged.claimedMilestones.filter(m => typeof m === 'number'))]
     : [];
   merged.name = typeof merged.name === 'string' ? merged.name.trim().slice(0, 100) : null;
+  merged.defaultCity = user && typeof user.defaultCity === 'string' ? user.defaultCity.trim() : null;
 
   return merged;
 }

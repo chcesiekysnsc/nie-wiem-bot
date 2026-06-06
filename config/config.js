@@ -89,7 +89,8 @@ module.exports = {
       messageCount: 0,
       groupMessages: {},
       commandCounts: {},
-      company: null
+      company: null,
+      defaultCity: null
     },
     companies: {
       kiosk: {

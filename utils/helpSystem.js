@@ -4,18 +4,17 @@ const config = require('../config/config');
 const HELP_PAGE_SIZE = 7;
 
 const CATEGORY_META = {
-  ECONOMY: { label: 'ECONOMY' },
-  GAMBLING: { label: 'GAMBLING' },
-  SOCIAL: { label: 'SOCIAL' },
-  ADMIN: { label: 'ADMIN' },
-  UTILITY: { label: 'UTILITY' }
+  ECONOMY_GAMBLING: { label: '💰 EKONOMIA I HAZARD' },
+  SOCIAL_GANGS: { label: '👥 SOCJALNE I GANGI' },
+  UTILITY_ADMIN: { label: '⚙️ INNE I NARZĘDZIA' }
 };
 
 const helpCommands = [
+  // --- KATEGORIA 1: EKONOMIA I HAZARD (1 - 24) ---
   {
     id: 1,
     name: "bal",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "pokazuje saldo",
     description: "Pokazuje stan portfela, banku oraz podstawowe statystyki konta.",
     usage: "!bal [@osoba | id]",
@@ -28,7 +27,7 @@ const helpCommands = [
   {
     id: 2,
     name: "daily",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "odbierz dzienna nagrode",
     description: "Odbiera codzienną nagrodę.",
     usage: "!daily",
@@ -41,7 +40,7 @@ const helpCommands = [
   {
     id: 3,
     name: "work",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "zarob viccoiny pracujac",
     description: "Zarób viccoiny za uczciwą pracę.",
     usage: "!work",
@@ -54,7 +53,7 @@ const helpCommands = [
   {
     id: 4,
     name: "crime",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "ryzykowna kradziez NPC",
     description: "Napad na NPC — zysk lub strata.",
     usage: "!crime",
@@ -66,21 +65,8 @@ const helpCommands = [
   },
   {
     id: 5,
-    name: "top",
-    category: "ECONOMY",
-    shortDescription: "ranking top 5 graczy lub top 3 gangow",
-    description: "Pokazuje ranking 5 najbogatszych graczy lub ranking top 3 gangów.",
-    usage: "!top [gang]",
-    examples: ["!top","!top gang"],
-    cooldown: "8 sekund",
-    requirements: "Brak.",
-    aliases: ["ranking"],
-    additionalInfo: ["Łączny majątek (portfel + bank).","Użyj !top gang, aby zobaczyć ranking 3 najbogatszych gangów."]
-  },
-  {
-    id: 6,
     name: "wplac",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "wplac viccoiny do banku",
     description: "Przenosi viccoiny z portfela do banku.",
     usage: "!wplac kwota",
@@ -91,9 +77,9 @@ const helpCommands = [
     additionalInfo: ["VIP zwieksza pojemnosc banku."]
   },
   {
-    id: 7,
+    id: 6,
     name: "wyplac",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "wyplac viccoiny z banku",
     description: "Wyjmuje viccoiny z banku do portfela.",
     usage: "!wyplac kwota",
@@ -104,9 +90,9 @@ const helpCommands = [
     additionalInfo: ["Obsluguje all i max."]
   },
   {
-    id: 8,
+    id: 7,
     name: "sklep",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "sklep kasynowy",
     description: "Pozwala kupić przedmioty z oferty.",
     usage: "!sklep <nr_itemu> [ilosc]",
@@ -117,9 +103,9 @@ const helpCommands = [
     additionalInfo: ["Kupuj po numerze z listy."]
   },
   {
-    id: 9,
+    id: 8,
     name: "eq",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "twoj ekwipunek",
     description: "Pokazuje posiadane przedmioty.",
     usage: "!eq [@osoba | id]",
@@ -130,9 +116,9 @@ const helpCommands = [
     additionalInfo: ["Wyświetla kupione przedmioty."]
   },
   {
-    id: 10,
+    id: 9,
     name: "use",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "uzyj itemu z ekwipunku",
     description: "Sprawdz dzialanie itemu. Klodka i Piwo dzialaja automatycznie.",
     usage: "!use <nr_itemu>",
@@ -143,9 +129,9 @@ const helpCommands = [
     additionalInfo: ["Pokazuje informacje o przedmiocie."]
   },
   {
-    id: 11,
+    id: 10,
     name: "tip",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "przelej viccoiny innemu graczowi",
     description: "Przelewa viccoiny innemu graczowi.",
     usage: "!tip <kwota> @osoba | !tip <kwota> <id>",
@@ -156,22 +142,9 @@ const helpCommands = [
     additionalInfo: ["Obsługuje all."]
   },
   {
-    id: 12,
-    name: "reakcja",
-    category: "ECONOMY",
-    shortDescription: "informacje o szybkich palcach",
-    description: "Gra zręcznościowa wywoływana automatycznie na czacie grupowym co 9-24 godzin lub ręcznie przez administratora. Kto pierwszy przepisze kod, wygrywa od 20 000 do 200 000 viccoinów!",
-    usage: "!reakcja (tylko admin)",
-    examples: ["!reakcja"],
-    cooldown: "Brak.",
-    requirements: "Wymaga bycia pierwszym na czacie.",
-    aliases: [],
-    additionalInfo: ["Nagroda za poprawny kod wynosi od 20 000 do 200 000 viccoinów.","Wygenerowany kod wygasa po upływie 2 minut."]
-  },
-  {
-    id: 13,
+    id: 11,
     name: "loteria",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "informacje o loterii",
     description: "Pokazuje informacje o loterii, pulę nagród, liczbę kupionych biletów oraz czas do następnego losowania. Bilety kupuje się w sklepie (!sklep 4).",
     usage: "!loteria",
@@ -182,9 +155,9 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 14,
+    id: 12,
     name: "podatki",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "informacje o podatkach",
     description: "Pokazuje informacje o podatkach w grze: podatek od salda (2% co 12h) oraz podatek od przelewów (5% przy !tip).",
     usage: "!podatki",
@@ -195,9 +168,9 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 15,
+    id: 13,
     name: "pozyczka",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "pozyczka z banku wirtualnego",
     description: "Pozwala pożyczyć pieniądze z banku wirtualnego po przekroczeniu 100 użytych komend (limit 500k). Oprocentowanie rośnie co 6h o 4% (dla kwot <=200k), 8% (>200k), 12% (>300k) lub 20% (>400k). Spłata następuje automatycznie po 48h (ściągane z portfela, nawet na minus). Pieniądze z pożyczki mają 48h blokadę transferu i ochrony przed kradzieżą.",
     usage: "!pozyczka <kwota> | !pozyczka splac <kwota|all> | !pozyczka",
@@ -208,9 +181,9 @@ const helpCommands = [
     additionalInfo: ["Pożyczka odblokowuje się dopiero po przekroczeniu 100 użytych komend.","Po 48h kwota jest automatycznie pobierana z portfela.","Zablokowane środki nie mogą być przelane ani skradzione komendą !rob."]
   },
   {
-    id: 16,
+    id: 14,
     name: "rynek",
-    category: "ECONOMY",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "globalny rynek artefaktow",
     description: "Pozwala wystawiać na sprzedaż, kupować oraz wycofywać oferty potężnych pasywnych artefaktów na globalnym rynku. Podatek wynosi 10% przy sprzedaży.",
     usage: "!rynek | !rynek sprzedaj <nr_artefaktu> <cena> | !rynek kup <nr_oferty> | !rynek wycofaj <nr_oferty>",
@@ -221,9 +194,22 @@ const helpCommands = [
     additionalInfo: ["Pieniądze trafiają do sprzedającego po zakupie przedmiotu przez innego gracza.","Wycofanie oferty zwraca przedmiot do ekwipunku sprzedającego bez żadnych kosztów."]
   },
   {
-    id: 17,
+    id: 15,
+    name: "firma",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "zarzadzanie wlasna firma i pasywny dochod",
+    description: "Pozwala na zakup jednej z 5 dostępnych firm generujących dochód pasywny co 3 godziny, ich sprzedaż, naprawę po awarii oraz odbiór wypłat.",
+    usage: "!firma | !firma kup <nazwa/nr> | !firma sprzedaj | !firma zbierz | !firma napraw",
+    examples: ["!firma", "!firma kup kiosk", "!firma sprzedaj", "!firma zbierz", "!firma napraw"],
+    cooldown: "3 sekundy",
+    requirements: "Posiadanie odpowiednich środków.",
+    aliases: [],
+    additionalInfo: []
+  },
+  {
+    id: 16,
     name: "slots",
-    category: "GAMBLING",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "automaty kasynowe",
     description: "Zagraj na jednorękim bandycie.",
     usage: "!slots <kwota>",
@@ -234,9 +220,9 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 18,
+    id: 17,
     name: "coinflip",
-    category: "GAMBLING",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "rzut moneta",
     description: "Obstaw orła lub reszkę i podwój stawkowanie.",
     usage: "!coinflip <kwota> <orzel/reszka> | !cf <kwota> <orzel/reszka>",
@@ -247,9 +233,9 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 19,
+    id: 18,
     name: "ruletka",
-    category: "GAMBLING",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "ruletka",
     description: "Obstaw kolor lub numer w ruletce.",
     usage: "!ruletka <kwota> <czerwony/czarny/zielony/parzyste/nieparzyste/0-36>",
@@ -260,22 +246,22 @@ const helpCommands = [
     additionalInfo: ["Różne mnożniki zysków."]
   },
   {
-    id: 20,
+    id: 19,
     name: "bet",
-    category: "GAMBLING",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "zaklad liczbowy",
-    description: "Postaw zakład na to, że wylosowana liczba 0-99 będzie mniejsza niż Twój typ.",
-    usage: "!bet <kwota> <liczba 1-90>",
-    examples: ["!bet 1000 50"],
+    description: "Postaw zakład na to, że wylosowana liczba 0-99 będzie mniejsza niż Twój typ. Administratorzy mogą stawiać seryjnie.",
+    usage: "!bet <kwota> <liczba 1-90> [ilosc_betow]",
+    examples: ["!bet 1000 50","!bet 1000 50 100"],
     cooldown: "3 sekundy",
     requirements: "Balance na bet.",
     aliases: [],
-    additionalInfo: ["Im mniejsza liczba, tym większy mnożnik."]
+    additionalInfo: ["Im mniejsza liczba, tym większy mnożnik. Seria betów jest dostępna tylko dla adminów."]
   },
   {
-    id: 21,
+    id: 20,
     name: "blackjack",
-    category: "GAMBLING",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "gra w blackjacka (oczko)",
     description: "Klasyczna gra w Blackjacka przeciwko krupierowi. Dobieraj karty (hit), pasuj (stand) lub podwajaj stawke (double).",
     usage: "!blackjack <kwota> | !bj <kwota>",
@@ -286,9 +272,9 @@ const helpCommands = [
     additionalInfo: ["Blackjack (As + 10) placi bonus 2.5x!","Krupier dobiera do 17."]
   },
   {
-    id: 22,
+    id: 21,
     name: "rosyjska",
-    category: "GAMBLING",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "rosyjska ruletka ze stawka",
     description: "Zagraj w rosyjską ruletkę solo przeciwko rewolwerowi (szansa na wygraną 5/6, wypłata 1.2x) lub wyzwij innego gracza na pojedynek.",
     usage: "!rr <kwota> [@osoba] | !rr acc | !rr dec",
@@ -299,11 +285,11 @@ const helpCommands = [
     additionalInfo: ["Wyzwanie trwa 2 minuty.","Pojedynek toczy się do pierwszego strzału ze wzrastającym ryzykiem."]
   },
   {
-    id: 23,
+    id: 22,
     name: "gielda",
-    category: "GAMBLING",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "multiplayer inwestycje gieldowe",
-    description: "Gra giełdowa multiplayer. Uruchom lobby (!gielda start) na 120s, dołącz do aktywnej sesji (!gielda dolacz), a następnie zainwestuj w jedno z 4 aktywów w rundzie inwestowania (60s). Pieniądze są blokowane do losowania wyników.",
+    description: "Gra giełdowa multiplayer. Uruchom lobby (!gielda start) na 120s, dołącz to aktywnej sesji (!gielda dolacz), a następnie zainwestuj w jedno z 4 aktywów w rundzie inwestowania (60s). Pieniądze są blokowane do losowania wyników.",
     usage: "!gielda | !gielda start | !gielda dolacz | !gielda inwestuj <kwota> <aktywo>",
     examples: ["!gielda", "!gielda start", "!gielda dolacz", "!gielda inwestuj 100k zloto", "!gielda inwestuj all diamenty"],
     cooldown: "Zależy od fazy sesji.",
@@ -312,9 +298,9 @@ const helpCommands = [
     additionalInfo: ["Aktywa to: Bank (-5% do +10%), Srebro (-15% do +20%), Złoto (-25% do +35%), Diamenty (-50% do +80%).", "Wszystkie procenty są w pełni losowane przy każdej sesji w przedziałach zmian."]
   },
   {
-    id: 24,
+    id: 23,
     name: "wojna",
-    category: "GAMBLING",
+    category: "ECONOMY_GAMBLING",
     shortDescription: "multiplayer wojna karciana",
     description: "Gra karciana multiplayer (Wojna). Otwiera lobby dla maksymalnie 12 graczy ze stawką wejściową. W każdej rundzie odpada 40% graczy z najsłabszymi kartami (w przypadku remisu decyduje kolor: Pik > Kier > Karo > Trefl). Ostatni pozostały gracz wygrywa całą pulę.",
     usage: "!wojna <kwota> | !wojna dolacz | !wojna",
@@ -325,9 +311,37 @@ const helpCommands = [
     additionalInfo: ["Stawka jest pobierana przy dołączeniu.", "Czas na zapisy to 90s.", "Jeśli nikt nie dołączy, stawka jest zwracana hostowi."]
   },
   {
+    id: 24,
+    name: "artefakty",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "wyswietla Twoje pasywne przedmioty",
+    description: "Wyświetla listę wszystkich 5 pasywnych artefaktów w grze oraz informację, które z nich aktualnie posiadasz.",
+    usage: "!artefakty | !artefakty help <numer_artefaktu>",
+    examples: ["!artefakty","!artefakty help 1"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["artf","artefakt"],
+    additionalInfo: []
+  },
+
+  // --- KATEGORIA 2: SOCJALNE I GANGI (25 - 40) ---
+  {
     id: 25,
+    name: "top",
+    category: "SOCIAL_GANGS",
+    shortDescription: "ranking top 5 graczy lub top 3 gangow",
+    description: "Pokazuje ranking 5 najbogatszych graczy lub ranking top 3 gangów.",
+    usage: "!top [gang]",
+    examples: ["!top","!top gang"],
+    cooldown: "8 sekund",
+    requirements: "Brak.",
+    aliases: ["ranking"],
+    additionalInfo: ["Łączny majątek (portfel + bank).","Użyj !top gang, aby zobaczyć ranking 3 najbogatszych gangów."]
+  },
+  {
+    id: 26,
     name: "rob",
-    category: "SOCIAL",
+    category: "SOCIAL_GANGS",
     shortDescription: "okradnij gracza",
     description: "Spróbuj okraść innego gracza.",
     usage: "!rob @osoba | !rob <id>",
@@ -338,9 +352,9 @@ const helpCommands = [
     additionalInfo: ["Kłódka broni, Piwo modyfikuje szanse."]
   },
   {
-    id: 26,
+    id: 27,
     name: "marry",
-    category: "SOCIAL",
+    category: "SOCIAL_GANGS",
     shortDescription: "slub z graczem",
     description: "Oświadcz się innemu graczowi.",
     usage: "!marry <id> | !marry accept <id> | !marry decline <id>",
@@ -351,22 +365,9 @@ const helpCommands = [
     additionalInfo: ["Oświadczyny trwają 2 minuty."]
   },
   {
-    id: 27,
-    name: "pfp",
-    category: "SOCIAL",
-    shortDescription: "profil kasynowy",
-    description: "Pokazuje profil gracza z danymi.",
-    usage: "!pfp [@osoba | id]",
-    examples: ["!pfp @Rafal"],
-    cooldown: "4 sekundy",
-    requirements: "Brak.",
-    aliases: ["profile","profil","awatar"],
-    additionalInfo: ["Pokazuje stan konta i odznaki."]
-  },
-  {
     id: 28,
     name: "rozwod",
-    category: "SOCIAL",
+    category: "SOCIAL_GANGS",
     shortDescription: "rozwod z graczem",
     description: "Bierze rozwód z obecnym małżonkiem.",
     usage: "!rozwod",
@@ -378,227 +379,21 @@ const helpCommands = [
   },
   {
     id: 29,
-    name: "kick",
-    category: "SOCIAL",
-    shortDescription: "wyrzucenie czlonka z grupy",
-    description: "Wyrzuca wskazanego użytkownika z konwersacji grupowej (wymaga uprawnień administratora dla bota oraz nadawcy komendy).",
-    usage: "!kick @osoba | !kick <id_uzytkownika>",
-    examples: ["!kick @Kowalski","!kick 100089655356822"],
-    cooldown: "3 sekundy",
-    requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
-    aliases: ["wyrzuc"],
-    additionalInfo: ["Nie można wyrzucić samego siebie ani twórcy bota."]
+    name: "pfp",
+    category: "SOCIAL_GANGS",
+    shortDescription: "profil kasynowy",
+    description: "Pokazuje profil gracza z danymi.",
+    usage: "!pfp [@osoba | id]",
+    examples: ["!pfp @Rafal"],
+    cooldown: "4 sekundy",
+    requirements: "Brak.",
+    aliases: ["profile","profil","awatar"],
+    additionalInfo: ["Pokazuje stan konta i odznaki."]
   },
   {
     id: 30,
-    name: "duel",
-    category: "SOCIAL",
-    shortDescription: "pojedynek o monety",
-    description: "Wyzywa innego gracza na pojedynek o stawkę.",
-    usage: "!duel <kwota> @osoba",
-    examples: ["!duel 1000 @Kowalski"],
-    cooldown: "3 sekundy",
-    requirements: "Obaj gracze muszą posiadać stawkę.",
-    aliases: ["pojedynek"],
-    additionalInfo: ["Akceptacja: !duel acc, Odrzucenie: !duel dec."]
-  },
-  {
-    id: 31,
-    name: "gang",
-    category: "SOCIAL",
-    shortDescription: "zarzadzanie i interakcje gangu",
-    description: "System gangów: zakładanie, wspólny sejf, ulepszenia Dziupli, Biznesów i Fachu, skoki oraz wojny gangów.",
-    usage: "!gang [stworz/zapros/dolacz/awans/wyrzuc/opusc/wplac/wyplac/ulepsz/skok/haracz/atak/info] [@osoba/nazwa]",
-    examples: ["!gang stworz MojaEkipa","!gang zapros @Kowalski","!gang wplac 5000","!gang ulepsz dziupla","!gang skok","!gang atak InnyGang","!gang info @Kowalski"],
-    cooldown: "3 sekundy",
-    requirements: "Zakładanie gangu kosztuje 1 000 000 viccoinów. Skok gangu wymaga min. 2 graczy.",
-    aliases: ["gangi"],
-    additionalInfo: ["Boss i Zastępcy zarządzają gangiem.","Ulepszenia dają bonusy do pracy i kradzieży."]
-  },
-  {
-    id: 32,
-    name: "awans",
-    category: "SOCIAL",
-    shortDescription: "awansuj czlonka gangu",
-    description: "Skrót do awansowania członka gangu na stanowisko Zastępcy. Dostępne tylko dla Bossa.",
-    usage: "!awans @osoba",
-    examples: ["!awans @Kowalski"],
-    cooldown: "3 sekundy",
-    requirements: "Musisz być Bossem gangu.",
-    aliases: [],
-    additionalInfo: ["Zastępcy mogą zapraszać i wyrzucać zwykłych członków."]
-  },
-  {
-    id: 33,
-    name: "haracz",
-    category: "SOCIAL",
-    shortDescription: "ustawia haracz w gangu",
-    description: "Ustawia procent haraczu pobieranego od kradzieży zwykłych członków gangu do portfela Bossa. Dostępne tylko dla Bossa.",
-    usage: "!haracz <procent> | !gang haracz <procent>",
-    examples: ["!haracz 15","!gang haracz 20%"],
-    cooldown: "3 sekundy",
-    requirements: "Musisz być Bossem gangu.",
-    aliases: [],
-    additionalInfo: ["Tribute pobierany jest ze zwycięskich komend !rob i !crime zwykłych członków (z wyłączeniem zastępców).","Wartość musi być liczbą całkowitą od 0 do 100."]
-  },
-  {
-    id: 34,
-    name: "atak",
-    category: "SOCIAL",
-    shortDescription: "wojna gangow o sejf",
-    description: "Wypowiada wojnę wrogiemu gangowi w celu okradzenia ich sejfu. Wymaga min. 500k w sejfie i kosztuje 10% Twojego sejfu. Przy wygranej kradnie 15%-35% sejfu wroga (30% idzie do Twojego sejfu, 70% dzielone dla graczy). Przy wpadce tracisz 35% sejfu (20% do sejfu wroga, 15% dzielone dla wrogich obrońców).",
-    usage: "!atak <nazwa_gangu_wroga> | !gang atak dolacz",
-    examples: ["!atak InnyGang","!gang atak dolacz"],
-    cooldown: "3 sekundy",
-    requirements: "Musisz być Bossem lub Zastępcą gangu.",
-    aliases: ["wojna"],
-    additionalInfo: ["Po ataku gang broniący otrzymuje 6h tarczy ochronnej.","Wydarzenie trwa 2 minuty i zależy od siły graczy oraz poziomu ulepszenia Fach."]
-  },
-  {
-    id: 35,
-    name: "add",
-    category: "SOCIAL",
-    shortDescription: "dodaje uzytkownika do grupy",
-    description: "Dodaje wskazanego użytkownika do konwersacji grupowej na podstawie podanego linku profilu, nazwy użytkownika (vanity) lub bezpośredniego identyfikatora ID.",
-    usage: "!add <link konta fb / nazwa użytkownika / ID>",
-    examples: ["!add https://www.facebook.com/zuck", "!add zuck", "!add 4"],
-    cooldown: "3 sekundy",
-    requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
-    aliases: []
-  },
-  {
-    id: 36,
-    name: "help",
-    category: "UTILITY",
-    shortDescription: "wyswietla pomoc",
-    description: "Wyświetla listę wszystkich dostępnych komend lub szczegółowy opis wybranej komendy.",
-    usage: "!help [numer/nazwa]",
-    examples: ["!help","!help 2","!help bal"],
-    cooldown: "Brak.",
-    requirements: "Brak.",
-    aliases: ["pomoc","commands"],
-    additionalInfo: []
-  },
-  {
-    id: 37,
-    name: "artefakty",
-    category: "UTILITY",
-    shortDescription: "wyswietla Twoje pasywne przedmioty",
-    description: "Wyświetla listę wszystkich 5 pasywnych artefaktów w grze oraz informację, które z nich aktualnie posiadasz.",
-    usage: "!artefakty | !artefakty help <numer_artefaktu>",
-    examples: ["!artefakty","!artefakty help 1"],
-    cooldown: "3 sekundy",
-    requirements: "Brak.",
-    aliases: ["artf","artefakt"],
-    additionalInfo: []
-  },
-  {
-    id: 38,
-    name: "lvl",
-    category: "UTILITY",
-    shortDescription: "nagrody za kamienie milowe",
-    description: "Pokazuje nagrody za kamienie milowe poziomów (do 100 lvl, po wbiciu którego poziom resetuje się do 1 i wzrasta Prestiż).",
-    usage: "!lvl",
-    examples: ["!lvl"],
-    cooldown: "3 sekundy",
-    requirements: "Brak.",
-    aliases: ["milestones", "kamieniemilowe"],
-    additionalInfo: []
-  },
-  {
-    id: 39,
-    name: "odznaki",
-    category: "UTILITY",
-    shortDescription: "lista odznak i ich opisy",
-    description: "Pokazuje listę posiadanych/dostępnych odznak i ich krótkie opisy. Wpisz !odznaki help <nazwa_odznaki>, aby poznać szczegółowe wymagania i bonusy.",
-    usage: "!odznaki | !odznaki help <nazwa_odznaki>",
-    examples: ["!odznaki", "!odznaki help hazardzista"],
-    cooldown: "3 sekundy",
-    requirements: "Brak.",
-    aliases: [],
-    additionalInfo: []
-  },
-  {
-    id: 40,
-    name: "shamewall",
-    category: "UTILITY",
-    shortDescription: "ściana wstydu",
-    description: "Pokazuje ranking top 5 kont z najniższym/najbardziej ujemnym saldem ogólnym na całym bocie.",
-    usage: "!shamewall",
-    examples: ["!shamewall"],
-    cooldown: "3 sekundy",
-    requirements: "Brak.",
-    aliases: ["scianawstydu", "zadluzeni", "dluznicy"],
-    additionalInfo: []
-  },
-  {
-    id: 41,
-    name: "zasady",
-    category: "UTILITY",
-    shortDescription: "wyswietla zasady korzystania z bota",
-    description: "Wyświetla oficjalne zasady i regulamin korzystania z bota.",
-    usage: "!zasady",
-    examples: ["!zasady"],
-    cooldown: "3 sekundy",
-    requirements: "Brak.",
-    aliases: ["rules"],
-    additionalInfo: []
-  },
-  {
-    id: 42,
-    name: "wiadomosci",
-    category: "UTILITY",
-    shortDescription: "wlacza/wylacza logowanie usunietych wiadomosci",
-    description: "Pozwala administratorom grupy włączyć lub wyłączyć logowanie (oznaczanie) usuniętych wiadomości na tej grupie. Wiadomości usunięte przez podadminów bota są wysyłane zawsze, a przez twórcę nigdy.",
-    usage: "!wiadomosci <on/off>",
-    examples: ["!wiadomosci on", "!wiadomosci off"],
-    cooldown: "3 sekundy",
-    requirements: "Musisz być administratorem grupy lub bota.",
-    aliases: ["wiadomości", "delmsglog"],
-    additionalInfo: []
-  },
-  {
-    id: 43,
-    name: "afkdel",
-    category: "UTILITY",
-    shortDescription: "usuwa nieaktywnych czlonkow grupy (30 dni)",
-    description: "Analizuje historię wiadomości grupy i usuwa z niej wszystkich użytkowników, którzy nie wysłali żadnej wiadomości w ciągu ostatnich 30 dni (również przed dodaniem komendy). Nie usuwa adminów grupy, adminów bota ani samego bota.",
-    usage: "!afkdel",
-    examples: ["!afkdel"],
-    cooldown: "30 sekund",
-    requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
-    aliases: []
-  },
-  {
-    id: 44,
-    name: "fm",
-    category: "UTILITY",
-    shortDescription: "integracja z muzyka Last.fm",
-    description: "Integracja z platformą Last.fm. Pozwala sprawdzać aktualnie słuchaną muzykę, historię odtworzeń oraz statystyki.\n\n**Główne subkomendy:**\n• `połącz <nazwa>` • łączy konto Last.fm\n• `odłącz` • rozłącza konto\n• `aktualnie [@osoba]` • co teraz słucha dana osoba\n• `ostatnie [@osoba]` • 5 ostatnio słuchanych utworów\n• `toputwory / topartyści / topalbumy [okres] [@osoba]` • statystyki słuchania (okres: `1m`, `3m`, `6m`, `12m`, `all` (cały czas) • domyślnie: `overall`)\n• `grupa` • czego słuchają teraz połączone osoby w grupie\n• `play <nazwa>` • wyszukuje i odtwarza utwór na YouTube\n• `incognito <on/off>` • ukrywa profil w statystykach grupy",
-    usage: "!fm <subkomenda> [opcje]",
-    examples: ["!fm połącz nazwa_konta", "!fm toputwory 3m @Rafal", "!fm topartyści", "!fm grupa", "!fm play Billie Eilish Bad Guy"],
-    cooldown: "3 sekundy",
-    requirements: "Konto Last.fm musi być publiczne.",
-    aliases: ["lastfm"],
-    additionalInfo: []
-  },
-  {
-    id: 45,
-    name: "gangreset",
-    category: "ADMIN",
-    shortDescription: "resetuje cooldowny gangow (admin)",
-    description: "Resetuje czas oczekiwania (cooldown) na skoki gangu oraz ataki dla wszystkich gangów w bazie danych.",
-    usage: "!gangreset",
-    examples: ["!gangreset"],
-    cooldown: "Brak.",
-    requirements: "Wymaga uprawnień administratora bota.",
-    aliases: [],
-    additionalInfo: []
-  },
-  {
-    id: 46,
     name: "nick",
-    category: "SOCIAL",
+    category: "SOCIAL_GANGS",
     shortDescription: "zmienia pseudonim gracza na grupie",
     description: "Zmienia pseudonim wskazanego użytkownika na konwersacji grupowej. Każdy może używać tej komendy. Aby wyczyścić pseudonim, wywołaj komendę bez podawania nowej wartości.",
     usage: "!nick <@osoba | ID> [nowy_pseudonim]",
@@ -609,35 +404,99 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 47,
-    name: "guardnick",
-    category: "SOCIAL",
-    shortDescription: "blokuje pseudonim wybranego gracza",
-    description: "Blokuje pseudonim wybranego użytkownika w bieżącej grupie. Każda próba zmiany nicku tej osoby zostanie natychmiast anulowana przez bota. Dostępne tylko dla twórcy bota.",
-    usage: "!guardnick <@osoba | ID> <pseudonim> | !guardnick off",
-    examples: ["!guardnick @Kowalski WymuszonyNick", "!guardnick off"],
-    cooldown: "Brak.",
-    requirements: "Wymaga bycia twórcą bota.",
-    aliases: [],
-    additionalInfo: []
-  },
-  {
-    id: 48,
-    name: "firma",
-    category: "ECONOMY",
-    shortDescription: "zarzadzanie wlasna firma i pasywny dochod",
-    description: "Pozwala na zakup jednej z 5 dostępnych firm generujących dochód pasywny co 3 godziny, ich sprzedaż, naprawę po awarii oraz odbiór wypłat.",
-    usage: "!firma | !firma kup <nazwa/nr> | !firma sprzedaj | !firma zbierz | !firma napraw",
-    examples: ["!firma", "!firma kup kiosk", "!firma sprzedaj", "!firma zbierz", "!firma napraw"],
+    id: 31,
+    name: "kick",
+    category: "SOCIAL_GANGS",
+    shortDescription: "wyrzucenie czlonka z grupy",
+    description: "Wyrzuca wskazanego użytkownika z konwersacji grupowej (wymaga uprawnień administratora dla bota oraz nadawcy komendy).",
+    usage: "!kick @osoba | !kick <id_uzytkownika>",
+    examples: ["!kick @Kowalski","!kick 100089655356822"],
     cooldown: "3 sekundy",
-    requirements: "Posiadanie odpowiednich środków.",
-    aliases: [],
-    additionalInfo: []
+    requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
+    aliases: ["wyrzuc"],
+    additionalInfo: ["Nie można wyrzucić samego siebie ani twórcy bota."]
   },
   {
-    id: 49,
+    id: 32,
+    name: "add",
+    category: "SOCIAL_GANGS",
+    shortDescription: "dodaje uzytkownika do grupy",
+    description: "Dodaje wskazanego użytkownika do konwersacji grupowej na podstawie podanego linku profilu, nazwy użytkownika (vanity) lub bezpośredniego identyfikatora ID.",
+    usage: "!add <link konta fb / nazwa użytkownika / ID>",
+    examples: ["!add https://www.facebook.com/zuck", "!add zuck", "!add 4"],
+    cooldown: "3 sekundy",
+    requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
+    aliases: []
+  },
+  {
+    id: 33,
+    name: "duel",
+    category: "SOCIAL_GANGS",
+    shortDescription: "pojedynek o monety",
+    description: "Wyzywa innego gracza na pojedynek o stawkę.",
+    usage: "!duel <kwota> @osoba",
+    examples: ["!duel 1000 @Kowalski"],
+    cooldown: "3 sekundy",
+    requirements: "Obaj gracze muszą posiadać stawkę.",
+    aliases: ["pojedynek"],
+    additionalInfo: ["Akceptacja: !duel acc, Odrzucenie: !duel dec."]
+  },
+  {
+    id: 34,
+    name: "gang",
+    category: "SOCIAL_GANGS",
+    shortDescription: "zarzadzanie i interakcje gangu",
+    description: "System gangów: zakładanie, wspólny sejf, ulepszenia Dziupli, Biznesów i Fachu, skoki oraz wojny gangów.",
+    usage: "!gang [stworz/zapros/dolacz/awans/wyrzuc/opusc/wplac/wyplac/ulepsz/skok/haracz/atak/info] [@osoba/nazwa]",
+    examples: ["!gang stworz MojaEkipa","!gang zapros @Kowalski","!gang wplac 5000","!gang ulepsz dziupla","!gang skok","!gang atak InnyGang","!gang info @Kowalski"],
+    cooldown: "3 sekundy",
+    requirements: "Zakładanie gangu kosztuje 1 000 000 viccoinów. Skok gangu wymaga min. 2 graczy.",
+    aliases: ["gangi"],
+    additionalInfo: ["Boss i Zastępcy zarządzają gangiem.","Ulepszenia dają bonusy do pracy i kradzieży."]
+  },
+  {
+    id: 35,
+    name: "awans",
+    category: "SOCIAL_GANGS",
+    shortDescription: "awansuj czlonka gangu",
+    description: "Skrót do awansowania członka gangu na stanowisko Zastępcy. Dostępne tylko dla Bossa.",
+    usage: "!awans @osoba",
+    examples: ["!awans @Kowalski"],
+    cooldown: "3 sekundy",
+    requirements: "Musisz być Bossem gangu.",
+    aliases: [],
+    additionalInfo: ["Zastępcy mogą zapraszać i wyrzucać zwykłych członków."]
+  },
+  {
+    id: 36,
+    name: "haracz",
+    category: "SOCIAL_GANGS",
+    shortDescription: "ustawia haracz w gangu",
+    description: "Ustawia procent haraczu pobieranego od kradzieży zwykłych członków gangu do portfela Bossa. Dostępne tylko dla Bossa.",
+    usage: "!haracz <procent> | !gang haracz <procent>",
+    examples: ["!haracz 15","!gang haracz 20%"],
+    cooldown: "3 sekundy",
+    requirements: "Musisz być Bossem gangu.",
+    aliases: [],
+    additionalInfo: ["Tribute pobierany jest ze zwycięskich komend !rob i !crime zwykłych członków (z wyłączeniem zastępców).","Wartość must być liczbą całkowitą od 0 do 100."]
+  },
+  {
+    id: 37,
+    name: "atak",
+    category: "SOCIAL_GANGS",
+    shortDescription: "wojna gangow o sejf",
+    description: "Wypowiada wojnę wrogiemu gangowi w celu okradzenia ich sejfu. Wymaga min. 500k w sejfie i kosztuje 10% Twojego sejfu. Przy wygranej kradnie 15%-35% sejfu wroga (30% idzie do Twojego sejfu, 70% dzielone dla graczy). Przy wpadce tracisz 35% sejfu (20% do sejfu wroga, 15% dzielone dla wrogich obrońców).",
+    usage: "!atak <nazwa_gangu_wroga> | !gang atak dolacz",
+    examples: ["!atak InnyGang","!gang atak dolacz"],
+    cooldown: "3 sekundy",
+    requirements: "Musisz być Bossem lub Zastępcą gangu.",
+    aliases: ["wojna"],
+    additionalInfo: ["Po ataku gang broniący otrzymuje 6h tarczy ochronnej.","Wydarzenie trwa 2 minuty i zależy od siły graczy oraz poziomu ulepszenia Fach."]
+  },
+  {
+    id: 38,
     name: "milosc",
-    category: "SOCIAL",
+    category: "SOCIAL_GANGS",
     shortDescription: "kalkulator miłości",
     description: "Mierzy w procentach dopasowanie miłosne dwójki osób i generuje humorystyczną przepowiednię ich przyszłości. Wynik jest w pełni deterministyczny.",
     usage: "!milosc @osoba | !milosc @osoba1 @osoba2",
@@ -648,9 +507,9 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 50,
+    id: 39,
     name: "swataj",
-    category: "SOCIAL",
+    category: "SOCIAL_GANGS",
     shortDescription: "dobiera parę dnia",
     description: "Raz na 24h losowo i stabilnie dobiera parę dnia spośród aktywnych członków grupy.",
     usage: "!swataj",
@@ -661,29 +520,186 @@ const helpCommands = [
     additionalInfo: ["Para jest deterministyczna i zmienia się tylko raz na dobę."]
   },
   {
-    id: 51,
+    id: 40,
     name: "wyzwanie",
-    category: "SOCIAL",
+    category: "SOCIAL_GANGS",
     shortDescription: "wirtualna prawda czy wyzwanie",
     description: "Wyzwij losowego lub wybranego gracza z grupy do gry w Prawdę czy Wyzwanie. Gracz otrzymuje losowo pytanie otwarte (Prawda) lub zadanie rzeczywiste (Wyzwanie) i ma 3 minuty na odpowiedź bądź dowód.",
     usage: "!wyzwanie | !wyzwanie @osoba",
-    examples: ["!wyzwanie", "!wyzwanie @Kowalski"],
+    examples: ["!wyzwanie","!wyzwanie @Kowalski"],
     cooldown: "3 sekundy",
     requirements: "Brak.",
     aliases: ["dare", "wyzywam"],
     additionalInfo: ["Po 3 minutach bot przypomni grupie o głosowaniu nad zaliczeniem odpowiedzi/wyzwania."]
   },
+
+  // --- KATEGORIA 3: INNE I NARZĘDZIA (41 - 53) ---
+  {
+    id: 41,
+    name: "help",
+    category: "UTILITY_ADMIN",
+    shortDescription: "wyswietla pomoc",
+    description: "Wyświetla listę wszystkich dostępnych komend lub szczegółowy opis wybranej komendy.",
+    usage: "!help [numer/nazwa]",
+    examples: ["!help","!help 2","!help bal"],
+    cooldown: "Brak.",
+    requirements: "Brak.",
+    aliases: ["pomoc","commands"],
+    additionalInfo: []
+  },
+  {
+    id: 42,
+    name: "lvl",
+    category: "UTILITY_ADMIN",
+    shortDescription: "nagrody za kamienie milowe",
+    description: "Pokazuje nagrody za kamienie milowe poziomów (do 100 lvl, po wbiciu którego poziom resetuje się do 1 i wzrasta Prestiż).",
+    usage: "!lvl",
+    examples: ["!lvl"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["milestones", "kamieniemilowe"],
+    additionalInfo: []
+  },
+  {
+    id: 43,
+    name: "odznaki",
+    category: "UTILITY_ADMIN",
+    shortDescription: "lista odznak i ich opisy",
+    description: "Pokazuje listę posiadanych/dostępnych odznak i ich krótkie opisy. Wpisz !odznaki help <nazwa_odznaki>, aby poznać szczegółowe wymagania i bonusy.",
+    usage: "!odznaki | !odznaki help <nazwa_odznaki>",
+    examples: ["!odznaki", "!odznaki help hazardzista"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: [],
+    additionalInfo: []
+  },
+  {
+    id: 44,
+    name: "cd",
+    category: "UTILITY_ADMIN",
+    shortDescription: "pokazuje czasy oczekiwania (cooldowny)",
+    description: "Pokazuje stan czasów oczekiwania dla komend takich jak !work, !crime, !daily, !rob oraz firm.",
+    usage: "!cd",
+    examples: ["!cd"],
+    cooldown: "Brak.",
+    requirements: "Brak.",
+    aliases: ["cooldowns", "czasy"],
+    additionalInfo: []
+  },
+  {
+    id: 45,
+    name: "pogoda",
+    category: "UTILITY_ADMIN",
+    shortDescription: "prognoza pogody",
+    description: "Pobiera aktualne dane pogodowe dla wybranego miasta. Możesz też zapisać miasto na stałe, aby wpisywać samo !pogoda.",
+    usage: "!pogoda [miasto] | !pogoda domyslna <miasto>",
+    examples: ["!pogoda","!pogoda Londyn","!pogoda domyslna Rzeszów"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["weather", "synoptyk"],
+    additionalInfo: ["Domyślnie sprawdza dla zapisanego miasta lub Warszawy."]
+  },
+  {
+    id: 46,
+    name: "shamewall",
+    category: "UTILITY_ADMIN",
+    shortDescription: "ściana wstydu",
+    description: "Pokazuje ranking top 5 kont z najniższym/najbardziej ujemnym saldem ogólnym na całym bode.",
+    usage: "!shamewall",
+    examples: ["!shamewall"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["scianawstydu", "zadluzeni", "dluznicy"],
+    additionalInfo: []
+  },
+  {
+    id: 47,
+    name: "zasady",
+    category: "UTILITY_ADMIN",
+    shortDescription: "wyswietla zasady korzystania z bota",
+    description: "Wyświetla oficjalne zasady i regulamin korzystania z bota.",
+    usage: "!zasady",
+    examples: ["!zasady"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["rules"],
+    additionalInfo: []
+  },
+  {
+    id: 48,
+    name: "wiadomosci",
+    category: "UTILITY_ADMIN",
+    shortDescription: "wlacza/wylacza logowanie usunietych wiadomosci",
+    description: "Pozwala administratorom grupy włączyć lub wyłączyć logowanie (oznaczanie) usuniętych wiadomości na tej grupie. Wiadomości usunięte przez podadminów bota są wysyłane zawsze, a przez twórcę nigdy.",
+    usage: "!wiadomosci <on/off>",
+    examples: ["!wiadomosci on", "!wiadomosci off"],
+    cooldown: "3 sekundy",
+    requirements: "Musisz być administratorem grupy lub bota.",
+    aliases: ["wiadomości", "delmsglog"],
+    additionalInfo: []
+  },
+  {
+    id: 49,
+    name: "afkdel",
+    category: "UTILITY_ADMIN",
+    shortDescription: "usuwa nieaktywnych czlonkow grupy (30 dni)",
+    description: "Analizuje historię wiadomości grupy i usuwa z niej wszystkich użytkowników, którzy nie wysłali żadnej wiadomości w ciągu ostatnich 30 dni (również przed dodaniem komendy). Nie usuwa adminów grupy, adminów bota ani samego bota.",
+    usage: "!afkdel",
+    examples: ["!afkdel"],
+    cooldown: "30 sekund",
+    requirements: "Bot musi być administratorem grupy, a nadawca musi być adminem grupy lub bota.",
+    aliases: []
+  },
+  {
+    id: 50,
+    name: "fm",
+    category: "UTILITY_ADMIN",
+    shortDescription: "integracja z muzyka Last.fm",
+    description: "Integracja z platformą Last.fm. Pozwala sprawdzać aktualnie słuchaną muzykę, historię odtworzeń oraz statystyki.\n\n**Główne subkomendy:**\n• `połącz <nazwa>` • łączy konto Last.fm\n• `odłącz` • rozłącza konto\n• `aktualnie [@osoba]` • co teraz słucha dana osoba\n• `ostatnie [@osoba]` • 5 ostatnio słuchanych utworów\n• `toputwory / topartyści / topalbumy [okres] [@osoba]` • statystyki słuchania (okres: `1m`, `3m`, `6m`, `12m`, `all` • domyślnie: `overall`)\n• `grupa` • czego słuchają teraz połączone osoby w grupie\n• `play <nazwa>` • wyszukuje i odtwarza utwór na YouTube\n• `incognito <on/off>` • ukrywa profil w statystykach grupy",
+    usage: "!fm <subkomenda> [opcje]",
+    examples: ["!fm połącz nazwa_konta", "!fm toputwory 3m @Rafal", "!fm topartyści", "!fm grupa", "!fm play Billie Eilish Bad Guy"],
+    cooldown: "3 sekundy",
+    requirements: "Konto Last.fm must być publiczne.",
+    aliases: ["lastfm"],
+    additionalInfo: []
+  },
+  {
+    id: 51,
+    name: "reakcja",
+    category: "UTILITY_ADMIN",
+    shortDescription: "informacje o szybkich palcach",
+    description: "Gra zręcznościowa wywoływana automatycznie na czacie grupowym co 9-24 godzin lub ręcznie przez administratora. Kto pierwszy przepisze kod, wygrywa od 20 000 do 200 000 viccoinów!",
+    usage: "!reakcja (tylko admin)",
+    examples: ["!reakcja"],
+    cooldown: "Brak.",
+    requirements: "Wymaga bycia pierwszym na czacie.",
+    aliases: [],
+    additionalInfo: ["Nagroda za poprawny kod wynosi od 20 000 do 200 000 viccoinów.","Wygenerowany kod wygasa po upływie 2 minut."]
+  },
   {
     id: 52,
-    name: "pogoda",
-    category: "UTILITY",
-    shortDescription: "prognoza pogody",
-    description: "Pobiera aktualne dane pogodowe (temperatura w °C, warunki, wilgotność, wiatr) dla wybranego miasta z serwisu wttr.in.",
-    usage: "!pogoda [miasto]",
-    examples: ["!pogoda", "!pogoda Londyn"],
-    cooldown: "3 sekundy",
-    requirements: "Brak. Domyślnie sprawdza dla Warszawy.",
-    aliases: ["weather", "synoptyk"],
+    name: "gangreset",
+    category: "UTILITY_ADMIN",
+    shortDescription: "resetuje cooldowny gangow (admin)",
+    description: "Resetuje czas oczekiwania (cooldown) na skoki gangu oraz ataki dla wszystkich gangów w bazie danych.",
+    usage: "!gangreset",
+    examples: ["!gangreset"],
+    cooldown: "Brak.",
+    requirements: "Wymaga uprawnień administratora bota.",
+    aliases: [],
+    additionalInfo: []
+  },
+  {
+    id: 53,
+    name: "guardnick",
+    category: "UTILITY_ADMIN",
+    shortDescription: "blokuje pseudonim wybranego gracza",
+    description: "Blokuje pseudonim wybranego użytkownika w bieżącej grupie. Każda próba zmiany nicku tej osoby zostanie natychmiast anulowana przez bota. Dostępne tylko dla twórcy bota.",
+    usage: "!guardnick <@osoba | ID> <pseudonim> | !guardnick off",
+    examples: ["!guardnick @Kowalski WymuszonyNick", "!guardnick off"],
+    cooldown: "Brak.",
+    requirements: "Wymaga bycia twórcą bota.",
+    aliases: [],
     additionalInfo: []
   }
 ];
@@ -732,13 +748,12 @@ function buildHelpShell() {
 
 function buildHelpListEmbed(client) {
   const embed = buildHelpShell()
-    .setDescription('Wszystkie dostepne komendy bota.');
+    .setDescription('Wszystkie dostepne komendy bota podzielone na 3 kategorie.');
 
   const categories = {
-    ECONOMY: '💰 EKONOMIA',
-    GAMBLING: '🎰 HAZARD',
-    SOCIAL: '👥 SOCJALNE',
-    UTILITY: '⚙️ INNE'
+    ECONOMY_GAMBLING: '💰 EKONOMIA I HAZARD',
+    SOCIAL_GANGS: '👥 SOCJALNE I GANGI',
+    UTILITY_ADMIN: '⚙️ INNE I NARZĘDZIA'
   };
 
   const fields = [];
