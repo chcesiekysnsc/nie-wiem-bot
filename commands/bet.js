@@ -161,7 +161,7 @@ module.exports = {
       return;
     }
 
-    const result = await withData(store => {
+    const result = await withData(async store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
@@ -247,6 +247,10 @@ module.exports = {
         }
 
         refreshBadges(user, inventory);
+
+        if (i % 100000 === 0) {
+          await new Promise(resolve => setImmediate(resolve));
+        }
       }
 
       // Dajemy XP i kamienie milowe tylko raz za całe użycie komendy
