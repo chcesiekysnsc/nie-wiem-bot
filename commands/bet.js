@@ -51,6 +51,10 @@ module.exports = {
           await message.reply('❌ Seryjne obstawianie (multi-bet) jest dostępne tylko dla administratorów.');
           return;
         }
+        if (count > 10000000) {
+          await message.reply('❌ Maksymalna ilość betów w serii to **10 000 000**.');
+          return;
+        }
         isMulti = true;
       }
     }
