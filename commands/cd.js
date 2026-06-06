@@ -69,16 +69,22 @@ module.exports = {
       const lastWork = user.lastWorkTime || 0;
       const localWorkExpiresAt = lastWork + cdMs;
 
+      const jailExpiresAt = Number(user.jailUntil || 0);
+
       const workExpiresAt = Math.max(storeWorkExpiresAt, localWorkExpiresAt);
       let workText = '🟢 **GOTOWE!**';
-      if (workExpiresAt > now) {
+      if (jailExpiresAt > now && jailExpiresAt >= workExpiresAt) {
+        workText = `⛓️ **w więzieniu** (wyjdziesz za **${msToReadable(jailExpiresAt - now)}**)`;
+      } else if (workExpiresAt > now) {
         workText = `⏱️ gotowe za **${msToReadable(workExpiresAt - now)}**`;
       }
 
       // 3. Crime cooldown
       const storeCrimeExpiresAt = Number(userCooldowns['crime'] || 0);
       let crimeText = '🟢 **GOTOWE!**';
-      if (storeCrimeExpiresAt > now) {
+      if (jailExpiresAt > now && jailExpiresAt >= storeCrimeExpiresAt) {
+        crimeText = `⛓️ **w więzieniu** (wyjdziesz za **${msToReadable(jailExpiresAt - now)}**)`;
+      } else if (storeCrimeExpiresAt > now) {
         crimeText = `⏱️ gotowe za **${msToReadable(storeCrimeExpiresAt - now)}**`;
       }
 
@@ -88,7 +94,9 @@ module.exports = {
       const robBanUntil = robCmd.caughtBan ? (robCmd.caughtBan.get(userId) || 0) : 0;
       const robExpiresAt = Math.max(robCoolUntil, robBanUntil);
       let robText = '🟢 **GOTOWE!**';
-      if (robExpiresAt > now) {
+      if (jailExpiresAt > now && jailExpiresAt >= robExpiresAt) {
+        robText = `⛓️ **w więzieniu** (wyjdziesz za **${msToReadable(jailExpiresAt - now)}**)`;
+      } else if (robExpiresAt > now) {
         robText = `⏱️ gotowe za **${msToReadable(robExpiresAt - now)}**`;
       }
 
