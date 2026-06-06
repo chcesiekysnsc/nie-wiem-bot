@@ -41,6 +41,12 @@ module.exports = {
       const user = createUser(userId, store.users);
       const now = Date.now();
 
+      // 0. Jail status
+      let jailText = '';
+      if (user.jailUntil && user.jailUntil > now) {
+        jailText = `⛓️ **Jesteś w więzieniu!** Odzyskasz wolność za **${msToReadable(user.jailUntil - now)}**.\n\n`;
+      }
+
       // 1. Daily cooldown
       const todayMidnight = getPolishMidnight(new Date(now));
       let dailyText = '🟢 **GOTOWE!**';
@@ -49,24 +55,46 @@ module.exports = {
         dailyText = `⏱️ gotowe za **${msToReadable(tomorrowMidnight - now)}**`;
       }
 
-      // Helper function to resolve general cooldown from store
-      const getCooldownText = (cmdName) => {
-        const userCooldowns = store.cooldowns.commands[userId] || {};
-        const expiresAt = Number(userCooldowns[cmdName] || 0);
-        if (expiresAt > now) {
-          return `⏱️ gotowe za **${msToReadable(expiresAt - now)}**`;
-        }
-        return '🟢 **GOTOWE!**';
-      };
+      // 2. Work cooldown (max of store cooldown and user.lastWorkTime local cooldown)
+      const userCooldowns = store.cooldowns.commands[userId] || {};
+      const storeWorkExpiresAt = Number(userCooldowns['work'] || 0);
 
-      const workText = getCooldownText('work');
-      const crimeText = getCooldownText('crime');
-      const robText = getCooldownText('rob');
+      const config = require('../config/config');
+      const { hasItem, ensureInventoryRecord } = require('../utils/economy');
+      const inventory = ensureInventoryRecord(store.inventory, userId);
+      const hasZegar = hasItem(inventory, 'stary_zegar');
+      const baseCd = config.cooldowns.work || 600;
+      const actualCd = hasZegar ? baseCd * 0.90 : baseCd;
+      const cdMs = actualCd * 1000;
+      const lastWork = user.lastWorkTime || 0;
+      const localWorkExpiresAt = lastWork + cdMs;
+
+      const workExpiresAt = Math.max(storeWorkExpiresAt, localWorkExpiresAt);
+      let workText = '🟢 **GOTOWE!**';
+      if (workExpiresAt > now) {
+        workText = `⏱️ gotowe za **${msToReadable(workExpiresAt - now)}**`;
+      }
+
+      // 3. Crime cooldown
+      const storeCrimeExpiresAt = Number(userCooldowns['crime'] || 0);
+      let crimeText = '🟢 **GOTOWE!**';
+      if (storeCrimeExpiresAt > now) {
+        crimeText = `⏱️ gotowe za **${msToReadable(storeCrimeExpiresAt - now)}**`;
+      }
+
+      // 4. Rob cooldown (checks the in-memory Maps in rob.js)
+      const robCmd = require('./rob');
+      const robCoolUntil = robCmd.robCooldowns ? (robCmd.robCooldowns.get(userId) || 0) : 0;
+      const robBanUntil = robCmd.caughtBan ? (robCmd.caughtBan.get(userId) || 0) : 0;
+      const robExpiresAt = Math.max(robCoolUntil, robBanUntil);
+      let robText = '🟢 **GOTOWE!**';
+      if (robExpiresAt > now) {
+        robText = `⏱️ gotowe za **${msToReadable(robExpiresAt - now)}**`;
+      }
 
       // 5. Company cooldown
       let companyText = '❔ brak firmy (kup za pomocą `!firma kup`)';
       if (user.company) {
-        const config = require('../config/config');
         const compDef = config.economy.companies[user.company.id];
         if (compDef) {
           if (user.company.isBroken) {
@@ -84,6 +112,7 @@ module.exports = {
       }
 
       return {
+        jailText,
         dailyText,
         workText,
         crimeText,
@@ -92,7 +121,8 @@ module.exports = {
       };
     });
 
-    let replyText = `⏳ **Status Twoich czasów oczekiwania (cooldownów):**\n\n`;
+    let replyText = result.jailText;
+    replyText += `⏳ **Status Twoich czasów oczekiwania (cooldownów):**\n\n`;
     replyText += `📅 **!daily** — ${result.dailyText}\n`;
     replyText += `💼 **!work** — ${result.workText}\n`;
     replyText += `🔫 **!crime** — ${result.crimeText}\n`;

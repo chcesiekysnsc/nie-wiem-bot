@@ -15,6 +15,8 @@ async function resolveName(client, userId) {
 module.exports = {
   name: 'rob',
   aliases: ['okradnij'],
+  robCooldowns,
+  caughtBan,
   async execute(client, message, args) {
     const authorId = message.author.id;
     const now = Date.now();
