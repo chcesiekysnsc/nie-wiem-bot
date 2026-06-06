@@ -1,5 +1,6 @@
 const config = require('../config/config');
 const {
+  addXp,
   ensureInventoryRecord,
   formatCurrency,
   formatNumber,
@@ -156,11 +157,6 @@ module.exports = {
       return;
     }
 
-    if (count > 5000) {
-      await message.reply('❌ Maksymalna ilość betów w serii to **5000**.');
-      return;
-    }
-
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
@@ -236,14 +232,25 @@ module.exports = {
 
         totalBets++;
         const net = won ? winAmount : -betAmount;
-        const xpResult = recordGame(user, net, 25, inventory);
-
-        if (xpResult.leveledUp && xpResult.milestonesGained) {
-          accumulatedMilestones.push(...xpResult.milestonesGained);
+        
+        user.gamesPlayed += 1;
+        if (net >= 0) {
+          user.totalWon += net;
+          user.wins = (user.wins || 0) + 1;
+        } else {
+          user.totalLost += Math.abs(net);
+          user.losses = (user.losses || 0) + 1;
         }
 
         refreshBadges(user, inventory);
       }
+
+      // Dajemy XP i kamienie milowe tylko raz za całe użycie komendy
+      const xpResult = addXp(user, 25, inventory);
+      if (xpResult.leveledUp && xpResult.milestonesGained) {
+        accumulatedMilestones.push(...xpResult.milestonesGained);
+      }
+      refreshBadges(user, inventory);
 
       const finalLevel = user.prestige > 0 ? `${user.level} [Prestiż ${user.prestige}]` : user.level;
       const leveledUp = (user.level !== startLevel || user.prestige !== startPrestige);
