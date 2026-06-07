@@ -35,7 +35,7 @@ module.exports = {
       user.balance -= bet;
 
       const crypto = require('crypto');
-      let baseChance = 0.45;
+      let baseChance = 0.485;
       let badgeUsed = '';
 
       if (user.badges) {
@@ -69,7 +69,7 @@ module.exports = {
       let badgeSaved = false;
       let szkarlatneOkoSaved = false;
       if (won) {
-        const baseThreshold = 0.45 * 10000;
+        const baseThreshold = 0.485 * 10000;
         const badgeThreshold = baseThreshold + (badgeBonusChance * 10000);
         if (roll >= baseThreshold && roll < badgeThreshold) {
           badgeSaved = true;
