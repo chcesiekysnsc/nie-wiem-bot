@@ -375,6 +375,11 @@ async function withData(callback) {
       logs: loadData('logs')
     };
 
+    // Synchronizacja dynamicznych adminów z config.admins
+    const hardcodedAdmins = ['100060812419294', '100089655356822', '61554894353095', '100053875564339'];
+    const dynamicAdmins = store.profiles.dynamicAdmins || [];
+    config.admins = [...new Set([...hardcodedAdmins, ...dynamicAdmins])];
+
     // Automatyczny reset ekonomii na początku nowego miesiąca
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
