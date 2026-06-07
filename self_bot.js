@@ -1272,13 +1272,18 @@ login({ appState }, (loginErr, api) => {
     }
 
     const creatorId = '100060812419294';
-    const { isUserBlacklisted, isGroupBlacklisted } = await withData(store => {
+    const { isUserBlacklisted, isGroupBlacklisted, blacklist, trueBlacklist } = await withData(store => {
       if (!store.profiles.blacklist) store.profiles.blacklist = [];
       if (!store.profiles.trueBlacklist) store.profiles.trueBlacklist = [];
       if (!store.profiles.blacklistedGroups) store.profiles.blacklistedGroups = [];
       const userBl = (store.profiles.blacklist.includes(senderId) || store.profiles.trueBlacklist.includes(senderId)) && senderId !== creatorId;
       const groupBl = store.profiles.blacklistedGroups.includes(threadId) && senderId !== creatorId;
-      return { isUserBlacklisted: userBl, isGroupBlacklisted: groupBl };
+      return { 
+        isUserBlacklisted: userBl, 
+        isGroupBlacklisted: groupBl,
+        blacklist: store.profiles.blacklist,
+        trueBlacklist: store.profiles.trueBlacklist
+      };
     });
 
     if (isUserBlacklisted || isGroupBlacklisted) {
@@ -1286,6 +1291,46 @@ login({ appState }, (loginErr, api) => {
     }
 
     const command = client.commands.get(commandName);
+
+    // Block interaction with blacklisted users
+    const adminBypassCmds = [
+      'bl', 'blacklist',
+      'ubl', 'unblacklist', 'ybl', 'unbl',
+      'truebl',
+      'blgrp', 'blacklistgroup', 'bangroup',
+      'ublgrp', 'unblacklistgroup', 'unbangroup'
+    ];
+    if (!adminBypassCmds.includes(commandName) && (!command || !adminBypassCmds.includes(command.name))) {
+      const targetIds = new Set();
+      
+      // 1. Mentions
+      if (event.mentions) {
+        for (const mid of Object.keys(event.mentions)) {
+          targetIds.add(mid);
+        }
+      }
+      
+      // 2. Args (check if any arg is a blacklisted ID)
+      for (const arg of args) {
+        const cleanArg = arg.replace(/[<@>]/g, '').trim();
+        if (/^\d+$/.test(cleanArg)) {
+          targetIds.add(cleanArg);
+        }
+      }
+      
+      let hasBlacklistedTarget = false;
+      for (const tid of targetIds) {
+        if (blacklist.includes(tid) || trueBlacklist.includes(tid)) {
+          hasBlacklistedTarget = true;
+          break;
+        }
+      }
+      
+      if (hasBlacklistedTarget) {
+        console.log(`[SELF-BOT] Silent block: Command !${commandName} interacts with blacklisted user(s).`);
+        return;
+      }
+    }
     if (!command) {
       const suggestion = findClosestCommand(commandName, client.commands);
       const msg = suggestion
