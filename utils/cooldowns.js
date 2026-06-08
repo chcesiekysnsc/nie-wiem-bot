@@ -46,21 +46,52 @@ function registerCooldownNotification(store, userId, now) {
   if (entry.timestamps.length >= rules.maxNotifications) {
     delete store.cooldowns.cooldownNotifications[userId];
 
-    if (!store.profiles.blacklist) {
-      store.profiles.blacklist = [];
-    }
+    // Sprawdź ile razy gracz już dostawał ostrzeżenie za spam
+    if (!store.profiles.spamWarnings) store.profiles.spamWarnings = {};
+    const previousWarnings = store.profiles.spamWarnings[userId] || 0;
 
-    if (!store.profiles.blacklist.includes(userId)) {
-      store.profiles.blacklist.push(userId);
-    }
+    if (previousWarnings === 0) {
+      // Pierwsze złapanie — tymczasowy ban na 30 minut + ostrzeżenie
+      store.profiles.spamWarnings[userId] = 1;
 
-    return {
-      blacklisted: true,
-      embed: errorEmbed(
-        '🚫 Czarna lista',
-        `Zostałeś dodany do czarnej listy za spamowanie komendami na cooldownie. W ciągu **${rules.perSeconds}s** otrzymałeś **${rules.maxNotifications}** powiadomień o aktywnym cooldownie.`
-      )
-    };
+      // Ustaw tymczasowy spam block na 30 minut
+      if (!store.cooldowns.spam[userId] || typeof store.cooldowns.spam[userId] !== 'object') {
+        store.cooldowns.spam[userId] = { timestamps: [], blockedUntil: 0 };
+      }
+      store.cooldowns.spam[userId].blockedUntil = now + (30 * 60 * 1000);
+      store.cooldowns.spam[userId].timestamps = [];
+
+      return {
+        blacklisted: false,
+        tempBanned: true,
+        embed: errorEmbed(
+          '⚠️ Ostrzeżenie — tymczasowa blokada',
+          `Wykryto spamowanie komendami na cooldownie (**${rules.maxNotifications}** razy w ciągu **${rules.perSeconds}s**).\n\n` +
+          `🔒 Otrzymujesz **tymczasową blokadę na 30 minut**.\n` +
+          `⚠️ **Kolejne złapanie na spamie spowoduje TRWAŁE dodanie do czarnej listy!**`
+        )
+      };
+    } else {
+      // Drugie (i kolejne) złapanie — trwała czarna lista
+      store.profiles.spamWarnings[userId] = previousWarnings + 1;
+
+      if (!store.profiles.blacklist) {
+        store.profiles.blacklist = [];
+      }
+
+      if (!store.profiles.blacklist.includes(userId)) {
+        store.profiles.blacklist.push(userId);
+      }
+
+      return {
+        blacklisted: true,
+        embed: errorEmbed(
+          '🚫 Czarna lista',
+          `Zostałeś dodany do czarnej listy za ponowne spamowanie komendami na cooldownie. W ciągu **${rules.perSeconds}s** otrzymałeś **${rules.maxNotifications}** powiadomień o aktywnym cooldownie.\n\n` +
+          `To Twoje **${previousWarnings + 1}.** wykroczenie. Blokada jest trwała.`
+        )
+      };
+    }
   }
 
   store.cooldowns.cooldownNotifications[userId] = entry;
