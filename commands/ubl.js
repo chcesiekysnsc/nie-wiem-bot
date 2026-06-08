@@ -219,35 +219,59 @@ module.exports = {
     const result = await withData(store => {
       if (!store.profiles.blacklist) store.profiles.blacklist = [];
       const idx = store.profiles.blacklist.indexOf(targetId);
-      if (idx === -1) {
+
+      // Sprawdź czy użytkownik ma aktywny tymczasowy ban za spam
+      const hasSpamBan = store.cooldowns.spam[targetId] 
+        && typeof store.cooldowns.spam[targetId] === 'object'
+        && store.cooldowns.spam[targetId].blockedUntil > Date.now();
+
+      if (idx === -1 && !hasSpamBan) {
         return { notFound: true };
       }
 
-      // Blokada za ujemne saldo — NIKT (nawet twórca) nie może zdjąć
-      const targetUser = store.users[targetId];
-      if (targetUser && targetUser.blacklistedForNegativeBalance) {
-        return { isNegativeBalanceBl: true };
-      }
+      if (idx !== -1) {
+        // Blokada za ujemne saldo — NIKT (nawet twórca) nie może zdjąć
+        const targetUser = store.users[targetId];
+        if (targetUser && targetUser.blacklistedForNegativeBalance) {
+          return { isNegativeBalanceBl: true };
+        }
 
-      // Sprawdź czy target jest na twardej czarnej liście (tylko twórca może go zdjąć)
-      if (store.profiles.trueBlacklist && store.profiles.trueBlacklist.includes(targetId)) {
-        if (message.author.id !== '100060812419294') {
-          return { isTrueBlRestricted: true };
+        // Sprawdź czy target jest na twardej czarnej liście (tylko twórca może go zdjąć)
+        if (store.profiles.trueBlacklist && store.profiles.trueBlacklist.includes(targetId)) {
+          if (message.author.id !== '100060812419294') {
+            return { isTrueBlRestricted: true };
+          }
+        }
+
+        store.profiles.blacklist.splice(idx, 1);
+        if (store.profiles.trueBlacklist) {
+          const trueIdx = store.profiles.trueBlacklist.indexOf(targetId);
+          if (trueIdx !== -1) {
+            store.profiles.trueBlacklist.splice(trueIdx, 1);
+          }
         }
       }
 
-      store.profiles.blacklist.splice(idx, 1);
-      if (store.profiles.trueBlacklist) {
-        const trueIdx = store.profiles.trueBlacklist.indexOf(targetId);
-        if (trueIdx !== -1) {
-          store.profiles.trueBlacklist.splice(trueIdx, 1);
-        }
+      // Wyczyść tymczasowy ban za spam
+      if (store.cooldowns.spam[targetId]) {
+        delete store.cooldowns.spam[targetId];
       }
-      return { success: true };
+
+      // Wyczyść licznik ostrzeżeń za spam
+      if (store.profiles.spamWarnings && store.profiles.spamWarnings[targetId]) {
+        delete store.profiles.spamWarnings[targetId];
+      }
+
+      // Wyczyść powiadomienia o cooldownie
+      if (store.cooldowns.cooldownNotifications && store.cooldowns.cooldownNotifications[targetId]) {
+        delete store.cooldowns.cooldownNotifications[targetId];
+      }
+
+      return { success: true, wasOnBlacklist: idx !== -1, hadSpamBan: hasSpamBan };
     });
 
     if (result.notFound) {
-      await message.reply(`👤 **${targetName}** nie znajduje się na czarnej liście.`);
+      await message.reply(`👤 **${targetName}** nie znajduje się na czarnej liście ani nie ma aktywnego bana za spam.`);
       return;
     }
 
@@ -261,6 +285,15 @@ module.exports = {
       return;
     }
 
-    await message.reply(`✅ Usunięto **${targetName}** z czarnej listy.`);
+    let replyMsg = '';
+    if (result.wasOnBlacklist && result.hadSpamBan) {
+      replyMsg = `✅ Usunięto **${targetName}** z czarnej listy i wyczyszczono tymczasowy ban za spam.`;
+    } else if (result.wasOnBlacklist) {
+      replyMsg = `✅ Usunięto **${targetName}** z czarnej listy.`;
+    } else {
+      replyMsg = `✅ Wyczyszczono tymczasowy ban za spam dla **${targetName}**.`;
+    }
+    await message.reply(replyMsg);
   }
 };
+
