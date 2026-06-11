@@ -644,6 +644,70 @@ login({ appState }, (loginErr, api) => {
   // Uruchom timer flag
   startFlagTimer();
 
+  client.processedNewGroups = client.processedNewGroups || new Set();
+
+  function handleNewGroupAdded(threadId, groupName) {
+    if (client.processedNewGroups.has(threadId)) {
+      return;
+    }
+    client.processedNewGroups.add(threadId);
+
+    console.log(`[NEW GROUP] Wykryto dodanie do nowej grupy: ${groupName} (ID: ${threadId}). Wysyłanie kropki i powiadomienia...`);
+
+    // 1. Wyślij kropkę do nowej grupy (akceptacja zaproszenia/żądania wiadomości)
+    api.sendMessage('.', threadId, (sendErr) => {
+      if (sendErr) {
+        console.error(`[NEW GROUP ERROR] Błąd podczas wysyłania kropki do grupy ${threadId}:`, sendErr);
+      } else {
+        console.log(`[NEW GROUP] Pomyślnie wysłano kropkę do nowej grupy ${threadId}.`);
+      }
+    });
+
+    // 2. Wyślij powiadomienie na grupę o ID 24956371943963938
+    const notifyGroupId = '24956371943963938';
+    const notifyMsg = `🔔 **BOT ZOSTAŁ DODANY DO NOWEJ GRUPY** 🔔\n` +
+                      `👥 Nazwa: **${groupName}**\n` +
+                      `🆔 ID: \`${threadId}\``;
+
+    api.sendMessage(notifyMsg, notifyGroupId, (notifyErr) => {
+      if (notifyErr) {
+        console.error(`[NEW GROUP NOTIFY ERROR] Błąd podczas wysyłania powiadomienia na grupę powiadomień ${notifyGroupId}:`, notifyErr);
+      } else {
+        console.log(`[NEW GROUP] Pomyślnie wysłano powiadomienie do grupy powiadomień ${notifyGroupId}.`);
+      }
+    });
+  }
+
+  const checkPendingThreads = () => {
+    // 1. Pobierz wątki oczekujące (PENDING)
+    api.getThreadList(10, null, ['PENDING'], (err, list) => {
+      if (err) return;
+      if (list && list.length > 0) {
+        for (const thread of list) {
+          if (thread.isGroup && thread.threadID) {
+            handleNewGroupAdded(thread.threadID, thread.name || 'Grupa bez nazwy');
+          }
+        }
+      }
+    });
+
+    // 2. Pobierz wątki w zakładce spam (OTHER)
+    api.getThreadList(10, null, ['OTHER'], (err, list) => {
+      if (err) return;
+      if (list && list.length > 0) {
+        for (const thread of list) {
+          if (thread.isGroup && thread.threadID) {
+            handleNewGroupAdded(thread.threadID, thread.name || 'Grupa bez nazwy');
+          }
+        }
+      }
+    });
+  };
+
+  // Uruchom okresowe sprawdzanie co 15 sekund oraz raz zaraz po starcie
+  setInterval(checkPendingThreads, 15000).unref();
+  setTimeout(checkPendingThreads, 1000).unref();
+
   api.setOptions({
     listenEvents: true,
     selfListen: false,
@@ -815,6 +879,23 @@ login({ appState }, (loginErr, api) => {
             }
           }
         }
+      }
+      return;
+    }
+
+    // Interceptor dla dodania do grupy (log:subscribe)
+    const isSubscribeEvent = (event.type === 'event' && event.logMessageType === 'log:subscribe') || (event.type === 'log:subscribe');
+    if (isSubscribeEvent) {
+      const threadId = event.threadID;
+      const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
+      const addedParticipants = event.logMessageData?.addedParticipants || [];
+      const isBotAdded = addedParticipants.some(p => p && String(p.userFbId || p.userID || p.id) === String(botId));
+
+      if (isBotAdded && threadId) {
+        api.getThreadInfo(threadId, (infoErr, info) => {
+          const groupName = (!infoErr && info) ? (info.threadName || info.name || 'Grupa bez nazwy') : 'Nowa Grupa';
+          handleNewGroupAdded(threadId, groupName);
+        });
       }
       return;
     }
