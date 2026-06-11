@@ -60,6 +60,11 @@ module.exports = {
       }
     }
 
+    if (isMulti && chosenNumber < 5) {
+      await message.reply('❌ Podczas seryjnego obstawiania (multi-bet) minimalna liczba na którą możesz postawić to **5**.');
+      return;
+    }
+
     if (!isMulti) {
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
