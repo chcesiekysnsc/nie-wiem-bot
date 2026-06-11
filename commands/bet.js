@@ -13,7 +13,7 @@ const { createUser, withData } = require('../utils/storage');
 
 const MULTIPLIERS = {};
 for (let i = 5; i <= 90; i++) {
-  MULTIPLIERS[i] = parseFloat((98 / i).toFixed(2));
+  MULTIPLIERS[i] = parseFloat((95 / i).toFixed(2));
 }
 
 module.exports = {
