@@ -78,7 +78,7 @@ module.exports = {
         let activeBadgeName = '';
         if (user.badges) {
           if (user.badges.includes(config.badges.bog)) {
-            badgeBonus = 2.0;
+            badgeBonus = 1.5;
             activeBadgeName = config.badges.bog;
           } else if (user.badges.includes(config.badges.rekin)) {
             badgeBonus = 1.0;
@@ -199,15 +199,15 @@ module.exports = {
         let badgeBonus = 0;
         if (user.badges) {
           if (user.badges.includes(config.badges.bog)) {
-            badgeBonus = 0.5; // Bóg Kasyna: 0.5% instead of 2.0% during multibet
+            badgeBonus = 0.25; // Bóg Kasyna: 0.25% instead of 1.5% during multibet
           } else if (user.badges.includes(config.badges.rekin)) {
-            badgeBonus = 0.25; // Rekin Kasyna: 0.25% instead of 1.0% during multibet
+            badgeBonus = 0.12; // Rekin Kasyna: 0.12% instead of 1.0% during multibet
           } else if (user.badges.includes(config.badges.hazardzista)) {
-            badgeBonus = 0.12; // Hazardzista: 0.12% instead of 0.5% during multibet
+            badgeBonus = 0.06; // Hazardzista: 0.06% instead of 0.5% during multibet
           }
         }
         const hasOko = hasItem(inventory, 'szkarlatne_oko');
-        const okoBonus = hasOko ? 1.0 : 0; // Szkarłatne Oko: 1.0% instead of 1.5% during multibet
+        const okoBonus = hasOko ? 0.75 : 0; // Szkarłatne Oko: 0.75% instead of 1.5% during multibet
         const totalBonus = badgeBonus + okoBonus;
 
         const rolledNumber = Math.floor(Math.random() * 100);

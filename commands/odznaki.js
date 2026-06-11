@@ -9,7 +9,7 @@ const badgeGroups = [
     badges: [
       { name: '🎲 Hazardzista', desc: '+0.5% szans na wygraną w kasynie', req: 'Wygranie łącznie 1 000 000 💰 w grach' },
       { name: '🎰 Rekin Kasyna', desc: '+1% szans na wygraną w kasynie', req: 'Wygranie łącznie 50 000 000 💰 w grach' },
-      { name: '🃏 Bóg Kasyna', desc: '+2% szans na wygraną w kasynie', req: 'Wygranie łącznie 250 000 000 💰 w grach' }
+      { name: '🃏 Bóg Kasyna', desc: '+1.5% szans na wygraną w kasynie', req: 'Wygranie łącznie 250 000 000 💰 w grach' }
     ]
   },
   {

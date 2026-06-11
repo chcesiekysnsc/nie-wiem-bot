@@ -40,13 +40,13 @@ module.exports = {
 
       if (user.badges) {
         if (user.badges.includes(config.badges.bog)) {
-          baseChance += 0.04;
+          baseChance += 0.015;
           badgeUsed = config.badges.bog;
         } else if (user.badges.includes(config.badges.rekin)) {
-          baseChance += 0.02;
+          baseChance += 0.01;
           badgeUsed = config.badges.rekin;
         } else if (user.badges.includes(config.badges.hazardzista)) {
-          baseChance += 0.01;
+          baseChance += 0.005;
           badgeUsed = config.badges.hazardzista;
         }
       }
@@ -68,9 +68,9 @@ module.exports = {
 
       let badgeBonusChance = 0;
       if (badgeUsed) {
-        if (badgeUsed === config.badges.bog) badgeBonusChance = 0.04;
-        else if (badgeUsed === config.badges.rekin) badgeBonusChance = 0.02;
-        else if (badgeUsed === config.badges.hazardzista) badgeBonusChance = 0.01;
+        if (badgeUsed === config.badges.bog) badgeBonusChance = 0.015;
+        else if (badgeUsed === config.badges.rekin) badgeBonusChance = 0.01;
+        else if (badgeUsed === config.badges.hazardzista) badgeBonusChance = 0.005;
       }
 
       let badgeSaved = false;

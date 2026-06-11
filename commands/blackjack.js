@@ -251,7 +251,7 @@ module.exports = {
           let activeBadgeName = '';
           if (user.badges) {
             if (user.badges.includes(config.badges.bog)) {
-              badgeChance = 0.02;
+              badgeChance = 0.015;
               activeBadgeName = config.badges.bog;
             } else if (user.badges.includes(config.badges.rekin)) {
               badgeChance = 0.01;
@@ -363,7 +363,7 @@ module.exports = {
           let activeBadgeName = '';
           if (user.badges) {
             if (user.badges.includes(config.badges.bog)) {
-              badgeChance = 0.02;
+              badgeChance = 0.015;
               activeBadgeName = config.badges.bog;
             } else if (user.badges.includes(config.badges.rekin)) {
               badgeChance = 0.01;
@@ -475,7 +475,7 @@ module.exports = {
         let activeBadgeName = '';
         if (user.badges) {
           if (user.badges.includes(config.badges.bog)) {
-            badgeChance = 0.02;
+            badgeChance = 0.015;
             activeBadgeName = config.badges.bog;
           } else if (user.badges.includes(config.badges.rekin)) {
             badgeChance = 0.01;
