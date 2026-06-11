@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, refreshBadges, ensureInventoryRecord } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 module.exports = {
@@ -11,8 +11,8 @@ module.exports = {
       return;
     }
 
-    const amount = Math.floor(Number(args[0]));
-    if (isNaN(amount) || amount <= 0) {
+    const amount = resolveAmount(args[0], 999999999999);
+    if (!amount || amount <= 0) {
       await message.reply('❌ Użyj: **!admgiv <kwota>**');
       return;
     }

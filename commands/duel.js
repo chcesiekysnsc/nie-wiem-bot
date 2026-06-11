@@ -1,4 +1,4 @@
-const { formatCurrency, refreshBadges, ensureInventoryRecord } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 async function resolveName(client, userId) {
@@ -138,9 +138,14 @@ module.exports = {
       const target = createUser(targetId, store.users);
 
       const isAll = ['all', 'max'].includes(String(rawAmount).toLowerCase());
-      let amount = isAll ? challenger.balance : Math.floor(Number(rawAmount));
+      let amount = 0;
+      if (isAll) {
+        amount = challenger.balance;
+      } else {
+        amount = resolveAmount(rawAmount, challenger.balance);
+      }
 
-      if (isNaN(amount) || amount <= 0) {
+      if (!amount || amount <= 0) {
         return { error: '❌ Podaj poprawną kwotę pojedynku.' };
       }
 

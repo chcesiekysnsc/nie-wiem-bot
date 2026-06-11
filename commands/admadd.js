@@ -1,6 +1,6 @@
 const config = require('../config/config');
 const { errorEmbed, successEmbed } = require('../utils/embeds');
-const { formatCurrency, refreshBadges, ensureInventoryRecord } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 module.exports = {
@@ -14,9 +14,9 @@ module.exports = {
       return;
     }
 
-    const amount = Math.floor(Number(args[0]));
+    const amount = resolveAmount(args[0], 999999999999);
 
-    if (!Number.isFinite(amount) || amount <= 0) {
+    if (!amount || amount <= 0) {
       await message.reply({
         embeds: [errorEmbed('Bledne uzycie', 'Uzyj: **!admadd <kwota>** — dodaje kase tobie.')]
       });

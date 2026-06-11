@@ -1,4 +1,4 @@
-const { ensureInventoryRecord, refreshBadges, formatCurrency } = require('../utils/economy');
+const { ensureInventoryRecord, refreshBadges, formatCurrency, resolveAmount } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 async function getPartnerLabel(client, userId) {
@@ -53,17 +53,7 @@ module.exports = {
     }
 
     if (action === 'wplac' || action === 'deposit' || action === 'wplata') {
-      let isAll = false;
-      let amount = 0;
-      if (String(args[1] || '').toLowerCase() === 'all') {
-        isAll = true;
-      } else {
-        amount = Math.floor(Number(args[1]));
-        if (isNaN(amount) || amount <= 0) {
-          await message.reply('❌ Podaj poprawną kwotę lub **all**: **!marry wplac <kwota|all>**');
-          return;
-        }
-      }
+      const isAll = ['all', 'max'].includes(String(args[1] || '').toLowerCase());
 
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
@@ -90,16 +80,18 @@ module.exports = {
           return { error: '❌ Osiągnąłeś już maksymalny limit wpłat (100k) do wspólnego banku małżeńskiego.' };
         }
 
-        let depositAmount = amount;
+        let depositAmount = 0;
         if (isAll) {
           depositAmount = Math.min(user.balance, remainingLimit);
+        } else {
+          depositAmount = resolveAmount(args[1], user.balance);
         }
 
-        if (depositAmount <= 0) {
+        if (!depositAmount || depositAmount <= 0) {
           if (isAll) {
             return { error: '❌ Nie masz żadnych monet w portfelu do wpłacenia.' };
           }
-          return { error: '❌ Podaj poprawną kwotę.' };
+          return { error: '❌ Podaj poprawną kwotę do wpłacenia.' };
         }
 
         let lockedAmount = 0;
@@ -140,17 +132,7 @@ module.exports = {
     }
 
     if (action === 'wyplac' || action === 'withdraw' || action === 'wyplata') {
-      let isAll = false;
-      let amount = 0;
-      if (String(args[1] || '').toLowerCase() === 'all') {
-        isAll = true;
-      } else {
-        amount = Math.floor(Number(args[1]));
-        if (isNaN(amount) || amount <= 0) {
-          await message.reply('❌ Podaj poprawną kwotę lub **all**: **!marry wyplac <kwota|all>**');
-          return;
-        }
-      }
+      const isAll = ['all', 'max'].includes(String(args[1] || '').toLowerCase());
 
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
@@ -167,13 +149,15 @@ module.exports = {
           return { error: '❌ Wspólny bank małżeński jest pusty.' };
         }
 
-        let withdrawAmount = amount;
+        let withdrawAmount = 0;
         if (isAll) {
           withdrawAmount = bank.balance;
+        } else {
+          withdrawAmount = resolveAmount(args[1], bank.balance);
         }
 
-        if (withdrawAmount <= 0) {
-          return { error: '❌ Podaj poprawną kwotę.' };
+        if (!withdrawAmount || withdrawAmount <= 0) {
+          return { error: '❌ Podaj poprawną kwotę do wypłaty.' };
         }
 
         if (bank.balance < withdrawAmount) {

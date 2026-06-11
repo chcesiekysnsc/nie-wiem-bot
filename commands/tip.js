@@ -1,4 +1,4 @@
-const { formatCurrency } = require('../utils/economy');
+const { formatCurrency, resolveAmount } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 async function resolveName(client, userId) {
@@ -48,9 +48,14 @@ module.exports = {
       }
 
       const isAll = ['all', 'max'].includes(String(rawAmount || '').toLowerCase());
-      let amount = isAll ? sender.balance : Math.floor(Number(rawAmount));
+      let amount = 0;
+      if (isAll) {
+        amount = sender.balance;
+      } else {
+        amount = resolveAmount(rawAmount, sender.balance);
+      }
 
-      if (isNaN(amount) || amount <= 0) {
+      if (!amount || amount <= 0) {
         return { error: '❌ Podaj poprawną kwotę do przelania.' };
       }
 

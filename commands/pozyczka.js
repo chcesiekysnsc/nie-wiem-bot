@@ -1,4 +1,4 @@
-const { formatCurrency, formatNumber, msToReadable } = require('../utils/economy');
+const { formatCurrency, formatNumber, msToReadable, resolveAmount } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 const LOAN_UNLOCK_COMMANDS = 100;
@@ -109,9 +109,14 @@ module.exports = {
         }
 
         const isAll = ['all', 'max'].includes(String(rawAmount).toLowerCase());
-        let amountToRepay = isAll ? user.activeLoan.amount : Math.floor(Number(rawAmount));
+        let amountToRepay = 0;
+        if (isAll) {
+          amountToRepay = user.activeLoan.amount;
+        } else {
+          amountToRepay = resolveAmount(rawAmount, user.activeLoan.amount);
+        }
 
-        if (isNaN(amountToRepay) || amountToRepay <= 0) {
+        if (!amountToRepay || amountToRepay <= 0) {
           return { error: '❌ Podaj poprawną kwotę do spłaty: **!pozyczka splac <kwota|all>**' };
         }
 
@@ -150,12 +155,6 @@ module.exports = {
     }
 
     // Wzięcie pożyczki
-    const borrowAmount = Math.floor(Number(args[0]));
-    if (isNaN(borrowAmount) || borrowAmount <= 0) {
-      await message.reply('❌ Podaj poprawną kwotę pożyczki lub użyj **!pozyczka splac <kwota|all>**.');
-      return;
-    }
-
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       if (user.activeLoan) {
@@ -168,6 +167,11 @@ module.exports = {
 
       if ((user.commandsUsed || 0) <= LOAN_UNLOCK_COMMANDS) {
         return { error: buildLoanUnlockError(user.commandsUsed) };
+      }
+
+      const borrowAmount = resolveAmount(args[0], 500000);
+      if (!borrowAmount || borrowAmount <= 0) {
+        return { error: '❌ Podaj poprawną kwotę pożyczki lub użyj **!pozyczka splac <kwota|all>**.' };
       }
 
       if (borrowAmount > 500000) {
