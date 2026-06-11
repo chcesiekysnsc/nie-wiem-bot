@@ -15,17 +15,33 @@ module.exports = {
       return;
     }
 
+    // Obsługa wbudowanego w Messenger @everyone / @wszyscy
+    const hasEveryone = content.includes('@wszyscy') || content.includes('@everyone');
+    const cleanContent = content.replace(/@wszyscy/g, '@everyone');
+
+    const msgPayload = hasEveryone ? {
+      body: cleanContent,
+      mentions: [{
+        tag: '@everyone',
+        id: 'everyone'
+      }]
+    } : cleanContent;
+
+    const excludedGroupId = '2094120197822035';
+
     if (client.api) {
-      const targets = Array.from(client.activeThreadIds);
+      const targets = Array.from(client.activeThreadIds).filter(tId => tId !== excludedGroupId);
       if (targets.length > 0) {
         for (const tId of targets) {
-          client.api.sendMessage(content, tId);
+          client.api.sendMessage(msgPayload, tId);
         }
-        await message.reply(`📣 Rozesłano wiadomość do ${targets.length} grup/wątków.`);
+        await message.reply(`📣 Rozesłano wiadomość do ${targets.length} grup/wątków (z wykluczeniem grupy o ID: ${excludedGroupId}).`);
       } else {
         const threadId = message.guild?.id || message.rawEvent?.threadID;
-        if (threadId) {
-          client.api.sendMessage(content, threadId);
+        if (threadId && threadId !== excludedGroupId) {
+          client.api.sendMessage(msgPayload, threadId);
+        } else if (threadId === excludedGroupId) {
+          await message.reply('❌ Ta grupa jest wykluczona z komendy !say.');
         }
       }
     }
