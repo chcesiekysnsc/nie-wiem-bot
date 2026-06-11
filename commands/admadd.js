@@ -14,31 +14,60 @@ module.exports = {
       return;
     }
 
-    const amount = resolveAmount(args[0], 999999999999);
-
-    if (!amount || amount <= 0) {
-      await message.reply({
-        embeds: [errorEmbed('Bledne uzycie', 'Uzyj: **!admadd <kwota> [@oznaczenie/id]**')]
-      });
-      return;
-    }
-
     let targetId = message.author.id;
     let targetName = message.author.username || `Uzytkownik_${targetId.slice(-6)}`;
     let isSelf = true;
+    let amount = null;
 
     const mentioned = message.mentions.users.first();
     if (mentioned) {
       targetId = mentioned.id;
       targetName = mentioned.username || `Uzytkownik_${targetId.slice(-6)}`;
       isSelf = false;
-    } else if (args[1] && /^\d+$/.test(args[1])) {
-      targetId = args[1];
-      targetName = `Uzytkownik_${targetId.slice(-6)}`;
-      isSelf = false;
-      if (client.userNames && client.userNames.has(targetId)) {
-        targetName = client.userNames.get(targetId);
+
+      for (const arg of args) {
+        const resolved = resolveAmount(arg, 999999999999);
+        if (resolved && resolved > 0) {
+          amount = resolved;
+          break;
+        }
       }
+    } else {
+      let idIndex = -1;
+      for (let i = 0; i < args.length; i++) {
+        if (/^\d{10,18}$/.test(args[i])) {
+          idIndex = i;
+          break;
+        }
+      }
+
+      if (idIndex !== -1) {
+        targetId = args[idIndex];
+        targetName = `Uzytkownik_${targetId.slice(-6)}`;
+        if (client.userNames && client.userNames.has(targetId)) {
+          targetName = client.userNames.get(targetId);
+        }
+        isSelf = false;
+
+        for (let i = 0; i < args.length; i++) {
+          if (i !== idIndex) {
+            const resolved = resolveAmount(args[i], 999999999999);
+            if (resolved && resolved > 0) {
+              amount = resolved;
+              break;
+            }
+          }
+        }
+      } else {
+        amount = resolveAmount(args[0], 999999999999);
+      }
+    }
+
+    if (!amount || amount <= 0) {
+      await message.reply({
+        embeds: [errorEmbed('Bledne uzycie', 'Uzyj: **!admadd <kwota> [@oznaczenie/id]** lub **!admadd [@oznaczenie/id] <kwota>**')]
+      });
+      return;
     }
 
     const result = await withData(store => {
