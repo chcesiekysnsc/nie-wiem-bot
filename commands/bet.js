@@ -48,8 +48,8 @@ module.exports = {
       }
       if (count > 1) {
         const isAdmin = config.admins.includes(message.author.id);
-        if (!isAdmin && count > 10) {
-          await message.reply('❌ Seryjne obstawianie (multi-bet) dla zwykłych użytkowników ma limit **10** na raz.');
+        if (!isAdmin && count > 15) {
+          await message.reply('❌ Seryjne obstawianie (multi-bet) dla zwykłych użytkowników ma limit **15** na raz.');
           return;
         }
         if (isAdmin && count > 10000000) {
@@ -265,6 +265,9 @@ module.exports = {
       const finalLevel = user.prestige > 0 ? `${user.level} [Prestiż ${user.prestige}]` : user.level;
       const leveledUp = (user.level !== startLevel || user.prestige !== startPrestige);
 
+      const hasOko = hasItem(inventory, 'szkarlatne_oko');
+      const hasBadge = !!(user.badges && (user.badges.includes(config.badges.bog) || user.badges.includes(config.badges.rekin) || user.badges.includes(config.badges.hazardzista)));
+
       return {
         initialBalance,
         finalBalance: user.balance,
@@ -278,7 +281,9 @@ module.exports = {
         interruptedReason,
         leveledUp,
         finalLevel,
-        accumulatedMilestones
+        accumulatedMilestones,
+        hasOko,
+        hasBadge
       };
     });
 
@@ -300,9 +305,17 @@ module.exports = {
     replyText += `• Zmiana salda: **${netSign}${formatCurrency(netChange)}**\n`;
     replyText += `• Obecny stan konta: **${formatCurrency(result.finalBalance)}**\n\n`;
 
-    replyText += `🛡️ **Uaktywnione przedmioty ratujące:**\n`;
-    replyText += `• Szkarłatne Oko Krupiera: **${result.okoSaves}** razy\n`;
-    replyText += `• Bonus z odznak: **${result.badgeSaves}** razy`;
+    const hasAnySavesInfo = result.hasOko || result.hasBadge;
+    if (hasAnySavesInfo) {
+      replyText += `🛡️ **Uaktywnione przedmioty ratujące:**\n`;
+      if (result.hasOko) {
+        replyText += `• Szkarłatne Oko Krupiera: **${result.okoSaves}** razy\n`;
+      }
+      if (result.hasBadge) {
+        replyText += `• Bonus z odznak: **${result.badgeSaves}** razy\n`;
+      }
+      replyText = replyText.trim();
+    }
 
     if (result.leveledUp) {
       replyText += `\n\n🎉 **AWANS!** Awansowałeś na **poziom ${result.finalLevel}**!`;
