@@ -32,8 +32,8 @@ module.exports = {
     const rawCount = args[2];
 
     const chosenNumber = Math.floor(Number(rawNum));
-    if (isNaN(chosenNumber) || chosenNumber < 2 || chosenNumber > 90) {
-      await message.reply('❌ Wybierz liczbę od **2 do 90** (np. **!bet 1000 50**).');
+    if (isNaN(chosenNumber) || chosenNumber < 5 || chosenNumber > 90) {
+      await message.reply('❌ Wybierz liczbę od **5 do 90** (np. **!bet 1000 50**).');
       return;
     }
 
@@ -58,11 +58,6 @@ module.exports = {
         }
         isMulti = true;
       }
-    }
-
-    if (isMulti && chosenNumber < 5) {
-      await message.reply('❌ Podczas seryjnego obstawiania (multi-bet) minimalna liczba na którą możesz postawić to **5**.');
-      return;
     }
 
     if (!isMulti) {
