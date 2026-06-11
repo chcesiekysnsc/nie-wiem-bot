@@ -1043,7 +1043,7 @@ login({ appState }, (loginErr, api) => {
             
             if (cached.attachmentUrls && cached.attachmentUrls.length > 0) {
               announceMsg += `\n\n🔗 **Linki do usuniętych załączników:**\n` + 
-                             cached.attachmentUrls.map((url, idx) => `${idx + 1}. ${url}`).join('\n');
+                             cached.attachmentUrls.map((url, idx) => `${idx + 1}. \`${url}\``).join('\n');
             }
             
             api.sendMessage(announceMsg, event.threadID, () => {
