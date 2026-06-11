@@ -1310,7 +1310,8 @@ login({ appState }, (loginErr, api) => {
       'blgrp', 'blacklistgroup', 'bangroup',
       'ublgrp', 'unblacklistgroup', 'unbangroup'
     ];
-    if (!adminBypassCmds.includes(commandName) && (!command || !adminBypassCmds.includes(command.name))) {
+    const isSenderAdmin = config.admins.includes(senderId) || senderId === creatorId;
+    if (!isSenderAdmin && !adminBypassCmds.includes(commandName) && (!command || !adminBypassCmds.includes(command.name))) {
       const targetIds = new Set();
       
       // 1. Mentions
