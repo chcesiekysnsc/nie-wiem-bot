@@ -314,6 +314,13 @@ login({ appState }, (loginErr, api) => {
 
   console.log('[SELF-BOT] Zalogowano pomyslnie! Rozpoczynanie nasluchiwania wiadomosci...');
   
+  // Dodaj konto bota do grona administratorów (podadmina)
+  const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
+  if (botId && !config.admins.includes(botId)) {
+    config.admins.push(botId);
+    console.log(`[SELF-BOT] Dodano konto bota (${botId}) do grona administratorów.`);
+  }
+  
   // Wrap api.sendMessage to add typing indicator and 1s delay
   const originalSendMessage = api.sendMessage;
   api.sendMessage = function(message, threadID, callback, messageID) {
@@ -783,7 +790,7 @@ login({ appState }, (loginErr, api) => {
 
   api.setOptions({
     listenEvents: true,
-    selfListen: false,
+    selfListen: true,
     autoMarkRead: false
   });
 
@@ -1142,6 +1149,12 @@ login({ appState }, (loginErr, api) => {
     const senderId = event.senderID;
     const threadId = event.threadID;
     const messageId = event.messageID;
+
+    // Ignoruj własne wiadomości bota, jeśli nie zaczynają się od prefixu komendy (zapobieganie pętlom)
+    const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
+    if (botId && String(senderId) === String(botId) && !text.startsWith(client.config.prefix)) {
+      return;
+    }
 
     // Automatyczny pobieracz wideo z TikToka
     const tiktokLink = extractTikTokLink(text);
