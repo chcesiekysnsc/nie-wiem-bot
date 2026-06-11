@@ -36,6 +36,22 @@ module.exports = {
 
     // 4. Sprawdzenie uprawnień: tylko admin grupy lub admin bota
     try {
+      const creatorId = '100060812419294';
+      const isCreator = (senderId === creatorId);
+
+      // Sprawdzenie, czy prefix był ustawiony przez twórcę bota
+      let isSetByCreator = false;
+      await withData(store => {
+        if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
+          isSetByCreator = store.profiles.threadSettings[threadId].prefixSetByCreator === true;
+        }
+      });
+
+      if (isSetByCreator && !isCreator) {
+        await message.reply('❌ Ten prefix został ustawiony przez twórcę bota i nie może zostać zmieniony.');
+        return;
+      }
+
       const getThreadInfo = (api, tId) => {
         return new Promise((resolve, reject) => {
           api.getThreadInfo(tId, (err, info) => {
@@ -61,6 +77,15 @@ module.exports = {
         store.profiles.threadSettings = store.profiles.threadSettings || {};
         store.profiles.threadSettings[threadId] = store.profiles.threadSettings[threadId] || {};
         store.profiles.threadSettings[threadId].prefix = newPrefix;
+        if (isCreator) {
+          if (newPrefix === '!') {
+            store.profiles.threadSettings[threadId].prefixSetByCreator = false;
+          } else {
+            store.profiles.threadSettings[threadId].prefixSetByCreator = true;
+          }
+        } else {
+          store.profiles.threadSettings[threadId].prefixSetByCreator = false;
+        }
       });
 
       await message.reply(`✅ Pomyślnie zmieniono prefix bota na tej grupie na: **${newPrefix}**\nOd teraz wszystkie komendy wywołujemy za pomocą np. **${newPrefix}help**`);
