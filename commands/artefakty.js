@@ -9,6 +9,7 @@ const getNonEventItems = () => {
   let num = 1;
   for (const [id, item] of Object.entries(config.shopItems)) {
     if (eventItemIds.includes(id)) continue;
+    if (item.buyable !== false) continue;
     list.push({
       num: num++,
       id: id,
@@ -17,7 +18,7 @@ const getNonEventItems = () => {
       shortDesc: item.shortDesc || '',
       longDesc: item.description || '',
       price: item.price,
-      buyable: item.buyable !== false,
+      buyable: false,
       shopNote: item.shopNote || null
     });
   }
