@@ -1039,29 +1039,16 @@ login({ appState }, (loginErr, api) => {
         if (isLoggingEnabled || isSubAdmin) {
           try {
             const senderName = await client.resolveUserName(api, cached.senderID);
-            const announceMsg = `🗑️ **Użytkownik ${senderName} usunął wiadomość:**\n"${cached.body}"`;
+            let announceMsg = `🗑️ **Użytkownik ${senderName} usunął wiadomość:**\n"${cached.body}"`;
             
-            const fs = require('fs');
-            if (cached.attachments && cached.attachments.length > 0) {
-              const streams = cached.attachments
-                .filter(p => fs.existsSync(p))
-                .map(p => fs.createReadStream(p));
-              
-              if (streams.length > 0) {
-                const msg = {
-                  body: announceMsg,
-                  attachment: streams
-                };
-                api.sendMessage(msg, event.threadID, () => {
-                  cleanupCachedEntry(cached);
-                });
-              } else {
-                api.sendMessage(announceMsg, event.threadID);
-                cleanupCachedEntry(cached);
-              }
-            } else {
-              api.sendMessage(announceMsg, event.threadID);
+            if (cached.attachmentUrls && cached.attachmentUrls.length > 0) {
+              announceMsg += `\n\n🔗 **Linki do usuniętych załączników:**\n` + 
+                             cached.attachmentUrls.map((url, idx) => `${idx + 1}. ${url}`).join('\n');
             }
+            
+            api.sendMessage(announceMsg, event.threadID, () => {
+              cleanupCachedEntry(cached);
+            });
           } catch (e) {
             console.error('[SELF-BOT] Blad podczas obslugi message_unsend:', e);
             cleanupCachedEntry(cached);
@@ -1085,10 +1072,20 @@ login({ appState }, (loginErr, api) => {
         body: cacheBody,
         senderID: event.senderID,
         timestamp: Date.now(),
-        attachments: []
+        attachments: [],
+        attachmentUrls: []
       };
 
-      if (cacheBody || (event.attachments && event.attachments.length > 0)) {
+      if (event.attachments && event.attachments.length > 0) {
+        for (const att of event.attachments) {
+          const url = att.url || att.largePreviewUrl || att.previewUrl;
+          if (url) {
+            cacheEntry.attachmentUrls.push(url);
+          }
+        }
+      }
+
+      if (cacheBody || cacheEntry.attachmentUrls.length > 0) {
         client.messageCache.set(event.messageID, cacheEntry);
         // Ogranicz rozmiar pamięci podręcznej do 2000 wpisów
         if (client.messageCache.size > 2000) {
@@ -1096,47 +1093,6 @@ login({ appState }, (loginErr, api) => {
           const firstEntry = client.messageCache.get(firstKey);
           cleanupCachedEntry(firstEntry);
           client.messageCache.delete(firstKey);
-        }
-
-        // Pobierz załączniki (np. zdjęcia) w tle
-        if (event.attachments && event.attachments.length > 0) {
-          (async () => {
-            const fs = require('fs');
-            const path = require('path');
-            const axios = require('axios');
-            
-            const dir = path.join(__dirname, 'tmp_attachments');
-            if (!fs.existsSync(dir)) {
-              fs.mkdirSync(dir, { recursive: true });
-            }
-
-            for (let i = 0; i < event.attachments.length; i++) {
-              const att = event.attachments[i];
-              const url = att.url || att.largePreviewUrl || att.previewUrl;
-              if (url) {
-                try {
-                  const ext = att.type === 'photo' ? 'jpg' : (att.type === 'video' ? 'mp4' : (att.type === 'audio' ? 'mp3' : 'bin'));
-                  const tempPath = path.join(dir, `${event.messageID}_${i}.${ext}`);
-                  
-                  const writer = fs.createWriteStream(tempPath);
-                  const response = await axios({
-                    method: 'GET',
-                    url: url,
-                    responseType: 'stream',
-                    timeout: 8000
-                  });
-                  response.data.pipe(writer);
-                  await new Promise((resolve, reject) => {
-                    writer.on('finish', resolve);
-                    writer.on('error', reject);
-                  });
-                  cacheEntry.attachments.push(tempPath);
-                } catch (err) {
-                  // ignoruj błędy pobierania w tle
-                }
-              }
-            }
-          })();
         }
       }
     }
