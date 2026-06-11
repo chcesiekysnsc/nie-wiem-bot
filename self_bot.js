@@ -748,10 +748,9 @@ login({ appState }, (loginErr, api) => {
         let muteCount = 0;
         for (const thread of list) {
           if (thread.isGroup && thread.threadID) {
-            // Dodaj do lokalnego cache
-            client.mutedThreads.add(thread.threadID);
-            // Jeśli nie jest wyciszony na stałe, wycisz go
-            if (thread.muteUntil !== -1) {
+            // Bezpieczne sprawdzanie czy wątek jest aktualnie wyciszony (na stałe lub czasowo w przyszłości)
+            const isCurrentlyMuted = String(thread.muteUntil) === '-1' || (Number(thread.muteUntil) > Date.now());
+            if (!isCurrentlyMuted) {
               muteCount++;
               // Wycisz z opóźnieniem, aby nie przeciążyć API
               setTimeout(() => {
@@ -760,13 +759,17 @@ login({ appState }, (loginErr, api) => {
                     console.error(`[MUTE ERROR] Nie udało się wyciszyć istniejącej grupy ${thread.threadID}:`, muteErr);
                   } else {
                     console.log(`[MUTE] Pomyślnie wyciszono istniejącą grupę ${thread.name || thread.threadID} na stałe.`);
+                    client.mutedThreads.add(thread.threadID);
                   }
                 });
               }, muteCount * 300);
+            } else {
+              // Upewnij się, że jest w cache, skoro jest wyciszony
+              client.mutedThreads.add(thread.threadID);
             }
           }
         }
-        console.log(`[MUTE] Znaleziono ${muteCount} grup do wyciszenia w skrzynce odbiorczej.`);
+        console.log(`[MUTE] Skanowanie zakończone. Zlecono wyciszenie ${muteCount} grup.`);
       }
     });
   };
@@ -775,6 +778,8 @@ login({ appState }, (loginErr, api) => {
   setInterval(checkPendingThreads, 15000).unref();
   setTimeout(checkPendingThreads, 1000).unref();
   setTimeout(muteInboxGroups, 3000).unref();
+  // Okresowe skanowanie skrzynki odbiorczej co 3 minuty w celu wykrycia ewentualnych wyciszeń wyłączonych ręcznie
+  setInterval(muteInboxGroups, 180000).unref();
 
   api.setOptions({
     listenEvents: true,
