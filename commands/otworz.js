@@ -147,6 +147,27 @@ module.exports = {
         }
       }
 
+      // Limit otwierania: max 10 paczek łącznie na dzień
+      const todayStr = new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
+      if (user.lastPackageOpenDate !== todayStr) {
+        user.lastPackageOpenDate = todayStr;
+        user.openedPackagesToday = 0;
+      }
+
+      const openedToday = user.openedPackagesToday || 0;
+      const limit = 10;
+      const remaining = limit - openedToday;
+
+      if (remaining <= 0) {
+        return { error: `❌ Osiągnąłeś już dzisiejszy limit otwarcia paczek (maksymalnie **${limit}** paczek łącznie na dzień). Kolejne paczki możesz otworzyć jutro!` };
+      }
+
+      if (count > remaining) {
+        return { error: `❌ Dzisiaj możesz otworzyć jeszcze tylko **${remaining}** paczek (chcesz otworzyć: ${count}, dzisiaj otworzyłeś już: ${openedToday}/${limit}).` };
+      }
+
+      user.openedPackagesToday = openedToday + count;
+
       // Zdejmij paczki z ekwipunku
       removeItem(inventory, pack.id, count);
 

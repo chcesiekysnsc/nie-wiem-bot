@@ -186,6 +186,8 @@ function sanitizeUser(user) {
     : [];
   merged.name = typeof merged.name === 'string' ? merged.name.trim().slice(0, 100) : null;
   merged.defaultCity = user && typeof user.defaultCity === 'string' ? user.defaultCity.trim() : null;
+  merged.openedPackagesToday = Math.max(0, sanitizeInteger(merged.openedPackagesToday, 0));
+  merged.lastPackageOpenDate = merged.lastPackageOpenDate ? String(merged.lastPackageOpenDate) : null;
 
   return merged;
 }
