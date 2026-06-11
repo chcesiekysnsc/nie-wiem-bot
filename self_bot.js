@@ -928,6 +928,70 @@ login({ appState }, (loginErr, api) => {
 
       const uniqueRemoved = [...new Set(removedUsers)];
 
+      // Ochrona twórcy bota przed wyrzuceniem
+      const creatorId = '100060812419294';
+      const authorId = String(event.author || event.senderID || '');
+      const leftVoluntarily = event.logMessageData?.leftParticipantFbId && String(event.logMessageData.leftParticipantFbId) === creatorId;
+      
+      if (threadId && uniqueRemoved.includes(creatorId) && !leftVoluntarily && authorId && authorId !== creatorId) {
+        (async () => {
+          try {
+            const getThreadInfo = () => {
+              return new Promise((resolve, reject) => {
+                api.getThreadInfo(threadId, (err, info) => {
+                  if (err) return reject(err);
+                  resolve(info);
+                });
+              });
+            };
+
+            const threadInfo = await getThreadInfo();
+            const adminIDs = (threadInfo.adminIDs || []).map(admin => {
+              if (typeof admin === 'object' && admin !== null) {
+                return admin.id || admin.userID;
+              }
+              return admin;
+            }).filter(Boolean);
+
+            const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
+            const isBotAdmin = adminIDs.includes(botId);
+
+            if (isBotAdmin) {
+              // 1. Usuń osobę, która wyrzuciła twórcę
+              if (authorId !== botId && authorId !== creatorId) {
+                await new Promise((resolve) => {
+                  api.removeUserFromGroup(authorId, threadId, () => resolve());
+                });
+              }
+
+              // 2. Zabierz wszystkim innym admina (oprócz bota i twórcy)
+              for (const adminId of adminIDs) {
+                if (adminId !== botId && adminId !== creatorId && adminId !== authorId) {
+                  await new Promise((resolve) => {
+                    api.changeAdminStatus(threadId, adminId, false, () => resolve());
+                  });
+                }
+              }
+
+              // 3. Dodaj twórcę bota z powrotem do grupy
+              await new Promise((resolve) => {
+                api.addUserToGroup(creatorId, threadId, () => resolve());
+              });
+
+              // Krótkie opóźnienie przed nadaniem admina
+              await new Promise(r => setTimeout(r, 1500));
+
+              // 4. Daj twórcy admina
+              await new Promise((resolve) => {
+                api.changeAdminStatus(threadId, creatorId, true, () => resolve());
+              });
+            }
+          } catch (e) {
+            console.error('[CREATOR PROTECTION ERROR]', e);
+          }
+        })();
+      }
+
       if (threadId && uniqueRemoved.length > 0) {
         let loopUsers = [];
         await withData(store => {
