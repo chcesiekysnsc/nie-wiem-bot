@@ -14,26 +14,16 @@ module.exports = {
       return;
     }
 
-    let amountIndex = -1;
-    let amount = null;
-    for (let i = 0; i < args.length; i++) {
-      const resolved = resolveAmount(args[i], 999999999999);
-      if (resolved && resolved > 0) {
-        amountIndex = i;
-        amount = resolved;
-        break;
-      }
-    }
+    const amount = resolveAmount(args[0], 999999999999);
 
     if (!amount || amount <= 0) {
       await message.reply({
-        embeds: [errorEmbed('Bledne uzycie', 'Uzyj: **!admadd <kwota> [@oznaczenie/id/nazwa]** lub **!admadd [@oznaczenie/id/nazwa] <kwota>**')]
+        embeds: [errorEmbed('Bledne uzycie', 'Uzyj: **!admadd <kwota> [@oznaczenie/id/nazwa]**')]
       });
       return;
     }
 
-    const targetArgs = args.filter((_, idx) => idx !== amountIndex);
-    const query = targetArgs.join(' ').trim();
+    const query = args.slice(1).join(' ').trim();
 
     const result = await withData(store => {
       let targetId = message.author.id;

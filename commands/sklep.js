@@ -135,6 +135,21 @@ module.exports = {
         }
       }
 
+      const isPackage = itemId.startsWith('paczka_');
+      if (isPackage) {
+        const today = new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
+        if (user.paczkiBoughtLimitDate !== today) {
+          user.paczkiBoughtLimitDate = today;
+          user.paczkiBoughtToday = 0;
+        }
+        if (user.paczkiBoughtToday >= 10) {
+          return { error: `❌ Osiągnąłeś już dzisiejszy limit zakupu paczek w sklepie (10/10).` };
+        }
+        if (user.paczkiBoughtToday + quantity > 10) {
+          return { error: `❌ Możesz dziś kupić jeszcze tylko **${10 - user.paczkiBoughtToday}** paczek (chcesz kupić: ${quantity}).` };
+        }
+      }
+
       const totalPrice = item.price * quantity;
       if (user.balance < totalPrice) {
         return { error: `❌ Brak środków. Potrzebujesz ${formatCurrency(totalPrice)}, posiadasz ${formatCurrency(user.balance)}.` };
@@ -142,9 +157,12 @@ module.exports = {
 
       user.balance -= totalPrice;
       addItem(inventory, itemId, quantity);
+      if (isPackage) {
+        user.paczkiBoughtToday += quantity;
+      }
       refreshBadges(user, inventory);
 
-      return { quantity, totalPrice, balance: user.balance };
+      return { quantity, totalPrice, balance: user.balance, paczkiBoughtToday: isPackage ? user.paczkiBoughtToday : undefined };
     });
 
     if (result.error) {
@@ -152,6 +170,7 @@ module.exports = {
       return;
     }
 
-    await message.reply(`🛒 Zakup udany! Kupiono **${item.name}** x${result.quantity} za **${formatCurrency(result.totalPrice)}**. (Portfel: ${formatCurrency(result.balance)})`);
+    const boughtInfo = result.paczkiBoughtToday !== undefined ? ` [Kupiono dziś paczek: ${result.paczkiBoughtToday}/10]` : '';
+    await message.reply(`🛒 Zakup udany! Kupiono **${item.name}** x${result.quantity} za **${formatCurrency(result.totalPrice)}**. (Portfel: ${formatCurrency(result.balance)})${boughtInfo}`);
   }
 };

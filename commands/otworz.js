@@ -207,7 +207,7 @@ module.exports = {
 
       user.balance = (user.balance || 0) + totalCash;
 
-      return { count, totalCash, balance: user.balance, itemsSummary, fallbackCount };
+      return { count, totalCash, balance: user.balance, itemsSummary, fallbackCount, openedPackagesToday: user.openedPackagesToday };
     });
 
     if (result.error) {
@@ -237,6 +237,7 @@ module.exports = {
         `✨ **BUM!** ✨\n` +
         `💰 Wygrałeś: **${formatCurrency(result.totalCash)}**!\n` +
         `${dropLine}\n\n` +
+        `📅 Limit otwierania na dziś: **${result.openedPackagesToday}/10**\n` +
         `👛 Portfel: **${formatCurrency(result.balance)}**`
       );
     } else {
@@ -258,6 +259,7 @@ module.exports = {
         `✨ **PODSUMOWANIE OTWARCIA** ✨\n` +
         `💰 Łączna wygrana gotówka: **+${formatCurrency(result.totalCash)}**!\n\n` +
         `${dropLine}\n\n` +
+        `📅 Limit otwierania na dziś: **${result.openedPackagesToday}/10**\n` +
         `👛 Portfel: **${formatCurrency(result.balance)}**`
       );
     }
