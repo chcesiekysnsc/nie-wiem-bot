@@ -665,12 +665,13 @@ login({ appState }, (loginErr, api) => {
       }
     });
 
-    // 1. Wyślij kropkę do nowej grupy (akceptacja zaproszenia/żądania wiadomości)
-    api.sendMessage('.', threadId, (sendErr) => {
+    // 1. Wyślij wiadomość powitalną do nowej grupy (akceptacja zaproszenia/żądania wiadomości)
+    const welcomeMsg = "dziekuje za dodanie na grupe, moj prefix to ! po wiecej informacji wpisz !help";
+    api.sendMessage(welcomeMsg, threadId, (sendErr) => {
       if (sendErr) {
-        console.error(`[NEW GROUP ERROR] Błąd podczas wysyłania kropki do grupy ${threadId}:`, sendErr);
+        console.error(`[NEW GROUP ERROR] Błąd podczas wysyłania powitania do grupy ${threadId}:`, sendErr);
       } else {
-        console.log(`[NEW GROUP] Pomyślnie wysłano kropkę do nowej grupy ${threadId}.`);
+        console.log(`[NEW GROUP] Pomyślnie wysłano powitanie do nowej grupy ${threadId}.`);
       }
     });
 
