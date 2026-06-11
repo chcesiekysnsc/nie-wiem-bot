@@ -701,6 +701,19 @@ const helpCommands = [
     requirements: "Wymaga bycia twórcą bota.",
     aliases: [],
     additionalInfo: []
+  },
+  {
+    id: 54,
+    name: "prefix",
+    category: "UTILITY_ADMIN",
+    shortDescription: "zmienia prefix bota na grupie",
+    description: "Wyświetla aktualny prefix bota lub zmienia go na wskazany nowy prefix dla bieżącej grupy. Opcja zmiany jest dostępna tylko dla administratorów grupy lub administratorów bota.",
+    usage: "!prefix [nowy_prefix]",
+    examples: ["!prefix", "!prefix .", "!prefix !"],
+    cooldown: "Brak.",
+    requirements: "Tylko administrator grupy lub administrator bota może zmienić prefix.",
+    aliases: [],
+    additionalInfo: []
   }
 ];
 
@@ -746,7 +759,7 @@ function buildHelpShell() {
     .setColor(config.embed.primary);
 }
 
-function buildHelpListEmbed(client) {
+function buildHelpListEmbed(client, prefix = '!') {
   const embed = buildHelpShell()
     .setDescription('Wszystkie dostepne komendy bota podzielone na 3 kategorie.');
 
@@ -760,7 +773,7 @@ function buildHelpListEmbed(client) {
   for (const [catKey, catLabel] of Object.entries(categories)) {
     const cmds = getActiveHelpCommands().filter(c => c.category === catKey);
     if (cmds.length > 0) {
-      const fieldContent = cmds.map(c => `• ${c.id}. !${c.name} - ${c.shortDescription}`).join('\n');
+      const fieldContent = cmds.map(c => `• ${c.id}. ${prefix}${c.name} - ${c.shortDescription}`).join('\n');
       fields.push({
         name: catLabel,
         value: fieldContent,
@@ -771,21 +784,21 @@ function buildHelpListEmbed(client) {
 
   if (fields.length > 0) {
     const lastField = fields[fields.length - 1];
-    lastField.value += `\n\nUzyj \`!help <nazwa_komendy>\`, aby poznac szczegoly.`;
+    lastField.value += `\n\nUzyj \`${prefix}help <nazwa_komendy>\`, aby poznac szczegoly.`;
   }
 
   embed.addFields(fields);
   return embed;
 }
 
-function buildHelpDetailEmbed(client, command) {
+function buildHelpDetailEmbed(client, command, prefix = '!') {
   return buildHelpShell()
-    .setTitle(`Komenda: ${config.prefix}${command.name}`)
+    .setTitle(`Komenda: ${prefix}${command.name}`)
     .setDescription(command.description)
     .addFields(
       { name: 'Cooldown', value: command.cooldown, inline: true },
-      { name: 'Skladnia', value: command.usage, inline: false },
-      { name: 'Przyklady', value: command.examples.join('\n'), inline: false }
+      { name: 'Skladnia', value: command.usage.replace(/!/g, prefix), inline: false },
+      { name: 'Przyklady', value: command.examples.map(ex => ex.replace(/!/g, prefix)).join('\n'), inline: false }
     );
 }
 

@@ -11,10 +11,11 @@ module.exports = {
   aliases: ['pomoc', 'commands'],
   async execute(client, message, args) {
     const input = String(args[0] || '').trim().toLowerCase();
+    const prefix = message.prefix || '!';
 
     if (!input) {
       await message.reply({
-        embeds: [buildHelpListEmbed(client)]
+        embeds: [buildHelpListEmbed(client, prefix)]
       });
       return;
     }
@@ -32,7 +33,7 @@ module.exports = {
     }
 
     await message.reply({
-      embeds: [buildHelpDetailEmbed(client, helpCommand)]
+      embeds: [buildHelpDetailEmbed(client, helpCommand, prefix)]
     });
   }
 };

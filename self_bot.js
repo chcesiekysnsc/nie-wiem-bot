@@ -1106,15 +1106,31 @@ login({ appState }, (loginErr, api) => {
     const threadId = event.threadID;
     const messageId = event.messageID;
 
+    // Odczytaj prefix dla danej grupy z bazy danych
+    let currentPrefix = client.config.prefix;
+    if (threadId) {
+      await withData(store => {
+        if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].prefix) {
+          currentPrefix = store.profiles.threadSettings[threadId].prefix;
+        }
+      });
+    }
+
+    // Obsługa sytuacji, gdy treść wiadomości to dokładnie sam prefix (np. !)
+    if (text === currentPrefix) {
+      api.sendMessage(`💡 Aby zobaczyć listę komend, proszę napisać: **${currentPrefix}help**`, threadId, () => {}, messageId);
+      return;
+    }
+
     // Ignoruj własne wiadomości bota, jeśli nie zaczynają się od prefixu komendy (zapobieganie pętlom)
     const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
-    if (botId && String(senderId) === String(botId) && !text.startsWith(client.config.prefix)) {
+    if (botId && String(senderId) === String(botId) && !text.startsWith(currentPrefix)) {
       return;
     }
 
     // Automatyczny pobieracz wideo z TikToka
     const tiktokLink = extractTikTokLink(text);
-    if (tiktokLink && !text.startsWith(client.config.prefix)) {
+    if (tiktokLink && !text.startsWith(currentPrefix)) {
       console.log(`[TIKTOK] Wykryto link do TikToka od ${senderId} w wątku ${threadId}: ${tiktokLink}`);
       api.setMessageReaction('⏳', messageId, () => {});
 
@@ -1221,7 +1237,7 @@ login({ appState }, (loginErr, api) => {
     }
 
     const isGroup = threadId && threadId !== senderId;
-    const isCommand = text.startsWith(client.config.prefix);
+    const isCommand = text.startsWith(currentPrefix);
     if (!isCommand) {
       if (!client.lastNormalMessageTime) {
         client.lastNormalMessageTime = new Map();
@@ -1375,6 +1391,7 @@ login({ appState }, (loginErr, api) => {
 
           const messageContext = {
             client,
+            prefix: currentPrefix,
             author: senderUser,
             content: text,
             guild: { id: threadId },
@@ -1407,11 +1424,11 @@ login({ appState }, (loginErr, api) => {
       }
     }
 
-    if (!text.startsWith(client.config.prefix)) {
+    if (!text.startsWith(currentPrefix)) {
       return;
     }
 
-    const args = text.slice(client.config.prefix.length).trim().split(/\s+/).filter(Boolean);
+    const args = text.slice(currentPrefix.length).trim().split(/\s+/).filter(Boolean);
     let commandName = (args.shift() || '').toLowerCase();
 
     // Obsługa !multi ruletka jako jednej komendy !multiruletka
@@ -1488,8 +1505,8 @@ login({ appState }, (loginErr, api) => {
     if (!command) {
       const suggestion = findClosestCommand(commandName, client.commands);
       const msg = suggestion
-        ? `Nie znaleziono komendy "!${commandName}". Czy chodzilo Ci o !${suggestion}?`
-        : `Nie znaleziono komendy "!${commandName}". Wpisz !help, aby zobaczyc liste komend.`;
+        ? `Nie znaleziono komendy "${currentPrefix}${commandName}". Czy chodzilo Ci o ${currentPrefix}${suggestion}?`
+        : `Nie znaleziono komendy "${currentPrefix}${commandName}". Wpisz ${currentPrefix}help, aby zobaczyc liste komend.`;
       api.sendMessage(msg, threadId, () => {}, messageId);
       return;
     }
@@ -1518,6 +1535,7 @@ login({ appState }, (loginErr, api) => {
 
     const messageContext = {
       client,
+      prefix: currentPrefix,
       author: senderUser,
       content: text,
       guild: {
