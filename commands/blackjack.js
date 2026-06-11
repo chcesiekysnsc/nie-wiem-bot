@@ -66,10 +66,13 @@ function drawCardForPlayer(game, hasDealerItem) {
     const nextVal = getHandValue([...game.playerCards, nextCard]);
     
     let swap = false;
+    let cheatDetails = '';
     if (currentVal > 21 && nextVal <= 21) {
       swap = true;
+      cheatDetails = `zamienił kartę [${card.rank}${card.suit}] (dającą furaż: ${currentVal} pkt) na bezpieczniejszą [${nextCard.rank}${nextCard.suit}] (dającą ${nextVal} pkt)`;
     } else if (currentVal <= 21 && nextVal <= 21 && nextVal > currentVal) {
       swap = true;
+      cheatDetails = `zamienił kartę [${card.rank}${card.suit}] (dającą ${currentVal} pkt) na lepszą [${nextCard.rank}${nextCard.suit}] (dającą ${nextVal} pkt)`;
     }
     
     if (swap) {
@@ -77,6 +80,7 @@ function drawCardForPlayer(game, hasDealerItem) {
       game.deck.unshift(card);
       card = actualNext;
       card.isCheat = true;
+      card.cheatDetails = cheatDetails;
     }
   }
   game.playerCards.push(card);
@@ -229,7 +233,7 @@ module.exports = {
 
       const drawnCard = drawCardForPlayer(game, hasDealerItem);
       playerValue = getHandValue(game.playerCards);
-      const cheatNote = drawnCard.isCheat ? '\n🧠 *Krupier dyskretnie wsunął Ci korzystniejszą kartę...*' : '';
+      const cheatNote = drawnCard.isCheat ? `\n🧠 **Przekupiony Krupier:** *Krupier dyskretnie wsunął Ci korzystniejszą kartę: ${drawnCard.cheatDetails}!*` : '';
 
       if (playerValue > 21) {
         // Przegrana (Bust)
@@ -341,7 +345,7 @@ module.exports = {
 
       const drawnCard = drawCardForPlayer(game, hasDealerItem);
       playerValue = getHandValue(game.playerCards);
-      const cheatNote = drawnCard.isCheat ? '\n🧠 *Krupier dyskretnie wsunął Ci korzystniejszą kartę...*' : '';
+      const cheatNote = drawnCard.isCheat ? `\n🧠 **Przekupiony Krupier:** *Krupier dyskretnie wsunął Ci korzystniejszą kartę: ${drawnCard.cheatDetails}!*` : '';
 
       if (playerValue > 21) {
         // Przegrana (Bust) przy podwojeniu

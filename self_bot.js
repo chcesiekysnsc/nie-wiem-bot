@@ -5,6 +5,16 @@ const login = require('@dongdev/fca-unofficial');
 
 require('dotenv').config();
 
+process.on('uncaughtException', (err) => {
+  console.error('[CRITICAL] Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 const config = require('./config/config');
 const { ensureDataFiles, withData, createUser } = require('./utils/storage');
 const { checkCooldown, checkSpam } = require('./utils/cooldowns');
@@ -642,8 +652,8 @@ login({ appState }, (loginErr, api) => {
 
   api.listenMqtt(async (err, event) => {
     if (err) {
-      console.error('[SELF-BOT] Blad nasluchiwania:', err);
-      return;
+      console.error('[SELF-BOT] Blad nasluchiwania (wymuszenie restartu):', err);
+      process.exit(1);
     }
 
     // Interceptor dla zmiany pseudonimu (log:thread-nickname lub log:user-nickname)

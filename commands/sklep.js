@@ -9,9 +9,20 @@ const {
 const { createUser, withData } = require('../utils/storage');
 
 let count = 0;
-const SHOP_ITEMS_ORDERED = Object.entries(config.shopItems).map(([id, item]) => {
+const SHOP_ITEMS_ORDERED = Object.entries(config.shopItems)
+  .filter(([id, item]) => item.buyable !== false)
+  .map(([id, item]) => {
+    return {
+      num: ++count,
+      id,
+      ...item
+    };
+  });
+
+const ALL_SHOP_ITEMS = Object.entries(config.shopItems).map(([id, item]) => {
+  const shopEntry = SHOP_ITEMS_ORDERED.find(s => s.id === id);
   return {
-    num: ++count,
+    num: shopEntry ? shopEntry.num : null,
     id,
     ...item
   };
@@ -20,7 +31,6 @@ const SHOP_ITEMS_ORDERED = Object.entries(config.shopItems).map(([id, item]) => 
 // Lista sklepu — krótkie opisy, paczki jako lootbox
 function renderShopList() {
   return SHOP_ITEMS_ORDERED
-    .filter(item => item.buyable !== false)
     .map(item => {
       const isPackage = item.id.startsWith('paczka_');
       const desc = isPackage ? 'lootbox' : (item.shortDesc || item.description);
@@ -46,11 +56,11 @@ module.exports = {
         return;
       }
 
-      const shopEntry = SHOP_ITEMS_ORDERED.find(i => String(i.num) === targetNum)
-        || SHOP_ITEMS_ORDERED.find(i => i.id === targetNum);
+      const shopEntry = ALL_SHOP_ITEMS.find(i => i.num !== null && String(i.num) === targetNum)
+        || ALL_SHOP_ITEMS.find(i => i.id === targetNum);
 
       if (!shopEntry) {
-        await message.reply(`❌ Nie znaleziono przedmiotu o numerze **${args[1]}**. Wpisz **!sklep** aby zobaczyć listę.`);
+        await message.reply(`❌ Nie znaleziono przedmiotu o nazwie/numerze **${args[1]}**. Wpisz **!sklep** aby zobaczyć listę.`);
         return;
       }
 
@@ -91,8 +101,8 @@ module.exports = {
     }
 
     const targetLower = String(targetArg || '').toLowerCase();
-    const byNumber  = SHOP_ITEMS_ORDERED.find(i => String(i.num) === targetLower);
-    const shopEntry = byNumber || SHOP_ITEMS_ORDERED.find(i => i.id === targetLower);
+    const byNumber  = ALL_SHOP_ITEMS.find(i => i.num !== null && String(i.num) === targetLower);
+    const shopEntry = byNumber || ALL_SHOP_ITEMS.find(i => i.id === targetLower);
 
     if (!shopEntry) {
       await message.reply(`❌ Nie znaleziono przedmiotu "${targetArg}". Sprawdź poprawny numer w sklepie lub wpisz **!sklep**.`);

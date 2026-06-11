@@ -47,11 +47,12 @@ module.exports = {
         return;
       }
       if (count > 1) {
-        if (!config.admins.includes(message.author.id)) {
-          await message.reply('❌ Seryjne obstawianie (multi-bet) jest dostępne tylko dla administratorów.');
+        const isAdmin = config.admins.includes(message.author.id);
+        if (!isAdmin && count > 10) {
+          await message.reply('❌ Seryjne obstawianie (multi-bet) dla zwykłych użytkowników ma limit **10** na raz.');
           return;
         }
-        if (count > 10000000) {
+        if (isAdmin && count > 10000000) {
           await message.reply('❌ Maksymalna ilość betów w serii to **10 000 000**.');
           return;
         }
@@ -198,15 +199,15 @@ module.exports = {
         let badgeBonus = 0;
         if (user.badges) {
           if (user.badges.includes(config.badges.bog)) {
-            badgeBonus = 2.0;
+            badgeBonus = 0.25; // Bóg Kasyna: 0.25% instead of 2.0% during multibet
           } else if (user.badges.includes(config.badges.rekin)) {
-            badgeBonus = 1.0;
+            badgeBonus = 0.12; // Rekin Kasyna: 0.12% instead of 1.0% during multibet
           } else if (user.badges.includes(config.badges.hazardzista)) {
-            badgeBonus = 0.5;
+            badgeBonus = 0.06; // Hazardzista: 0.06% instead of 0.5% during multibet
           }
         }
         const hasOko = hasItem(inventory, 'szkarlatne_oko');
-        const okoBonus = hasOko ? 1.5 : 0;
+        const okoBonus = hasOko ? 1.0 : 0; // Szkarłatne Oko: 1.0% instead of 1.5% during multibet
         const totalBonus = badgeBonus + okoBonus;
 
         const rolledNumber = Math.floor(Math.random() * 100);

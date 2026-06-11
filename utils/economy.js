@@ -28,17 +28,43 @@ function msToReadable(ms) {
 function resolveAmount(input, available) {
   if (!input) return null;
 
-  const normalized = String(input).toLowerCase();
+  let normalized = String(input).toLowerCase().trim();
   if (normalized === 'all' || normalized === 'max') {
     return Math.floor(Math.max(available, 0));
   }
 
-  const amount = Number(input);
-  if (!Number.isFinite(amount) || amount <= 0) {
+  // Handle Polish/English multipliers: k (thousand), m (million), kk (million)
+  normalized = normalized.replace(/kk/g, 'm');
+
+  let multiplier = 1;
+  if (normalized.endsWith('k')) {
+    multiplier = 1000;
+    normalized = normalized.slice(0, -1);
+  } else if (normalized.endsWith('m')) {
+    multiplier = 1000000;
+    normalized = normalized.slice(0, -1);
+  }
+
+  // Replace comma with dot for decimals (e.g. 1,5k -> 1.5k)
+  normalized = normalized.replace(/,/g, '.');
+
+  // If there are multiple dots or a dot followed by exactly three digits and no multiplier,
+  // it might be a thousands separator (e.g., 100.000 or 1.000.000).
+  if (multiplier === 1) {
+    if (/^\d{1,3}(\.\d{3})+$/.test(normalized)) {
+      normalized = normalized.replace(/\./g, '');
+    }
+  }
+
+  const amountObj = parseFloat(normalized);
+  if (isNaN(amountObj) || !isFinite(amountObj) || amountObj <= 0) {
     return null;
   }
 
-  return Math.floor(amount);
+  const finalAmount = Math.floor(amountObj * multiplier);
+  if (finalAmount <= 0) return null;
+
+  return finalAmount;
 }
 
 const MILESTONE_REWARDS = {

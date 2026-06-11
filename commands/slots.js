@@ -82,6 +82,17 @@ module.exports = {
       let badgeSaved = false;
       let szkarlatneOkoSaved = false;
       let activeBadgeName = '';
+      let dealerCheated = false;
+
+      const hasDealerItem = hasItem(inventory, 'przekupiony_krupier');
+      if (multiplier <= 0 && hasDealerItem && Math.random() < 0.03) {
+        symbols[0] = SYMBOLS.cherry;
+        symbols[1] = SYMBOLS.cherry;
+        symbols[2] = SYMBOLS.cherry;
+        multiplier = getMultiplier(symbols, false);
+        dealerCheated = true;
+      }
+
       if (multiplier <= 0) {
         let helperChance = 0;
         let badgeChance = 0;
@@ -138,7 +149,8 @@ module.exports = {
         balance: user.balance,
         badgeSaved,
         szkarlatneOkoSaved,
-        activeBadgeName
+        activeBadgeName,
+        dealerCheated
       };
     });
 
@@ -151,6 +163,9 @@ module.exports = {
     const winText = won ? `Wygrana! **+${formatCurrency(result.net)}**` : `Przegrana. **-${formatCurrency(Math.abs(result.net))}**`;
     let replyText = `🎰 Slots: ${result.symbols.join(' | ')}. ${winText}. Twój balans: **${formatCurrency(result.balance)}**`;
 
+    if (result.dealerCheated) {
+      replyText += `\n🧠 **Przekupiony Krupier:** *Krupier ukradkiem pociągnął za dźwignię, ustawiając zwycięskie symbole: **🍒 🍒 🍒**!*`;
+    }
     if (result.badgeSaved && result.activeBadgeName) {
       replyText += `\n🍀 Odznaka **${result.activeBadgeName}** dała Ci dodatkową szansę i uratowała przed przegraną!`;
     }

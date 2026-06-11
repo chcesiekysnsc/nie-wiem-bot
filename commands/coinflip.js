@@ -57,7 +57,14 @@ module.exports = {
       }
 
       const roll = crypto.randomInt(0, 10000);
-      const won = roll < (baseChance * 10000);
+      let won = roll < (baseChance * 10000);
+      let dealerCheated = false;
+
+      const hasDealerItem = hasItem(inventory, 'przekupiony_krupier');
+      if (!won && hasDealerItem && Math.random() < 0.03) {
+        won = true;
+        dealerCheated = true;
+      }
 
       let badgeBonusChance = 0;
       if (badgeUsed) {
@@ -68,7 +75,7 @@ module.exports = {
 
       let badgeSaved = false;
       let szkarlatneOkoSaved = false;
-      if (won) {
+      if (won && !dealerCheated) {
         const baseThreshold = 0.485 * 10000;
         const badgeThreshold = baseThreshold + (badgeBonusChance * 10000);
         if (roll >= baseThreshold && roll < badgeThreshold) {
@@ -90,7 +97,7 @@ module.exports = {
       const xpResult = recordGame(user, net, 25, inventory);
       refreshBadges(user, inventory);
 
-      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, badgeUsed };
+      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, badgeUsed, dealerCheated };
     });
 
     if (result.error) {
@@ -102,6 +109,9 @@ module.exports = {
     const winText = result.won ? `Wygrana! +${formatCurrency(result.net)}` : `Przegrana. -${formatCurrency(result.bet)}`;
     let replyText = `🪙 Coinflip: Wypadło **${outcome}**. ${winText}`;
 
+    if (result.dealerCheated) {
+      replyText += `\n🧠 **Przekupiony Krupier:** *Krupier zręcznie obrócił monetę w locie na **${outcome}**!*`;
+    }
     if (result.secondChanceSaved && result.badgeUsed) {
       replyText += `\n🍀 Odznaka **${result.badgeUsed}** dała Ci dodatkową szansę i uratowała przed przegraną!`;
     }

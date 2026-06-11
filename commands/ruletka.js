@@ -132,6 +132,44 @@ module.exports = {
       let badgeSaved = false;
       let szkarlatneOkoSaved = false;
       let activeBadgeName = '';
+      let dealerCheated = false;
+
+      const hasDealerItem = hasItem(inventory, 'przekupiony_krupier');
+      if (!won && hasDealerItem && Math.random() < 0.03) {
+        won = true;
+        dealerCheated = true;
+        
+        if (target.type === 'color') {
+          rolledColor = target.value;
+          if (rolledColor === 'red') {
+            const reds = Array.from(RED_NUMBERS);
+            rolledNumber = reds[Math.floor(Math.random() * reds.length)];
+          } else if (rolledColor === 'black') {
+            const blacks = [];
+            for (let i = 1; i <= 36; i++) {
+              if (!RED_NUMBERS.has(i)) blacks.push(i);
+            }
+            rolledNumber = blacks[Math.floor(Math.random() * blacks.length)];
+          } else { // green
+            rolledNumber = 0;
+          }
+          multiplier = target.value === 'green' ? 36 : 2;
+        } else if (target.type === 'parity') {
+          const matches = [];
+          for (let i = 1; i <= 36; i++) {
+            if (target.value === 'even' && i % 2 === 0) matches.push(i);
+            if (target.value === 'odd' && i % 2 === 1) matches.push(i);
+          }
+          rolledNumber = matches[Math.floor(Math.random() * matches.length)];
+          rolledColor = RED_NUMBERS.has(rolledNumber) ? 'red' : 'black';
+          multiplier = 2;
+        } else if (target.type === 'number') {
+          rolledNumber = target.value;
+          rolledColor = rolledNumber === 0 ? 'green' : (RED_NUMBERS.has(rolledNumber) ? 'red' : 'black');
+          multiplier = rolledNumber === 0 ? 18 : 12;
+        }
+      }
+
       if (!won) {
         let helperChance = 0;
         let badgeChance = 0;
@@ -190,7 +228,8 @@ module.exports = {
         xpResult,
         badgeSaved,
         szkarlatneOkoSaved,
-        activeBadgeName
+        activeBadgeName,
+        dealerCheated
       };
     });
 
@@ -204,6 +243,9 @@ module.exports = {
     const winText = result.won ? `Wygrana! +${formatCurrency(result.net)}` : `Przegrana. -${formatCurrency(result.bet)}`;
     let replyText = `🎰 Ruletka: Wypadło **${outcome}**. Typ: **${result.label}**. ${winText}`;
 
+    if (result.dealerCheated) {
+      replyText += `\n🧠 **Przekupiony Krupier:** *Krupier dyskretnie popchnął kulkę na pole pasujące do Twojego zakładu (${result.rolledNumber} ${colorLabel})!*`;
+    }
     if (result.badgeSaved && result.activeBadgeName) {
       replyText += `\n🍀 Odznaka **${result.activeBadgeName}** dała Ci dodatkową szansę i uratowała przed przegraną!`;
     }
