@@ -716,9 +716,45 @@ login({ appState }, (loginErr, api) => {
     });
   };
 
+  const muteInboxGroups = () => {
+    console.log('[MUTE] Rozpoczynanie skanowania i wyciszania grup w skrzynce odbiorczej...');
+    api.getThreadList(100, null, [], (err, list) => {
+      if (err) {
+        console.error('[MUTE ERROR] Nie udało się pobrać listy wątków skrzynki odbiorczej:', err);
+        return;
+      }
+      if (list && list.length > 0) {
+        client.mutedThreads = client.mutedThreads || new Set();
+        let muteCount = 0;
+        for (const thread of list) {
+          if (thread.isGroup && thread.threadID) {
+            // Dodaj do lokalnego cache
+            client.mutedThreads.add(thread.threadID);
+            // Jeśli nie jest wyciszony na stałe, wycisz go
+            if (thread.muteUntil !== -1) {
+              muteCount++;
+              // Wycisz z opóźnieniem, aby nie przeciążyć API
+              setTimeout(() => {
+                api.muteThread(thread.threadID, -1, (muteErr) => {
+                  if (muteErr) {
+                    console.error(`[MUTE ERROR] Nie udało się wyciszyć istniejącej grupy ${thread.threadID}:`, muteErr);
+                  } else {
+                    console.log(`[MUTE] Pomyślnie wyciszono istniejącą grupę ${thread.name || thread.threadID} na stałe.`);
+                  }
+                });
+              }, muteCount * 300);
+            }
+          }
+        }
+        console.log(`[MUTE] Znaleziono ${muteCount} grup do wyciszenia w skrzynce odbiorczej.`);
+      }
+    });
+  };
+
   // Uruchom okresowe sprawdzanie co 15 sekund oraz raz zaraz po starcie
   setInterval(checkPendingThreads, 15000).unref();
   setTimeout(checkPendingThreads, 1000).unref();
+  setTimeout(muteInboxGroups, 3000).unref();
 
   api.setOptions({
     listenEvents: true,
