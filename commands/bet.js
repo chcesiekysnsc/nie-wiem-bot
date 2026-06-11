@@ -11,9 +11,11 @@ const {
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
-const MULTIPLIERS = {};
+const SINGLE_MULTIPLIERS = {};
+const MULTI_MULTIPLIERS = {};
 for (let i = 5; i <= 90; i++) {
-  MULTIPLIERS[i] = parseFloat((95 / i).toFixed(2));
+  SINGLE_MULTIPLIERS[i] = parseFloat((98 / i).toFixed(2));
+  MULTI_MULTIPLIERS[i] = parseFloat((90 / i).toFixed(2));
 }
 
 module.exports = {
@@ -87,7 +89,7 @@ module.exports = {
 
         const rolledNumber = Math.floor(Math.random() * 100);
         const won = rolledNumber < (chosenNumber + totalBonus);
-        const multiplier = MULTIPLIERS[chosenNumber];
+        const multiplier = SINGLE_MULTIPLIERS[chosenNumber];
 
         let badgeSaved = false;
         let szkarlatneOkoSaved = false;
@@ -205,7 +207,7 @@ module.exports = {
 
         const rolledNumber = Math.floor(Math.random() * 100);
         const won = rolledNumber < (chosenNumber + totalBonus);
-        const multiplier = MULTIPLIERS[chosenNumber];
+        const multiplier = MULTI_MULTIPLIERS[chosenNumber];
 
         if (won) {
           if (rolledNumber >= chosenNumber && rolledNumber < chosenNumber + badgeBonus) {
