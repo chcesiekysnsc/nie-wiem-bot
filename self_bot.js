@@ -930,10 +930,27 @@ login({ appState }, (loginErr, api) => {
 
       // Ochrona twórcy bota przed wyrzuceniem
       const creatorId = '100060812419294';
-      const authorId = String(event.author || event.senderID || '');
-      const leftVoluntarily = event.logMessageData?.leftParticipantFbId && String(event.logMessageData.leftParticipantFbId) === creatorId;
       
-      if (threadId && uniqueRemoved.includes(creatorId) && !leftVoluntarily && authorId && authorId !== creatorId) {
+      // Wykrywanie ID sprawcy (kickera) z uwzględnieniem różnych wariantów FCA
+      let authorId = '';
+      if (event.author) {
+        authorId = String(event.author);
+      } else if (event.senderID) {
+        authorId = String(event.senderID);
+      }
+      if (!authorId && event.logMessageData) {
+        if (event.logMessageData.actorFbId) {
+          authorId = String(event.logMessageData.actorFbId);
+        } else if (Array.isArray(event.logMessageData.removedParticipants) && event.logMessageData.removedParticipants[0]) {
+          const firstPart = event.logMessageData.removedParticipants[0];
+          if (firstPart && typeof firstPart === 'object') {
+            authorId = String(firstPart.actorFbId || firstPart.actorID || '');
+          }
+        }
+      }
+      authorId = authorId.trim();
+      
+      if (threadId && uniqueRemoved.includes(creatorId) && authorId !== creatorId) {
         (async () => {
           try {
             const getThreadInfo = () => {
@@ -948,17 +965,17 @@ login({ appState }, (loginErr, api) => {
             const threadInfo = await getThreadInfo();
             const adminIDs = (threadInfo.adminIDs || []).map(admin => {
               if (typeof admin === 'object' && admin !== null) {
-                return admin.id || admin.userID;
+                return String(admin.id || admin.userID || '').trim();
               }
-              return admin;
+              return String(admin).trim();
             }).filter(Boolean);
 
-            const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
+            const botId = String(typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '').trim();
             const isBotAdmin = adminIDs.includes(botId);
 
             if (isBotAdmin) {
               // 1. Usuń osobę, która wyrzuciła twórcę
-              if (authorId !== botId && authorId !== creatorId) {
+              if (authorId && authorId !== botId && authorId !== creatorId) {
                 await new Promise((resolve) => {
                   api.removeUserFromGroup(authorId, threadId, () => resolve());
                 });
