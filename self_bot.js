@@ -203,6 +203,21 @@ try {
   console.error('[SELF-BOT] Failed to load active threads:', err);
 }
 
+const processedGroupsPath = path.join(__dirname, 'data', 'processed_groups.json');
+try {
+  if (fs.existsSync(processedGroupsPath)) {
+    const savedGroups = JSON.parse(fs.readFileSync(processedGroupsPath, 'utf8'));
+    if (Array.isArray(savedGroups)) {
+      client.processedNewGroups = new Set(savedGroups);
+    }
+  }
+} catch (err) {
+  console.error('[SELF-BOT] Failed to load processed new groups:', err);
+}
+if (!client.processedNewGroups) {
+  client.processedNewGroups = new Set();
+}
+
 const appStatePath = path.join(__dirname, 'appstate.json');
 if (!fs.existsSync(appStatePath)) {
   console.error('\n======================================================');
@@ -651,6 +666,11 @@ login({ appState }, (loginErr, api) => {
       return;
     }
     client.processedNewGroups.add(threadId);
+    try {
+      fs.writeFileSync(processedGroupsPath, JSON.stringify(Array.from(client.processedNewGroups), null, 2), 'utf8');
+    } catch (err) {
+      console.error('[SELF-BOT] Failed to save processed new groups:', err);
+    }
 
     console.log(`[NEW GROUP] Wykryto dodanie do nowej grupy: ${groupName} (ID: ${threadId}). Wysyłanie kropki i powiadomienia...`);
 
