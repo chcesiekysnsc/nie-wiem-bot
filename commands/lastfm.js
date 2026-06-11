@@ -547,7 +547,7 @@ module.exports = {
       const statusMsg = await message.reply(`📊 Pobieranie najpopularniejszych ${typeLabel} dla ${targetName} (${label})...`);
 
       try {
-        const partialUrl = `https://www.last.fm/user/${lastfmUser}/partial/${type}?${type}_date_preset=${presetName}`;
+        const partialUrl = `https://www.last.fm/user/${lastfmUser}/library/${type}?date_preset=${presetName}`;
         const html = await fetchLastFMPage(partialUrl);
         const parsedItems = parseLastFMHTML(html);
 
