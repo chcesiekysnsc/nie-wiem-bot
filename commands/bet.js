@@ -32,8 +32,8 @@ module.exports = {
     const rawCount = args[2];
 
     const chosenNumber = Math.floor(Number(rawNum));
-    if (isNaN(chosenNumber) || chosenNumber < 1 || chosenNumber > 90) {
-      await message.reply('❌ Wybierz liczbę od **1 do 90** (np. **!bet 1000 50**).');
+    if (isNaN(chosenNumber) || chosenNumber < 2 || chosenNumber > 90) {
+      await message.reply('❌ Wybierz liczbę od **2 do 90** (np. **!bet 1000 50**).');
       return;
     }
 
@@ -48,12 +48,12 @@ module.exports = {
       }
       if (count > 1) {
         const isAdmin = config.admins.includes(message.author.id);
-        if (!isAdmin && count > 15) {
-          await message.reply('❌ Seryjne obstawianie (multi-bet) dla zwykłych użytkowników ma limit **15** na raz.');
+        if (!isAdmin && count > 25) {
+          await message.reply('❌ Seryjne obstawianie (multi-bet) dla zwykłych użytkowników ma limit **25** na raz.');
           return;
         }
-        if (isAdmin && count > 10000000) {
-          await message.reply('❌ Maksymalna ilość betów w serii to **10 000 000**.');
+        if (isAdmin && count > 100) {
+          await message.reply('❌ Seryjne obstawianie (multi-bet) dla administratorów ma limit **100** na raz.');
           return;
         }
         isMulti = true;
@@ -266,7 +266,11 @@ module.exports = {
       const leveledUp = (user.level !== startLevel || user.prestige !== startPrestige);
 
       const hasOko = hasItem(inventory, 'szkarlatne_oko');
-      const hasBadge = !!(user.badges && (user.badges.includes(config.badges.bog) || user.badges.includes(config.badges.rekin) || user.badges.includes(config.badges.hazardzista)));
+      const hasBadge = user.badges && (
+        user.badges.includes(config.badges.bog) || 
+        user.badges.includes(config.badges.rekin) || 
+        user.badges.includes(config.badges.hazardzista)
+      );
 
       return {
         initialBalance,
@@ -303,18 +307,17 @@ module.exports = {
     replyText += `• Wygrane: **${result.wins}** ✅\n`;
     replyText += `• Przegrane: **${result.losses}** ❌\n`;
     replyText += `• Zmiana salda: **${netSign}${formatCurrency(netChange)}**\n`;
-    replyText += `• Obecny stan konta: **${formatCurrency(result.finalBalance)}**\n\n`;
-
-    const hasAnySavesInfo = result.hasOko || result.hasBadge;
-    if (hasAnySavesInfo) {
-      replyText += `🛡️ **Uaktywnione przedmioty ratujące:**\n`;
-      if (result.hasOko) {
-        replyText += `• Szkarłatne Oko Krupiera: **${result.okoSaves}** razy\n`;
-      }
-      if (result.hasBadge) {
-        replyText += `• Bonus z odznak: **${result.badgeSaves}** razy\n`;
-      }
-      replyText = replyText.trim();
+    replyText += `• Obecny stan konta: **${formatCurrency(result.finalBalance)}**\n`;
+ 
+    let savesText = '';
+    if (result.hasOko) {
+      savesText += `• Szkarłatne Oko Krupiera: **${result.okoSaves}** razy\n`;
+    }
+    if (result.hasBadge) {
+      savesText += `• Bonus z odznak: **${result.badgeSaves}** razy\n`;
+    }
+    if (savesText) {
+      replyText += `\n🛡️ **Uaktywnione przedmioty ratujące:**\n` + savesText.trim();
     }
 
     if (result.leveledUp) {
