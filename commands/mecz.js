@@ -3,69 +3,94 @@ const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, ran
 const { createUser, withData } = require('../utils/storage');
 
 const TEAMS = {
-  // Angielskie (Premier League)
+  // --- ANGLIA (Premier League) ---
   'Manchester City': 93,
-  'Arsenal FC': 90,
   'Liverpool FC': 91,
-  'Chelsea FC': 84,
+  'Arsenal FC': 90,
+  'Aston Villa': 84,
+  'Chelsea FC': 85,
   'Manchester United': 83,
   'Tottenham Hotspur': 83,
-  'Aston Villa': 83,
   'Newcastle United': 82,
-  'West Ham United': 79,
   'Brighton & Hove Albion': 80,
+  'West Ham United': 79,
+  'Crystal Palace': 78,
+  'Brentford FC': 77,
+  'Wolverhampton Wanderers': 77,
+  'Everton FC': 76,
 
-  // Hiszpańskie (La Liga)
+  // --- HISZPANIA (La Liga) ---
   'Real Madryt': 94,
   'FC Barcelona': 90,
   'Atletico Madryt': 86,
+  'Girona FC': 81,
   'Real Sociedad': 81,
   'Athletic Bilbao': 81,
-  'Girona FC': 81,
   'Real Betis': 80,
-  'Sevilla FC': 79,
   'Villarreal CF': 79,
+  'Sevilla FC': 79,
+  'Valencia CF': 77,
+  'Getafe CF': 76,
 
-  // Niemieckie (Bundesliga)
-  'Bayern Monachium': 90,
-  'Bayer Leverkusen': 88,
-  'Borussia Dortmund': 86,
-  'RB Lipsk': 83,
-  'VfB Stuttgart': 81,
-  'Eintracht Frankfurt': 80,
-
-  // Włoskie (Serie A)
+  // --- WŁOCHY (Serie A) ---
   'Inter Mediolan': 89,
+  'Juventus FC': 86,
+  'Atalanta Bergamo': 85,
   'AC Milan': 84,
-  'Juventus FC': 85,
-  'Atalanta Bergamo': 84,
   'SSC Napoli': 84,
   'AS Roma': 82,
   'Lazio Rzym': 81,
   'Fiorentina': 80,
   'Bologna FC': 79,
+  'Torino FC': 77,
+  'AC Monza': 76,
 
-  // Francuskie (Ligue 1)
+  // --- NIEMCY (Bundesliga) ---
+  'Bayern Monachium': 91,
+  'Bayer Leverkusen': 89,
+  'Borussia Dortmund': 86,
+  'RB Lipsk': 84,
+  'VfB Stuttgart': 81,
+  'Eintracht Frankfurt': 80,
+  'SC Freiburg': 79,
+  'TSG Hoffenheim': 77,
+  'Werder Brema': 76,
+
+  // --- FRANCJA (Ligue 1) ---
   'Paris Saint-Germain': 89,
-  'AS Monaco': 81,
-  'Olympique Marsylia': 79,
-  'Lille OSC': 79,
+  'AS Monaco': 82,
+  'Lille OSC': 80,
+  'Olympique Marsylia': 80,
+  'Olympique Lyon': 79,
+  'RC Lens': 79,
+  'Stade Rennais': 78,
 
-  // Inne europejskie
+  // --- INNE EUROPEJSKIE ---
+  'Sporting CP': 84,
+  'PSV Eindhoven': 82,
   'FC Porto': 81,
   'SL Benfica': 81,
-  'Sporting CP': 83,
-  'PSV Eindhoven': 81,
+  'Fenerbahce SK': 81,
+  'Galatasaray SK': 81,
   'Feyenoord': 80,
   'Ajax Amsterdam': 78,
+  'Club Brugge': 77,
+  'Besiktas JK': 77,
+  'Red Bull Salzburg': 76,
+  'Celtic FC': 76,
+  'Anderlecht Bruksela': 75,
+  'Rangers FC': 75,
 
-  // Polskie (Ekstraklasa)
-  'Legia Warszawa': 70,
+  // --- POLSKA (Ekstraklasa) ---
   'Lech Poznań': 70,
+  'Legia Warszawa': 70,
   'Raków Częstochowa': 69,
   'Jagiellonia Białystok': 69,
   'Pogoń Szczecin': 68,
   'Śląsk Wrocław': 67,
+  'Górnik Zabrze': 66,
+  'Cracovia': 65,
+  'Widzew Łódź': 65,
   'Wisła Kraków': 64
 };
 
