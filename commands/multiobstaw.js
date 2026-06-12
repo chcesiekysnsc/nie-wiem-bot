@@ -156,6 +156,8 @@ module.exports = {
 
     combinedOdds = parseFloat(combinedOdds.toFixed(2));
     const potentialWin = Math.round(totalStake * combinedOdds);
+    const tax = Math.round(potentialWin * 0.15);
+    const payout = potentialWin - tax;
 
     // Zapisz aktywny zakład do pliku (ochrona przed restartem bota)
     const { addActiveBet, removeActiveBet } = require('../utils/bets');
@@ -180,7 +182,9 @@ module.exports = {
     });
     setupMsg += `\n📈 Łączny kurs: **${combinedOdds}**\n` +
                 `💰 Łączna stawka: **${formatCurrency(totalStake)}**\n` +
-                `🏆 Potencjalna wygrana: **${formatCurrency(potentialWin)}**\n\n` +
+                `🏆 Wygrana brutto: **${formatCurrency(potentialWin)}**\n` +
+                `💸 Podatek (15%): **${formatCurrency(tax)}**\n` +
+                `🏆 Potencjalna wygrana netto: **${formatCurrency(payout)}**\n\n` +
                 `⏱️ *Trwa symulacja meczów... (wyniki za 15 sekund)*`;
 
     await message.reply(setupMsg);
@@ -240,12 +244,16 @@ module.exports = {
           }
 
           let net = 0;
+          let taxApplied = 0;
+          let payoutApplied = 0;
           if (ticketWon) {
-            net = potentialWin - totalStake;
-            user.balance += potentialWin; // Dodajemy całą wygraną
+            taxApplied = Math.round(potentialWin * 0.15);
+            payoutApplied = potentialWin - taxApplied;
+            net = payoutApplied - totalStake;
+            user.balance += payoutApplied; // Dodajemy wygraną po odliczeniu podatku
           } else {
             net = -totalStake;
-            // Nic nie dodajemy, stawka przepadła
+            // Nic nie robimy, stawka przepadła
           }
 
           const { recordGame } = require('../utils/economy');
@@ -270,7 +278,8 @@ module.exports = {
         });
 
         if (result.ticketWon) {
-          replyText += `🎉 **KUPON WYGRANY!**\nZysk netto: **+${formatCurrency(result.net)}**\n`;
+          const taxApplied = Math.round(potentialWin * 0.15);
+          replyText += `🎉 **KUPON WYGRANY!**\nZysk netto: **+${formatCurrency(result.net)}** (Wygrana brutto: ${formatCurrency(potentialWin)}, podatek 15%: -${formatCurrency(taxApplied)})\n`;
         } else {
           replyText += `💀 **KUPON PRZEGRANY.**\nStrata: **-${formatCurrency(Math.abs(result.net))}**\n`;
         }

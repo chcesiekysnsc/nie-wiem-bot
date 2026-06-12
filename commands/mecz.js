@@ -283,6 +283,8 @@ module.exports = {
     };
     const odds = match.odds[rawType];
     const potentialWin = Math.round(bet * odds);
+    const tax = Math.round(potentialWin * 0.15);
+    const payout = potentialWin - tax;
 
     // Zapisz aktywny zakład do pliku (ochrona przed restartem bota)
     const { addActiveBet, removeActiveBet } = require('../utils/bets');
@@ -299,7 +301,9 @@ module.exports = {
       `Mecz: **${match.home}** vs **${match.away}**\n` +
       `Twój typ: **${typeLabels[rawType]}** (kurs: **${odds}**)\n` +
       `💰 Stawka: **${formatCurrency(bet)}**\n` +
-      `🏆 Do wygrania: **${formatCurrency(potentialWin)}**\n\n` +
+      `🏆 Wygrana brutto: **${formatCurrency(potentialWin)}**\n` +
+      `💸 Podatek (15%): **${formatCurrency(tax)}**\n` +
+      `💰 Wygrana netto: **${formatCurrency(payout)}**\n\n` +
       `⏱️ *Trwa symulacja meczu... (wynik za 15 sekund)*`
     );
 
@@ -341,10 +345,14 @@ module.exports = {
 
           const won = rawType === outcome;
           let net = 0;
+          let taxApplied = 0;
+          let payoutApplied = 0;
 
           if (won) {
-            net = potentialWin - bet;
-            user.balance += potentialWin; // Dodajemy całą wygraną
+            taxApplied = Math.round(potentialWin * 0.15);
+            payoutApplied = potentialWin - taxApplied;
+            net = payoutApplied - bet;
+            user.balance += payoutApplied; // Dodajemy wygraną po odliczeniu podatku
           } else {
             net = -bet;
             // Nic nie robimy, stawka przepadła
@@ -372,7 +380,9 @@ module.exports = {
           `🏁 **Wynik meczu: ${result.homeGoals} - ${result.awayGoals}**\n\n`;
 
         if (result.won) {
-          replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Zysk: **+${formatCurrency(result.net)}**\n`;
+          const taxApplied = Math.round(potentialWin * 0.15);
+          const payoutApplied = potentialWin - taxApplied;
+          replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Zysk netto: **+${formatCurrency(result.net)}** (Wygrana brutto: ${formatCurrency(potentialWin)}, podatek 15%: -${formatCurrency(taxApplied)})\n`;
         } else {
           replyText += `💀 Niestety, Twój kupon jest **PRZEGRANY**. Strata: **-${formatCurrency(Math.abs(result.net))}**\n`;
         }
