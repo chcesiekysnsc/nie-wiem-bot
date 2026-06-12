@@ -1550,6 +1550,15 @@ login({ appState }, (loginErr, api) => {
       if (!store.profiles.blacklist) store.profiles.blacklist = [];
       if (!store.profiles.trueBlacklist) store.profiles.trueBlacklist = [];
       if (!store.profiles.blacklistedGroups) store.profiles.blacklistedGroups = [];
+      
+      // Auto-clean short invalid IDs from blacklist arrays
+      if (store.profiles.blacklist.some(id => id.length < 8)) {
+        store.profiles.blacklist = store.profiles.blacklist.filter(id => id.length >= 8);
+      }
+      if (store.profiles.trueBlacklist.some(id => id.length < 8)) {
+        store.profiles.trueBlacklist = store.profiles.trueBlacklist.filter(id => id.length >= 8);
+      }
+
       const userBl = (store.profiles.blacklist.includes(senderId) || store.profiles.trueBlacklist.includes(senderId)) && senderId !== creatorId;
       const groupBl = store.profiles.blacklistedGroups.includes(threadId) && senderId !== creatorId;
       return { 
@@ -1588,7 +1597,7 @@ login({ appState }, (loginErr, api) => {
       // 2. Args (check if any arg is a blacklisted ID)
       for (const arg of args) {
         const cleanArg = arg.replace(/[<@>]/g, '').trim();
-        if (/^\d+$/.test(cleanArg)) {
+        if (/^\d+$/.test(cleanArg) && cleanArg.length >= 8) {
           targetIds.add(cleanArg);
         }
       }
