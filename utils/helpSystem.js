@@ -740,6 +740,32 @@ const helpCommands = [
     requirements: "Wymaga posiadania stawki.",
     aliases: ["betmecz", "spotkanie"],
     additionalInfo: ["Wywołanie !mecz bez argumentów losuje nowe spotkanie i generuje kursy.", "Wygrana wypłaca stawkę pomnożoną przez kurs danego typu.", "Obsługuje typy: 1 (wygrana gospodarzy), X (remis), 2 (wygrana gości).", "Kolejność stawki i typu jest dowolna."]
+  },
+  {
+    id: 57,
+    name: "multimecz",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "oferta wielu meczow w jednym kuponie",
+    description: "Generuje ponumerowaną ofertę od 2 do 10 wirtualnych meczów, które można obstawić razem na jednym kuponie łączonym (AKO).",
+    usage: "!multimecz [liczba_meczow]",
+    examples: ["!multimecz", "!multimecz 5", "!multimecz 3"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: [],
+    additionalInfo: ["Wpisanie !multimecz przy aktywnej już propozycji wyświetla tę samą ofertę.", "Maksymalnie 10 meczów na raz."]
+  },
+  {
+    id: 58,
+    name: "multiobstaw",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "obstawianie kuponow laczonych (AKO)",
+    description: "Pozwala obstawić mecze z aktywnej oferty multi-meczu na jednym kuponie (AKO), gdzie kursy są mnożone.",
+    usage: "!multiobstaw <nr_meczu> <typ> <stawka> ... | !multiobstaw <nr_meczu> <typ> ... <stawka>",
+    examples: ["!mo 1 1 2 x 1000", "!mo 1 2 2000 2 1 5000", "!mm 1 x 2 2 3 1 10k"],
+    cooldown: "3 sekundy",
+    requirements: "Wymaga aktywnej oferty multi-meczu i stawki.",
+    aliases: ["mo", "mm"],
+    additionalInfo: ["Kupon jest wygrany tylko wtedy, gdy wszystkie wybrane typy są trafione.", "Czas symulacji wynosi 15 sekund.", "Można podać stawkę wspólną na końcu lub stawkę dla każdego meczu osobno (zostaną zsumowane do całkowitej stawki kuponu)."]
   }
 ];
 
