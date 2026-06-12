@@ -727,6 +727,19 @@ const helpCommands = [
     requirements: "Wymaga posiadania stawki.",
     aliases: ["rps", "papierkamiennozyce"],
     additionalInfo: ["Wygrana solo daje 1.90x stawki (zysk netto 90%).", "Remis zwraca stawkę.", "W pojedynku PvP wygrany zgarnia całą pulę minus 5% podatku.", "Odznaki i Szkarłatne Oko mogą uratować Cię przed przegraną solo."]
+  },
+  {
+    id: 56,
+    name: "mecz",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "wirtualne zaklady bukmacherskie",
+    description: "Obstawiaj wyniki wirtualnych meczów piłkarskich pomiędzy prawdziwymi drużynami (np. Real Madryt, Bayern, PSG).",
+    usage: "!mecz | !mecz <stawka> <1/X/2>",
+    examples: ["!mecz", "!mecz 5000 1", "!mecz x 10k"],
+    cooldown: "3 sekundy",
+    requirements: "Wymaga posiadania stawki.",
+    aliases: ["betmecz", "spotkanie"],
+    additionalInfo: ["Wywołanie !mecz bez argumentów losuje nowe spotkanie i generuje kursy.", "Wygrana wypłaca stawkę pomnożoną przez kurs danego typu.", "Obsługuje typy: 1 (wygrana gospodarzy), X (remis), 2 (wygrana gości).", "Kolejność stawki i typu jest dowolna."]
   }
 ];
 
