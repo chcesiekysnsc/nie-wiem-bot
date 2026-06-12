@@ -87,16 +87,17 @@ module.exports = {
         const okoBonus = hasOko ? 1.5 : 0;
         const totalBonus = badgeBonus + okoBonus;
 
-        const rolledNumber = Math.floor(Math.random() * 100);
-        const won = rolledNumber < (chosenNumber + totalBonus);
+        const rolledFloat = Math.random() * 100;
+        const won = rolledFloat < (chosenNumber + totalBonus);
+        const rolledNumber = Math.floor(rolledFloat);
         const multiplier = SINGLE_MULTIPLIERS[chosenNumber];
 
         let badgeSaved = false;
         let szkarlatneOkoSaved = false;
         if (won) {
-          if (rolledNumber >= chosenNumber && rolledNumber < chosenNumber + badgeBonus) {
+          if (rolledFloat >= chosenNumber && rolledFloat < chosenNumber + badgeBonus) {
             badgeSaved = true;
-          } else if (rolledNumber >= chosenNumber + badgeBonus && rolledNumber < chosenNumber + totalBonus) {
+          } else if (rolledFloat >= chosenNumber + badgeBonus && rolledFloat < chosenNumber + totalBonus) {
             szkarlatneOkoSaved = true;
           }
         }
@@ -205,14 +206,14 @@ module.exports = {
         const okoBonus = hasOko ? 0.75 : 0; // Szkarłatne Oko: 0.75% instead of 1.5% during multibet
         const totalBonus = badgeBonus + okoBonus;
 
-        const rolledNumber = Math.floor(Math.random() * 100);
-        const won = rolledNumber < (chosenNumber + totalBonus);
+        const rolledFloat = Math.random() * 100;
+        const won = rolledFloat < (chosenNumber + totalBonus);
         const multiplier = MULTI_MULTIPLIERS[chosenNumber];
 
         if (won) {
-          if (rolledNumber >= chosenNumber && rolledNumber < chosenNumber + badgeBonus) {
+          if (rolledFloat >= chosenNumber && rolledFloat < chosenNumber + badgeBonus) {
             badgeSaves++;
-          } else if (rolledNumber >= chosenNumber + badgeBonus && rolledNumber < chosenNumber + totalBonus) {
+          } else if (rolledFloat >= chosenNumber + badgeBonus && rolledFloat < chosenNumber + totalBonus) {
             okoSaves++;
           }
         }
