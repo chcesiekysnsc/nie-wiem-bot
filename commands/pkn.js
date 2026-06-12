@@ -153,34 +153,201 @@ module.exports = {
       return;
     }
 
-    // 3. Wyzywanie na pojedynek (lub gra z botem)
-    // Sprawdzamy czy pierwszy argument to kwota, a drugi to ruch (gra z botem)
-    // Format: !pkn <stawka> <ruch> (gra z botem)
-    // Format: !pkn @osoba/id <stawka> (pojedynkowanie)
-    
-    let isPvP = false;
-    let targetId = null;
-    let targetName = '';
+    // 3. Parsowanie argumentów komendy (Singleplayer vs PvP)
+    const arg0 = args[0] || '';
+    const arg1 = args[1] || '';
 
-    const mentioned = message.mentions.users.first();
-    if (mentioned) {
-      targetId = mentioned.id;
-      targetName = mentioned.username || await resolveName(client, targetId);
-      isPvP = true;
-    } else if (/^\d{10,18}$/.test(firstArg)) {
-      targetId = firstArg;
-      targetName = await resolveName(client, targetId);
-      isPvP = true;
+    const move0 = getCanonicalMove(arg0);
+    const move1 = getCanonicalMove(arg1);
+
+    let isSingleplayer = false;
+    let playerMove = null;
+    let rawBet = null;
+
+    if (move0 && !move1) {
+      playerMove = move0;
+      rawBet = arg1;
+      isSingleplayer = true;
+    } else if (move1 && !move0) {
+      playerMove = move1;
+      rawBet = arg0;
+      isSingleplayer = true;
     }
 
-    if (isPvP) {
-      // PvP flow: !pkn @osoba <stawka>
-      const rawAmount = args[1];
-      if (!rawAmount) {
-        await message.reply('❌ Użyj: **!pkn @osoba <kwota>**');
+    // A. Bieg gry jednoosobowej (Singleplayer)
+    if (isSingleplayer) {
+      const result = await withData(store => {
+        const user = createUser(message.author.id, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+        const bet = resolveAmount(rawBet, user.balance);
+
+        if (!bet || bet <= 0) {
+          return { error: '❌ Podaj poprawną kwotę zakładu.' };
+        }
+
+        if (bet > user.balance) {
+          return { error: `❌ Nie masz tylu monet. Posiadasz: ${formatCurrency(user.balance)}` };
+        }
+
+        // Bonusy win chance
+        let badgeBonus = 0;
+        let activeBadgeName = '';
+        if (user.badges) {
+          if (user.badges.includes(config.badges.bog)) {
+            badgeBonus = 1.5;
+            activeBadgeName = config.badges.bog;
+          } else if (user.badges.includes(config.badges.rekin)) {
+            badgeBonus = 1.0;
+            activeBadgeName = config.badges.rekin;
+          } else if (user.badges.includes(config.badges.hazardzista)) {
+            badgeBonus = 0.5;
+            activeBadgeName = config.badges.hazardzista;
+          }
+        }
+        const hasOko = hasItem(inventory, 'szkarlatne_oko');
+        const okoBonus = hasOko ? 1.5 : 0;
+        const totalRescueBonus = badgeBonus + okoBonus;
+
+        // Losowanie bota
+        const choices = ['kamien', 'papier', 'nozyce'];
+        let botMove = choices[Math.floor(Math.random() * choices.length)];
+
+        let state = 'draw'; // 'win', 'lose', 'draw'
+        if (playerMove !== botMove) {
+          if (MOVES[playerMove].beats === botMove) {
+            state = 'win';
+          } else {
+            state = 'lose';
+          }
+        }
+
+        // Przedmioty / odznaczenia ratujące
+        let krupierSaved = false;
+        let badgeSaved = false;
+        let okoSaved = false;
+
+        if (state === 'lose') {
+          // Przekupiony Krupier (3% na wygraną przy przegranej)
+          const hasKrupier = hasItem(inventory, 'przekupiony_krupier');
+          if (hasKrupier && Math.random() < 0.03) {
+            botMove = MOVES[playerMove].beats;
+            state = 'win';
+            krupierSaved = true;
+          }
+        }
+
+        if (state === 'lose' && totalRescueBonus > 0) {
+          const rollRescue = Math.random() * 100;
+          if (rollRescue < totalRescueBonus) {
+            state = 'draw';
+            botMove = playerMove;
+            if (rollRescue < badgeBonus) {
+              badgeSaved = true;
+            } else {
+              okoSaved = true;
+            }
+          }
+        }
+
+        let net = 0;
+        if (state === 'win') {
+          net = Math.round(bet * 0.90);
+          user.balance += net;
+        } else if (state === 'lose') {
+          net = -bet;
+          user.balance -= bet;
+        }
+
+        const { recordGame } = require('../utils/economy');
+        const xpResult = recordGame(user, net, 25, inventory);
+        refreshBadges(user, inventory);
+
+        return {
+          state,
+          botMove,
+          playerMove,
+          net,
+          balance: user.balance,
+          krupierSaved,
+          badgeSaved,
+          okoSaved,
+          activeBadgeName,
+          xpResult
+        };
+      });
+
+      if (result.error) {
+        await message.reply(result.error);
         return;
       }
 
+      const playerMoveDetails = MOVES[result.playerMove];
+      const botMoveDetails = MOVES[result.botMove];
+
+      let replyText = `✊ **P-K-N (Gra z Botem)** 🖐️\n` +
+                      `👤 Twój ruch: ${playerMoveDetails.emoji} **${playerMoveDetails.name}**\n` +
+                      `🤖 Mój ruch: ${botMoveDetails.emoji} **${botMoveDetails.name}**\n\n`;
+
+      if (result.state === 'win') {
+        replyText += `🎉 Wygrana! Twój zysk netto: **+${formatCurrency(result.net)}**\n`;
+      } else if (result.state === 'lose') {
+        replyText += `💀 Przegrana! Strata: **-${formatCurrency(Math.abs(result.net))}**\n`;
+      } else {
+        replyText += `🤝 Remis! Twoja stawka została zwrócona.\n`;
+      }
+
+      replyText += `💰 Twój balans: **${formatCurrency(result.balance)}**`;
+
+      if (result.krupierSaved) {
+        replyText += `\n🧠 **Przekupiony Krupier**: Krupier po kryjomu zmienił swój ruch, pozwalając Ci wygrać!`;
+      }
+      if (result.badgeSaved && result.activeBadgeName) {
+        replyText += `\n🍀 Odznaka **${result.activeBadgeName}** uratowała Cię przed przegraną (zmieniono na remis)!`;
+      }
+      if (result.okoSaved) {
+        replyText += `\n👁️ Przedmiot **Szkarłatne Oko Krupiera** uratował Cię przed przegraną (zmieniono na remis)!`;
+      }
+
+      if (result.xpResult && result.xpResult.leveledUp) {
+        replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
+        if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
+          const { getMilestoneRewardDescription } = require('../utils/economy');
+          for (const lvl of result.xpResult.milestonesGained) {
+            replyText += `\n🎁 Otrzymałeś nagrodę za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+          }
+        }
+      }
+
+      await message.reply(replyText);
+      return;
+    }
+
+    // B. Bieg gry PvP (Pojedynek)
+    let targetId = null;
+    let targetName = '';
+    let rawAmount = null;
+
+    const mentioned = message.mentions.users.first();
+    const isArg0Id = /^\d{10,18}$/.test(arg0);
+    const isArg1Id = /^\d{10,18}$/.test(arg1);
+
+    if (mentioned) {
+      targetId = mentioned.id;
+      targetName = mentioned.username || await resolveName(client, targetId);
+      // Odszukaj kwotę w drugim argumencie
+      const mentionArgIndex = args.findIndex(arg => arg.includes(mentioned.id) || arg.startsWith('@'));
+      rawAmount = (mentionArgIndex === 0) ? args[1] : args[0];
+    } else if (isArg0Id && !isArg1Id) {
+      targetId = arg0;
+      targetName = await resolveName(client, targetId);
+      rawAmount = arg1;
+    } else if (isArg1Id && !isArg0Id) {
+      targetId = arg1;
+      targetName = await resolveName(client, targetId);
+      rawAmount = arg0;
+    }
+
+    if (targetId && rawAmount) {
       if (targetId === message.author.id) {
         await message.reply('❌ Nie możesz wyzwać samego siebie na pojedynek.');
         return;
@@ -227,7 +394,6 @@ module.exports = {
         amount: validation.amount
       });
 
-      // Auto-cancel request after 2 minutes
       setTimeout(() => {
         const active = client.pknRequests.get(targetId);
         if (active && active.challengerId === message.author.id) {
@@ -241,160 +407,9 @@ module.exports = {
       return;
     }
 
-    // Singleplayer flow: !pkn <stawka> <ruch>
-    const rawBet = args[0];
-    const rawMove = args[1];
-
-    const playerMove = getCanonicalMove(rawMove);
-    if (!playerMove) {
-      await message.reply('❌ Wybierz ruch: **papier** (p), **kamien** (k) lub **nozyce** (n).\nUżycie: **!pkn <stawka> <ruch>** (np. **!pkn 1000 k**).');
-      return;
-    }
-
-    const result = await withData(store => {
-      const user = createUser(message.author.id, store.users);
-      const inventory = ensureInventoryRecord(store.inventory, message.author.id);
-      const bet = resolveAmount(rawBet, user.balance);
-
-      if (!bet || bet <= 0) {
-        return { error: '❌ Podaj poprawną kwotę zakładu.' };
-      }
-
-      if (bet > user.balance) {
-        return { error: `❌ Nie masz tylu monet. Posiadasz: ${formatCurrency(user.balance)}` };
-      }
-
-      // Bonusy win chance
-      let badgeBonus = 0;
-      let activeBadgeName = '';
-      if (user.badges) {
-        if (user.badges.includes(config.badges.bog)) {
-          badgeBonus = 1.5;
-          activeBadgeName = config.badges.bog;
-        } else if (user.badges.includes(config.badges.rekin)) {
-          badgeBonus = 1.0;
-          activeBadgeName = config.badges.rekin;
-        } else if (user.badges.includes(config.badges.hazardzista)) {
-          badgeBonus = 0.5;
-          activeBadgeName = config.badges.hazardzista;
-        }
-      }
-      const hasOko = hasItem(inventory, 'szkarlatne_oko');
-      const okoBonus = hasOko ? 1.5 : 0;
-      const totalRescueBonus = badgeBonus + okoBonus;
-
-      // Losowanie ruchu bota
-      const choices = ['kamien', 'papier', 'nozyce'];
-      let botMove = choices[Math.floor(Math.random() * choices.length)];
-
-      let state = 'draw'; // 'win', 'lose', 'draw'
-      if (playerMove !== botMove) {
-        if (MOVES[playerMove].beats === botMove) {
-          state = 'win';
-        } else {
-          state = 'lose';
-        }
-      }
-
-      // Cheaty / Przedmioty ratujące
-      let krupierSaved = false;
-      let badgeSaved = false;
-      let okoSaved = false;
-
-      if (state === 'lose') {
-        // 1. Przekupiony Krupier (3% szans na wygraną przy przegranej)
-        const hasKrupier = hasItem(inventory, 'przekupiony_krupier');
-        if (hasKrupier && Math.random() < 0.03) {
-          // Zmiana ruchu bota na taki, by gracz wygrał
-          botMove = MOVES[playerMove].beats;
-          state = 'win';
-          krupierSaved = true;
-        }
-      }
-
-      if (state === 'lose' && totalRescueBonus > 0) {
-        // Ocalenie odznakami/okiem (zamiana przegranej na remis)
-        const rollRescue = Math.random() * 100;
-        if (rollRescue < totalRescueBonus) {
-          state = 'draw';
-          botMove = playerMove; // Zmiana na remis
-          if (rollRescue < badgeBonus) {
-            badgeSaved = true;
-          } else {
-            okoSaved = true;
-          }
-        }
-      }
-
-      let net = 0;
-      if (state === 'win') {
-        net = Math.round(bet * 0.90); // Zysk netto 90% stawki
-        user.balance += net;
-      } else if (state === 'lose') {
-        net = -bet;
-        user.balance -= bet;
-      }
-
-      const { recordGame } = require('../utils/economy');
-      const xpResult = recordGame(user, net, 25, inventory);
-      refreshBadges(user, inventory);
-
-      return {
-        state,
-        botMove,
-        playerMove,
-        net,
-        balance: user.balance,
-        krupierSaved,
-        badgeSaved,
-        okoSaved,
-        activeBadgeName,
-        xpResult
-      };
-    });
-
-    if (result.error) {
-      await message.reply(result.error);
-      return;
-    }
-
-    const playerMoveDetails = MOVES[result.playerMove];
-    const botMoveDetails = MOVES[result.botMove];
-
-    let replyText = `✊ **P-K-N (Gra z Botem)** 🖐️\n` +
-                    `👤 Twój ruch: ${playerMoveDetails.emoji} **${playerMoveDetails.name}**\n` +
-                    `🤖 Mój ruch: ${botMoveDetails.emoji} **${botMoveDetails.name}**\n\n`;
-
-    if (result.state === 'win') {
-      replyText += `🎉 Wygrana! Twój zysk netto: **+${formatCurrency(result.net)}**\n`;
-    } else if (result.state === 'lose') {
-      replyText += `💀 Przegrana! Strata: **-${formatCurrency(Math.abs(result.net))}**\n`;
-    } else {
-      replyText += `🤝 Remis! Twoja stawka została zwrócona.\n`;
-    }
-
-    replyText += `💰 Twój balans: **${formatCurrency(result.balance)}**`;
-
-    if (result.krupierSaved) {
-      replyText += `\n🧠 **Przekupiony Krupier**: Krupier po kryjomu zmienił swój ruch, pozwalając Ci wygrać!`;
-    }
-    if (result.badgeSaved && result.activeBadgeName) {
-      replyText += `\n🍀 Odznaka **${result.activeBadgeName}** uratowała Cię przed przegraną (zmieniono na remis)!`;
-    }
-    if (result.okoSaved) {
-      replyText += `\n👁️ Przedmiot **Szkarłatne Oko Krupiera** uratował Cię przed przegraną (zmieniono na remis)!`;
-    }
-
-    if (result.xpResult && result.xpResult.leveledUp) {
-      replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
-      if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
-        const { getMilestoneRewardDescription } = require('../utils/economy');
-        for (const lvl of result.xpResult.milestonesGained) {
-          replyText += `\n🎁 Otrzymałeś nagrodę za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
-        }
-      }
-    }
-
-    await message.reply(replyText);
+    // C. Błąd składni
+    await message.reply('❌ Niepoprawne użycie komendy.\n' +
+                        '👉 **Graj z botem**: `!pkn <stawka> <k/p/n>` (np. `!pkn 1000 k` lub `!pkn k 1000`)\n' +
+                        '👉 **Graj z kimś**: `!pkn @osoba <stawka>` (np. `!pkn @Marek 5000` lub `!pkn 5000 @Marek`)');
   }
 };
