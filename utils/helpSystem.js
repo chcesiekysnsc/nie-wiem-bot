@@ -714,6 +714,19 @@ const helpCommands = [
     requirements: "Tylko administrator grupy lub administrator bota może zmienić prefix.",
     aliases: [],
     additionalInfo: []
+  },
+  {
+    id: 55,
+    name: "pkn",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "gra w papier kamień nożyce (z botem lub graczem)",
+    description: "Gra hazardowa Papier, Kamień, Nożyce. Możesz grać solo przeciwko botowi lub wyzwać innego gracza na pojedynek PvP, w którym bot wylosuje ruchy dla obu stron.",
+    usage: "!pkn <stawka> <k/p/n | kamien/papier/nozyce> | !pkn @osoba <stawka> | !pkn acc | !pkn dec",
+    examples: ["!pkn 1000 kamien", "!pkn 5000 p", "!pkn @Kowalski 20000", "!pkn acc"],
+    cooldown: "3 sekundy",
+    requirements: "Wymaga posiadania stawki.",
+    aliases: ["rps", "papierkamiennozyce"],
+    additionalInfo: ["Wygrana solo daje 1.90x stawki (zysk netto 90%).", "Remis zwraca stawkę.", "W pojedynku PvP wygrany zgarnia całą pulę minus 5% podatku.", "Odznaki i Szkarłatne Oko mogą uratować Cię przed przegraną solo."]
   }
 ];
 
