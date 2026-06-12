@@ -139,8 +139,13 @@ module.exports = {
 
     // 1. Sprawdzenie oferty (wywołanie !mecz bez argumentów)
     if (args.length === 0) {
-      const match = generateMatch();
-      client.activeMatches.set(userId, match);
+      let match = client.activeMatches.get(userId);
+      let isNew = false;
+      if (!match) {
+        match = generateMatch();
+        client.activeMatches.set(userId, match);
+        isNew = true;
+      }
 
       const response = 
         `⚽ **PROPOZYCJA MECZU** ⚽\n` +
@@ -150,7 +155,7 @@ module.exports = {
         `• ❌ Remis: **${match.odds['x']}**\n` +
         `• 2️⃣ Wygrana (${match.away}): **${match.odds[2]}**\n\n` +
         `👉 Aby obstawić ten mecz, wpisz: **!mecz <stawka> <1/X/2>** (np. **!mecz 1000 1**).\n` +
-        `💡 *Oferta jest ważna do momentu wygenerowania nowego meczu.*`;
+        `💡 *${isNew ? 'Wygenerowano nową ofertę.' : 'Masz już aktywną ofertę meczu. Musisz ją obstawić przed wygenerowaniem kolejnej.'}*`;
 
       await message.reply(response);
       return;
@@ -185,12 +190,11 @@ module.exports = {
       return;
     }
 
-    // Pobierz ofertę dla użytkownika (jeśli brak, generujemy nową na poczekaniu)
+    // Pobierz ofertę dla użytkownika (jeśli brak, zwracamy błąd)
     let match = client.activeMatches.get(userId);
-    let wasGeneratedOnTheFly = false;
     if (!match) {
-      match = generateMatch();
-      wasGeneratedOnTheFly = true;
+      await message.reply('❌ Nie masz aktywnej propozycji meczu.\n👉 Wpisz najpierw **!mecz**, aby wygenerować ofertę.');
+      return;
     }
 
     // Wyczyszczenie oferty
