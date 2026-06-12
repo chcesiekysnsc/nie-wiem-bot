@@ -2,34 +2,107 @@ const config = require('../config/config');
 const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, randomInt } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
-const TEAMS = [
-  'Real Madryt', 'FC Barcelona', 'Bayern Monachium', 'Paris Saint-Germain',
-  'Manchester City', 'Liverpool FC', 'Arsenal FC', 'Chelsea FC',
-  'Juventus FC', 'AC Milan', 'Inter Mediolan', 'Atletico Madryt',
-  'Borussia Dortmund', 'Manchester United', 'Tottenham Hotspur',
-  'SSC Napoli', 'AS Roma', 'Bayer Leverkusen', 'FC Porto', 'SL Benfica',
-  'Real Betis', 'Sevilla FC', 'Fiorentina', 'Lazio Rzym', 'Villarreal CF'
-];
+const TEAMS = {
+  // Angielskie (Premier League)
+  'Manchester City': 93,
+  'Arsenal FC': 90,
+  'Liverpool FC': 91,
+  'Chelsea FC': 84,
+  'Manchester United': 83,
+  'Tottenham Hotspur': 83,
+  'Aston Villa': 83,
+  'Newcastle United': 82,
+  'West Ham United': 79,
+  'Brighton & Hove Albion': 80,
+
+  // Hiszpańskie (La Liga)
+  'Real Madryt': 94,
+  'FC Barcelona': 90,
+  'Atletico Madryt': 86,
+  'Real Sociedad': 81,
+  'Athletic Bilbao': 81,
+  'Girona FC': 81,
+  'Real Betis': 80,
+  'Sevilla FC': 79,
+  'Villarreal CF': 79,
+
+  // Niemieckie (Bundesliga)
+  'Bayern Monachium': 90,
+  'Bayer Leverkusen': 88,
+  'Borussia Dortmund': 86,
+  'RB Lipsk': 83,
+  'VfB Stuttgart': 81,
+  'Eintracht Frankfurt': 80,
+
+  // Włoskie (Serie A)
+  'Inter Mediolan': 89,
+  'AC Milan': 84,
+  'Juventus FC': 85,
+  'Atalanta Bergamo': 84,
+  'SSC Napoli': 84,
+  'AS Roma': 82,
+  'Lazio Rzym': 81,
+  'Fiorentina': 80,
+  'Bologna FC': 79,
+
+  // Francuskie (Ligue 1)
+  'Paris Saint-Germain': 89,
+  'AS Monaco': 81,
+  'Olympique Marsylia': 79,
+  'Lille OSC': 79,
+
+  // Inne europejskie
+  'FC Porto': 81,
+  'SL Benfica': 81,
+  'Sporting CP': 83,
+  'PSV Eindhoven': 81,
+  'Feyenoord': 80,
+  'Ajax Amsterdam': 78,
+
+  // Polskie (Ekstraklasa)
+  'Legia Warszawa': 70,
+  'Lech Poznań': 70,
+  'Raków Częstochowa': 69,
+  'Jagiellonia Białystok': 69,
+  'Pogoń Szczecin': 68,
+  'Śląsk Wrocław': 67,
+  'Wisła Kraków': 64
+};
 
 function generateMatch() {
-  const homeIdx = randomInt(0, TEAMS.length - 1);
-  let awayIdx = randomInt(0, TEAMS.length - 1);
+  const teamNames = Object.keys(TEAMS);
+  const homeIdx = randomInt(0, teamNames.length - 1);
+  let awayIdx = randomInt(0, teamNames.length - 1);
   while (awayIdx === homeIdx) {
-    awayIdx = randomInt(0, TEAMS.length - 1);
+    awayIdx = randomInt(0, teamNames.length - 1);
   }
 
-  const home = TEAMS[homeIdx];
-  const away = TEAMS[awayIdx];
+  const home = teamNames[homeIdx];
+  const away = teamNames[awayIdx];
 
-  // Generowanie siły drużyn (70 - 95)
-  const homeStrength = randomInt(70, 95);
-  const awayStrength = randomInt(68, 93);
+  const baseHomeStrength = TEAMS[home];
+  const baseAwayStrength = TEAMS[away];
 
-  // Prawdopodobieństwa (suma = 1.0)
-  const totalStrength = homeStrength + awayStrength;
-  const pHome = (homeStrength / totalStrength) * 0.72;
-  const pAway = (awayStrength / totalStrength) * 0.72;
-  const pDraw = 0.28;
+  // Dynamiczna forma (-4 do +4)
+  const homeForm = randomInt(-4, 4);
+  const awayForm = randomInt(-4, 4);
+
+  // Przewaga własnego boiska (+3)
+  const homeStrength = baseHomeStrength + homeForm + 3;
+  const awayStrength = baseAwayStrength + awayForm;
+
+  const diff = homeStrength - awayStrength;
+
+  // Krzywa logistyczna do podziału prawdopodobieństwa
+  const exponent = diff / 10;
+  const ratio = 1 / (1 + Math.exp(-exponent));
+
+  // Prawdopodobieństwo remisu: maleje gdy rośnie różnica sił
+  const pDraw = 0.26 * (1 - Math.abs(ratio - 0.5) * 0.8);
+
+  // Podział pozostałego prawdopodobieństwa
+  const pHome = (1 - pDraw) * ratio;
+  const pAway = (1 - pDraw) * (1 - ratio);
 
   // Obliczanie kursów z marżą kasyna (ok. 8%)
   const margin = 0.92;
@@ -40,6 +113,7 @@ function generateMatch() {
   return {
     home,
     away,
+    diff,
     odds: {
       1: oddsHome,
       x: oddsDraw,
@@ -141,9 +215,15 @@ module.exports = {
       let homeGoals = 0;
       let awayGoals = 0;
 
+      const diff = match.diff || 0;
+
       if (roll < match.probabilities.home) {
         outcome = '1';
-        homeGoals = randomInt(1, 4);
+        let maxGoals = 4;
+        if (diff > 15) maxGoals = 5;
+        if (diff > 25) maxGoals = 6;
+        
+        homeGoals = randomInt(diff > 25 ? 2 : 1, maxGoals);
         awayGoals = randomInt(0, homeGoals - 1);
       } else if (roll < match.probabilities.home + match.probabilities.draw) {
         outcome = 'x';
@@ -151,7 +231,11 @@ module.exports = {
         awayGoals = homeGoals;
       } else {
         outcome = '2';
-        awayGoals = randomInt(1, 4);
+        let maxGoals = 4;
+        if (diff < -15) maxGoals = 5;
+        if (diff < -25) maxGoals = 6;
+
+        awayGoals = randomInt(diff < -25 ? 2 : 1, maxGoals);
         homeGoals = randomInt(0, awayGoals - 1);
       }
 
