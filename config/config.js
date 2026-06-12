@@ -191,32 +191,32 @@ module.exports = {
       name: 'Brązowa Paczka',
       emoji: '🟫',
       price: 50000,
-      shortDesc: 'Lootbox: 22.5k–72.5k + 10% szans na Bilet.',
-      description: 'Otwórz komendą: !otworz brazowa\nZawartość: losowa kwota od 22 500 do 72 500 viccoinów (rozkład równomierny).\nBonus drop (10%): 🎟️ Bilet Loterii.',
+      shortDesc: 'Lootbox: 20.25k–65.25k + 10% szans na Bilet.',
+      description: 'Otwórz komendą: !otworz brazowa\nZawartość: losowa kwota od 20 250 do 65 250 viccoinów (rozkład równomierny).\nBonus drop (10%): 🎟️ Bilet Loterii.',
       type: 'stackable'
     },
     paczka_srebrna: {
       name: 'Srebrna Paczka',
       emoji: '⬜',
       price: 100000,
-      shortDesc: 'Lootbox: 71.25k–146.25k + 10% szans na przedmiot.',
-      description: 'Otwórz komendą: !otworz srebrna\nZawartość: losowa kwota od 71 250 do 146 250 viccoinów.\nBonus drop (10%): 5% szans na 🔒 Kłódkę, 5% szans na 🍺 Piwo.',
+      shortDesc: 'Lootbox: 64.125k–131.625k + 10% szans na przedmiot.',
+      description: 'Otwórz komendą: !otworz srebrna\nZawartość: losowa kwota od 64 125 do 131 625 viccoinów.\nBonus drop (10%): 5% szans na 🔒 Kłódkę, 5% szans na 🍺 Piwo.',
       type: 'stackable'
     },
     paczka_zlota: {
       name: 'Złota Paczka',
       emoji: '🟨',
       price: 200000,
-      shortDesc: 'Lootbox: 145k–245k + 13% szans na przedmiot/artefakt.',
-      description: 'Otwórz komendą: !otworz zlota\nZawartość: losowa kwota od 145 000 do 245 000 viccoinów.\nBonus drop (13%): 5% na 💣 Bombę, 3% na 🔒 Kłódkę + 🍺 Piwo jednocześnie, 2% na 🎟️ Bilet, 2% na 💳 Złotą Kartę, 1% na 📷 Kamerę.',
+      shortDesc: 'Lootbox: 130.5k–220.5k + 13% szans na przedmiot/artefakt.',
+      description: 'Otwórz komendą: !otworz zlota\nZawartość: losowa kwota od 130 500 do 220 500 viccoinów.\nBonus drop (13%): 5% na 💣 Bombę, 3% na 🔒 Kłódkę + 🍺 Piwo jednocześnie, 2% na 🎟️ Bilet, 2% na 💳 Złotą Kartę, 1% na 📷 Kamerę.',
       type: 'stackable'
     },
     paczka_diamentowa: {
       name: 'Diamentowa Paczka',
       emoji: '🟦',
       price: 500000,
-      shortDesc: 'Lootbox: 225k–725k + 12.5% szans na VIP/Sejf/Artefakty!',
-      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 225 000 do 725 000 viccoinów.\nBonus drop (12.5%): 5% na 👑 VIP Pass, 5% na 🏦 Ulepszenie Banku, 2% na 🩸 Krwawy Żeton, 0.5% na ⏰ Stary Zegar.\nJeśli już posiadasz dany przedmiot permanentny — otrzymujesz zamiennik o podobnej wartości.',
+      shortDesc: 'Lootbox: 202.5k–652.5k + 12.5% szans na VIP/Sejf/Artefakty!',
+      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 202 500 do 652 500 viccoinów.\nBonus drop (12.5%): 5% na 👑 VIP Pass, 5% na 🏦 Ulepszenie Banku, 2% na 🩸 Krwawy Żeton, 0.5% na ⏰ Stary Zegar.\nJeśli już posiadasz dany przedmiot permanentny — otrzymujesz zamiennik o podobnej wartości.',
       type: 'stackable'
     },
     // Poniższe itemy są niedostępne w sklepie — wypadają tylko z paczek
@@ -294,8 +294,8 @@ module.exports = {
       name: 'Tytanowa Paczka',
       emoji: '🩶',
       price: 800000,
-      shortDesc: 'Lootbox: 550k–1M + 2% na Krupiera, 40% na bombę/piwo/kłódkę.',
-      description: 'Otwórz komendą: !otworz tytanowa\nZawartość: losowa kwota od 550 000 do 1 000 000 viccoinów.\nBonus drop (2%): 🧠 Przekupiony Krupier.\nDodatkowo 40% szans na wylosowanie bomby, piwa lub kłódki.',
+      shortDesc: 'Lootbox: 495k–900k + 2% na Krupiera, 40% na bombę/piwo/kłódkę.',
+      description: 'Otwórz komendą: !otworz tytanowa\nZawartość: losowa kwota od 495 000 do 900 000 viccoinów.\nBonus drop (2%): 🧠 Przekupiony Krupier.\nDodatkowo 40% szans na wylosowanie bomby, piwa lub kłódki.',
       type: 'stackable',
       buyable: true
     },

@@ -17,8 +17,8 @@ const PACZKI = {
     id: 'paczka_brazowa',
     name: 'Brązowa Paczka',
     emoji: '🟫',
-    minCash: 22500,
-    maxCash: 72500,
+    minCash: 20250,
+    maxCash: 65250,
     drops: [
       { chance: 100, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] } // 10% = 100/1000
     ]
@@ -27,8 +27,8 @@ const PACZKI = {
     id: 'paczka_srebrna',
     name: 'Srebrna Paczka',
     emoji: '⬜',
-    minCash: 71250,
-    maxCash: 146250,
+    minCash: 64125,
+    maxCash: 131625,
     drops: [
       { chance: 50, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] }, // 5% = 50/1000
       { chance: 50, items: [{ id: 'piwo',   qty: 1, label: '🍺 Piwo'   }] }  // 5% = 50/1000
@@ -38,8 +38,8 @@ const PACZKI = {
     id: 'paczka_zlota',
     name: 'Złota Paczka',
     emoji: '🟨',
-    minCash: 145000,
-    maxCash: 245000,
+    minCash: 130500,
+    maxCash: 220500,
     drops: [
       { chance: 50, items: [{ id: 'bomba',  qty: 1, label: '💣 Bomba'  }] }, // 5% = 50/1000
       { chance: 30, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }] }, // 3% = 30/1000
@@ -52,8 +52,8 @@ const PACZKI = {
     id: 'paczka_diamentowa',
     name: 'Diamentowa Paczka',
     emoji: '🟦',
-    minCash: 225000,
-    maxCash: 725000,
+    minCash: 202500,
+    maxCash: 652500,
     drops: [
       { chance: 50, items: [{ id: 'vip',  qty: 1, label: '👑 VIP Pass',          permanent: true }] }, // 5% = 50/1000
       { chance: 50, items: [{ id: 'sejf', qty: 1, label: '🏦 Ulepszenie Banku',  permanent: true }] }, // 5% = 50/1000
@@ -65,8 +65,8 @@ const PACZKI = {
     id: 'paczka_tytanowa',
     name: 'Tytanowa Paczka',
     emoji: '🩶',
-    minCash: 550000,
-    maxCash: 1000000,
+    minCash: 495000,
+    maxCash: 900000,
     drops: [
       { chance: 20, items: [{ id: 'przekupiony_krupier', qty: 1, label: '🧠 Przekupiony Krupier' }] }, // 2% = 20/1000
       { chance: 150, items: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }] }, // 15% = 150/1000
@@ -111,11 +111,11 @@ module.exports = {
       await message.reply(
         `📦 **System Paczek**\n` +
         `Użyj: **!otworz <brazowa|srebrna|zlota|diamentowa|tytanowa>**\n\n` +
-        `🟫 **Brązowa** (50k)    — 22 500 – 72 500 + 10% Bilet Loterii\n` +
-        `⬜ **Srebrna** (100k)   — 71 250 – 146 250 + 10% Kłódka lub Piwo\n` +
-        `🟨 **Złota** (200k)     — 145 000 – 245 000 + 10% szans: Bomba, Kłódka+Piwo, Bilet, 2% Złota Karta, 1% Kamera\n` +
-        `🟦 **Diamentowa** (500k) — 225 000 – 725 000 + 10% szans: VIP, Sejf, 2% Krwawy Żeton, 0.5% Stary Zegar\n` +
-        `🩶 **Tytanowa** (800k)   — 550 000 – 1 000 000 + 2% Przekupiony Krupier, 40% Bomba/Piwo/Kłódka\n\n` +
+        `🟫 **Brązowa** (50k)    — 20 250 – 65 250 + 10% Bilet Loterii\n` +
+        `⬜ **Srebrna** (100k)   — 64 125 – 131 625 + 10% Kłódka lub Piwo\n` +
+        `🟨 **Złota** (200k)     — 130 500 – 220 500 + 10% szans: Bomba, Kłódka+Piwo, Bilet, 2% Złota Karta, 1% Kamera\n` +
+        `🟦 **Diamentowa** (500k) — 202 500 – 652 500 + 10% szans: VIP, Sejf, 2% Krwawy Żeton, 0.5% Stary Zegar\n` +
+        `🩶 **Tytanowa** (800k)   — 495 000 – 900 000 + 2% Przekupiony Krupier, 40% Bomba/Piwo/Kłódka\n\n` +
         `💡 Kup paczki w sklepie: **!sklep**`
       );
       return;
