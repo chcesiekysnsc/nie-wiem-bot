@@ -107,8 +107,10 @@ async function resolveSingleMatchBet(api, userId, betData) {
     let net = 0;
 
     if (won) {
-      net = potentialWin - bet;
-      user.balance += potentialWin;
+      const tax = Math.round(potentialWin * 0.15);
+      const payout = potentialWin - tax;
+      net = payout - bet;
+      user.balance += payout;
     } else {
       net = -bet;
     }
@@ -141,7 +143,8 @@ async function resolveSingleMatchBet(api, userId, betData) {
     `🏁 **Wynik meczu: ${outcomeResult.homeGoals} - ${outcomeResult.awayGoals}**\n\n`;
 
   if (outcomeResult.won) {
-    replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Zysk: **+${formatCurrency(outcomeResult.net)}**\n`;
+    const tax = Math.round(potentialWin * 0.15);
+    replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Zysk netto: **+${formatCurrency(outcomeResult.net)}** (Wygrana brutto: ${formatCurrency(potentialWin)}, podatek 15%: -${formatCurrency(tax)})\n`;
   } else {
     replyText += `💀 Niestety, Twój kupon jest **PRZEGRANY**. Strata: **-${formatCurrency(Math.abs(outcomeResult.net))}**\n`;
   }
@@ -219,8 +222,10 @@ async function resolveSingleMultiBet(api, userId, betData) {
 
     let net = 0;
     if (ticketWon) {
-      net = potentialWin - totalStake;
-      user.balance += potentialWin;
+      const tax = Math.round(potentialWin * 0.15);
+      const payout = potentialWin - tax;
+      net = payout - totalStake;
+      user.balance += payout;
     } else {
       net = -totalStake;
     }
@@ -245,7 +250,8 @@ async function resolveSingleMultiBet(api, userId, betData) {
   });
 
   if (outcomeResult.ticketWon) {
-    replyText += `🎉 **KUPON WYGRANY!**\nZysk netto: **+${formatCurrency(outcomeResult.net)}**\n`;
+    const tax = Math.round(potentialWin * 0.15);
+    replyText += `🎉 **KUPON WYGRANY!**\nZysk netto: **+${formatCurrency(outcomeResult.net)}** (Wygrana brutto: ${formatCurrency(potentialWin)}, podatek 15%: -${formatCurrency(tax)})\n`;
   } else {
     replyText += `💀 **KUPON PRZEGRANY.**\nStrata: **-${formatCurrency(Math.abs(outcomeResult.net))}**\n`;
   }
