@@ -1573,7 +1573,16 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
-    const command = client.commands.get(commandName);
+    let command = client.commands.get(commandName);
+    if (!command) {
+      const normInput = normalizeText(commandName);
+      for (const [key, cmd] of client.commands.entries()) {
+        if (normalizeText(key) === normInput) {
+          command = cmd;
+          break;
+        }
+      }
+    }
 
     // Block interaction with blacklisted users
     const adminBypassCmds = [
@@ -1616,9 +1625,23 @@ login({ appState }, (loginErr, api) => {
       }
     }
     if (!command) {
-      const suggestion = findClosestCommand(commandName, client.commands);
-      const msg = suggestion
-        ? `Nie znaleziono komendy "${currentPrefix}${commandName}". Czy chodzilo Ci o ${currentPrefix}${suggestion}?`
+      const normInput = normalizeText(commandName);
+      let bestDist = Infinity;
+      let suggestion = null;
+      const seen = new Set();
+      for (const [key, cmd] of client.commands.entries()) {
+        if (seen.has(cmd.name)) continue;
+        seen.add(cmd.name);
+        const dist = levenshtein(normInput, normalizeText(key));
+        if (dist < bestDist) {
+          bestDist = dist;
+          suggestion = cmd.name;
+        }
+      }
+
+      const closest = bestDist <= 2 ? suggestion : null;
+      const msg = closest
+        ? `Nie znaleziono komendy "${currentPrefix}${commandName}". Czy chodzilo Ci o ${currentPrefix}${closest}?`
         : `Nie znaleziono komendy "${currentPrefix}${commandName}". Wpisz ${currentPrefix}help, aby zobaczyc liste komend.`;
       api.sendMessage(msg, threadId, () => {}, messageId);
       return;
