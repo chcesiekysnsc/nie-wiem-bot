@@ -130,6 +130,8 @@ function generateMatch() {
 module.exports = {
   name: 'mecz',
   aliases: ['betmecz', 'spotkanie'],
+  TEAMS,
+  generateMatch,
   async execute(client, message, args) {
     if (!client.activeMatches) {
       client.activeMatches = new Map();
@@ -197,12 +199,21 @@ module.exports = {
       return;
     }
 
+    if (!client.meczInProgress) {
+      client.meczInProgress = new Set();
+    }
+    if (client.meczInProgress.has(userId)) {
+      await message.reply('❌ Twój poprzedni zakład jest jeszcze symulowany! Poczekaj na wynik.');
+      return;
+    }
+
+    client.meczInProgress.add(userId);
+
     // Wyczyszczenie oferty
     client.activeMatches.delete(userId);
 
-    const result = await withData(store => {
+    const setupResult = await withData(store => {
       const user = createUser(userId, store.users);
-      const inventory = ensureInventoryRecord(store.inventory, userId);
       const bet = resolveAmount(rawBet, user.balance);
 
       if (!bet || bet <= 0) {
@@ -213,99 +224,124 @@ module.exports = {
         return { error: `❌ Nie masz tylu monet. Posiadasz: ${formatCurrency(user.balance)}` };
       }
 
-      // Symulacja wyniku meczu
-      const roll = Math.random();
-      let outcome = 'x'; // '1', 'x', '2'
-      let homeGoals = 0;
-      let awayGoals = 0;
-
-      const diff = match.diff || 0;
-
-      if (roll < match.probabilities.home) {
-        outcome = '1';
-        let maxGoals = 4;
-        if (diff > 15) maxGoals = 5;
-        if (diff > 25) maxGoals = 6;
-        
-        homeGoals = randomInt(diff > 25 ? 2 : 1, maxGoals);
-        awayGoals = randomInt(0, homeGoals - 1);
-      } else if (roll < match.probabilities.home + match.probabilities.draw) {
-        outcome = 'x';
-        homeGoals = randomInt(0, 3);
-        awayGoals = homeGoals;
-      } else {
-        outcome = '2';
-        let maxGoals = 4;
-        if (diff < -15) maxGoals = 5;
-        if (diff < -25) maxGoals = 6;
-
-        awayGoals = randomInt(diff < -25 ? 2 : 1, maxGoals);
-        homeGoals = randomInt(0, awayGoals - 1);
-      }
-
-      const won = rawType === outcome;
-      const odds = match.odds[rawType];
-      let net = 0;
-
-      if (won) {
-        net = Math.round(bet * odds) - bet;
-        user.balance += net;
-      } else {
-        net = -bet;
-        user.balance -= bet;
-      }
-
-      const { recordGame } = require('../utils/economy');
-      const xpResult = recordGame(user, net, 25, inventory);
-      refreshBadges(user, inventory);
-
-      return {
-        won,
-        net,
-        homeGoals,
-        awayGoals,
-        outcome,
-        odds,
-        balance: user.balance,
-        xpResult
-      };
+      // Potrącamy stawkę z góry
+      user.balance -= bet;
+      return { bet, newBalance: user.balance };
     });
 
-    if (result.error) {
-      await message.reply(result.error);
+    if (setupResult.error) {
+      client.meczInProgress.delete(userId);
+      await message.reply(setupResult.error);
       return;
     }
 
+    const bet = setupResult.bet;
     const typeLabels = {
       1: match.home,
       x: 'Remis',
       2: match.away
     };
+    const odds = match.odds[rawType];
+    const potentialWin = Math.round(bet * odds);
 
-    let replyText = 
-      `⚽ **ZAKŁAD SPORTOWY** ⚽\n` +
+    await message.reply(
+      `🎟️ **KUPON POSTAWIONY!**\n` +
       `Mecz: **${match.home}** vs **${match.away}**\n` +
-      `Twój typ: **${typeLabels[rawType]}** (kurs: **${result.odds}**)\n\n` +
-      `🏁 **Wynik meczu: ${result.homeGoals} - ${result.awayGoals}**\n\n`;
+      `Twój typ: **${typeLabels[rawType]}** (kurs: **${odds}**)\n` +
+      `💰 Stawka: **${formatCurrency(bet)}**\n` +
+      `🏆 Do wygrania: **${formatCurrency(potentialWin)}**\n\n` +
+      `⏱️ *Trwa symulacja meczu... (wynik za 15 sekund)*`
+    );
 
-    if (result.won) {
-      replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Zysk: **+${formatCurrency(result.net)}**\n`;
-    } else {
-      replyText += `💀 Niestety, Twój kupon jest **PRZEGRANY**. Strata: **-${formatCurrency(Math.abs(result.net))}**\n`;
-    }
+    setTimeout(async () => {
+      try {
+        const result = await withData(store => {
+          const user = createUser(userId, store.users);
+          const inventory = ensureInventoryRecord(store.inventory, userId);
 
-    replyText += `💰 Twój balans: **${formatCurrency(result.balance)}**`;
+          // Symulacja wyniku meczu
+          const roll = Math.random();
+          let outcome = 'x'; // '1', 'x', '2'
+          let homeGoals = 0;
+          let awayGoals = 0;
+          const diff = match.diff || 0;
 
-    if (result.xpResult && result.xpResult.leveledUp) {
-      replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
-      if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
-        const { getMilestoneRewardDescription } = require('../utils/economy');
-        for (const lvl of result.xpResult.milestonesGained) {
-          replyText += `\n🎁 Otrzymałeś nagrodę za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+          if (roll < match.probabilities.home) {
+            outcome = '1';
+            let maxGoals = 4;
+            if (diff > 15) maxGoals = 5;
+            if (diff > 25) maxGoals = 6;
+            homeGoals = randomInt(diff > 25 ? 2 : 1, maxGoals);
+            awayGoals = randomInt(0, homeGoals - 1);
+          } else if (roll < match.probabilities.home + match.probabilities.draw) {
+            outcome = 'x';
+            homeGoals = randomInt(0, 3);
+            awayGoals = homeGoals;
+          } else {
+            outcome = '2';
+            let maxGoals = 4;
+            if (diff < -15) maxGoals = 5;
+            if (diff < -25) maxGoals = 6;
+            awayGoals = randomInt(diff < -25 ? 2 : 1, maxGoals);
+            homeGoals = randomInt(0, awayGoals - 1);
+          }
+
+          const won = rawType === outcome;
+          let net = 0;
+
+          if (won) {
+            net = potentialWin - bet;
+            user.balance += potentialWin; // Dodajemy całą wygraną
+          } else {
+            net = -bet;
+            // Nic nie robimy, stawka przepadła
+          }
+
+          const { recordGame } = require('../utils/economy');
+          const xpResult = recordGame(user, net, 25, inventory);
+          refreshBadges(user, inventory);
+
+          return {
+            won,
+            net,
+            homeGoals,
+            awayGoals,
+            outcome,
+            balance: user.balance,
+            xpResult
+          };
+        });
+
+        let replyText = 
+          `⚽ **ZAKŁAD SPORTOWY** ⚽\n` +
+          `Mecz: **${match.home}** vs **${match.away}**\n` +
+          `Twój typ: **${typeLabels[rawType]}** (kurs: **${odds}**)\n\n` +
+          `🏁 **Wynik meczu: ${result.homeGoals} - ${result.awayGoals}**\n\n`;
+
+        if (result.won) {
+          replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Zysk: **+${formatCurrency(result.net)}**\n`;
+        } else {
+          replyText += `💀 Niestety, Twój kupon jest **PRZEGRANY**. Strata: **-${formatCurrency(Math.abs(result.net))}**\n`;
         }
-      }
-    }
 
-    await message.reply(replyText);
+        replyText += `💰 Twój balans: **${formatCurrency(result.balance)}**`;
+
+        if (result.xpResult && result.xpResult.leveledUp) {
+          replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${result.xpResult.newLevel}**!`;
+          if (result.xpResult.milestonesGained && result.xpResult.milestonesGained.length > 0) {
+            const { getMilestoneRewardDescription } = require('../utils/economy');
+            for (const lvl of result.xpResult.milestonesGained) {
+              replyText += `\n🎁 Otrzymałeś nagrodę za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+            }
+          }
+        }
+
+        await message.reply(replyText);
+      } catch (err) {
+        console.error('Error resolving match bet:', err);
+      } finally {
+        client.meczInProgress.delete(userId);
+      }
+    }, 15000);
   }
 };
