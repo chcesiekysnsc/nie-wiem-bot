@@ -73,13 +73,21 @@ const TEAMS = {
   'Fenerbahce SK': 81,
   'Galatasaray SK': 81,
   'Feyenoord': 80,
+  'SC Braga': 79,
+  'Szachtar Donieck': 79,
   'Ajax Amsterdam': 78,
+  'Trabzonspor': 78,
+  'Olympiakos Pireus': 78,
   'Club Brugge': 77,
   'Besiktas JK': 77,
+  'AZ Alkmaar': 77,
+  'Dynamo Kijów': 77,
   'Red Bull Salzburg': 76,
   'Celtic FC': 76,
+  'PAOK Saloniki': 76,
   'Anderlecht Bruksela': 75,
   'Rangers FC': 75,
+  'Panathinaikos AO': 75,
 
   // --- POLSKA (Ekstraklasa) ---
   'Lech Poznań': 70,
@@ -89,9 +97,27 @@ const TEAMS = {
   'Pogoń Szczecin': 68,
   'Śląsk Wrocław': 67,
   'Górnik Zabrze': 66,
+  'Piast Gliwice': 66,
   'Cracovia': 65,
   'Widzew Łódź': 65,
-  'Wisła Kraków': 64
+  'Zagłębie Lubin': 65,
+  'Wisła Kraków': 64,
+  'Stal Mielec': 64,
+  'Radomiak Radom': 64,
+  'Lechia Gdańsk': 63,
+  'GKS Katowice': 63,
+  'Puszcza Niepołomice': 62,
+  'Korona Kielce': 62,
+  'Motor Lublin': 61,
+
+  // --- INNE ŚWIATOWE ---
+  'Al-Hilal': 82,
+  'Al-Nassr': 79,
+  'Al-Ittihad': 77,
+  'Al-Ahli SFC': 77,
+  'Inter Miami': 77,
+  'Columbus Crew': 75,
+  'LA Galaxy': 74
 };
 
 function generateMatch() {
