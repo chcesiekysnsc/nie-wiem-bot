@@ -320,6 +320,14 @@ login({ appState }, (loginErr, api) => {
     config.admins.push(botId);
     console.log(`[SELF-BOT] Dodano konto bota (${botId}) do grona administratorów.`);
   }
+
+  // Odzyskiwanie przerwanych zakładów meczowych/multi-meczowych po restarcie
+  const { resolvePendingBets } = require('./utils/bets');
+  setTimeout(() => {
+    resolvePendingBets(api).catch(err => {
+      console.error('[SELF-BOT] Blad podczas odzyskiwania zakladow:', err);
+    });
+  }, 3000);
   
   // Wrap api.sendMessage to add typing indicator and 1s delay
   const originalSendMessage = api.sendMessage;

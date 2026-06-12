@@ -295,6 +295,16 @@ module.exports = {
     const odds = match.odds[rawType];
     const potentialWin = Math.round(bet * odds);
 
+    // Zapisz aktywny zakład do pliku (ochrona przed restartem bota)
+    const { addActiveBet, removeActiveBet } = require('../utils/bets');
+    addActiveBet(userId, {
+      threadId: message.threadID,
+      bet,
+      rawType,
+      match,
+      isMulti: false
+    });
+
     await message.reply(
       `🎟️ **KUPON POSTAWIONY!**\n` +
       `Mecz: **${match.home}** vs **${match.away}**\n` +
@@ -306,6 +316,9 @@ module.exports = {
 
     setTimeout(async () => {
       try {
+        // Usuń aktywny zakład po rozpoczęciu rozliczania
+        removeActiveBet(userId);
+
         const result = await withData(store => {
           const user = createUser(userId, store.users);
           const inventory = ensureInventoryRecord(store.inventory, userId);

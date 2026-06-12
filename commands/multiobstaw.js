@@ -157,6 +157,17 @@ module.exports = {
     combinedOdds = parseFloat(combinedOdds.toFixed(2));
     const potentialWin = Math.round(totalStake * combinedOdds);
 
+    // Zapisz aktywny zakład do pliku (ochrona przed restartem bota)
+    const { addActiveBet, removeActiveBet } = require('../utils/bets');
+    addActiveBet(userId, {
+      threadId: message.threadID,
+      totalStake,
+      combinedOdds,
+      potentialWin,
+      matchDetails,
+      isMulti: true
+    });
+
     // Czyszczenie oferty gracza
     client.activeMultiMatches.delete(userId);
 
@@ -177,6 +188,9 @@ module.exports = {
     // 7. Symulacja po 15 sekundach
     setTimeout(async () => {
       try {
+        // Usuń aktywny zakład po rozpoczęciu rozliczania
+        removeActiveBet(userId);
+
         const result = await withData(store => {
           const user = createUser(userId, store.users);
           const inventory = ensureInventoryRecord(store.inventory, userId);
