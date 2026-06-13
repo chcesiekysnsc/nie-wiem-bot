@@ -182,9 +182,8 @@ module.exports = {
     });
     setupMsg += `\n📈 Łączny kurs: **${combinedOdds}**\n` +
                 `💰 Łączna stawka: **${formatCurrency(totalStake)}**\n` +
-                `🏆 Wygrana brutto: **${formatCurrency(potentialWin)}**\n` +
-                `💸 Podatek (15%): **${formatCurrency(tax)}**\n` +
-                `🏆 Potencjalna wygrana netto: **${formatCurrency(payout)}**\n\n` +
+                `🏆 Wygrana (bez podatku): **${formatCurrency(payout)}**\n` +
+                `💸 Pobrany podatek (15%): **${formatCurrency(tax)}**\n\n` +
                 `⏱️ *Trwa symulacja meczów... (wyniki za 15 sekund)*`;
 
     await message.reply(setupMsg);
@@ -279,7 +278,24 @@ module.exports = {
 
         if (result.ticketWon) {
           const taxApplied = Math.round(potentialWin * 0.15);
-          replyText += `🎉 **KUPON WYGRANY!**\nZysk netto: **+${formatCurrency(result.net)}** (Wygrana brutto: ${formatCurrency(potentialWin)}, podatek 15%: -${formatCurrency(taxApplied)})\n`;
+          const payoutApplied = potentialWin - taxApplied;
+          replyText += `🎉 **KUPON WYGRANY!**\nCzysty zysk: **+${formatCurrency(result.net)}** (Wygrana bez podatku: ${formatCurrency(payoutApplied)}, pobrany podatek: -${formatCurrency(taxApplied)})\n`;
+
+          // Powiadomienie na grupę administratorską, jeśli kurs > 20
+          if (combinedOdds > 20) {
+            try {
+              const adminGroupId = config.adminGroupId || '5277347745703557';
+              const userName = (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
+              const notifyMsg = `🔥 **DUŻA WYGRANA W MULTI-MECZU!** 🔥\n` +
+                                `👤 Gracz: **${userName}** (ID: \`${userId}\`)\n` +
+                                `🏆 Trafiony łączny kurs: **${combinedOdds}**\n` +
+                                `💰 Stawka: **${formatCurrency(totalStake)}**\n` +
+                                `💸 Wygrana (bez podatku): **${formatCurrency(payoutApplied)}**`;
+              client.api.sendMessage(notifyMsg, adminGroupId);
+            } catch (err) {
+              console.error('[MULTIOBSTAWIENIE] Failed to send admin notification:', err);
+            }
+          }
         } else {
           replyText += `💀 **KUPON PRZEGRANY.**\nStrata: **-${formatCurrency(Math.abs(result.net))}**\n`;
         }
