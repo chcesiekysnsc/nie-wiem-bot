@@ -11,8 +11,8 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[SELF-BOT-WARNING] Unhandled Rejection at:', promise, 'reason:', reason);
-  // Nie ubijamy procesu przy odrzuconych obietnicach, by uniknąć pętli crashów przy przejściowych błędach sieciowych lub rate-limitach FCA
+  console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
 
 const config = require('./config/config');
@@ -691,17 +691,6 @@ login({ appState }, (loginErr, api) => {
 
     console.log(`[NEW GROUP] Wykryto dodanie do nowej grupy: ${groupName} (ID: ${threadId}). Wysyłanie kropki i powiadomienia...`);
 
-    // Automatyczne wyciszenie nowej grupy na stałe (-1)
-    api.muteThread(threadId, -1, (muteErr) => {
-      if (muteErr) {
-        console.error(`[NEW GROUP MUTE ERROR] Błąd podczas wyciszania nowej grupy ${threadId}:`, muteErr);
-      } else {
-        console.log(`[NEW GROUP] Pomyślnie wyciszono nową grupę ${threadId} na stałe.`);
-        client.mutedThreads = client.mutedThreads || new Set();
-        client.mutedThreads.add(threadId);
-      }
-    });
-
     // 1. Wyślij wiadomość powitalną do nowej grupy (akceptacja zaproszenia/żądania wiadomości)
     const welcomeMsg = "dziekuje za dodanie na grupe, moj prefix to ! po wiecej informacji wpisz !help";
     api.sendMessage(welcomeMsg, threadId, (sendErr) => {
@@ -753,50 +742,9 @@ login({ appState }, (loginErr, api) => {
     });
   };
 
-  const muteInboxGroups = () => {
-    console.log('[MUTE] Rozpoczynanie skanowania i wyciszania grup w skrzynce odbiorczej...');
-    api.getThreadList(100, null, [], (err, list) => {
-      if (err) {
-        console.error('[MUTE ERROR] Nie udało się pobrać listy wątków skrzynki odbiorczej:', err);
-        return;
-      }
-      if (list && list.length > 0) {
-        client.mutedThreads = client.mutedThreads || new Set();
-        let muteCount = 0;
-        for (const thread of list) {
-          if (thread.isGroup && thread.threadID) {
-            // Bezpieczne sprawdzanie czy wątek jest aktualnie wyciszony (na stałe lub czasowo w przyszłości)
-            const isCurrentlyMuted = String(thread.muteUntil) === '-1' || (Number(thread.muteUntil) > Date.now());
-            if (!isCurrentlyMuted) {
-              muteCount++;
-              // Wycisz z opóźnieniem, aby nie przeciążyć API
-              setTimeout(() => {
-                api.muteThread(thread.threadID, -1, (muteErr) => {
-                  if (muteErr) {
-                    console.error(`[MUTE ERROR] Nie udało się wyciszyć istniejącej grupy ${thread.threadID}:`, muteErr);
-                  } else {
-                    console.log(`[MUTE] Pomyślnie wyciszono istniejącą grupę ${thread.name || thread.threadID} na stałe.`);
-                    client.mutedThreads.add(thread.threadID);
-                  }
-                });
-              }, muteCount * 300);
-            } else {
-              // Upewnij się, że jest w cache, skoro jest wyciszony
-              client.mutedThreads.add(thread.threadID);
-            }
-          }
-        }
-        console.log(`[MUTE] Skanowanie zakończone. Zlecono wyciszenie ${muteCount} grup.`);
-      }
-    });
-  };
-
-  // Uruchom okresowe sprawdzanie co 10 minut oraz po starcie z opóźnieniem (rozłożone w czasie w celu uniknięcia limitów zapytań)
-  setInterval(checkPendingThreads, 600000).unref();
-  setTimeout(checkPendingThreads, 10000).unref();
-  setTimeout(muteInboxGroups, 25000).unref();
-  // Okresowe skanowanie skrzynki odbiorczej co 10 minut w celu wykrycia ewentualnych wyciszeń wyłączonych ręcznie
-  setInterval(muteInboxGroups, 600000).unref();
+  // Uruchom okresowe sprawdzanie co 15 sekund oraz raz zaraz po starcie
+  setInterval(checkPendingThreads, 15000).unref();
+  setTimeout(checkPendingThreads, 1000).unref();
 
   api.setOptions({
     listenEvents: true,
@@ -810,25 +758,7 @@ login({ appState }, (loginErr, api) => {
       process.exit(1);
     }
 
-    // Automatyczne wyciszanie nowo napotkanych grup w tle
-    {
-      const threadId = event.threadID;
-      const senderId = event.senderID || event.author;
-      if (threadId && senderId && String(threadId) !== String(senderId)) {
-        client.mutedThreads = client.mutedThreads || new Set();
-        if (!client.mutedThreads.has(threadId)) {
-          client.mutedThreads.add(threadId);
-          console.log(`[MUTE] Automatyczne wyciszanie grupy o ID: ${threadId}...`);
-          api.muteThread(threadId, -1, (muteErr) => {
-            if (muteErr) {
-              console.error(`[MUTE ERROR] Nie udało się wyciszyć grupy ${threadId}:`, muteErr);
-            } else {
-              console.log(`[MUTE] Pomyślnie wyciszono grupę ${threadId} na stałe.`);
-            }
-          });
-        }
-      }
-    }
+
 
     // Interceptor dla zmiany pseudonimu (log:thread-nickname lub log:user-nickname)
     const isNicknameEvent = (event.type === 'event' && (event.logMessageType === 'log:thread-nickname' || event.logMessageType === 'log:user-nickname')) 
