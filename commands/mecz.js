@@ -153,6 +153,8 @@ function generateMatch() {
   return {
     home,
     away,
+    homeStrength,
+    awayStrength,
     diff,
     odds: {
       1: oddsHome,
@@ -287,12 +289,15 @@ module.exports = {
     const payout = potentialWin - tax;
 
     // Zapisz aktywny zakład do pliku (ochrona przed restartem bota)
-    const { addActiveBet, removeActiveBet } = require('../utils/bets');
+    const { addActiveBet, removeActiveBet, simulateFullMatch } = require('../utils/bets');
+    const sim = simulateFullMatch(match);
+
     addActiveBet(userId, {
       threadId: message.threadID,
       bet,
       rawType,
       match,
+      simulation: sim,
       isMulti: false
     });
 
@@ -303,10 +308,75 @@ module.exports = {
       `💰 Stawka: **${formatCurrency(bet)}**\n` +
       `🏆 Wygrana (bez podatku): **${formatCurrency(payout)}**\n` +
       `💸 Pobrany podatek (15%): **${formatCurrency(tax)}**\n\n` +
-      `⏱️ *Trwa symulacja meczu... (wynik za 15 sekund)*`
+      `⏱️ *Trwa symulacja meczu... (wynik za 1 minutę)*`
     );
 
-    setTimeout(async () => {
+    if (!client.activeMeczTimers) {
+      client.activeMeczTimers = new Map();
+    }
+    const userTimers = [];
+    client.activeMeczTimers.set(userId, userTimers);
+
+    // 1. Po 30s: koniec 1. połowy + żółte kartki
+    const t1 = setTimeout(async () => {
+      try {
+        let halfTimeText = 
+          `⚽ **KONIEC 1. POŁOWY (45')** ⚽\n` +
+          `Mecz: **${match.home}** vs **${match.away}**\n` +
+          `Wynik do przerwy: **${sim.homeGoals1} - ${sim.awayGoals1}**\n\n`;
+
+        const hasHomeCards = sim.homeYellows1 && sim.homeYellows1.length > 0;
+        const hasAwayCards = sim.awayYellows1 && sim.awayYellows1.length > 0;
+
+        if (hasHomeCards || hasAwayCards) {
+          halfTimeText += `🎴 **Żółte kartki w 1. połowie:**\n`;
+          if (hasHomeCards) {
+            sim.homeYellows1.forEach(c => {
+              halfTimeText += `• 🟨 ${c.player} (${match.home}) ${c.minute}'\n`;
+            });
+          }
+          if (hasAwayCards) {
+            sim.awayYellows1.forEach(c => {
+              halfTimeText += `• 🟨 ${c.player} (${match.away}) ${c.minute}'\n`;
+            });
+          }
+        } else {
+          halfTimeText += `🎴 **Żółte kartki w 1. połowie:** Brak\n`;
+        }
+        halfTimeText += `\n⏱️ *Trwa przerwa i przygotowania do drugiej połowy... (koniec za 30 sekund)*`;
+
+        await message.reply(halfTimeText);
+      } catch (err) {
+        console.error('Error in 30s match timeout:', err);
+      }
+    }, 30000);
+    userTimers.push(t1);
+
+    // 2. Po 45s: zdarzenie z meczu (kontuzja, czerwona kartka lub zacięty mecz)
+    const t2 = setTimeout(async () => {
+      try {
+        let eventText = '';
+        if (sim.event && sim.event.occurred) {
+          eventText = 
+            `⚡ **Wydarzenie na boisku! (60')** ⚡\n` +
+            `${sim.event.text}\n` +
+            `⚠️ Ich siła spada o **-3** na resztę spotkania!\n\n` +
+            `⏱️ *Mecz toczy się dalej... (koniec za 15 sekund)*`;
+        } else {
+          eventText = 
+            `🏃 **Aktualizacja z meczu (60')** 🏃\n` +
+            `Żaden z zespołów nie odpuszcza, gra jest bardzo zacięta! Obie ekipy walczą o każdą piłkę.\n\n` +
+            `⏱️ *Mecz zmierza ku końcowi... (koniec za 15 sekund)*`;
+        }
+        await message.reply(eventText);
+      } catch (err) {
+        console.error('Error in 45s match timeout:', err);
+      }
+    }, 45000);
+    userTimers.push(t2);
+
+    // 3. Po 60s: koniec meczu + ostateczny wynik + rozliczenie
+    const t3 = setTimeout(async () => {
       try {
         // Usuń aktywny zakład po rozpoczęciu rozliczania
         removeActiveBet(userId);
@@ -315,34 +385,7 @@ module.exports = {
           const user = createUser(userId, store.users);
           const inventory = ensureInventoryRecord(store.inventory, userId);
 
-          // Symulacja wyniku meczu
-          const roll = Math.random();
-          let outcome = 'x'; // '1', 'x', '2'
-          let homeGoals = 0;
-          let awayGoals = 0;
-          const diff = match.diff || 0;
-
-          if (roll < match.probabilities.home) {
-            outcome = '1';
-            let maxGoals = 4;
-            if (diff > 15) maxGoals = 5;
-            if (diff > 25) maxGoals = 6;
-            homeGoals = randomInt(diff > 25 ? 2 : 1, maxGoals);
-            awayGoals = randomInt(0, homeGoals - 1);
-          } else if (roll < match.probabilities.home + match.probabilities.draw) {
-            outcome = 'x';
-            homeGoals = randomInt(0, 3);
-            awayGoals = homeGoals;
-          } else {
-            outcome = '2';
-            let maxGoals = 4;
-            if (diff < -15) maxGoals = 5;
-            if (diff < -25) maxGoals = 6;
-            awayGoals = randomInt(diff < -25 ? 2 : 1, maxGoals);
-            homeGoals = randomInt(0, awayGoals - 1);
-          }
-
-          const won = rawType === outcome;
+          const won = rawType === sim.outcome;
           let net = 0;
           let taxApplied = 0;
           let payoutApplied = 0;
@@ -354,7 +397,6 @@ module.exports = {
             user.balance += payoutApplied; // Dodajemy wygraną po odliczeniu podatku
           } else {
             net = -bet;
-            // Nic nie robimy, stawka przepadła
           }
 
           const { recordGame } = require('../utils/economy');
@@ -364,19 +406,33 @@ module.exports = {
           return {
             won,
             net,
-            homeGoals,
-            awayGoals,
-            outcome,
             balance: user.balance,
             xpResult
           };
         });
 
         let replyText = 
-          `⚽ **ZAKŁAD SPORTOWY** ⚽\n` +
+          `⚽ **ZAKŁAD SPORTOWY (KONIEC MECZU 90')** ⚽\n` +
           `Mecz: **${match.home}** vs **${match.away}**\n` +
           `Twój typ: **${typeLabels[rawType]}** (kurs: **${odds}**)\n\n` +
-          `🏁 **Wynik meczu: ${result.homeGoals} - ${result.awayGoals}**\n\n`;
+          `🏁 **Ostateczny wynik meczu: ${sim.finalHomeGoals} - ${sim.finalAwayGoals}** (do przerwy: ${sim.homeGoals1} - ${sim.awayGoals1})\n\n`;
+
+        const allHomeYellows = [...sim.homeYellows1, ...sim.homeYellows2];
+        const allAwayYellows = [...sim.awayYellows1, ...sim.awayYellows2];
+        if (allHomeYellows.length > 0 || allAwayYellows.length > 0) {
+          replyText += `🎴 **Podsumowanie żółtych kartek:**\n`;
+          allHomeYellows.forEach(c => {
+            replyText += `• 🟨 ${c.player} (${match.home}) ${c.minute}'\n`;
+          });
+          allAwayYellows.forEach(c => {
+            replyText += `• 🟨 ${c.player} (${match.away}) ${c.minute}'\n`;
+          });
+          replyText += `\n`;
+        }
+
+        if (sim.event && sim.event.occurred) {
+          replyText += `⚡ **Zdarzenie z meczu:**\n${sim.event.text}\n\n`;
+        }
 
         if (result.won) {
           const taxApplied = Math.round(potentialWin * 0.15);
@@ -419,7 +475,9 @@ module.exports = {
         console.error('Error resolving match bet:', err);
       } finally {
         client.meczInProgress.delete(userId);
+        client.activeMeczTimers.delete(userId);
       }
-    }, 15000);
+    }, 60000);
+    userTimers.push(t3);
   }
 };

@@ -69,39 +69,150 @@ async function resolvePendingBets(api) {
   }
 }
 
+const { getRandomPlayer } = require('./players');
+
+function simulateHalfResult(homeStr, awayStr) {
+  const diff = homeStr - awayStr;
+  const exponent = diff / 10;
+  const ratio = 1 / (1 + Math.exp(-exponent));
+  
+  // single half draws are more common
+  const pDraw = 0.38 * (1 - Math.abs(ratio - 0.5) * 0.8);
+  const pHome = (1 - pDraw) * ratio;
+  const pAway = (1 - pDraw) * (1 - ratio);
+
+  const roll = Math.random();
+  let homeGoals = 0;
+  let awayGoals = 0;
+  if (roll < pHome) {
+    homeGoals = randomInt(1, 3);
+    awayGoals = randomInt(0, homeGoals - 1);
+  } else if (roll < pHome + pDraw) {
+    homeGoals = randomInt(0, 1);
+    awayGoals = homeGoals;
+  } else {
+    awayGoals = randomInt(1, 3);
+    homeGoals = randomInt(0, awayGoals - 1);
+  }
+  return { homeGoals, awayGoals };
+}
+
+function rollYellowCardsForHalf(teamName, halfNum) {
+  const cards = [];
+  const numCards = Math.random() < 0.35 ? (Math.random() < 0.2 ? 2 : 1) : 0;
+  for (let i = 0; i < numCards; i++) {
+    const player = getRandomPlayer(teamName);
+    const min = halfNum === 1 ? randomInt(1, 45) : randomInt(46, 90);
+    cards.push({ player, minute: min });
+  }
+  cards.sort((a, b) => a.minute - b.minute);
+  return cards;
+}
+
+function rollHalfTimeEvent(homeName, awayName) {
+  if (Math.random() < 0.05) {
+    const isHome = Math.random() < 0.5;
+    const teamName = isHome ? homeName : awayName;
+    const teamKey = isHome ? 'home' : 'away';
+    const isInjury = Math.random() < 0.5;
+
+    const injuries = [
+      `🚑 **${teamName}**: Kontuzja kluczowego napastnika! Musi zejść z boiska.`,
+      `🚑 **${teamName}**: Kontuzja podstawowego pomocnika! Sztab medyczny interweniuje.`,
+      `🚑 **${teamName}**: Kontuzja bramkarza! Zostaje zastąpiony rezerwowym.`,
+      `🚑 **${teamName}**: Uraz mięśniowy lidera defensywy! Gra ze sporym dyskomfortem.`
+    ];
+
+    const redCards = [
+      `🟥 **${teamName}**: Czerwona kartka za brutalny wślizg od tyłu! Grają w dziesiątkę.`,
+      `🟥 **${teamName}**: Druga żółta i w konsekwencji czerwona kartka dla środkowego obrońcy!`,
+      `🟥 **${teamName}**: Czerwona kartka za niesportowe zachowanie i kłótnie z sędzią!`,
+      `🟥 **${teamName}**: Wykluczenie z gry po analizie VAR za uderzenie rywala bez piłki!`
+    ];
+
+    const list = isInjury ? injuries : redCards;
+    const text = list[randomInt(0, list.length - 1)];
+
+    return {
+      occurred: true,
+      team: teamKey,
+      teamName,
+      text,
+      type: isInjury ? 'injury' : 'red_card'
+    };
+  }
+
+  return { occurred: false };
+}
+
+function simulateFullMatch(match) {
+  const homeStr = match.homeStrength || 80;
+  const awayStr = match.awayStrength || 80;
+  const homeName = match.home;
+  const awayName = match.away;
+
+  // 1st half goals
+  const half1 = simulateHalfResult(homeStr, awayStr);
+
+  // 1st half yellow cards
+  const homeYellows1 = rollYellowCardsForHalf(homeName, 1);
+  const awayYellows1 = rollYellowCardsForHalf(awayName, 1);
+
+  // 2nd half event check
+  const event = rollHalfTimeEvent(homeName, awayName);
+
+  let modifiedHomeStr = homeStr;
+  let modifiedAwayStr = awayStr;
+  if (event.occurred) {
+    if (event.team === 'home') {
+      modifiedHomeStr = Math.max(1, homeStr - 3);
+    } else {
+      modifiedAwayStr = Math.max(1, awayStr - 3);
+    }
+  }
+
+  // 2nd half goals
+  const half2 = simulateHalfResult(modifiedHomeStr, modifiedAwayStr);
+
+  // 2nd half yellow cards
+  const homeYellows2 = rollYellowCardsForHalf(homeName, 2);
+  const awayYellows2 = rollYellowCardsForHalf(awayName, 2);
+
+  const finalHomeGoals = half1.homeGoals + half2.homeGoals;
+  const finalAwayGoals = half1.awayGoals + half2.awayGoals;
+
+  let outcome = 'x';
+  if (finalHomeGoals > finalAwayGoals) {
+    outcome = '1';
+  } else if (finalHomeGoals < finalAwayGoals) {
+    outcome = '2';
+  }
+
+  return {
+    homeGoals1: half1.homeGoals,
+    awayGoals1: half1.awayGoals,
+    homeYellows1,
+    awayYellows1,
+    event,
+    homeGoals2: half2.homeGoals,
+    awayGoals2: half2.awayGoals,
+    homeYellows2,
+    awayYellows2,
+    finalHomeGoals,
+    finalAwayGoals,
+    outcome
+  };
+}
+
 async function resolveSingleMatchBet(api, userId, betData) {
   const { threadId, bet, rawType, match } = betData;
+  const sim = betData.simulation || simulateFullMatch(match);
+
   const outcomeResult = await withData(store => {
     const user = createUser(userId, store.users);
     const inventory = ensureInventoryRecord(store.inventory, userId);
 
-    const roll = Math.random();
-    let outcome = 'x';
-    let homeGoals = 0;
-    let awayGoals = 0;
-    const diff = match.diff || 0;
-
-    if (roll < match.probabilities.home) {
-      outcome = '1';
-      let maxGoals = 4;
-      if (diff > 15) maxGoals = 5;
-      if (diff > 25) maxGoals = 6;
-      homeGoals = randomInt(diff > 25 ? 2 : 1, maxGoals);
-      awayGoals = randomInt(0, homeGoals - 1);
-    } else if (roll < match.probabilities.home + match.probabilities.draw) {
-      outcome = 'x';
-      homeGoals = randomInt(0, 3);
-      awayGoals = homeGoals;
-    } else {
-      outcome = '2';
-      let maxGoals = 4;
-      if (diff < -15) maxGoals = 5;
-      if (diff < -25) maxGoals = 6;
-      awayGoals = randomInt(diff < -25 ? 2 : 1, maxGoals);
-      homeGoals = randomInt(0, awayGoals - 1);
-    }
-
-    const won = rawType === outcome;
+    const won = rawType === sim.outcome;
     const odds = match.odds[rawType];
     const potentialWin = Math.round(bet * odds);
     let net = 0;
@@ -123,9 +234,6 @@ async function resolveSingleMatchBet(api, userId, betData) {
     return {
       won,
       net,
-      homeGoals,
-      awayGoals,
-      outcome,
       balance: user.balance,
       xpResult,
       potentialWin,
@@ -145,7 +253,24 @@ async function resolveSingleMatchBet(api, userId, betData) {
     `⚽ **PRZERWANY ZAKŁAD ODZYSKANY** ⚽\n` +
     `Mecz: **${match.home}** vs **${match.away}**\n` +
     `Twój typ: **${typeLabels[rawType]}** (kurs: **${odds}**)\n\n` +
-    `🏁 **Wynik meczu: ${outcomeResult.homeGoals} - ${outcomeResult.awayGoals}**\n\n`;
+    `🏁 **Wynik meczu: ${sim.finalHomeGoals} - ${sim.finalAwayGoals}** (do przerwy: ${sim.homeGoals1} - ${sim.awayGoals1})\n\n`;
+
+  const allHomeYellows = [...sim.homeYellows1, ...sim.homeYellows2];
+  const allAwayYellows = [...sim.awayYellows1, ...sim.awayYellows2];
+  if (allHomeYellows.length > 0 || allAwayYellows.length > 0) {
+    replyText += `🎴 **Żółte kartki:**\n`;
+    allHomeYellows.forEach(c => {
+      replyText += `• 🟨 ${c.player} (${match.home}) ${c.minute}'\n`;
+    });
+    allAwayYellows.forEach(c => {
+      replyText += `• 🟨 ${c.player} (${match.away}) ${c.minute}'\n`;
+    });
+    replyText += `\n`;
+  }
+
+  if (sim.event && sim.event.occurred) {
+    replyText += `⚡ **Zdarzenie z meczu:**\n${sim.event.text}\n\n`;
+  }
 
   if (outcomeResult.won) {
     replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Czysty zysk: **+${formatCurrency(outcomeResult.net)}** (Wygrana bez podatku: ${formatCurrency(outcomeResult.payout)}, pobrany podatek: -${formatCurrency(outcomeResult.tax)})\n`;
@@ -192,6 +317,7 @@ async function resolveSingleMatchBet(api, userId, betData) {
 
 async function resolveSingleMultiBet(api, userId, betData) {
   const { threadId, totalStake, combinedOdds, potentialWin, matchDetails } = betData;
+  const sims = betData.simulations || matchDetails.map(m => simulateFullMatch(m));
 
   const outcomeResult = await withData(store => {
     const user = createUser(userId, store.users);
@@ -200,43 +326,16 @@ async function resolveSingleMultiBet(api, userId, betData) {
     let ticketWon = true;
     const matchResults = [];
 
-    for (const m of matchDetails) {
-      const roll = Math.random();
-      let outcome = 'x';
-      let homeGoals = 0;
-      let awayGoals = 0;
-      const diff = m.diff || 0;
-
-      if (roll < m.probabilities.home) {
-        outcome = '1';
-        let maxGoals = 4;
-        if (diff > 15) maxGoals = 5;
-        if (diff > 25) maxGoals = 6;
-        homeGoals = randomInt(diff > 25 ? 2 : 1, maxGoals);
-        awayGoals = randomInt(0, homeGoals - 1);
-      } else if (roll < m.probabilities.home + m.probabilities.draw) {
-        outcome = 'x';
-        homeGoals = randomInt(0, 3);
-        awayGoals = homeGoals;
-      } else {
-        outcome = '2';
-        let maxGoals = 4;
-        if (diff < -15) maxGoals = 5;
-        if (diff < -25) maxGoals = 6;
-        awayGoals = randomInt(diff < -25 ? 2 : 1, maxGoals);
-        homeGoals = randomInt(0, awayGoals - 1);
-      }
-
-      const matchWon = m.type === outcome;
+    for (let i = 0; i < matchDetails.length; i++) {
+      const m = matchDetails[i];
+      const sim = sims[i];
+      const matchWon = m.type === sim.outcome;
       if (!matchWon) {
         ticketWon = false;
       }
-
       matchResults.push({
         ...m,
-        homeGoals,
-        awayGoals,
-        outcome,
+        sim,
         matchWon
       });
     }
@@ -264,10 +363,26 @@ async function resolveSingleMultiBet(api, userId, betData) {
   });
 
   let replyText = `⚽ **PRZERWANY KUPON MULTI-OBSTAWIENIA ODZYSKANY** ⚽\n\n`;
-  outcomeResult.matchResults.forEach((m) => {
+  outcomeResult.matchResults.forEach((m, idx) => {
     const typeLabels = { '1': m.home, 'x': 'Remis', '2': m.away };
+    const sim = sims[idx];
     replyText += `• **Mecz ${m.matchIdx + 1}**: **${m.home}** 🆚 **${m.away}**\n` +
-                 `  Wynik: **${m.homeGoals} - ${m.awayGoals}** (Typ: **${typeLabels[m.type]}** | ${m.matchWon ? '✅ Trafiony' : '❌ Nietrafiony'})\n\n`;
+                 `  Wynik: **${sim.finalHomeGoals} - ${sim.finalAwayGoals}** (do przerwy: ${sim.homeGoals1} - ${sim.awayGoals1} | Typ: **${typeLabels[m.type]}** | ${m.matchWon ? '✅ Trafiony' : '❌ Nietrafiony'})\n`;
+
+    const allHomeYellows = [...sim.homeYellows1, ...sim.homeYellows2];
+    const allAwayYellows = [...sim.awayYellows1, ...sim.awayYellows2];
+    if (allHomeYellows.length > 0 || allAwayYellows.length > 0) {
+      replyText += `  🎴 Żółte kartki: `;
+      const cardStrings = [];
+      allHomeYellows.forEach(c => cardStrings.push(`🟨 ${c.player} (${m.home}) ${c.minute}'`));
+      allAwayYellows.forEach(c => cardStrings.push(`🟨 ${c.player} (${m.away}) ${c.minute}'`));
+      replyText += cardStrings.join(', ') + '\n';
+    }
+
+    if (sim.event && sim.event.occurred) {
+      replyText += `  ⚡ Zdarzenie: ${sim.event.text}\n`;
+    }
+    replyText += `\n`;
   });
 
   if (outcomeResult.ticketWon) {
@@ -318,5 +433,8 @@ async function resolveSingleMultiBet(api, userId, betData) {
 module.exports = {
   addActiveBet,
   removeActiveBet,
-  resolvePendingBets
+  resolvePendingBets,
+  simulateFullMatch,
+  simulateHalfResult,
+  rollHalfTimeEvent
 };
