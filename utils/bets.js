@@ -332,7 +332,10 @@ async function resolveSingleMatchBet(api, userId, betData) {
   }
 
   if (outcomeResult.won) {
-    replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Czysty zysk: **+${formatCurrency(outcomeResult.net)}** (Wygrana bez podatku: ${formatCurrency(outcomeResult.payout)}, pobrany podatek: -${formatCurrency(outcomeResult.tax)})\n`;
+    replyText += `🎉 **GRATULACJE! TWÓJ KUPON JEST WYGRANY!** 🎉\n` +
+                 `🏆 Wygrana (bez podatku): **${formatCurrency(outcomeResult.payout)}**\n` +
+                 `💸 Pobrany podatek (15%): **${formatCurrency(outcomeResult.tax)}**\n` +
+                 `💰 Czysty zysk: **+${formatCurrency(outcomeResult.net)}**\n\n`;
 
     // Powiadomienie na grupę administratorską, jeśli kurs > 20
     if (odds > 20) {
@@ -455,7 +458,10 @@ async function resolveSingleMultiBet(api, userId, betData) {
   if (outcomeResult.ticketWon) {
     const tax = Math.round(potentialWin * 0.15);
     const payoutApplied = potentialWin - tax;
-    replyText += `🎉 **KUPON WYGRANY!**\nCzysty zysk: **+${formatCurrency(outcomeResult.net)}** (Wygrana bez podatku: ${formatCurrency(payoutApplied)}, pobrany podatek: -${formatCurrency(tax)})\n`;
+    replyText += `🎉 **GRATULACJE! TWÓJ KUPON JEST WYGRANY!** 🎉\n` +
+                 `🏆 Wygrana (bez podatku): **${formatCurrency(payoutApplied)}**\n` +
+                 `💸 Pobrany podatek (15%): **${formatCurrency(tax)}**\n` +
+                 `💰 Czysty zysk: **+${formatCurrency(outcomeResult.net)}**\n\n`;
 
     // Powiadomienie na grupę administratorską, jeśli kurs > 20
     if (combinedOdds > 20) {

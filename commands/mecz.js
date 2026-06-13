@@ -453,7 +453,10 @@ module.exports = {
         if (result.won) {
           const taxApplied = Math.round(potentialWin * 0.15);
           const payoutApplied = potentialWin - taxApplied;
-          replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Czysty zysk: **+${formatCurrency(result.net)}** (Wygrana bez podatku: ${formatCurrency(payoutApplied)}, pobrany podatek: -${formatCurrency(taxApplied)})\n`;
+          replyText += `🎉 **GRATULACJE! TWÓJ KUPON JEST WYGRANY!** 🎉\n` +
+                        `🏆 Wygrana (bez podatku): **${formatCurrency(payoutApplied)}**\n` +
+                        `💸 Pobrany podatek (15%): **${formatCurrency(taxApplied)}**\n` +
+                        `💰 Czysty zysk: **+${formatCurrency(result.net)}**\n\n`;
 
           // Powiadomienie na grupę administratorską, jeśli kurs > 20
           if (odds > 20) {
