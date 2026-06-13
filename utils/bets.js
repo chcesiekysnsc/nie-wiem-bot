@@ -97,18 +97,6 @@ function simulateHalfResult(homeStr, awayStr) {
   return { homeGoals, awayGoals };
 }
 
-function rollYellowCardsForHalf(teamName, halfNum) {
-  const cards = [];
-  const numCards = Math.random() < 0.35 ? (Math.random() < 0.2 ? 2 : 1) : 0;
-  for (let i = 0; i < numCards; i++) {
-    const player = getRandomPlayer(teamName);
-    const min = halfNum === 1 ? randomInt(1, 45) : randomInt(46, 90);
-    cards.push({ player, minute: min });
-  }
-  cards.sort((a, b) => a.minute - b.minute);
-  return cards;
-}
-
 function rollHalfTimeEvent(homeName, awayName) {
   if (Math.random() < 0.05) {
     const isHome = Math.random() < 0.5;
@@ -151,32 +139,92 @@ function simulateFullMatch(match) {
   const homeName = match.home;
   const awayName = match.away;
 
+  const homeCards = [];
+  const awayCards = [];
+
+  const homeYellowed = new Set();
+  const awayYellowed = new Set();
+  const homeRedded = new Set();
+  const awayRedded = new Set();
+
+  let homeDebuff = 0;
+  let awayDebuff = 0;
+
+  function rollCardsForTeam(teamName, halfNum, cardsArray, yellowedSet, reddedSet, isHome) {
+    const numCards = Math.random() < 0.35 ? (Math.random() < 0.2 ? 2 : 1) : 0;
+    for (let i = 0; i < numCards; i++) {
+      const { PLAYERS_DB } = require('./players');
+      const allPlayers = PLAYERS_DB[teamName] || [];
+      const eligiblePlayers = allPlayers.filter(p => !reddedSet.has(p));
+      if (eligiblePlayers.length === 0) continue;
+
+      const player = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
+      const min = halfNum === 1 ? randomInt(1, 45) : randomInt(46, 90);
+
+      if (yellowedSet.has(player)) {
+        reddedSet.add(player);
+        cardsArray.push({ player, minute: min, secondYellow: true });
+        if (isHome) {
+          homeDebuff = 3;
+        } else {
+          awayDebuff = 3;
+        }
+      } else {
+        yellowedSet.add(player);
+        cardsArray.push({ player, minute: min, secondYellow: false });
+      }
+    }
+  }
+
+  // 1. Roll 1st half cards
+  rollCardsForTeam(homeName, 1, homeCards, homeYellowed, homeRedded, true);
+  rollCardsForTeam(awayName, 1, awayCards, awayYellowed, awayRedded, false);
+
   // 1st half goals
   const half1 = simulateHalfResult(homeStr, awayStr);
 
-  // 1st half yellow cards
-  const homeYellows1 = rollYellowCardsForHalf(homeName, 1);
-  const awayYellows1 = rollYellowCardsForHalf(awayName, 1);
-
-  // 2nd half event check
+  // 2nd half event check (injury or direct red card)
   const event = rollHalfTimeEvent(homeName, awayName);
-
-  let modifiedHomeStr = homeStr;
-  let modifiedAwayStr = awayStr;
+  
   if (event.occurred) {
     if (event.team === 'home') {
-      modifiedHomeStr = Math.max(1, homeStr - 3);
+      homeDebuff = 3;
+      if (event.type === 'red_card') {
+        const { PLAYERS_DB } = require('./players');
+        const homePlayers = PLAYERS_DB[homeName] || [];
+        const eligible = homePlayers.filter(p => !homeRedded.has(p));
+        if (eligible.length > 0) {
+          const p = eligible[Math.floor(Math.random() * eligible.length)];
+          homeRedded.add(p);
+          homeCards.push({ player: p, minute: 60, directRed: true });
+          event.text = `🟥 **${homeName}**: Czerwona kartka dla **${p}** za brutalny wślizg od tyłu! Grają w dziesiątkę.`;
+        }
+      }
     } else {
-      modifiedAwayStr = Math.max(1, awayStr - 3);
+      awayDebuff = 3;
+      if (event.type === 'red_card') {
+        const { PLAYERS_DB } = require('./players');
+        const awayPlayers = PLAYERS_DB[awayName] || [];
+        const eligible = awayPlayers.filter(p => !awayRedded.has(p));
+        if (eligible.length > 0) {
+          const p = eligible[Math.floor(Math.random() * eligible.length)];
+          awayRedded.add(p);
+          awayCards.push({ player: p, minute: 60, directRed: true });
+          event.text = `🟥 **${awayName}**: Czerwona kartka dla **${p}** za brutalny wślizg od tyłu! Grają w dziesiątkę.`;
+        }
+      }
     }
   }
+
+  const modifiedHomeStr = Math.max(1, homeStr - homeDebuff);
+  const modifiedAwayStr = Math.max(1, awayStr - awayDebuff);
 
   // 2nd half goals
   const half2 = simulateHalfResult(modifiedHomeStr, modifiedAwayStr);
 
-  // 2nd half yellow cards
-  const homeYellows2 = rollYellowCardsForHalf(homeName, 2);
-  const awayYellows2 = rollYellowCardsForHalf(awayName, 2);
+  // Roll 2nd half cards
+  rollCardsForTeam(homeName, 2, homeCards, homeYellowed, homeRedded, true);
+  rollCardsForTeam(awayName, 2, awayCards, awayYellowed, awayRedded, false);
 
   const finalHomeGoals = half1.homeGoals + half2.homeGoals;
   const finalAwayGoals = half1.awayGoals + half2.awayGoals;
@@ -191,13 +239,11 @@ function simulateFullMatch(match) {
   return {
     homeGoals1: half1.homeGoals,
     awayGoals1: half1.awayGoals,
-    homeYellows1,
-    awayYellows1,
+    homeCards,
+    awayCards,
     event,
     homeGoals2: half2.homeGoals,
     awayGoals2: half2.awayGoals,
-    homeYellows2,
-    awayYellows2,
     finalHomeGoals,
     finalAwayGoals,
     outcome
@@ -255,15 +301,28 @@ async function resolveSingleMatchBet(api, userId, betData) {
     `Twój typ: **${typeLabels[rawType]}** (kurs: **${odds}**)\n\n` +
     `🏁 **Wynik meczu: ${sim.finalHomeGoals} - ${sim.finalAwayGoals}** (do przerwy: ${sim.homeGoals1} - ${sim.awayGoals1})\n\n`;
 
-  const allHomeYellows = [...sim.homeYellows1, ...sim.homeYellows2];
-  const allAwayYellows = [...sim.awayYellows1, ...sim.awayYellows2];
-  if (allHomeYellows.length > 0 || allAwayYellows.length > 0) {
-    replyText += `🎴 **Żółte kartki:**\n`;
-    allHomeYellows.forEach(c => {
-      replyText += `• 🟨 ${c.player} (${match.home}) ${c.minute}'\n`;
+  const allHomeCards = sim.homeCards || [];
+  const allAwayCards = sim.awayCards || [];
+
+  if (allHomeCards.length > 0 || allAwayCards.length > 0) {
+    replyText += `🎴 **Podsumowanie kartek:**\n`;
+    allHomeCards.forEach(c => {
+      if (c.directRed) {
+        replyText += `• 🟥 ${c.player} (${match.home}) ${c.minute}' (Bezpośrednia czerwona)\n`;
+      } else if (c.secondYellow) {
+        replyText += `• 🟨🟥 ${c.player} (${match.home}) ${c.minute}' (Druga żółta)\n`;
+      } else {
+        replyText += `• 🟨 ${c.player} (${match.home}) ${c.minute}'\n`;
+      }
     });
-    allAwayYellows.forEach(c => {
-      replyText += `• 🟨 ${c.player} (${match.away}) ${c.minute}'\n`;
+    allAwayCards.forEach(c => {
+      if (c.directRed) {
+        replyText += `• 🟥 ${c.player} (${match.away}) ${c.minute}' (Bezpośrednia czerwona)\n`;
+      } else if (c.secondYellow) {
+        replyText += `• 🟨🟥 ${c.player} (${match.away}) ${c.minute}' (Druga żółta)\n`;
+      } else {
+        replyText += `• 🟨 ${c.player} (${match.away}) ${c.minute}'\n`;
+      }
     });
     replyText += `\n`;
   }
@@ -369,13 +428,21 @@ async function resolveSingleMultiBet(api, userId, betData) {
     replyText += `• **Mecz ${m.matchIdx + 1}**: **${m.home}** 🆚 **${m.away}**\n` +
                  `  Wynik: **${sim.finalHomeGoals} - ${sim.finalAwayGoals}** (do przerwy: ${sim.homeGoals1} - ${sim.awayGoals1} | Typ: **${typeLabels[m.type]}** | ${m.matchWon ? '✅ Trafiony' : '❌ Nietrafiony'})\n`;
 
-    const allHomeYellows = [...sim.homeYellows1, ...sim.homeYellows2];
-    const allAwayYellows = [...sim.awayYellows1, ...sim.awayYellows2];
-    if (allHomeYellows.length > 0 || allAwayYellows.length > 0) {
-      replyText += `  🎴 Żółte kartki: `;
+    const allHomeCards = sim.homeCards || [];
+    const allAwayCards = sim.awayCards || [];
+    if (allHomeCards.length > 0 || allAwayCards.length > 0) {
+      replyText += `  🎴 Kartki: `;
       const cardStrings = [];
-      allHomeYellows.forEach(c => cardStrings.push(`🟨 ${c.player} (${m.home}) ${c.minute}'`));
-      allAwayYellows.forEach(c => cardStrings.push(`🟨 ${c.player} (${m.away}) ${c.minute}'`));
+      allHomeCards.forEach(c => {
+        if (c.directRed) cardStrings.push(`🟥 ${c.player} (${m.home}) ${c.minute}' (Czerwona)`);
+        else if (c.secondYellow) cardStrings.push(`🟨🟥 ${c.player} (${m.home}) ${c.minute}' (2x Żółta)`);
+        else cardStrings.push(`🟨 ${c.player} (${m.home}) ${c.minute}'`);
+      });
+      allAwayCards.forEach(c => {
+        if (c.directRed) cardStrings.push(`🟥 ${c.player} (${m.away}) ${c.minute}' (Czerwona)`);
+        else if (c.secondYellow) cardStrings.push(`🟨🟥 ${c.player} (${m.away}) ${c.minute}' (2x Żółta)`);
+        else cardStrings.push(`🟨 ${c.player} (${m.away}) ${c.minute}'`);
+      });
       replyText += cardStrings.join(', ') + '\n';
     }
 
