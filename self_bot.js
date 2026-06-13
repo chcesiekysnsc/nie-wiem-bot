@@ -329,66 +329,7 @@ login({ appState }, (loginErr, api) => {
     });
   }, 3000);
 
-  // Jednorazowe rozesłanie powiadomienia o nowościach do wszystkich grup z oznaczaniem @everyone (wbudowane w Messenger)
-  const broadcastFlagPath = path.join(__dirname, 'data', 'startup_broadcast_done_v3.json');
-  if (!fs.existsSync(broadcastFlagPath)) {
-    console.log('[SELF-BOT] Wykryto brak flagi jednorazowego broadcastu. Rozpoczynanie pobierania list wątków...');
-    
-    // Dynamicznie pobieramy wątki z inboxa, aby nie polegać na braku active_threads.json na serwerze
-    api.getThreadList(100, null, [], (threadListErr, list) => {
-      if (threadListErr) {
-        console.error('[SELF-BOT] Failed to get thread list for broadcast:', threadListErr);
-        return;
-      }
-      
-      const excludedGroupId = '2094120197822035';
-      const fetchedGroupIds = (list || [])
-        .filter(t => t.isGroup && t.threadID && t.threadID !== excludedGroupId)
-        .map(t => t.threadID);
-        
-      const targetSet = new Set([
-        ...Array.from(client.activeThreadIds || []),
-        ...fetchedGroupIds
-      ]);
-      const targets = Array.from(targetSet);
-      
-      console.log(`[SELF-BOT] Wykryto ${targets.length} grup docelowych do broadcastu:`, targets);
-      
-      if (targets.length > 0) {
-        const broadcastMsg = {
-          body: `@everyone witamy! Wrzucamy szybkie info o nowościach u bota:\n\n` +
-                `⚽ Zakłady meczowe (!mecz, !mo) \n` +
-                ` 🎮 Papier, Kamień, Nożyce (!pkn) – Gra z botem lub PvP o monety z ludźmi z grupy. ⏱️ Komenda !cd – Wszystkie Wasze cooldowny (!work, !crime, !daily, !rob, więzienie) w jednej wiadomości. ☀️ Prognoza !pogoda z opcją ustawienia domyślnego miasta (!pogoda domyslna). 🛠️ Poprawki QoL – Wygodniejsze przelewy (!pay), czytelniejszy sklep i opisy pasywek pod !use, oraz możliwość uzywania polskich znaków.\n` +
-                `Dokładniejszy opis możecie zobaczyć w !help `,
-          mentions: [{
-            tag: '@everyone',
-            id: 'everyone'
-          }]
-        };
 
-        for (const tId of targets) {
-          try {
-            api.sendMessage(broadcastMsg, tId, (sendErr) => {
-              if (sendErr) {
-                console.error(`[SELF-BOT] Failed to send startup broadcast to thread ${tId}:`, sendErr);
-              } else {
-                console.log(`[SELF-BOT] Sent startup broadcast to thread ${tId} with @everyone mention.`);
-              }
-            });
-          } catch (sendErr) {
-            console.error(`[SELF-BOT] Error sending startup broadcast to thread ${tId}:`, sendErr);
-          }
-        }
-      }
-      
-      try {
-        fs.writeFileSync(broadcastFlagPath, 'true', 'utf8');
-        console.log('[SELF-BOT] Flaga jednorazowego broadcastu została pomyślnie zapisana.');
-      } catch (err) {
-        console.error('[SELF-BOT] Failed to write broadcast flag file:', err);
-      }
-    });
-  }
 
   // Wrap api.sendMessage to add typing indicator and 1s delay
   const originalSendMessage = api.sendMessage;
