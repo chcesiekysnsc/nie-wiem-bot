@@ -1093,6 +1093,8 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
+    console.log(`[MQTT-MSG] Message received in thread ${event.threadID} from sender ${event.senderID}: "${event.body}"`);
+
     const text = event.body.trim();
     const senderId = event.senderID;
     const threadId = event.threadID;
@@ -1117,6 +1119,7 @@ login({ appState }, (loginErr, api) => {
     // Ignoruj własne wiadomości bota, jeśli nie zaczynają się od prefixu komendy (zapobieganie pętlom)
     const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
     if (botId && String(senderId) === String(botId) && !text.startsWith(currentPrefix)) {
+      console.log(`[MQTT-MSG] Ignored self-message without command prefix: "${text}"`);
       return;
     }
 
@@ -1417,6 +1420,7 @@ login({ appState }, (loginErr, api) => {
     }
 
     if (!text.startsWith(currentPrefix)) {
+      console.log(`[MQTT-MSG] Message ignored (does not start with prefix ${currentPrefix}): "${text}"`);
       return;
     }
 
@@ -1458,6 +1462,7 @@ login({ appState }, (loginErr, api) => {
     });
 
     if (isUserBlacklisted || isGroupBlacklisted) {
+      console.log(`[MQTT-MSG] Message ignored (blacklist hit: userBl=${isUserBlacklisted}, groupBl=${isGroupBlacklisted})`);
       return;
     }
 
