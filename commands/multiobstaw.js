@@ -205,13 +205,19 @@ module.exports = {
         matchDetails.forEach((m, idx) => {
           const sim = simulations[idx];
           halfTimeText += `• Mecz ${m.matchIdx + 1}: **${m.home}** 🆚 **${m.away}** -> **${sim.homeGoals1} - ${sim.awayGoals1}**\n`;
-          const hasHomeCards = sim.homeYellows1 && sim.homeYellows1.length > 0;
-          const hasAwayCards = sim.awayYellows1 && sim.awayYellows1.length > 0;
-          if (hasHomeCards || hasAwayCards) {
-            halfTimeText += `  🎴 Żółte kartki: `;
+          const firstHalfHomeCards = sim.homeCards ? sim.homeCards.filter(c => c.minute <= 45) : [];
+          const firstHalfAwayCards = sim.awayCards ? sim.awayCards.filter(c => c.minute <= 45) : [];
+          if (firstHalfHomeCards.length > 0 || firstHalfAwayCards.length > 0) {
+            halfTimeText += `  🎴 Kartki: `;
             const cardStrings = [];
-            if (hasHomeCards) sim.homeYellows1.forEach(c => cardStrings.push(`🟨 ${c.player} (${m.home}) ${c.minute}'`));
-            if (hasAwayCards) sim.awayYellows1.forEach(c => cardStrings.push(`🟨 ${c.player} (${m.away}) ${c.minute}'`));
+            firstHalfHomeCards.forEach(c => {
+              if (c.secondYellow) cardStrings.push(`🟨🟥 ${c.player} (${m.home}) ${c.minute}' (Druga żółta)`);
+              else cardStrings.push(`🟨 ${c.player} (${m.home}) ${c.minute}'`);
+            });
+            firstHalfAwayCards.forEach(c => {
+              if (c.secondYellow) cardStrings.push(`🟨🟥 ${c.player} (${m.away}) ${c.minute}' (Druga żółta)`);
+              else cardStrings.push(`🟨 ${c.player} (${m.away}) ${c.minute}'`);
+            });
             halfTimeText += cardStrings.join(', ') + '\n';
           }
         });
@@ -309,13 +315,21 @@ module.exports = {
           replyText += `• **Mecz ${m.matchIdx + 1}**: **${m.home}** 🆚 **${m.away}**\n` +
                        `  Wynik: **${sim.finalHomeGoals} - ${sim.finalAwayGoals}** (do przerwy: ${sim.homeGoals1} - ${sim.awayGoals1} | Typ: **${typeLabels[m.type]}** | ${m.matchWon ? '✅ Trafiony' : '❌ Nietrafiony'})\n`;
 
-          const allHomeYellows = [...sim.homeYellows1, ...sim.homeYellows2];
-          const allAwayYellows = [...sim.awayYellows1, ...sim.awayYellows2];
-          if (allHomeYellows.length > 0 || allAwayYellows.length > 0) {
-            replyText += `  🎴 Żółte kartki: `;
+          const allHomeCards = sim.homeCards || [];
+          const allAwayCards = sim.awayCards || [];
+          if (allHomeCards.length > 0 || allAwayCards.length > 0) {
+            replyText += `  🎴 Kartki: `;
             const cardStrings = [];
-            allHomeYellows.forEach(c => cardStrings.push(`🟨 ${c.player} (${m.home}) ${c.minute}'`));
-            allAwayYellows.forEach(c => cardStrings.push(`🟨 ${c.player} (${m.away}) ${c.minute}'`));
+            allHomeCards.forEach(c => {
+              if (c.directRed) cardStrings.push(`🟥 ${c.player} (${m.home}) ${c.minute}' (Czerwona)`);
+              else if (c.secondYellow) cardStrings.push(`🟨🟥 ${c.player} (${m.home}) ${c.minute}' (2x Żółta)`);
+              else cardStrings.push(`🟨 ${c.player} (${m.home}) ${c.minute}'`);
+            });
+            allAwayCards.forEach(c => {
+              if (c.directRed) cardStrings.push(`🟥 ${c.player} (${m.away}) ${c.minute}' (Czerwona)`);
+              else if (c.secondYellow) cardStrings.push(`🟨🟥 ${c.player} (${m.away}) ${c.minute}' (2x Żółta)`);
+              else cardStrings.push(`🟨 ${c.player} (${m.away}) ${c.minute}'`);
+            });
             replyText += cardStrings.join(', ') + '\n';
           }
 

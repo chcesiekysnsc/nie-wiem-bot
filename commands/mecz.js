@@ -325,23 +325,27 @@ module.exports = {
           `Mecz: **${match.home}** vs **${match.away}**\n` +
           `Wynik do przerwy: **${sim.homeGoals1} - ${sim.awayGoals1}**\n\n`;
 
-        const hasHomeCards = sim.homeYellows1 && sim.homeYellows1.length > 0;
-        const hasAwayCards = sim.awayYellows1 && sim.awayYellows1.length > 0;
+        const firstHalfHomeCards = sim.homeCards ? sim.homeCards.filter(c => c.minute <= 45) : [];
+        const firstHalfAwayCards = sim.awayCards ? sim.awayCards.filter(c => c.minute <= 45) : [];
 
-        if (hasHomeCards || hasAwayCards) {
-          halfTimeText += `🎴 **Żółte kartki w 1. połowie:**\n`;
-          if (hasHomeCards) {
-            sim.homeYellows1.forEach(c => {
+        if (firstHalfHomeCards.length > 0 || firstHalfAwayCards.length > 0) {
+          halfTimeText += `🎴 **Kartki w 1. połowie:**\n`;
+          firstHalfHomeCards.forEach(c => {
+            if (c.secondYellow) {
+              halfTimeText += `• 🟨🟥 ${c.player} (${match.home}) ${c.minute}' (Druga żółta)\n`;
+            } else {
               halfTimeText += `• 🟨 ${c.player} (${match.home}) ${c.minute}'\n`;
-            });
-          }
-          if (hasAwayCards) {
-            sim.awayYellows1.forEach(c => {
+            }
+          });
+          firstHalfAwayCards.forEach(c => {
+            if (c.secondYellow) {
+              halfTimeText += `• 🟨🟥 ${c.player} (${match.away}) ${c.minute}' (Druga żółta)\n`;
+            } else {
               halfTimeText += `• 🟨 ${c.player} (${match.away}) ${c.minute}'\n`;
-            });
-          }
+            }
+          });
         } else {
-          halfTimeText += `🎴 **Żółte kartki w 1. połowie:** Brak\n`;
+          halfTimeText += `🎴 **Kartki w 1. połowie:** Brak\n`;
         }
         halfTimeText += `\n⏱️ *Trwa przerwa i przygotowania do drugiej połowy... (koniec za 30 sekund)*`;
 
@@ -417,15 +421,27 @@ module.exports = {
           `Twój typ: **${typeLabels[rawType]}** (kurs: **${odds}**)\n\n` +
           `🏁 **Ostateczny wynik meczu: ${sim.finalHomeGoals} - ${sim.finalAwayGoals}** (do przerwy: ${sim.homeGoals1} - ${sim.awayGoals1})\n\n`;
 
-        const allHomeYellows = [...sim.homeYellows1, ...sim.homeYellows2];
-        const allAwayYellows = [...sim.awayYellows1, ...sim.awayYellows2];
-        if (allHomeYellows.length > 0 || allAwayYellows.length > 0) {
-          replyText += `🎴 **Podsumowanie żółtych kartek:**\n`;
-          allHomeYellows.forEach(c => {
-            replyText += `• 🟨 ${c.player} (${match.home}) ${c.minute}'\n`;
+        const allHomeCards = sim.homeCards || [];
+        const allAwayCards = sim.awayCards || [];
+        if (allHomeCards.length > 0 || allAwayCards.length > 0) {
+          replyText += `🎴 **Podsumowanie kartek:**\n`;
+          allHomeCards.forEach(c => {
+            if (c.directRed) {
+              replyText += `• 🟥 ${c.player} (${match.home}) ${c.minute}' (Bezpośrednia czerwona)\n`;
+            } else if (c.secondYellow) {
+              replyText += `• 🟨🟥 ${c.player} (${match.home}) ${c.minute}' (Druga żółta)\n`;
+            } else {
+              replyText += `• 🟨 ${c.player} (${match.home}) ${c.minute}'\n`;
+            }
           });
-          allAwayYellows.forEach(c => {
-            replyText += `• 🟨 ${c.player} (${match.away}) ${c.minute}'\n`;
+          allAwayCards.forEach(c => {
+            if (c.directRed) {
+              replyText += `• 🟥 ${c.player} (${match.away}) ${c.minute}' (Bezpośrednia czerwona)\n`;
+            } else if (c.secondYellow) {
+              replyText += `• 🟨🟥 ${c.player} (${match.away}) ${c.minute}' (Druga żółta)\n`;
+            } else {
+              replyText += `• 🟨 ${c.player} (${match.away}) ${c.minute}'\n`;
+            }
           });
           replyText += `\n`;
         }
