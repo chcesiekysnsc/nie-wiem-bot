@@ -329,8 +329,8 @@ login({ appState }, (loginErr, api) => {
     });
   }, 3000);
 
-  // Jednorazowe rozesłanie powiadomienia o nowościach do wszystkich grup z oznaczaniem wszystkich użytkowników
-  const broadcastFlagPath = path.join(__dirname, 'data', 'startup_broadcast_done_v2.json');
+  // Jednorazowe rozesłanie powiadomienia o nowościach do wszystkich grup z oznaczaniem @everyone (wbudowane w Messenger)
+  const broadcastFlagPath = path.join(__dirname, 'data', 'startup_broadcast_done_v3.json');
   if (!fs.existsSync(broadcastFlagPath)) {
     console.log('[SELF-BOT] Wykryto brak flagi jednorazowego broadcastu. Rozpoczynanie pobierania list wątków...');
     
@@ -355,89 +355,29 @@ login({ appState }, (loginErr, api) => {
       console.log(`[SELF-BOT] Wykryto ${targets.length} grup docelowych do broadcastu:`, targets);
       
       if (targets.length > 0) {
+        const broadcastMsg = {
+          body: `@everyone witamy! Wrzucamy szybkie info o nowościach u bota:\n\n` +
+                `⚽ Zakłady meczowe (!mecz, !mo) \n` +
+                ` 🎮 Papier, Kamień, Nożyce (!pkn) – Gra z botem lub PvP o monety z ludźmi z grupy. ⏱️ Komenda !cd – Wszystkie Wasze cooldowny (!work, !crime, !daily, !rob, więzienie) w jednej wiadomości. ☀️ Prognoza !pogoda z opcją ustawienia domyślnego miasta (!pogoda domyslna). 🛠️ Poprawki QoL – Wygodniejsze przelewy (!pay), czytelniejszy sklep i opisy pasywek pod !use, oraz możliwość uzywania polskich znaków.\n` +
+                `Dokładniejszy opis możecie zobaczyć w !help `,
+          mentions: [{
+            tag: '@everyone',
+            id: 'everyone'
+          }]
+        };
+
         for (const tId of targets) {
-          api.getThreadInfo(tId, async (err, info) => {
-            let participantIDs = [];
-            let userInfo = {};
-            if (!err && info) {
-              participantIDs = info.participantIDs || [];
-              userInfo = info.userInfo || {};
-            } else {
-              console.warn(`[SELF-BOT] Failed to get thread info for thread ${tId}, using fallback:`, err);
-              // Fallback: load from database
-              try {
-                const { loadData } = require('./utils/storage');
-                const usersData = loadData('users') || {};
-                participantIDs = Object.entries(usersData)
-                  .filter(([id, u]) => u.groupMessages && u.groupMessages[tId])
-                  .map(([id]) => id);
-              } catch (dbErr) {
-                console.error('[SELF-BOT] Database fallback failed for thread:', tId, dbErr);
-              }
-            }
-
-            const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
-            const eligible = participantIDs.filter(id => id !== botId);
-
-            if (eligible.length === 0) {
-              const broadcastMsg = {
-                body: `witamy! Wrzucamy szybkie info o nowościach u bota:\n\n` +
-                      `⚽ Zakłady meczowe (!mecz, !mo) \n` +
-                      ` 🎮 Papier, Kamień, Nożyce (!pkn) – Gra z botem lub PvP o monety z ludźmi z grupy. ⏱️ Komenda !cd – Wszystkie Wasze cooldowny (!work, !crime, !daily, !rob, więzienie) innej wiadomości. ☀️ Prognoza !pogoda z opcją ustawienia domyślnego miasta (!pogoda domyslna). 🛠️ Poprawki QoL – Wygodniejsze przelewy (!pay), czytelniejszy sklep i opisy pasywek pod !use, oraz możliwość uzywania polskich znaków.\n` +
-                      `Dokładniejszy opis możecie zobaczyć w !help `
-              };
-              try {
-                api.sendMessage(broadcastMsg, tId, (sendErr) => {
-                  if (sendErr) {
-                    console.error(`[SELF-BOT] Failed to send broadcast to thread ${tId}:`, sendErr);
-                  }
-                });
-              } catch (sendErr) {
-                console.error(`[SELF-BOT] Error sending to thread ${tId}:`, sendErr);
-              }
-              return;
-            }
-
-            const mentions = [];
-            const mentionTokens = [];
-            for (let i = 0; i < eligible.length; i++) {
-              const userId = eligible[i];
-              let name = '';
-              if (userInfo[userId] && userInfo[userId].name) {
-                name = userInfo[userId].name;
+          try {
+            api.sendMessage(broadcastMsg, tId, (sendErr) => {
+              if (sendErr) {
+                console.error(`[SELF-BOT] Failed to send startup broadcast to thread ${tId}:`, sendErr);
               } else {
-                name = await client.resolveUserName(userId);
+                console.log(`[SELF-BOT] Sent startup broadcast to thread ${tId} with @everyone mention.`);
               }
-              const cleanName = name.replace(/[^a-zA-Z0-9ąęćłńóśźżĄĘĆŁŃÓŚŹŻ]/g, '');
-              const tag = `@${cleanName || 'Użytkownik'}_${i}`;
-              mentionTokens.push(tag);
-              mentions.push({
-                tag,
-                id: userId
-              });
-            }
-
-            const broadcastMsg = {
-              body: `witamy! Wrzucamy szybkie info o nowościach u bota:\n\n` +
-                    `⚽ Zakłady meczowe (!mecz, !mo) \n` +
-                    ` 🎮 Papier, Kamień, Nożyce (!pkn) – Gra z botem lub PvP o monety z ludźmi z grupy. ⏱️ Komenda !cd – Wszystkie Wasze cooldowny (!work, !crime, !daily, !rob, więzienie) w jednej wiadomości. ☀️ Prognoza !pogoda z opcją ustawienia domyślnego miasta (!pogoda domyslna). 🛠️ Poprawki QoL – Wygodniejsze przelewy (!pay), czytelniejszy sklep i opisy pasywek pod !use, oraz możliwość uzywania polskich znaków.\n\n` +
-                    `Dokładniejszy opis możecie zobaczyć w !help \n\n` +
-                    `${mentionTokens.join(' ')}`,
-              mentions
-            };
-
-            try {
-              api.sendMessage(broadcastMsg, tId, (sendErr) => {
-                if (sendErr) {
-                  console.error(`[SELF-BOT] Failed to send startup broadcast to thread ${tId}:`, sendErr);
-                } else {
-                  console.log(`[SELF-BOT] Sent startup broadcast to thread ${tId} with ${mentions.length} mentions.`);
-                }
-              });
-            } catch (sendErr) {
-              console.error(`[SELF-BOT] Error sending startup broadcast to thread ${tId}:`, sendErr);
-            }
-          });
+            });
+          } catch (sendErr) {
+            console.error(`[SELF-BOT] Error sending startup broadcast to thread ${tId}:`, sendErr);
+          }
         }
       }
       
