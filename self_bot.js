@@ -716,35 +716,6 @@ login({ appState }, (loginErr, api) => {
     });
   }
 
-  const checkPendingThreads = () => {
-    // 1. Pobierz wątki oczekujące (PENDING)
-    api.getThreadList(10, null, ['PENDING'], (err, list) => {
-      if (err) return;
-      if (list && list.length > 0) {
-        for (const thread of list) {
-          if (thread.isGroup && thread.threadID) {
-            handleNewGroupAdded(thread.threadID, thread.name || 'Grupa bez nazwy');
-          }
-        }
-      }
-    });
-
-    // 2. Pobierz wątki w zakładce spam (OTHER)
-    api.getThreadList(10, null, ['OTHER'], (err, list) => {
-      if (err) return;
-      if (list && list.length > 0) {
-        for (const thread of list) {
-          if (thread.isGroup && thread.threadID) {
-            handleNewGroupAdded(thread.threadID, thread.name || 'Grupa bez nazwy');
-          }
-        }
-      }
-    });
-  };
-
-  // Uruchom okresowe sprawdzanie co 15 sekund oraz raz zaraz po starcie
-  setInterval(checkPendingThreads, 15000).unref();
-  setTimeout(checkPendingThreads, 1000).unref();
 
   api.setOptions({
     listenEvents: true,
