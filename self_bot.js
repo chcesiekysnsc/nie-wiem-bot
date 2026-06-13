@@ -328,7 +328,46 @@ login({ appState }, (loginErr, api) => {
       console.error('[SELF-BOT] Blad podczas odzyskiwania zakladow:', err);
     });
   }, 3000);
-  
+
+  // Jednorazowe rozesłanie powiadomienia o nowościach do wszystkich grup z oznaczaniem @everyone
+  const broadcastFlagPath = path.join(__dirname, 'data', 'startup_broadcast_done.json');
+  if (!fs.existsSync(broadcastFlagPath)) {
+    console.log('[SELF-BOT] Wykryto brak flagi jednorazowego broadcastu. Rozpoczynanie wysyłania powiadomień...');
+    const excludedGroupId = '2094120197822035';
+    const targets = Array.from(client.activeThreadIds || []).filter(tId => tId !== excludedGroupId);
+
+    if (targets.length > 0) {
+      const broadcastMsg = {
+        body: `@everyone witamy! Wrzucamy szybkie info o nowościach u bota:\n\n` +
+              `⚽ Zakłady meczowe (!mecz, !mo) \n` +
+              ` 🎮 Papier, Kamień, Nożyce (!pkn) – Gra z botem lub PvP o monety z ludźmi z grupy. ⏱️ Komenda !cd – Wszystkie Wasze cooldowny (!work, !crime, !daily, !rob, więzienie) w jednej wiadomości. ☀️ Prognoza !pogoda z opcją ustawienia domyślnego miasta (!pogoda domyslna). 🛠️ Poprawki QoL – Wygodniejsze przelewy (!pay), czytelniejszy sklep i opisy pasywek pod !use, oraz możliwość uzywania polskich znaków.\n` +
+              `Dokładniejszy opis możecie zobaczyć w !help `,
+        mentions: [{
+          tag: '@everyone',
+          id: 'everyone'
+        }]
+      };
+
+      for (const tId of targets) {
+        try {
+          api.sendMessage(broadcastMsg, tId, (sendErr) => {
+            if (sendErr) {
+              console.error(`[SELF-BOT] Failed to send startup broadcast to thread ${tId}:`, sendErr);
+            }
+          });
+        } catch (err) {
+          console.error(`[SELF-BOT] Error sending startup broadcast to thread ${tId}:`, err);
+        }
+      }
+    }
+    try {
+      fs.writeFileSync(broadcastFlagPath, 'true', 'utf8');
+      console.log('[SELF-BOT] Flaga jednorazowego broadcastu została pomyślnie zapisana.');
+    } catch (err) {
+      console.error('[SELF-BOT] Failed to write broadcast flag file:', err);
+    }
+  }
+
   // Wrap api.sendMessage to add typing indicator and 1s delay
   const originalSendMessage = api.sendMessage;
   api.sendMessage = function(message, threadID, callback, messageID) {
