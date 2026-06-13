@@ -11,8 +11,8 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  console.error('[SELF-BOT-WARNING] Unhandled Rejection at:', promise, 'reason:', reason);
+  // Nie ubijamy procesu przy odrzuconych obietnicach, by uniknąć pętli crashów przy przejściowych błędach sieciowych lub rate-limitach FCA
 });
 
 const config = require('./config/config');
@@ -791,12 +791,12 @@ login({ appState }, (loginErr, api) => {
     });
   };
 
-  // Uruchom okresowe sprawdzanie co 15 sekund oraz raz zaraz po starcie
-  setInterval(checkPendingThreads, 15000).unref();
-  setTimeout(checkPendingThreads, 1000).unref();
-  setTimeout(muteInboxGroups, 3000).unref();
-  // Okresowe skanowanie skrzynki odbiorczej co 3 minuty w celu wykrycia ewentualnych wyciszeń wyłączonych ręcznie
-  setInterval(muteInboxGroups, 180000).unref();
+  // Uruchom okresowe sprawdzanie co 10 minut oraz po starcie z opóźnieniem (rozłożone w czasie w celu uniknięcia limitów zapytań)
+  setInterval(checkPendingThreads, 600000).unref();
+  setTimeout(checkPendingThreads, 10000).unref();
+  setTimeout(muteInboxGroups, 25000).unref();
+  // Okresowe skanowanie skrzynki odbiorczej co 10 minut w celu wykrycia ewentualnych wyciszeń wyłączonych ręcznie
+  setInterval(muteInboxGroups, 600000).unref();
 
   api.setOptions({
     listenEvents: true,
