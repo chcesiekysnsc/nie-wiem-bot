@@ -301,9 +301,8 @@ module.exports = {
       `Mecz: **${match.home}** vs **${match.away}**\n` +
       `Twój typ: **${typeLabels[rawType]}** (kurs: **${odds}**)\n` +
       `💰 Stawka: **${formatCurrency(bet)}**\n` +
-      `🏆 Wygrana brutto: **${formatCurrency(potentialWin)}**\n` +
-      `💸 Podatek (15%): **${formatCurrency(tax)}**\n` +
-      `💰 Wygrana netto: **${formatCurrency(payout)}**\n\n` +
+      `🏆 Wygrana (bez podatku): **${formatCurrency(payout)}**\n` +
+      `💸 Pobrany podatek (15%): **${formatCurrency(tax)}**\n\n` +
       `⏱️ *Trwa symulacja meczu... (wynik za 15 sekund)*`
     );
 
@@ -382,7 +381,23 @@ module.exports = {
         if (result.won) {
           const taxApplied = Math.round(potentialWin * 0.15);
           const payoutApplied = potentialWin - taxApplied;
-          replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Zysk netto: **+${formatCurrency(result.net)}** (Wygrana brutto: ${formatCurrency(potentialWin)}, podatek 15%: -${formatCurrency(taxApplied)})\n`;
+          replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Czysty zysk: **+${formatCurrency(result.net)}** (Wygrana bez podatku: ${formatCurrency(payoutApplied)}, pobrany podatek: -${formatCurrency(taxApplied)})\n`;
+
+          // Powiadomienie na grupę administratorską, jeśli kurs > 20
+          if (odds > 20) {
+            try {
+              const adminGroupId = config.adminGroupId || '5277347745703557';
+              const userName = (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
+              const notifyMsg = `🔥 **DUŻA WYGRANA W MECZACH!** 🔥\n` +
+                                `👤 Gracz: **${userName}** (ID: \`${userId}\`)\n` +
+                                `🏆 Trafiony kurs: **${odds}**\n` +
+                                `💰 Stawka: **${formatCurrency(bet)}**\n` +
+                                `💸 Wygrana (bez podatku): **${formatCurrency(payoutApplied)}**`;
+              client.api.sendMessage(notifyMsg, adminGroupId);
+            } catch (err) {
+              console.error('[MECZ] Failed to send admin notification:', err);
+            }
+          }
         } else {
           replyText += `💀 Niestety, Twój kupon jest **PRZEGRANY**. Strata: **-${formatCurrency(Math.abs(result.net))}**\n`;
         }

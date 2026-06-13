@@ -105,10 +105,12 @@ async function resolveSingleMatchBet(api, userId, betData) {
     const odds = match.odds[rawType];
     const potentialWin = Math.round(bet * odds);
     let net = 0;
+    let tax = 0;
+    let payout = 0;
 
     if (won) {
-      const tax = Math.round(potentialWin * 0.15);
-      const payout = potentialWin - tax;
+      tax = Math.round(potentialWin * 0.15);
+      payout = potentialWin - tax;
       net = payout - bet;
       user.balance += payout;
     } else {
@@ -125,7 +127,10 @@ async function resolveSingleMatchBet(api, userId, betData) {
       awayGoals,
       outcome,
       balance: user.balance,
-      xpResult
+      xpResult,
+      potentialWin,
+      tax,
+      payout
     };
   });
 
@@ -143,8 +148,24 @@ async function resolveSingleMatchBet(api, userId, betData) {
     `🏁 **Wynik meczu: ${outcomeResult.homeGoals} - ${outcomeResult.awayGoals}**\n\n`;
 
   if (outcomeResult.won) {
-    const tax = Math.round(potentialWin * 0.15);
-    replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Zysk netto: **+${formatCurrency(outcomeResult.net)}** (Wygrana brutto: ${formatCurrency(potentialWin)}, podatek 15%: -${formatCurrency(tax)})\n`;
+    replyText += `🎉 Gratulacje! Twój kupon jest **WYGRANY**! Czysty zysk: **+${formatCurrency(outcomeResult.net)}** (Wygrana bez podatku: ${formatCurrency(outcomeResult.payout)}, pobrany podatek: -${formatCurrency(outcomeResult.tax)})\n`;
+
+    // Powiadomienie na grupę administratorską, jeśli kurs > 20
+    if (odds > 20) {
+      try {
+        const config = require('../config/config');
+        const adminGroupId = config.adminGroupId || '5277347745703557';
+        const userName = `Użytkownik_${userId.slice(-6)}`;
+        const notifyMsg = `🔥 **DUŻA WYGRANA W MECZACH (ODZYSKANY ZAKŁAD)!** 🔥\n` +
+                          `👤 Gracz: **${userName}** (ID: \`${userId}\`)\n` +
+                          `🏆 Trafiony kurs: **${odds}**\n` +
+                          `💰 Stawka: **${formatCurrency(bet)}**\n` +
+                          `💸 Wygrana (bez podatku): **${formatCurrency(outcomeResult.payout)}**`;
+        api.sendMessage(notifyMsg, adminGroupId);
+      } catch (err) {
+        console.error('[BETS] Failed to send admin notification:', err);
+      }
+    }
   } else {
     replyText += `💀 Niestety, Twój kupon jest **PRZEGRANY**. Strata: **-${formatCurrency(Math.abs(outcomeResult.net))}**\n`;
   }
@@ -251,7 +272,25 @@ async function resolveSingleMultiBet(api, userId, betData) {
 
   if (outcomeResult.ticketWon) {
     const tax = Math.round(potentialWin * 0.15);
-    replyText += `🎉 **KUPON WYGRANY!**\nZysk netto: **+${formatCurrency(outcomeResult.net)}** (Wygrana brutto: ${formatCurrency(potentialWin)}, podatek 15%: -${formatCurrency(tax)})\n`;
+    const payoutApplied = potentialWin - tax;
+    replyText += `🎉 **KUPON WYGRANY!**\nCzysty zysk: **+${formatCurrency(outcomeResult.net)}** (Wygrana bez podatku: ${formatCurrency(payoutApplied)}, pobrany podatek: -${formatCurrency(tax)})\n`;
+
+    // Powiadomienie na grupę administratorską, jeśli kurs > 20
+    if (combinedOdds > 20) {
+      try {
+        const config = require('../config/config');
+        const adminGroupId = config.adminGroupId || '5277347745703557';
+        const userName = `Użytkownik_${userId.slice(-6)}`;
+        const notifyMsg = `🔥 **DUŻA WYGRANA W MULTI-MECZU (ODZYSKANY KUPON)!** 🔥\n` +
+                          `👤 Gracz: **${userName}** (ID: \`${userId}\`)\n` +
+                          `🏆 Trafiony łączny kurs: **${combinedOdds}**\n` +
+                          `💰 Stawka: **${formatCurrency(totalStake)}**\n` +
+                          `💸 Wygrana (bez podatku): **${formatCurrency(payoutApplied)}**`;
+        api.sendMessage(notifyMsg, adminGroupId);
+      } catch (err) {
+        console.error('[BETS] Failed to send admin notification:', err);
+      }
+    }
   } else {
     replyText += `💀 **KUPON PRZEGRANY.**\nStrata: **-${formatCurrency(Math.abs(outcomeResult.net))}**\n`;
   }
