@@ -2,6 +2,30 @@ const { COUNTRIES, CITIES } = require('../utils/panstwaMiastaData');
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'R', 'S', 'T', 'U', 'W', 'Z'];
 
+function removeDiacritics(str) {
+  if (!str) return '';
+  return str.toLowerCase()
+    .replace(/ą/g, 'a')
+    .replace(/ć/g, 'c')
+    .replace(/ę/g, 'e')
+    .replace(/ł/g, 'l')
+    .replace(/ń/g, 'n')
+    .replace(/ó/g, 'o')
+    .replace(/ś/g, 's')
+    .replace(/ź/g, 'z')
+    .replace(/ż/g, 'z');
+}
+
+const COUNTRIES_NORMALIZED = new Map();
+for (const country of COUNTRIES) {
+  COUNTRIES_NORMALIZED.set(removeDiacritics(country), country);
+}
+
+const CITIES_NORMALIZED = new Map();
+for (const city of CITIES) {
+  CITIES_NORMALIZED.set(removeDiacritics(city), city);
+}
+
 function parseAnswer(text, letter) {
   let cleaned = text.trim();
 
@@ -223,6 +247,7 @@ module.exports = {
 
     // 1. Evaluate answers
     const letter = game.currentLetter.toLowerCase();
+    const normLetter = removeDiacritics(letter);
     const evaluated = [];
 
     // Frequency counters to find duplicates
@@ -238,20 +263,29 @@ module.exports = {
       let cityValid = false;
 
       if (sub) {
-        country = sub.country.trim();
-        city = sub.city.trim();
+        const rawCountry = sub.country.trim();
+        const rawCity = sub.city.trim();
+        const normCountry = removeDiacritics(rawCountry);
+        const normCity = removeDiacritics(rawCity);
 
         // Validate Country
-        if (country.startsWith(letter) && COUNTRIES.has(country)) {
+        if (normCountry.startsWith(normLetter) && COUNTRIES_NORMALIZED.has(normCountry)) {
           countryValid = true;
-          countryFreq[country] = (countryFreq[country] || 0) + 1;
+          country = capitalize(COUNTRIES_NORMALIZED.get(normCountry));
+          countryFreq[normCountry] = (countryFreq[normCountry] || 0) + 1;
+        } else {
+          country = rawCountry;
         }
 
-        // Validate City: in custom list OR capitalized naming regex
-        const matchesNamePattern = /^[a-ząćęłnóśźż]+(-[a-ząćęłnóśźż]+)?$/.test(city);
-        if (city.startsWith(letter) && (CITIES.has(city) || matchesNamePattern) && city !== country && city.length >= 3) {
+        // Validate City: in custom list OR matching naming pattern
+        const matchesNamePattern = /^[a-z]+(-[a-z]+)?$/.test(normCity);
+        const isKnownCity = CITIES_NORMALIZED.has(normCity);
+        if (normCity.startsWith(normLetter) && (isKnownCity || matchesNamePattern) && normCity !== normCountry && normCity.length >= 3) {
           cityValid = true;
-          cityFreq[city] = (cityFreq[city] || 0) + 1;
+          city = isKnownCity ? capitalize(CITIES_NORMALIZED.get(normCity)) : capitalize(rawCity);
+          cityFreq[normCity] = (cityFreq[normCity] || 0) + 1;
+        } else {
+          city = rawCity;
         }
       }
 
