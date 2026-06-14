@@ -30,23 +30,20 @@ async function clickNativeByText(page, texts) {
 
 async function runAutomatedLogin() {
   const configPath = path.join(__dirname, '../fca-config.json');
-  if (!fs.existsSync(configPath)) {
-    console.error('[LOGIN-AUTOMATOR] Error: fca-config.json does not exist!');
-    return false;
+  let credentials = {};
+
+  if (fs.existsSync(configPath)) {
+    try {
+      const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      credentials = configData.credentials || {};
+    } catch (e) {
+      console.error('[LOGIN-AUTOMATOR] Error parsing fca-config.json:', e.message);
+    }
   }
 
-  let configData;
-  try {
-    configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  } catch (e) {
-    console.error('[LOGIN-AUTOMATOR] Error parsing fca-config.json:', e.message);
-    return false;
-  }
-
-  const credentials = configData.credentials || {};
-  const email = credentials.email || process.env.FB_EMAIL;
-  const password = credentials.password || process.env.FB_PASSWORD;
-  const twoFactorSecret = credentials.twofactor || process.env.FB_2FA_SECRET;
+  const email = process.env.FB_EMAIL || credentials.email;
+  const password = process.env.FB_PASSWORD || credentials.password;
+  const twoFactorSecret = process.env.FB_2FA_SECRET || credentials.twofactor;
 
   if (!email || !password || !twoFactorSecret) {
     console.error('[LOGIN-AUTOMATOR] Error: Missing email, password, or twofactor in fca-config.json/env');
