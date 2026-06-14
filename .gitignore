@@ -5,3 +5,4 @@ appstate.json
 *.log
 .env
 temp_*.jpg
+fca-config.json
