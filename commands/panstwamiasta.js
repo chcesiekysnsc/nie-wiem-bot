@@ -489,7 +489,7 @@ module.exports = {
 
     if (messageContext.rawEvent?.messageID && client.api) {
       const reaction = anyValidAdded ? '👍' : '👎';
-      client.api.setMessageReaction(reaction, messageContext.rawEvent.messageID, () => {});
+      client.api.setMessageReaction(reaction, messageContext.rawEvent.messageID, threadId, () => {});
     }
   },
 
