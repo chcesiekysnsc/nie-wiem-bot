@@ -58,17 +58,40 @@ async function runAutomatedLogin() {
   
   let browser;
   try {
+    const puppeteerArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu'
+    ];
+    if (process.env.PROXY_URL) {
+      try {
+        const proxyUrl = new URL(process.env.PROXY_URL);
+        puppeteerArgs.push(`--proxy-server=${proxyUrl.protocol}//${proxyUrl.host}`);
+      } catch (err) {
+        console.error('[LOGIN-AUTOMATOR] Blad parsowania PROXY_URL do Puppeteera:', err.message);
+      }
+    }
+
     browser = await puppeteer.launch({
       headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ]
+      args: puppeteerArgs
     });
     
     const page = await browser.newPage();
+    if (process.env.PROXY_URL) {
+      try {
+        const proxyUrl = new URL(process.env.PROXY_URL);
+        if (proxyUrl.username && proxyUrl.password) {
+          await page.authenticate({
+            username: decodeURIComponent(proxyUrl.username),
+            password: decodeURIComponent(proxyUrl.password)
+          });
+          console.log('[LOGIN-AUTOMATOR] Skonfigurowano uwierzytelnianie proxy w Puppeteerze');
+        }
+      } catch (err) {}
+    }
+
     await page.setViewport({ width: 375, height: 812, isMobile: true, hasTouch: true });
     await page.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1');
 

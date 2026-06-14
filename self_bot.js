@@ -444,7 +444,14 @@ try {
 
 console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
 
-login({ appState }, (loginErr, api) => {
+const loginOptions = {};
+if (process.env.PROXY_URL) {
+  const sanitizedProxy = process.env.PROXY_URL.replace(/:([^:@]+)@/, ':***@');
+  console.log(`[SELF-BOT] Uzywanie serwera proxy dla polaczenia z Facebookiem: ${sanitizedProxy}`);
+  loginOptions.proxy = process.env.PROXY_URL;
+}
+
+login({ appState }, loginOptions, (loginErr, api) => {
   if (loginErr) {
     console.error('[SELF-BOT] Logowanie nie powiodlo sie:', loginErr);
     process.exit(1);
