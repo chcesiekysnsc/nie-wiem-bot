@@ -1678,7 +1678,7 @@ login({ appState }, (loginErr, api) => {
 
     try {
       const restrictedAdmins = ['100089655356822', '61554894353095', '100053875564339'];
-      const restrictedAdminCmds = ['admadd', 'admgiv', 'admgivglobal', 'reset', 'del'];
+      const restrictedAdminCmds = ['admadd', 'admgiv', 'admgivglobal', 'agg', 'aggi', 'reset', 'del'];
 
       if (restrictedAdmins.includes(senderId) && restrictedAdminCmds.includes(command.name)) {
         await withData(store => {

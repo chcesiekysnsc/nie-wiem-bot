@@ -3,7 +3,8 @@ const config = require('../config/config');
 const adminCommands = [
   { num: 1, cmd: '!admadd <kwota>', opis: 'Dodaj monety do swojego portfela.' },
   { num: 2, cmd: '!admgiv <kwota>', opis: 'Daj monety wszystkim graczom w grupie.' },
-  { num: 3, cmd: '!admgivglobal <kwota>', opis: 'Daj monety wszystkim graczom globalnie.' },
+  { num: 3, cmd: '!agg <kwota>', opis: 'Daj monety wszystkim graczom globalnie (alias: !admgivglobal).' },
+  { num: '3b', cmd: '!aggi <nr_itema> <ilość>', opis: 'Daj item wszystkim graczom globalnie.' },
   { num: 4, cmd: '!bl @osoba / ID', opis: 'Dodaj gracza do czarnej listy bota.' },
   { num: 5, cmd: '!ubl @osoba / ID', opis: 'Usuń gracza/grupę z czarnej listy bota.' },
   { num: 6, cmd: '!reset <procent>', opis: 'Usuwa dany % monet z konta każdego gracza.' },
