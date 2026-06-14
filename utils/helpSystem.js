@@ -766,6 +766,19 @@ const helpCommands = [
     requirements: "Wymaga aktywnej oferty multi-meczu i stawki.",
     aliases: ["mo", "mm"],
     additionalInfo: ["Kupon jest wygrany tylko wtedy, gdy wszystkie wybrane typy są trafione.", "Czas symulacji wynosi 15 sekund.", "Można podać stawkę wspólną na końcu lub stawkę dla każdego meczu osobno (zostaną zsumowane do całkowitej stawki kuponu)."]
+  },
+  {
+    id: 59,
+    name: "admin",
+    category: "UTILITY_ADMIN",
+    shortDescription: "zarzadzanie administratorami grupy",
+    description: "Pozwala administratorom grupy lub bota nadawać i odbierać uprawnienia administratora grupowego dla innych członków.",
+    usage: "!admin give @osoba | !admin del @osoba",
+    examples: ["!admin give @Kowalski", "!admin del 123456789"],
+    cooldown: "Brak.",
+    requirements: "Wymaga, aby bot był administratorem grupy, a nadawca miał uprawnienia admina grupy lub bota.",
+    aliases: [],
+    additionalInfo: ["Zarządza uprawnieniami bezpośrednio w czacie grupowym Messengera."]
   }
 ];
 
