@@ -347,14 +347,8 @@ if (fs.existsSync(appStatePath)) {
 }
 
 if (!isAppStateValid) {
-  console.log('[SELF-BOT] Plik appstate.json jest pusty, uszkodzony lub go brak. Uruchamianie automatycznego logowania przez Puppeteer (dane z fca-config.json)...');
-  const { execSync } = require('child_process');
-  try {
-    execSync('node utils/run_login.js', { stdio: 'inherit' });
-  } catch (err) {
-    console.error('[SELF-BOT] BLAD: Nie udalo sie automatycznie zalogowac do konta za pomoca podanych danych.');
-    process.exit(1);
-  }
+  console.error('[SELF-BOT] BLAD: Plik appstate.json jest pusty, uszkodzony lub go brak. Logowanie nie jest mozliwe.');
+  process.exit(1);
 }
 
 function getPolandOffsetMs(date) {
