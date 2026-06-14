@@ -40,22 +40,58 @@ module.exports = {
 
         console.log(`[BACKUP] Sending file: ${file} (${stats.size} bytes)...`);
 
-        // Wrap api.sendMessage in a Promise for proper async/await control and error handling
-        await new Promise((resolve, reject) => {
-          client.api.sendMessage({
-            body: `📄 Kopia bazy danych: **${file}**`,
-            attachment: fs.createReadStream(filePath)
-          }, message.threadID, (err) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve();
-            }
+        let sentAsAttachment = false;
+        try {
+          // Wrap api.sendMessage in a Promise with a timeout
+          await new Promise((resolve, reject) => {
+            let completed = false;
+            const timeout = setTimeout(() => {
+              if (!completed) {
+                completed = true;
+                reject(new Error('Limit czasu (12s) minął przy wysyłaniu załącznika.'));
+              }
+            }, 12000);
+
+            client.api.sendMessage({
+              body: `📄 Kopia bazy danych (załącznik): **${file}**`,
+              attachment: fs.createReadStream(filePath)
+            }, message.threadID, (err) => {
+              clearTimeout(timeout);
+              if (completed) return;
+              completed = true;
+              if (err) {
+                reject(err);
+              } else {
+                resolve();
+              }
+            });
           });
-        });
+          sentAsAttachment = true;
+        } catch (attachErr) {
+          console.warn(`[BACKUP] Failed to send ${file} as attachment, falling back to text chunking:`, attachErr);
+          await message.reply(`⚠️ Nie udało się wysłać ${file} jako załącznik (Błąd: ${attachErr.message || attachErr}). Wysyłam zawartość jako tekst...`);
+          
+          const content = fs.readFileSync(filePath, 'utf8');
+          const maxChunkSize = 8000;
+          if (content.length <= maxChunkSize) {
+            await message.reply(`📄 Zawartość pliku \`${file}\`:\n\`\`\`json\n${content}\n\`\`\``);
+          } else {
+            const chunks = [];
+            for (let i = 0; i < content.length; i += maxChunkSize) {
+              chunks.push(content.substring(i, i + maxChunkSize));
+            }
+            
+            await message.reply(`📄 Plik \`${file}\` jest zbyt duży i zostanie wysłany w ${chunks.length} częściach tekstowych:`);
+            for (let idx = 0; idx < chunks.length; idx++) {
+              await message.reply(`🧩 Część ${idx + 1}/${chunks.length} dla \`${file}\`:\n\`\`\`json\n${chunks[idx]}\n\`\`\``);
+              // Small delay between sending chunks to avoid spam protection rate limit
+              await new Promise(r => setTimeout(r, 1000));
+            }
+          }
+        }
       }
 
-      await message.reply('✅ Wszystkie pliki bazy danych zostały przesłane jako załączniki. Zapisz je na komputerze w folderze `data/` przed uruchomieniem bota na nowym hostingu.');
+      await message.reply('✅ Wszystkie pliki bazy danych zostały przesłane. Jeśli były wysyłane jako tekst, skopiuj całą zawartość i zapisz w odpowiednich plikach w folderze `data/` na nowym hostingu.');
     } catch (err) {
       console.error('[BACKUP] Error exporting database files:', err);
       const errMsg = err.message || err.error || (typeof err === 'object' ? JSON.stringify(err) : err);
