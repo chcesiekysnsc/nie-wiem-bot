@@ -513,7 +513,7 @@ login({ appState }, (loginErr, api) => {
 
           for (const [userId, user] of Object.entries(store.users || {})) {
             if (user.balance > 0) {
-              const tax = Math.floor(user.balance * 0.02);
+              const tax = Math.floor(user.balance * 0.04);
               user.balance -= tax;
               totalCollected += tax;
               taxedUsers.push({
@@ -533,7 +533,7 @@ login({ appState }, (loginErr, api) => {
         if (result.totalCollected > 0) {
           const announceMsg = 
             `📊 **POBÓR PODATKÓW**\n` +
-            `Pobrano podatek w wysokości: **2% salda**\n` +
+            `Pobrano podatek w wysokości: **4% salda**\n` +
             `Liczba opodatkowanych graczy: **${result.taxedUsers}**\n` +
             `Łączna kwota podatku: **${result.totalCollected.toLocaleString()} viccoinów**`;
 

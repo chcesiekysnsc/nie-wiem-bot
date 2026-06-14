@@ -26,7 +26,7 @@ module.exports = {
     await message.reply(
       `📊 **INFORMACJA O PODATKACH**\n` +
       `⏰ Następny pobór za: **${timeText}**\n` +
-      `💸 Podatek od salda: **2% co 12h**\n` +
+      `💸 Podatek od salda: **4% co 12h**\n` +
       `💰 Podatek przy !tip: **5%**\n\n` +
       `Podatki są automatycznie pobierane co 12 godzin ze wszystkich graczy.`
     );
