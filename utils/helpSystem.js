@@ -797,10 +797,11 @@ const helpCommands = [
 
 function getActiveHelpCommands() {
   const unlockTime = 1780264800000; // 2026-06-01T00:00:00+02:00
+  let filtered = helpCommands;
   if (Date.now() < unlockTime) {
-    return helpCommands.filter(command => command.name !== 'firma');
+    filtered = helpCommands.filter(command => command.name !== 'firma');
   }
-  return helpCommands;
+  return filtered.map((cmd, idx) => ({ ...cmd, id: idx + 1 }));
 }
 
 function getHelpCommandById(id) {
