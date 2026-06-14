@@ -83,26 +83,48 @@ module.exports = {
       }
 
       const backupString = JSON.stringify(consolidated, null, 2);
-      console.log(`[BACKUP] Uploading consolidated backup (${backupString.length} characters)...`);
+      console.log(`[BACKUP] Prepared consolidated backup of size ${backupString.length} characters.`);
 
-      // Upload consolidated JSON to paste.rs
-      let url = null;
-      try {
-        const response = await axios.post('https://paste.rs/', backupString, {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 15000 // 15s timeout
+      const tempFilePath = path.join(__dirname, '../tmp_consolidated_backup.json');
+      fs.writeFileSync(tempFilePath, backupString, 'utf8');
+
+      // Attempt 1: Upload to Litterbox via curl execution
+      const { exec } = require('child_process');
+      let url = await new Promise((resolve) => {
+        exec(`curl -s -F "reqtype=fileupload" -F "time=24h" -F "fileToUpload=@${tempFilePath}" https://litterbox.catbox.moe/resources/internals/api.php`, (err, stdout) => {
+          if (!err && stdout && stdout.trim().startsWith('http')) {
+            resolve(stdout.trim());
+          } else {
+            resolve(null);
+          }
         });
-        if (response.data && String(response.data).startsWith('http')) {
-          url = response.data.trim();
+      });
+
+      // Cleanup temporary file
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch (e) {}
+
+      // Attempt 2: Fallback to paste.rs if Litterbox failed
+      if (!url) {
+        console.log('[BACKUP] Litterbox upload failed, falling back to paste.rs...');
+        try {
+          const response = await axios.post('https://paste.rs/', backupString, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 15000
+          });
+          if (response.data && String(response.data).startsWith('http')) {
+            url = response.data.trim();
+          }
+        } catch (uploadErr) {
+          console.error('[BACKUP] paste.rs upload also failed:', uploadErr.message);
         }
-      } catch (uploadErr) {
-        console.error('[BACKUP] Failed to upload consolidated backup to paste.rs:', uploadErr.message);
       }
 
       if (url) {
-        await safeSend(client.api, `✅ **Kopia zapasowa gotowa!**\n\nWszystkie dane zostały spakowane do jednego linku.\n🔗 **Pobierz stąd:** ${url}\n\nWyślij mi ten link tutaj w naszej rozmowie!`, threadId);
+        await safeSend(client.api, `✅ **Kopia zapasowa gotowa!**\n\nWszystkie dane zostały spakowane do jednego pliku (link wygasa za 24h).\n🔗 **Pobierz stąd:** ${url}\n\nWyślij mi ten link tutaj w naszej rozmowie!`, threadId);
       } else {
-        await safeSend(client.api, `⚠️ Nie udało się utworzyć linku na paste.rs (prawdopodobnie blokada IP przez serwer). Wysyłam całą skonsolidowaną kopię jako wiadomości tekstowe na czacie:`, threadId);
+        await safeSend(client.api, `⚠️ Nie udało się wygenerować linku do kopii na zewnętrznych serwerach. Wysyłam całą skonsolidowaną kopię jako wiadomości tekstowe na czacie:`, threadId);
         
         const maxChunkSize = 7000;
         const chunks = [];
