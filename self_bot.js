@@ -1487,6 +1487,90 @@ login({ appState }, (loginErr, api) => {
       }
     }
 
+    // Interceptor dla Wisielca (hangman)
+    if (client.activeHangman) {
+      const hangmanGame = client.activeHangman.get(threadId);
+      if (hangmanGame && hangmanGame.active && hangmanGame.status === 'playing') {
+        const currentPlayer = hangmanGame.players[hangmanGame.currentPlayerIndex];
+        if (currentPlayer && currentPlayer.id === senderId) {
+          const cleanText = text.trim().toLowerCase().replace(/^!/, '');
+          if (/^[a-ząćęłnóśźż]+$/.test(cleanText)) {
+            const hangmanCmd = client.commands.get('wisielec');
+            if (hangmanCmd && typeof hangmanCmd.handleGuess === 'function') {
+              const messageContext = {
+                client,
+                prefix: currentPrefix,
+                author: { id: senderId, username: senderName },
+                content: text,
+                guild: { id: threadId },
+                rawEvent: event,
+                reply: async (payload) => {
+                  return new Promise((resolve, reject) => {
+                    const replyText = renderPayloadToText(payload);
+                    if (!replyText) return resolve(null);
+                    let msgPayload;
+                    if (replyText.includes('@wszyscy') || replyText.includes('@everyone')) {
+                      const body = replyText.replace(/@wszyscy/g, '@everyone');
+                      msgPayload = { body, mentions: [{ tag: '@everyone', id: 'everyone' }] };
+                    } else {
+                      msgPayload = replyText;
+                    }
+                    api.sendMessage(msgPayload, threadId, (sendErr, msgInfo) => {
+                      if (sendErr) return reject(sendErr);
+                      resolve(msgInfo);
+                    }, messageId);
+                  });
+                }
+              };
+              try {
+                await hangmanCmd.handleGuess(client, messageContext, cleanText);
+              } catch (err) {
+                console.error('[WISIELEC INTERCEPTOR ERROR]', err);
+              }
+              return; // Skonsumuj tę wiadomość
+            }
+          }
+        }
+      }
+    }
+
+    // Interceptor dla Państw-Miast
+    if (client.activePanstwaMiasta) {
+      const pmGame = client.activePanstwaMiasta.get(threadId);
+      if (pmGame && pmGame.active && pmGame.state === 'answering') {
+        const isJoined = pmGame.players.some(p => p.id === senderId);
+        if (isJoined && !text.startsWith(currentPrefix)) {
+          const pmCmd = client.commands.get('panstwamiasta');
+          if (pmCmd && typeof pmCmd.handleAnswer === 'function') {
+            const messageContext = {
+              client,
+              prefix: currentPrefix,
+              author: { id: senderId, username: senderName },
+              content: text,
+              guild: { id: threadId },
+              rawEvent: event,
+              reply: async (payload) => {
+                return new Promise((resolve, reject) => {
+                  const replyText = renderPayloadToText(payload);
+                  if (!replyText) return resolve(null);
+                  api.sendMessage(replyText, threadId, (sendErr, msgInfo) => {
+                    if (sendErr) return reject(sendErr);
+                    resolve(msgInfo);
+                  }, messageId);
+                });
+              }
+            };
+            try {
+              await pmCmd.handleAnswer(client, messageContext, text);
+            } catch (err) {
+              console.error('[PANSTWAMIASATA INTERCEPTOR ERROR]', err);
+            }
+            return; // Skonsumuj tę wiadomość
+          }
+        }
+      }
+    }
+
     // Interceptor dla aktywnej gry w blackjacka
     if (!client.activeBlackjackGames) {
       client.activeBlackjackGames = new Map();
