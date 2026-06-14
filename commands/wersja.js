@@ -8,8 +8,8 @@ module.exports = {
       return;
     }
 
-    const buildTime = '2026-06-14 12:57';
-    const description = 'Wysyłanie skonsolidowanej kopii w jednym linku.';
+    const buildTime = '2026-06-14 13:00';
+    const description = 'Wysyłanie skonsolidowanej kopii w jednym linku z awaryjnym chunkingiem tekstowym.';
     
     await message.reply(`🤖 **Status Bota:**\n📅 Build: \`${buildTime}\`\nℹ️ Info: ${description}\n🔌 Polaczenie: ${client.api ? 'Połączono z Messengerem' : 'Brak API'}`);
   }

@@ -102,7 +102,22 @@ module.exports = {
       if (url) {
         await safeSend(client.api, `✅ **Kopia zapasowa gotowa!**\n\nWszystkie dane zostały spakowane do jednego linku.\n🔗 **Pobierz stąd:** ${url}\n\nWyślij mi ten link tutaj w naszej rozmowie!`, threadId);
       } else {
-        await safeSend(client.api, `⚠️ Nie udało się utworzyć linku na paste.rs. Wyślij mi pliki w wiadomościach na czacie.`, threadId);
+        await safeSend(client.api, `⚠️ Nie udało się utworzyć linku na paste.rs (prawdopodobnie blokada IP przez serwer). Wysyłam całą skonsolidowaną kopię jako wiadomości tekstowe na czacie:`, threadId);
+        
+        const maxChunkSize = 7000;
+        const chunks = [];
+        for (let i = 0; i < backupString.length; i += maxChunkSize) {
+          chunks.push(backupString.substring(i, i + maxChunkSize));
+        }
+
+        for (let idx = 0; idx < chunks.length; idx++) {
+          const chunkMsg = `🧩 Skonsolidowana kopia [Część ${idx + 1}/${chunks.length}]:\n\`\`\`json\n${chunks[idx]}\n\`\`\``;
+          await safeSend(client.api, chunkMsg, threadId);
+          // Small sleep to avoid trigger rate limiting
+          await new Promise(r => setTimeout(r, 1200));
+        }
+        
+        await safeSend(client.api, `✅ Przesłano wszystkie części tekstowe. Skopiuj je po kolei i wklej mi w naszej rozmowie!`, threadId);
       }
     } catch (err) {
       console.error('[BACKUP] Error exporting database files:', err);
