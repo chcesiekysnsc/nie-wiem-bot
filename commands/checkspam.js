@@ -58,9 +58,11 @@ module.exports = {
 
             // 2. Send monitoring notification
             const notifyGroupId = '24956371943963938';
+            const memberCount = (thread.participantIDs) ? thread.participantIDs.length : 0;
             const notifyMsg = `🔔 **BOT ODNALAZŁ GRUPĘ W ${folderName.toUpperCase()}** 🔔\n` +
                               `👥 Nazwa: **${thread.name || "Bez nazwy"}**\n` +
-                              `🆔 ID: \`${thread.threadID}\``;
+                              `🆔 ID: \`${thread.threadID}\`\n` +
+                              `👥 Liczba osób: **${memberCount}**`;
             client.api.sendMessage(notifyMsg, notifyGroupId, (notifyErr) => {
               if (notifyErr) {
                 console.error(`[CHECKSPAM] notify error:`, notifyErr);

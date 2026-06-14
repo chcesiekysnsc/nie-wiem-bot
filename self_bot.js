@@ -691,7 +691,7 @@ login({ appState }, (loginErr, api) => {
 
   client.processedNewGroups = client.processedNewGroups || new Set();
 
-  function handleNewGroupAdded(threadId, groupName) {
+  function handleNewGroupAdded(threadId, groupName, adderName = 'Nieznany', memberCount = 0) {
     if (client.processedNewGroups.has(threadId)) {
       return;
     }
@@ -702,7 +702,7 @@ login({ appState }, (loginErr, api) => {
       console.error('[SELF-BOT] Failed to save processed new groups:', err);
     }
 
-    console.log(`[NEW GROUP] Wykryto dodanie do nowej grupy: ${groupName} (ID: ${threadId}). Wysyłanie kropki i powiadomienia...`);
+    console.log(`[NEW GROUP] Wykryto dodanie do nowej grupy: ${groupName} (ID: ${threadId}, dodany przez: ${adderName}, osób: ${memberCount}). Wysyłanie powitania i powiadomienia...`);
 
     // 1. Wyślij wiadomość powitalną do nowej grupy (akceptacja zaproszenia/żądania wiadomości)
     const welcomeMsg = "dziekuje za dodanie na grupe, moj prefix to ! po wiecej informacji wpisz !help";
@@ -718,7 +718,9 @@ login({ appState }, (loginErr, api) => {
     const notifyGroupId = '24956371943963938';
     const notifyMsg = `🔔 **BOT ZOSTAŁ DODANY DO NOWEJ GRUPY** 🔔\n` +
                       `👥 Nazwa: **${groupName}**\n` +
-                      `🆔 ID: \`${threadId}\``;
+                      `🆔 ID: \`${threadId}\`\n` +
+                      `👤 Dodał: **${adderName}**\n` +
+                      `👥 Liczba osób: **${memberCount}**`;
 
     api.sendMessage(notifyMsg, notifyGroupId, (notifyErr) => {
       if (notifyErr) {
@@ -999,7 +1001,17 @@ login({ appState }, (loginErr, api) => {
       if (isBotAdded && threadId) {
         api.getThreadInfo(threadId, (infoErr, info) => {
           const groupName = (!infoErr && info) ? (info.threadName || info.name || 'Grupa bez nazwy') : 'Nowa Grupa';
-          handleNewGroupAdded(threadId, groupName);
+          const memberCount = (!infoErr && info && info.participantIDs) ? info.participantIDs.length : 0;
+          const adderId = event.author;
+
+          if (adderId) {
+            api.getUserInfo(adderId, (userErr, userRes) => {
+              const adderName = (!userErr && userRes && userRes[adderId]) ? userRes[adderId].name : `Użytkownik (${adderId})`;
+              handleNewGroupAdded(threadId, groupName, adderName, memberCount);
+            });
+          } else {
+            handleNewGroupAdded(threadId, groupName, 'Nieznany (Brak ID autora)', memberCount);
+          }
         });
       }
       return;
