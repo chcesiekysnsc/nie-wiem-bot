@@ -132,9 +132,6 @@ function saveData(key, data) {
 
   const normalized = normalizeData(key, data);
   const content = JSON.stringify(normalized, null, 2);
-  if (key === 'profiles') {
-    console.log('SAVEDATA PROFILES CONTENT:', content);
-  }
   fs.writeFileSync(filePath, content);
 
   const BACKUP_DIR = 'C:\\Users\\dupek\\.gemini\\antigravity\\db_backups';
