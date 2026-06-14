@@ -162,39 +162,55 @@ async function verifyWordCategory(word, category) {
   return sjp.definitions.some(def => keywords.some(kw => def.includes(kw)));
 }
 
-function parseAnswer(text, letter) {
+function parseIncrementalAnswer(text) {
   let cleaned = text.trim();
+  const results = [];
 
-  // 1. Check labeled formats
-  const pMatch = cleaned.match(/(?:państwo|panstwo|p):\s*([\p{L}\-]+)/ui);
-  const mMatch = cleaned.match(/(?:miasto|m):\s*([\p{L}\-]+)/ui);
-  const iMatch = cleaned.match(/(?:imię|imie|i):\s*([\p{L}\-]+)/ui);
-  const zMatch = cleaned.match(/(?:zwierzę|zwierze|z):\s*([\p{L}\-]+)/ui);
-  const rzMatch = cleaned.match(/(?:rzecz|rz):\s*([\p{L}\-]+)/ui);
-  const roMatch = cleaned.match(/(?:roślina|roslina|ro|r):\s*([\p{L}\-]+)/ui);
+  // Match labeled formats
+  const labelPatterns = [
+    { category: 'country', regex: /(?:państwo|panstwo|p):\s*([\p{L}\-]+)/ui },
+    { category: 'city', regex: /(?:miasto|m):\s*([\p{L}\-]+)/ui },
+    { category: 'name', regex: /(?:imię|imie|i):\s*([\p{L}\-]+)/ui },
+    { category: 'animal', regex: /(?:zwierzę|zwierze|z):\s*([\p{L}\-]+)/ui },
+    { category: 'thing', regex: /(?:rzecz|rz):\s*([\p{L}\-]+)/ui },
+    { category: 'plant', regex: /(?:roślina|roslina|ro|r):\s*([\p{L}\-]+)/ui }
+  ];
 
-  if (pMatch && mMatch && iMatch && zMatch && rzMatch && roMatch) {
-    return {
-      country: pMatch[1].toLowerCase().trim(),
-      city: mMatch[1].toLowerCase().trim(),
-      name: iMatch[1].toLowerCase().trim(),
-      animal: zMatch[1].toLowerCase().trim(),
-      thing: rzMatch[1].toLowerCase().trim(),
-      plant: roMatch[1].toLowerCase().trim()
-    };
+  for (const pattern of labelPatterns) {
+    const match = cleaned.match(pattern.regex);
+    if (match) {
+      results.push({
+        word: match[1].trim(),
+        category: pattern.category
+      });
+      // Remove the matched part from the text to avoid parsing it as unlabeled word
+      cleaned = cleaned.replace(match[0], ' ');
+    }
   }
 
-  // 2. Otherwise split by whitespace or commas and take first 6 words
-  const parts = cleaned.replace(/,/g, ' ').split(/\s+/).map(p => p.trim()).filter(Boolean);
-  if (parts.length >= 6) {
-    return {
-      country: parts[0].toLowerCase(),
-      city: parts[1].toLowerCase(),
-      name: parts[2].toLowerCase(),
-      animal: parts[3].toLowerCase(),
-      thing: parts[4].toLowerCase(),
-      plant: parts[5].toLowerCase()
-    };
+  // Any remaining words are unlabeled
+  const remainingWords = cleaned.replace(/,/g, ' ').split(/\s+/).map(w => w.trim()).filter(Boolean);
+  for (const word of remainingWords) {
+    results.push({
+      word,
+      category: null
+    });
+  }
+
+  return results;
+}
+
+function parseAnswer(text, letter) {
+  // Legacy parser wrapper, returns null or 6-category structure if complete
+  const items = parseIncrementalAnswer(text);
+  const result = { country: '', city: '', name: '', animal: '', thing: '', plant: '' };
+  for (const item of items) {
+    if (item.category) {
+      result[item.category] = item.word;
+    }
+  }
+  if (result.country && result.city && result.name && result.animal && result.thing && result.plant) {
+    return result;
   }
   return null;
 }
@@ -396,50 +412,83 @@ module.exports = {
     const isJoined = game.players.some(p => p.id === playerId);
     if (!isJoined) return;
 
-    const parsed = parseAnswer(answerText, game.currentLetter);
-    let isGood = false;
+    const parsedItems = parseIncrementalAnswer(answerText);
+    if (parsedItems.length === 0) return;
 
-    if (parsed) {
-      const letter = game.currentLetter.toLowerCase();
-      const normLetter = removeDiacritics(letter);
-      const normCountry = removeDiacritics(parsed.country.trim());
-      const normCity = removeDiacritics(parsed.city.trim());
-      const normName = removeDiacritics(parsed.name.trim());
-      const normAnimal = removeDiacritics(parsed.animal.trim());
-      const normThing = removeDiacritics(parsed.thing.trim());
-      const normPlant = removeDiacritics(parsed.plant.trim());
-
-      const [countryValid, cityValid, nameValid, animalValid, thingValid, plantValid] = await Promise.all([
-        normCountry.startsWith(normLetter) && verifyWordCategory(parsed.country.trim(), 'country'),
-        normCity.startsWith(normLetter) && normCity !== normCountry && normCity.length >= 3 && verifyWordCategory(parsed.city.trim(), 'city'),
-        normName.startsWith(normLetter) && verifyWordCategory(parsed.name.trim(), 'name'),
-        normAnimal.startsWith(normLetter) && verifyWordCategory(parsed.animal.trim(), 'animal'),
-        normThing.startsWith(normLetter) && verifyWordCategory(parsed.thing.trim(), 'thing'),
-        normPlant.startsWith(normLetter) && verifyWordCategory(parsed.plant.trim(), 'plant')
-      ]);
-
-      if (countryValid && cityValid && nameValid && animalValid && thingValid && plantValid) {
-        isGood = true;
-      }
-
-      game.submissions.set(playerId, {
-        country: capitalize(parsed.country.trim()),
-        city: capitalize(parsed.city.trim()),
-        name: capitalize(parsed.name.trim()),
-        animal: capitalize(parsed.animal.trim()),
-        thing: capitalize(parsed.thing.trim()),
-        plant: capitalize(parsed.plant.trim()),
-        countryValid,
-        cityValid,
-        nameValid,
-        animalValid,
-        thingValid,
-        plantValid
-      });
+    let sub = game.submissions.get(playerId);
+    if (!sub) {
+      sub = {
+        country: '', countryValid: false,
+        city: '', cityValid: false,
+        name: '', nameValid: false,
+        animal: '', animalValid: false,
+        thing: '', thingValid: false,
+        plant: '', plantValid: false
+      };
     }
 
+    const letter = game.currentLetter.toLowerCase();
+    const normLetter = removeDiacritics(letter);
+    let anyValidAdded = false;
+
+    for (const item of parsedItems) {
+      const word = item.word.trim();
+      if (!word) continue;
+
+      const normWord = word.toLowerCase();
+      const normNoDiacritics = removeDiacritics(normWord);
+
+      // Słowo musi zaczynać się na właściwą literę
+      if (!normNoDiacritics.startsWith(normLetter)) {
+        continue;
+      }
+
+      if (item.category) {
+        // A. Słowo z jawną etykietą (np. p: Polska)
+        const category = item.category;
+        let isValid = await verifyWordCategory(word, category);
+        if (isValid && category === 'city') {
+          const normCountry = removeDiacritics(sub.country.toLowerCase());
+          if (normNoDiacritics.length < 3 || normNoDiacritics === normCountry) {
+            isValid = false;
+          }
+        }
+
+        if (isValid) {
+          sub[category] = capitalize(word);
+          sub[category + 'Valid'] = true;
+          anyValidAdded = true;
+        }
+      } else {
+        // B. Słowo bez etykiety - sprawdzamy puste kategorie po kolei
+        const categoriesOrder = ['country', 'city', 'name', 'animal', 'plant', 'thing'];
+        for (const category of categoriesOrder) {
+          if (sub[category + 'Valid']) {
+            continue;
+          }
+
+          let isValid = await verifyWordCategory(word, category);
+          if (isValid && category === 'city') {
+            const normCountry = removeDiacritics(sub.country.toLowerCase());
+            if (normNoDiacritics.length < 3 || normNoDiacritics === normCountry) {
+              isValid = false;
+            }
+          }
+
+          if (isValid) {
+            sub[category] = capitalize(word);
+            sub[category + 'Valid'] = true;
+            anyValidAdded = true;
+            break; // Przypisaliśmy słowo, kończymy pętlę kategorii dla tego słowa
+          }
+        }
+      }
+    }
+
+    game.submissions.set(playerId, sub);
+
     if (messageContext.rawEvent?.messageID && client.api) {
-      const reaction = isGood ? '👍' : '👎';
+      const reaction = anyValidAdded ? '👍' : '👎';
       client.api.setMessageReaction(reaction, messageContext.rawEvent.messageID, () => {});
     }
   },

@@ -1635,10 +1635,8 @@ login({ appState }, loginOptions, (loginErr, api) => {
             
             const cleanText = text.trim().replace(/^!/, '');
             
-            // Sprawdzamy czy to odpowiedź (reply) lub czy format wiadomości pasuje do schematu Państwa-Miasta (6 słów lub format klucz-wartość)
-            const canParse = pmCmd.parseAnswer && pmCmd.parseAnswer(cleanText, pmGame.currentLetter);
-
-            if (isReply || canParse) {
+            // Sprawdzamy czy to odpowiedź (reply) na wiadomość rundy
+            if (isReply) {
               const senderName = await client.resolveUserName(api, senderId);
               const messageContext = {
                 client,
