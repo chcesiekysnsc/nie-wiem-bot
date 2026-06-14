@@ -1853,9 +1853,30 @@ login({ appState }, (loginErr, api) => {
   });
 });
 
-// Serwer HTTP dla sprawdzenia poprawnosci działania (Railway Health Check)
+// Serwer HTTP dla sprawdzenia poprawnosci działania (Railway Health Check) i pobierania kopii
 const PORT = process.env.PORT || 8080;
 http.createServer((req, res) => {
+  try {
+    const parsed = new URL(req.url, 'http://localhost');
+    if (parsed.pathname === '/backup') {
+      const key = parsed.searchParams.get('key');
+      if (global.backupKey && key === global.backupKey && global.latestBackup) {
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="backup_database.json"'
+        });
+        res.end(global.latestBackup);
+        return;
+      } else {
+        res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Forbidden: Błędny lub przestarzały klucz kopii zapasowej.');
+        return;
+      }
+    }
+  } catch (err) {
+    console.error('[HTTP-SERVER] Error handling request:', err);
+  }
+
   res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('Messenger casino self-bot is running.');
 }).listen(PORT, '0.0.0.0', () => {

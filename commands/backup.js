@@ -85,62 +85,20 @@ module.exports = {
       const backupString = JSON.stringify(consolidated, null, 2);
       console.log(`[BACKUP] Prepared consolidated backup of size ${backupString.length} characters.`);
 
-      const tempFilePath = path.join(__dirname, '../tmp_consolidated_backup.json');
-      fs.writeFileSync(tempFilePath, backupString, 'utf8');
+      // Generate a temporary secret key for this backup download session
+      const key = Math.random().toString(36).substring(2, 12);
+      global.backupKey = key;
+      global.latestBackup = backupString;
 
-      // Attempt 1: Upload to Litterbox via curl execution
-      const { exec } = require('child_process');
-      let url = await new Promise((resolve) => {
-        exec(`curl -s -F "reqtype=fileupload" -F "time=24h" -F "fileToUpload=@${tempFilePath}" https://litterbox.catbox.moe/resources/internals/api.php`, (err, stdout) => {
-          if (!err && stdout && stdout.trim().startsWith('http')) {
-            resolve(stdout.trim());
-          } else {
-            resolve(null);
-          }
-        });
-      });
-
-      // Cleanup temporary file
-      try {
-        fs.unlinkSync(tempFilePath);
-      } catch (e) {}
-
-      // Attempt 2: Fallback to paste.rs if Litterbox failed
-      if (!url) {
-        console.log('[BACKUP] Litterbox upload failed, falling back to paste.rs...');
-        try {
-          const response = await axios.post('https://paste.rs/', backupString, {
-            headers: { 'Content-Type': 'application/json' },
-            timeout: 15000
-          });
-          if (response.data && String(response.data).startsWith('http')) {
-            url = response.data.trim();
-          }
-        } catch (uploadErr) {
-          console.error('[BACKUP] paste.rs upload also failed:', uploadErr.message);
-        }
-      }
-
-      if (url) {
-        await safeSend(client.api, `✅ **Kopia zapasowa gotowa!**\n\nWszystkie dane zostały spakowane do jednego pliku (link wygasa za 24h).\n🔗 **Pobierz stąd:** ${url}\n\nWyślij mi ten link tutaj w naszej rozmowie!`, threadId);
+      const publicDomain = process.env.RAILWAY_PUBLIC_DOMAIN;
+      let downloadUrl = '';
+      if (publicDomain) {
+        downloadUrl = `https://${publicDomain.replace(/\/$/, '')}/backup?key=${key}`;
       } else {
-        await safeSend(client.api, `⚠️ Nie udało się wygenerować linku do kopii na zewnętrznych serwerach. Wysyłam całą skonsolidowaną kopię jako wiadomości tekstowe na czacie:`, threadId);
-        
-        const maxChunkSize = 7000;
-        const chunks = [];
-        for (let i = 0; i < backupString.length; i += maxChunkSize) {
-          chunks.push(backupString.substring(i, i + maxChunkSize));
-        }
-
-        for (let idx = 0; idx < chunks.length; idx++) {
-          const chunkMsg = `🧩 Skonsolidowana kopia [Część ${idx + 1}/${chunks.length}]:\n\`\`\`json\n${chunks[idx]}\n\`\`\``;
-          await safeSend(client.api, chunkMsg, threadId);
-          // Small sleep to avoid trigger rate limiting
-          await new Promise(r => setTimeout(r, 1200));
-        }
-        
-        await safeSend(client.api, `✅ Przesłano wszystkie części tekstowe. Skopiuj je po kolei i wklej mi w naszej rozmowie!`, threadId);
+        downloadUrl = `http://[twoj-adres-bota].up.railway.app/backup?key=${key}\n*(Zastąp [twoj-adres-bota] domeną swojego bota, którą znajdziesz w panelu Railway w zakładce Settings -> Public Networking -> Domain)*`;
       }
+
+      await safeSend(client.api, `✅ **Kopia zapasowa gotowa!**\n\nMożesz ją pobrać bezpośrednio ze swojego serwera bota:\n🔗 **Pobierz stąd:** ${downloadUrl}\n\nOtwórz ten link w przeglądarce, a plik \`backup_database.json\` pobierze się automatycznie. Wyślij mi go tutaj w naszej rozmowie!`, threadId);
     } catch (err) {
       console.error('[BACKUP] Error exporting database files:', err);
       const errMsg = err.message || err.error || (typeof err === 'object' ? JSON.stringify(err) : err);

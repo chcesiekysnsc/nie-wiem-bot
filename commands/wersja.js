@@ -8,8 +8,8 @@ module.exports = {
       return;
     }
 
-    const buildTime = '2026-06-14 13:02';
-    const description = 'Wysyłanie skonsolidowanej kopii z uploadem na Litterbox i fallbackami.';
+    const buildTime = '2026-06-14 13:14';
+    const description = 'Pobieranie kopii bezpośrednio ze swojego bota (/backup?key=...).';
     
     await message.reply(`🤖 **Status Bota:**\n📅 Build: \`${buildTime}\`\nℹ️ Info: ${description}\n🔌 Polaczenie: ${client.api ? 'Połączono z Messengerem' : 'Brak API'}`);
   }
