@@ -4,26 +4,30 @@ const fs = require('fs');
 const path = require('path');
 
 async function clickNativeByText(page, texts) {
-  const rect = await page.evaluate((texts) => {
-    const elements = Array.from(document.querySelectorAll('button, input[type="submit"], input[type="button"], a, div, span, p'));
-    for (const el of elements) {
-      const text = (el.textContent || el.value || '').trim().toLowerCase();
-      for (const t of texts) {
-        if (text.includes(t.toLowerCase()) && text.length < 100) {
-          const r = el.getBoundingClientRect();
-          if (r.width > 0 && r.height > 0) {
-            return { x: r.left + r.width / 2, y: r.top + r.height / 2, text };
+  try {
+    const rect = await page.evaluate((texts) => {
+      const elements = Array.from(document.querySelectorAll('button, input[type="submit"], input[type="button"], a, div, span, p'));
+      for (const el of elements) {
+        const text = (el.textContent || el.value || '').trim().toLowerCase();
+        for (const t of texts) {
+          if (text.includes(t.toLowerCase()) && text.length < 100) {
+            const r = el.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0) {
+              return { x: r.left + r.width / 2, y: r.top + r.height / 2, text };
+            }
           }
         }
       }
-    }
-    return null;
-  }, texts);
+      return null;
+    }, texts);
 
-  if (rect) {
-    console.log(`[LOGIN-AUTOMATOR] Clicking natively at (${rect.x}, ${rect.y}) for matched text: "${rect.text}"`);
-    await page.mouse.click(rect.x, rect.y);
-    return rect.text;
+    if (rect) {
+      console.log(`[LOGIN-AUTOMATOR] Clicking natively at (${rect.x}, ${rect.y}) for matched text: "${rect.text}"`);
+      await page.mouse.click(rect.x, rect.y);
+      return rect.text;
+    }
+  } catch (err) {
+    console.log('[LOGIN-AUTOMATOR] clickNativeByText error (navigation?):', err.message);
   }
   return null;
 }
@@ -144,13 +148,17 @@ async function runAutomatedLogin() {
     console.log('[LOGIN-AUTOMATOR] Processing login redirects...');
     for (let i = 0; i < 30; i++) {
       await new Promise(r => setTimeout(r, 500));
-      const currentUrl = page.url();
-      const cookies = await page.cookies();
-      const hasCUser = cookies.some(c => c.name === 'c_user');
-      const has2FA = await page.$('input[name="approvals_code"]');
-      
-      if (hasCUser || has2FA || currentUrl.includes('checkpoint')) {
-        break;
+      try {
+        const currentUrl = page.url();
+        const cookies = await page.cookies();
+        const hasCUser = cookies.some(c => c.name === 'c_user');
+        const has2FA = await page.$('input[name="approvals_code"]');
+        
+        if (hasCUser || has2FA || currentUrl.includes('checkpoint')) {
+          break;
+        }
+      } catch (err) {
+        // Safe check failed due to pending navigation, continue loop
       }
     }
 
@@ -185,24 +193,41 @@ async function runAutomatedLogin() {
     }
 
     // Check if we are at 2FA checkpoint page or if 2FA code is needed
-    const hasCodeText = await page.evaluate(() => document.body.innerText.toLowerCase().includes('kod') || document.body.innerText.toLowerCase().includes('code'));
-    if (page.url().includes('checkpoint') || await page.$('input[name="approvals_code"]') || hasCodeText) {
+    let hasCodeText = false;
+    try {
+      hasCodeText = await page.evaluate(() => document.body.innerText.toLowerCase().includes('kod') || document.body.innerText.toLowerCase().includes('code'));
+    } catch (e) {}
+
+    let isCheckpoint = false;
+    try {
+      const currentUrl = page.url();
+      const has2FAInput = await page.$('input[name="approvals_code"]');
+      if (currentUrl.includes('checkpoint') || has2FAInput || hasCodeText) {
+        isCheckpoint = true;
+      }
+    } catch (e) {}
+
+    if (isCheckpoint) {
       console.log('[LOGIN-AUTOMATOR] 2FA Checkpoint detected. Generating TOTP...');
       const code = TOTP.generate(twoFactorSecret.replace(/\s+/g, '')).otp;
       console.log('[LOGIN-AUTOMATOR] Entering TOTP code...');
 
-      await page.waitForSelector('input[name="approvals_code"]', { timeout: 10000 });
-      await page.type('input[name="approvals_code"]', code, { delay: 50 });
-      
-      const submitBtn = await page.$('button#checkpointSubmitButton') || await page.$('input[type="submit"]');
-      if (submitBtn) {
-        await Promise.all([
-          submitBtn.click(),
-          page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => null)
-        ]);
-      } else {
-        await page.keyboard.press('Enter');
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => null);
+      try {
+        await page.waitForSelector('input[name="approvals_code"]', { timeout: 10000 });
+        await page.type('input[name="approvals_code"]', code, { delay: 50 });
+        
+        const submitBtn = await page.$('button#checkpointSubmitButton') || await page.$('input[type="submit"]');
+        if (submitBtn) {
+          await Promise.all([
+            submitBtn.click(),
+            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => null)
+          ]);
+        } else {
+          await page.keyboard.press('Enter');
+          await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => null);
+        }
+      } catch (err) {
+        console.error('[LOGIN-AUTOMATOR] Error entering 2FA code:', err.message);
       }
       await new Promise(r => setTimeout(r, 2000));
     }
