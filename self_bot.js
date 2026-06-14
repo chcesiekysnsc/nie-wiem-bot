@@ -1389,30 +1389,36 @@ login({ appState }, (loginErr, api) => {
     if (client.activeMilionerzy) {
       const miliGame = client.activeMilionerzy.get(threadId);
       if (miliGame && miliGame.active) {
-        const inputAnswer = text.trim().toUpperCase();
-        if (['A', 'B', 'C', 'D'].includes(inputAnswer)) {
-          // Organizator nie może odpowiadać na własne pytanie
-          if (senderId !== miliGame.hostId) {
-            if (inputAnswer === miliGame.correctAnswer) {
-              miliGame.active = false;
-              client.activeMilionerzy.delete(threadId);
+        const cleanInput = text.trim().toUpperCase();
+        let inputAnswer = null;
+        if (/^[A-D](\)|$|\.|\s)/.test(cleanInput)) {
+          inputAnswer = cleanInput[0];
+        } else if (cleanInput.startsWith('ODPOWIEDZ ') && ['A', 'B', 'C', 'D'].includes(cleanInput.substring(10).trim())) {
+          inputAnswer = cleanInput.substring(10).trim();
+        } else if (['A', 'B', 'C', 'D'].includes(cleanInput)) {
+          inputAnswer = cleanInput;
+        }
 
-              const tax = Math.floor(miliGame.prize * 0.05);
-              const netPrize = miliGame.prize - tax;
-              const winnerId = senderId;
-              
-              client.resolveUserName(api, winnerId).then(async (winnerName) => {
-                await withData(store => {
-                  const u = createUser(winnerId, store.users);
-                  u.balance = (u.balance || 0) + netPrize;
-                });
+        if (inputAnswer) {
+          if (inputAnswer === miliGame.correctAnswer) {
+            miliGame.active = false;
+            client.activeMilionerzy.delete(threadId);
 
-                const replyMsg = `🎉 **MILIONERZY** 🎉\nGratulacje **${winnerName}**! Podałeś poprawną odpowiedź **${miliGame.correctAnswer}** i wygrywasz **+${formatCurrency(netPrize)}** (pula ${formatCurrency(miliGame.prize)} - 5% podatku)!`;
-                api.sendMessage(replyMsg, threadId, () => {}, messageId);
-              }).catch(err => {
-                console.error('[MILIONERZY] Błąd przyznawania nagrody:', err);
+            const tax = Math.floor(miliGame.prize * 0.05);
+            const netPrize = miliGame.prize - tax;
+            const winnerId = senderId;
+            
+            client.resolveUserName(api, winnerId).then(async (winnerName) => {
+              await withData(store => {
+                const u = createUser(winnerId, store.users);
+                u.balance = (u.balance || 0) + netPrize;
               });
-            }
+
+              const replyMsg = `🎉 **MILIONERZY** 🎉\nGratulacje **${winnerName}**! Podałeś poprawną odpowiedź **${miliGame.correctAnswer}** i wygrywasz **+${formatCurrency(netPrize)}** (pula ${formatCurrency(miliGame.prize)} - 5% podatku)!`;
+              api.sendMessage(replyMsg, threadId, () => {}, messageId);
+            }).catch(err => {
+              console.error('[MILIONERZY] Błąd przyznawania nagrody:', err);
+            });
           }
           return; // Skonsumuj tę wiadomość, nie przetwarzaj jej jako komendy
         }

@@ -16,18 +16,14 @@ module.exports = {
     }
 
     // Obsługa wbudowanego w Messenger @everyone / @wszyscy
-    const mentions = [];
-    if (content.includes('@wszyscy')) {
-      mentions.push({ tag: '@wszyscy', id: 'everyone' });
-    }
-    if (content.includes('@everyone')) {
-      mentions.push({ tag: '@everyone', id: 'everyone' });
-    }
+    let cleanContent = content;
+    const hasEveryone = /@wszyscy/i.test(cleanContent) || /@everyone/i.test(cleanContent);
+    cleanContent = cleanContent.replace(/@wszyscy/gi, '@everyone').replace(/@everyone/gi, '@everyone');
 
-    const msgPayload = mentions.length > 0 ? {
-      body: content,
-      mentions: mentions
-    } : content;
+    const msgPayload = hasEveryone ? {
+      body: cleanContent,
+      mentions: [{ tag: '@everyone', id: 'everyone' }]
+    } : cleanContent;
 
     const excludedGroupId = '2094120197822035';
 

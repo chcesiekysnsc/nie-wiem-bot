@@ -797,10 +797,16 @@ const helpCommands = [
 
 function getActiveHelpCommands() {
   const unlockTime = 1780264800000; // 2026-06-01T00:00:00+02:00
-  let filtered = helpCommands;
+  let filtered = [...helpCommands];
   if (Date.now() < unlockTime) {
-    filtered = helpCommands.filter(command => command.name !== 'firma');
+    filtered = filtered.filter(command => command.name !== 'firma');
   }
+  const catOrder = {
+    ECONOMY_GAMBLING: 0,
+    SOCIAL_GANGS: 1,
+    UTILITY_ADMIN: 2
+  };
+  filtered.sort((a, b) => catOrder[a.category] - catOrder[b.category]);
   return filtered.map((cmd, idx) => ({ ...cmd, id: idx + 1 }));
 }
 
