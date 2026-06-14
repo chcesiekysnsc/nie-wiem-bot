@@ -779,6 +779,19 @@ const helpCommands = [
     requirements: "Wymaga, aby bot był administratorem grupy, a nadawca miał uprawnienia admina grupy lub bota.",
     aliases: [],
     additionalInfo: ["Zarządza uprawnieniami bezpośrednio w czacie grupowym Messengera."]
+  },
+  {
+    id: 60,
+    name: "milionerzy",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "quiz wiedzy milionerzy z pula nagrod",
+    description: "Rozpoczyna grę w Milionerów. Organizator stawia określoną kwotę, która tworzy pulę nagród. Pierwsza osoba w grupie, która poprawnie odpowie na pytanie (A, B, C lub D) w ciągu 15 sekund, wygrywa pulę (minus 5% podatku). Organizator nie może brać udziału w odpowiedzi.",
+    usage: "!milionerzy <kwota>",
+    examples: ["!milionerzy 50000", "!milionerzy 1m", "!milionerzy all"],
+    cooldown: "Brak.",
+    requirements: "Posiadanie odpowiedniej kwoty portfelu (min. 10 000 viccoinów).",
+    aliases: ["mili", "quiz"],
+    additionalInfo: ["Czas na odpowiedź to 15 sekund. Jeśli nikt nie odpowie poprawnie, pula organizatora przepada."]
   }
 ];
 

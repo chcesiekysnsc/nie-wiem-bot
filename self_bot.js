@@ -1385,6 +1385,40 @@ login({ appState }, (loginErr, api) => {
       }
     }
 
+    // Interceptor dla Milionerów (quiz)
+    if (client.activeMilionerzy) {
+      const miliGame = client.activeMilionerzy.get(threadId);
+      if (miliGame && miliGame.active) {
+        const inputAnswer = text.trim().toUpperCase();
+        if (['A', 'B', 'C', 'D'].includes(inputAnswer)) {
+          // Organizator nie może odpowiadać na własne pytanie
+          if (senderId !== miliGame.hostId) {
+            if (inputAnswer === miliGame.correctAnswer) {
+              miliGame.active = false;
+              client.activeMilionerzy.delete(threadId);
+
+              const tax = Math.floor(miliGame.prize * 0.05);
+              const netPrize = miliGame.prize - tax;
+              const winnerId = senderId;
+              
+              client.resolveUserName(api, winnerId).then(async (winnerName) => {
+                await withData(store => {
+                  const u = createUser(winnerId, store.users);
+                  u.balance = (u.balance || 0) + netPrize;
+                });
+
+                const replyMsg = `🎉 **MILIONERZY** 🎉\nGratulacje **${winnerName}**! Podałeś poprawną odpowiedź **${miliGame.correctAnswer}** i wygrywasz **+${formatCurrency(netPrize)}** (pula ${formatCurrency(miliGame.prize)} - 5% podatku)!`;
+                api.sendMessage(replyMsg, threadId, () => {}, messageId);
+              }).catch(err => {
+                console.error('[MILIONERZY] Błąd przyznawania nagrody:', err);
+              });
+            }
+          }
+          return; // Skonsumuj tę wiadomość, nie przetwarzaj jej jako komendy
+        }
+      }
+    }
+
     // Interceptor dla Zgadnij Kraj (flagi)
     if (client.activeFlags) {
       const flagGame = client.activeFlags.get(threadId);
