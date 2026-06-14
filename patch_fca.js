@@ -69,7 +69,7 @@ if (fs.existsSync(fcaPath)) {
     cookies: { jar }
   });
   agent['AGENT_CREATED_BY_AXIOS_COOKIEJAR_SUPPORT'] = true;
-  client.defaults.httpAgent = agent;
+  client.defaults.httpAgent = void 0;
   client.defaults.httpsAgent = agent;
   client.defaults.proxy = false;
 }`;
