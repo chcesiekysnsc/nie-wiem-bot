@@ -1,6 +1,32 @@
 const fs = require('fs');
 const path = require('path');
 
+// Safe send helper to prevent hanging if Facebook API doesn't trigger the callback
+function safeSend(api, content, threadID) {
+  return new Promise((resolve) => {
+    let completed = false;
+    const timeout = setTimeout(() => {
+      if (!completed) {
+        completed = true;
+        console.warn('[BACKUP] safeSend timed out for content length:', content.length);
+        resolve(false);
+      }
+    }, 10000); // 10s timeout per message
+
+    api.sendMessage(content, threadID, (err) => {
+      clearTimeout(timeout);
+      if (completed) return;
+      completed = true;
+      if (err) {
+        console.error('[BACKUP] safeSend error:', err);
+        resolve(false);
+      } else {
+        resolve(true);
+      }
+    });
+  });
+}
+
 module.exports = {
   name: 'backup',
   aliases: ['kopia', 'dbbackup'],
@@ -16,18 +42,24 @@ module.exports = {
       return;
     }
 
-    await message.reply('📦 Przygotowuję kopię zapasową bazy danych (pliki JSON)...');
+    const threadId = message.rawEvent?.threadID || message.threadID;
+    if (!threadId) {
+      await message.reply('❌ Nie można określić ID konwersacji.');
+      return;
+    }
+
+    await message.reply('📦 Rozpoczynam eksport bazy danych w formacie tekstowym...');
 
     const dataDir = path.join(__dirname, '../data');
     if (!fs.existsSync(dataDir)) {
-      await message.reply('❌ Folder data/ nie istnieje.');
+      await safeSend(client.api, '❌ Folder data/ nie istnieje.', threadId);
       return;
     }
 
     try {
       const files = fs.readdirSync(dataDir).filter(file => file.endsWith('.json'));
       if (files.length === 0) {
-        await message.reply('❌ Brak plików bazy danych (.json) w folderze data/.');
+        await safeSend(client.api, '❌ Brak plików bazy danych (.json) w folderze data/.', threadId);
         return;
       }
 
@@ -38,64 +70,36 @@ module.exports = {
           continue;
         }
 
-        console.log(`[BACKUP] Sending file: ${file} (${stats.size} bytes)...`);
+        console.log(`[BACKUP] Processing file as text: ${file} (${stats.size} bytes)...`);
+        const content = fs.readFileSync(filePath, 'utf8');
 
-        let sentAsAttachment = false;
-        try {
-          // Wrap api.sendMessage in a Promise with a timeout
-          await new Promise((resolve, reject) => {
-            let completed = false;
-            const timeout = setTimeout(() => {
-              if (!completed) {
-                completed = true;
-                reject(new Error('Limit czasu (12s) minął przy wysyłaniu załącznika.'));
-              }
-            }, 12000);
+        // Safe maximum characters per message for Messenger code blocks
+        const maxChunkSize = 7000;
 
-            client.api.sendMessage({
-              body: `📄 Kopia bazy danych (załącznik): **${file}**`,
-              attachment: fs.createReadStream(filePath)
-            }, message.threadID, (err) => {
-              clearTimeout(timeout);
-              if (completed) return;
-              completed = true;
-              if (err) {
-                reject(err);
-              } else {
-                resolve();
-              }
-            });
-          });
-          sentAsAttachment = true;
-        } catch (attachErr) {
-          console.warn(`[BACKUP] Failed to send ${file} as attachment, falling back to text chunking:`, attachErr);
-          await message.reply(`⚠️ Nie udało się wysłać ${file} jako załącznik (Błąd: ${attachErr.message || attachErr}). Wysyłam zawartość jako tekst...`);
-          
-          const content = fs.readFileSync(filePath, 'utf8');
-          const maxChunkSize = 8000;
-          if (content.length <= maxChunkSize) {
-            await message.reply(`📄 Zawartość pliku \`${file}\`:\n\`\`\`json\n${content}\n\`\`\``);
-          } else {
-            const chunks = [];
-            for (let i = 0; i < content.length; i += maxChunkSize) {
-              chunks.push(content.substring(i, i + maxChunkSize));
-            }
-            
-            await message.reply(`📄 Plik \`${file}\` jest zbyt duży i zostanie wysłany w ${chunks.length} częściach tekstowych:`);
-            for (let idx = 0; idx < chunks.length; idx++) {
-              await message.reply(`🧩 Część ${idx + 1}/${chunks.length} dla \`${file}\`:\n\`\`\`json\n${chunks[idx]}\n\`\`\``);
-              // Small delay between sending chunks to avoid spam protection rate limit
-              await new Promise(r => setTimeout(r, 1000));
-            }
+        if (content.length <= maxChunkSize) {
+          const formattedMsg = `📄 Plik: **${file}**\n\`\`\`json\n${content}\n\`\`\``;
+          await safeSend(client.api, formattedMsg, threadId);
+        } else {
+          const chunks = [];
+          for (let i = 0; i < content.length; i += maxChunkSize) {
+            chunks.push(content.substring(i, i + maxChunkSize));
+          }
+
+          await safeSend(client.api, `📄 Plik **${file}** jest za duży i zostanie wysłany w ${chunks.length} częściach tekstowych:`, threadId);
+          for (let idx = 0; idx < chunks.length; idx++) {
+            const chunkMsg = `🧩 Część ${idx + 1}/${chunks.length} dla \`${file}\`:\n\`\`\`json\n${chunks[idx]}\n\`\`\``;
+            await safeSend(client.api, chunkMsg, threadId);
+            // Small sleep to avoid trigger rate limiting
+            await new Promise(r => setTimeout(r, 1200));
           }
         }
       }
 
-      await message.reply('✅ Wszystkie pliki bazy danych zostały przesłane. Jeśli były wysyłane jako tekst, skopiuj całą zawartość i zapisz w odpowiednich plikach w folderze `data/` na nowym hostingu.');
+      await safeSend(client.api, '✅ Kopiowanie zakończone! Skopiuj powyższe bloki tekstu JSON i zapisz je w odpowiednich plikach na nowym hostingu w folderze `data/`.', threadId);
     } catch (err) {
       console.error('[BACKUP] Error exporting database files:', err);
       const errMsg = err.message || err.error || (typeof err === 'object' ? JSON.stringify(err) : err);
-      await message.reply(`❌ Wystąpił błąd podczas tworzenia kopii: ${errMsg}`);
+      await safeSend(client.api, `❌ Wystąpił błąd podczas tworzenia kopii: ${errMsg}`, threadId);
     }
   }
 };

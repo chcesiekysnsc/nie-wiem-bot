@@ -8,8 +8,8 @@ module.exports = {
       return;
     }
 
-    const buildTime = '2026-06-14 12:37';
-    const description = 'Wersja z limitem czasu kopii (12s) i fallbackiem tekstowym.';
+    const buildTime = '2026-06-14 12:40';
+    const description = 'Wysyłanie kopii czystym tekstem (bez załączników) z bezpiecznym safeSend.';
     
     await message.reply(`🤖 **Status Bota:**\n📅 Build: \`${buildTime}\`\nℹ️ Info: ${description}\n🔌 Polaczenie: ${client.api ? 'Połączono z Messengerem' : 'Brak API'}`);
   }
