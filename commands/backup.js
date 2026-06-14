@@ -78,10 +78,10 @@ module.exports = {
         console.log(`[BACKUP] Processing file: ${file} (${stats.size} bytes)...`);
         const content = fs.readFileSync(filePath, 'utf8');
 
-        // Attempt upload to paste.c-net.org
+        // Attempt upload to paste.rs
         let url = null;
         try {
-          const response = await axios.post('https://paste.c-net.org/', content, {
+          const response = await axios.post('https://paste.rs/', content, {
             headers: { 'Content-Type': 'text/plain' },
             timeout: 9000 // 9s timeout for pastebin API
           });
@@ -89,7 +89,7 @@ module.exports = {
             url = response.data.trim();
           }
         } catch (uploadErr) {
-          console.warn(`[BACKUP] Failed to upload ${file} to paste.c-net.org:`, uploadErr.message);
+          console.warn(`[BACKUP] Failed to upload ${file} to paste.rs:`, uploadErr.message);
         }
 
         completedFiles++;

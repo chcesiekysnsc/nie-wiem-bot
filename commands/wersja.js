@@ -8,8 +8,8 @@ module.exports = {
       return;
     }
 
-    const buildTime = '2026-06-14 12:47';
-    const description = 'Wysyłanie kopii jako linki do pobrania z c-net z procentowym postępem.';
+    const buildTime = '2026-06-14 12:51';
+    const description = 'Wysyłanie kopii jako linki do pobrania z paste.rs z procentowym postępem.';
     
     await message.reply(`🤖 **Status Bota:**\n📅 Build: \`${buildTime}\`\nℹ️ Info: ${description}\n🔌 Polaczenie: ${client.api ? 'Połączono z Messengerem' : 'Brak API'}`);
   }
