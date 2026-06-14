@@ -339,7 +339,20 @@ function getLastTaxTime() {
 
 let appState;
 try {
-  appState = JSON.parse(fs.readFileSync(appStatePath, 'utf8'));
+  const rawData = JSON.parse(fs.readFileSync(appStatePath, 'utf8'));
+  if (Array.isArray(rawData)) {
+    appState = rawData.map(c => ({
+      key: c.key || c.name,
+      value: c.value,
+      domain: c.domain || '.facebook.com',
+      path: c.path || '/',
+      hostOnly: c.hostOnly !== undefined ? c.hostOnly : !(c.domain || '').startsWith('.'),
+      creation: c.creation || new Date().toISOString(),
+      lastAccessed: c.lastAccessed || new Date().toISOString()
+    }));
+  } else {
+    appState = rawData;
+  }
 } catch (e) {
   console.error('BLAD: Plik "appstate.json" ma niepoprawny format JSON:', e.message);
   process.exit(1);
