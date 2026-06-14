@@ -1493,41 +1493,46 @@ login({ appState }, (loginErr, api) => {
       if (hangmanGame && hangmanGame.active && hangmanGame.status === 'playing') {
         const currentPlayer = hangmanGame.players[hangmanGame.currentPlayerIndex];
         if (currentPlayer && currentPlayer.id === senderId) {
-          const cleanText = text.trim().toLowerCase().replace(/^!/, '');
-          if (/^[a-ząćęłnóśźż]+$/.test(cleanText)) {
-            const hangmanCmd = client.commands.get('wisielec');
-            if (hangmanCmd && typeof hangmanCmd.handleGuess === 'function') {
-              const messageContext = {
-                client,
-                prefix: currentPrefix,
-                author: { id: senderId, username: senderName },
-                content: text,
-                guild: { id: threadId },
-                rawEvent: event,
-                reply: async (payload) => {
-                  return new Promise((resolve, reject) => {
-                    const replyText = renderPayloadToText(payload);
-                    if (!replyText) return resolve(null);
-                    let msgPayload;
-                    if (replyText.includes('@wszyscy') || replyText.includes('@everyone')) {
-                      const body = replyText.replace(/@wszyscy/g, '@everyone');
-                      msgPayload = { body, mentions: [{ tag: '@everyone', id: 'everyone' }] };
-                    } else {
-                      msgPayload = replyText;
-                    }
-                    api.sendMessage(msgPayload, threadId, (sendErr, msgInfo) => {
-                      if (sendErr) return reject(sendErr);
-                      resolve(msgInfo);
-                    }, messageId);
-                  });
+          const repliedId = event.messageReply ? event.messageReply.messageID : null;
+          const isReply = event.type === 'message_reply' && repliedId && 
+            (hangmanGame.lastMessageId === repliedId || (hangmanGame.validMessageIds && hangmanGame.validMessageIds.includes(repliedId)));
+          if (isReply) {
+            const cleanText = text.trim().toLowerCase().replace(/^!/, '');
+            if (/^[a-ząćęłnóśźż\s\-]+$/.test(cleanText)) {
+              const hangmanCmd = client.commands.get('wisielec');
+              if (hangmanCmd && typeof hangmanCmd.handleGuess === 'function') {
+                const messageContext = {
+                  client,
+                  prefix: currentPrefix,
+                  author: { id: senderId, username: senderName },
+                  content: text,
+                  guild: { id: threadId },
+                  rawEvent: event,
+                  reply: async (payload) => {
+                    return new Promise((resolve, reject) => {
+                      const replyText = renderPayloadToText(payload);
+                      if (!replyText) return resolve(null);
+                      let msgPayload;
+                      if (replyText.includes('@wszyscy') || replyText.includes('@everyone')) {
+                        const body = replyText.replace(/@wszyscy/g, '@everyone');
+                        msgPayload = { body, mentions: [{ tag: '@everyone', id: 'everyone' }] };
+                      } else {
+                        msgPayload = replyText;
+                      }
+                      api.sendMessage(msgPayload, threadId, (sendErr, msgInfo) => {
+                        if (sendErr) return reject(sendErr);
+                        resolve(msgInfo);
+                      }, messageId);
+                    });
+                  }
+                };
+                try {
+                  await hangmanCmd.handleGuess(client, messageContext, cleanText);
+                } catch (err) {
+                  console.error('[WISIELEC INTERCEPTOR ERROR]', err);
                 }
-              };
-              try {
-                await hangmanCmd.handleGuess(client, messageContext, cleanText);
-              } catch (err) {
-                console.error('[WISIELEC INTERCEPTOR ERROR]', err);
+                return; // Skonsumuj tę wiadomość
               }
-              return; // Skonsumuj tę wiadomość
             }
           }
         }
@@ -1539,7 +1544,10 @@ login({ appState }, (loginErr, api) => {
       const pmGame = client.activePanstwaMiasta.get(threadId);
       if (pmGame && pmGame.active && pmGame.state === 'answering') {
         const isJoined = pmGame.players.some(p => p.id === senderId);
-        if (isJoined && !text.startsWith(currentPrefix)) {
+        const repliedId = event.messageReply ? event.messageReply.messageID : null;
+        const isReply = event.type === 'message_reply' && repliedId && 
+          (pmGame.lastMessageId === repliedId || (pmGame.validMessageIds && pmGame.validMessageIds.includes(repliedId)));
+        if (isJoined && isReply && !text.startsWith(currentPrefix)) {
           const pmCmd = client.commands.get('panstwamiasta');
           if (pmCmd && typeof pmCmd.handleAnswer === 'function') {
             const messageContext = {
@@ -1691,6 +1699,12 @@ login({ appState }, (loginErr, api) => {
     // Obsługa !multi ruletka jako jednej komendy !multiruletka
     if (commandName === 'multi' && args[0] && args[0].toLowerCase() === 'ruletka') {
       commandName = 'multiruletka';
+      args.shift();
+    }
+
+    // Obsługa !panstwa miasta jako jednej komendy !panstwamiasta
+    if (commandName === 'panstwa' && args[0] && args[0].toLowerCase() === 'miasta') {
+      commandName = 'panstwamiasta';
       args.shift();
     }
 

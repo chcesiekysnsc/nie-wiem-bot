@@ -73,6 +73,18 @@ const HANGMAN_PICS = [
 \`\`\``
 ];
 
+function trackMessage(game, msgInfo) {
+  if (game && msgInfo && msgInfo.messageID) {
+    game.lastMessageId = msgInfo.messageID;
+    if (!game.validMessageIds) {
+      game.validMessageIds = [];
+    }
+    if (!game.validMessageIds.includes(msgInfo.messageID)) {
+      game.validMessageIds.push(msgInfo.messageID);
+    }
+  }
+}
+
 module.exports = {
   name: 'wisielec',
   aliases: ['wisielecz', 'hangman'],
@@ -110,7 +122,8 @@ module.exports = {
         id: message.author.id,
         username: message.author.username
       });
-      await message.reply(`✅ **${message.author.username}** dołączył do gry w Wisielca! (Łącznie graczy: **${game.players.length}**)`);
+      const msgInfo = await message.reply(`✅ **${message.author.username}** dołączył do gry w Wisielca! (Łącznie graczy: **${game.players.length}**)`);
+      trackMessage(game, msgInfo);
       return;
     }
 
@@ -155,7 +168,8 @@ module.exports = {
       guessedLetters: [],
       currentPlayerIndex: 0,
       turnTimer: null,
-      joinTimeout: null
+      joinTimeout: null,
+      validMessageIds: []
     };
 
     client.activeHangman.set(threadId, newGame);
@@ -182,7 +196,8 @@ module.exports = {
       `👉 Napisz **!wisielec dolacz**, aby wziąć udział.\n` +
       `👑 Organizator może wpisać **!wisielec start**, aby zacząć od razu.`;
 
-    await message.reply(announceMsg);
+    const msgInfo = await message.reply(announceMsg);
+    trackMessage(newGame, msgInfo);
   },
 
   async startGame(client, message, game, threadId) {
@@ -203,9 +218,12 @@ module.exports = {
       `🎯 Zaczyna: **${firstPlayer.username}**! Czas na podanie litery (np. **a**) lub całego hasła: **30 sekund**!`;
 
     if (client.api) {
-      client.api.sendMessage(infoMsg, threadId);
+      client.api.sendMessage(infoMsg, threadId, (err, msgInfo) => {
+        if (!err && msgInfo) trackMessage(game, msgInfo);
+      });
     } else {
-      await message.reply(infoMsg);
+      const msgInfo = await message.reply(infoMsg);
+      trackMessage(game, msgInfo);
     }
 
     this.resetTurnTimer(client, game, threadId);
@@ -226,7 +244,9 @@ module.exports = {
                   `🎯 Teraz kolej na: **${nextPlayer.username}**! Podaj literę lub hasło (30s).`;
         
         if (client.api) {
-          client.api.sendMessage(msg, threadId);
+          client.api.sendMessage(msg, threadId, (err, msgInfo) => {
+            if (!err && msgInfo) trackMessage(game, msgInfo);
+          });
         }
         this.resetTurnTimer(client, game, threadId);
       }
@@ -275,7 +295,8 @@ module.exports = {
           const nextPlayer = game.players[game.currentPlayerIndex];
           msg += `📝 Hasło: \`${game.revealed}\`\n` +
                  `🎯 Teraz kolej na: **${nextPlayer.username}**! Podaj literę lub hasło.`;
-          await messageContext.reply(msg);
+          const msgInfo = await messageContext.reply(msg);
+          trackMessage(game, msgInfo);
           this.resetTurnTimer(client, game, threadId);
           return;
         }
@@ -284,7 +305,8 @@ module.exports = {
 
     // 2. Letter guess (length === 1)
     if (game.guessedLetters.includes(guess)) {
-      await messageContext.reply(`⚠️ Litera **${guess.toUpperCase()}** była już podawana! Wybierz inną (kolejka nie zostaje pominięta).`);
+      const msgInfo = await messageContext.reply(`⚠️ Litera **${guess.toUpperCase()}** była już podawana! Wybierz inną (kolejka nie zostaje pominięta).`);
+      trackMessage(game, msgInfo);
       return;
     }
 
@@ -324,7 +346,8 @@ module.exports = {
         game.currentPlayerIndex = (game.currentPlayerIndex + 1) % game.players.length;
         const nextPlayer = game.players[game.currentPlayerIndex];
         msg += `🎯 Teraz kolej na: **${nextPlayer.username}**! Podaj literę lub hasło.`;
-        await messageContext.reply(msg);
+        const msgInfo = await messageContext.reply(msg);
+        trackMessage(game, msgInfo);
         this.resetTurnTimer(client, game, threadId);
         return;
       }
@@ -347,7 +370,8 @@ module.exports = {
         game.currentPlayerIndex = (game.currentPlayerIndex + 1) % game.players.length;
         const nextPlayer = game.players[game.currentPlayerIndex];
         msg += `🎯 Teraz kolej na: **${nextPlayer.username}**! Podaj literę lub hasło.`;
-        await messageContext.reply(msg);
+        const msgInfo = await messageContext.reply(msg);
+        trackMessage(game, msgInfo);
         this.resetTurnTimer(client, game, threadId);
         return;
       }

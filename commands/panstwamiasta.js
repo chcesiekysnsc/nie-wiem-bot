@@ -56,6 +56,18 @@ function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+function trackMessage(game, msgInfo) {
+  if (game && msgInfo && msgInfo.messageID) {
+    game.lastMessageId = msgInfo.messageID;
+    if (!game.validMessageIds) {
+      game.validMessageIds = [];
+    }
+    if (!game.validMessageIds.includes(msgInfo.messageID)) {
+      game.validMessageIds.push(msgInfo.messageID);
+    }
+  }
+}
+
 module.exports = {
   name: 'panstwamiasta',
   aliases: ['panstwa-miasta', 'panstwamiastadolacz', 'panstwamiastastart'],
@@ -93,7 +105,8 @@ module.exports = {
         username: message.author.username,
         score: 0
       });
-      await message.reply(`✅ **${message.author.username}** dołączył do gry w Państwa-Miasta! (Łącznie graczy: **${game.players.length}**)`);
+      const msgInfo = await message.reply(`✅ **${message.author.username}** dołączył do gry w Państwa-Miasta! (Łącznie graczy: **${game.players.length}**)`);
+      trackMessage(game, msgInfo);
       return;
     }
 
@@ -145,7 +158,8 @@ module.exports = {
       usedLetters: [],
       currentLetter: '',
       submissions: new Map(), // playerId -> { country, city }
-      joinTimeout: null
+      joinTimeout: null,
+      validMessageIds: []
     };
 
     client.activePanstwaMiasta.set(threadId, newGame);
@@ -172,7 +186,8 @@ module.exports = {
       `👉 Napisz **!panstwamiasta dolacz** (lub bez wykrzyknika: **panstwa miasta dolacz**), aby wziąć udział.\n` +
       `👑 Organizator może wpisać **!panstwamiasta start**, aby zacząć od razu.`;
 
-    await message.reply(announceMsg);
+    const msgInfo = await message.reply(announceMsg);
+    trackMessage(newGame, msgInfo);
   },
 
   async startFirstTurn(client, message, game, threadId) {
@@ -203,9 +218,12 @@ module.exports = {
       `*Uwaga: Słowa nie mogą się powtarzać między graczami!*`;
 
     if (client.api) {
-      client.api.sendMessage(turnMsg, threadId);
+      client.api.sendMessage(turnMsg, threadId, (err, msgInfo) => {
+        if (!err && msgInfo) trackMessage(game, msgInfo);
+      });
     } else {
-      await message.reply(turnMsg);
+      const msgInfo = await message.reply(turnMsg);
+      trackMessage(game, msgInfo);
     }
 
     // End turn after 20 seconds
@@ -226,19 +244,40 @@ module.exports = {
     const isJoined = game.players.some(p => p.id === playerId);
     if (!isJoined) return;
 
-    if (game.submissions.has(playerId)) {
-      // Allow modifying the answer or silently ignore?
-      // Usually, let's keep their first answer or update it. Let's allow updating it!
-      // But no need to spam react.
+    const parsed = parseAnswer(answerText, game.currentLetter);
+    let isGood = false;
+
+    if (parsed) {
+      const letter = game.currentLetter.toLowerCase();
+      const normLetter = removeDiacritics(letter);
+      const rawCountry = parsed.country.trim();
+      const rawCity = parsed.city.trim();
+      const normCountry = removeDiacritics(rawCountry);
+      const normCity = removeDiacritics(rawCity);
+
+      let countryValid = false;
+      let cityValid = false;
+
+      if (normCountry.startsWith(normLetter) && COUNTRIES_NORMALIZED.has(normCountry)) {
+        countryValid = true;
+      }
+
+      const matchesNamePattern = /^[a-z]+(-[a-z]+)?$/.test(normCity);
+      const isKnownCity = CITIES_NORMALIZED.has(normCity);
+      if (normCity.startsWith(normLetter) && (isKnownCity || matchesNamePattern) && normCity !== normCountry && normCity.length >= 3) {
+        cityValid = true;
+      }
+
+      if (countryValid && cityValid) {
+        isGood = true;
+      }
+
+      game.submissions.set(playerId, parsed);
     }
 
-    const parsed = parseAnswer(answerText, game.currentLetter);
-    if (parsed) {
-      game.submissions.set(playerId, parsed);
-      // React to user's message using Facebook Chat API to acknowledge
-      if (messageContext.rawEvent?.messageID && client.api) {
-        client.api.setMessageReaction('👍', messageContext.rawEvent.messageID, () => {});
-      }
+    if (messageContext.rawEvent?.messageID && client.api) {
+      const reaction = isGood ? '👍' : '👎';
+      client.api.setMessageReaction(reaction, messageContext.rawEvent.messageID, () => {});
     }
   },
 
@@ -333,10 +372,17 @@ module.exports = {
       summaryText += `${idx + 1}. **${p.username}** — **${p.score} pkt**\n`;
     });
 
+    if (game.currentTurn < game.maxTurns) {
+      summaryText += `\n🔄 **Rozpoczynamy nową rundę!** Kolejna litera zostanie wylosowana za 7 sekund...`;
+    }
+
     if (client.api) {
-      client.api.sendMessage(summaryText, threadId);
+      client.api.sendMessage(summaryText, threadId, (err, msgInfo) => {
+        if (!err && msgInfo) trackMessage(game, msgInfo);
+      });
     } else {
-      await message.reply(summaryText);
+      const msgInfo = await message.reply(summaryText);
+      trackMessage(game, msgInfo);
     }
 
     // 4. Check if game is over
@@ -363,7 +409,9 @@ module.exports = {
 
       setTimeout(() => {
         if (client.api) {
-          client.api.sendMessage(finishMsg, threadId);
+          client.api.sendMessage(finishMsg, threadId, (err, msgInfo) => {
+            if (!err && msgInfo) trackMessage(game, msgInfo);
+          });
         }
       }, 2000);
     } else {
