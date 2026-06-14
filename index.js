@@ -192,6 +192,7 @@ async function executeCommand(event, pageId) {
     return;
   }
 
+  try {
     let isBlocked = false;
     let multiAccountInfo = null;
     await withData(store => {
@@ -519,6 +520,23 @@ function createServer() {
 async function start() {
   ensureDataFiles();
   loadCommands();
+
+  // Ładowanie aktywnych gier w blackjacka z bazy danych przy starcie
+  try {
+    if (!client.activeBlackjackGames) {
+      client.activeBlackjackGames = new Map();
+    }
+    await withData(store => {
+      if (store.profiles.activeBlackjackGames) {
+        for (const [userId, game] of Object.entries(store.profiles.activeBlackjackGames)) {
+          client.activeBlackjackGames.set(userId, game);
+        }
+      }
+    });
+    console.log(`[BOT] Załadowano ${client.activeBlackjackGames.size} aktywnych gier w blackjacka z bazy.`);
+  } catch (err) {
+    console.error('[BOT] Błąd ładowania aktywnych gier w blackjacka:', err);
+  }
 
   if (!process.env.MESSENGER_VERIFY_TOKEN?.trim()) {
     throw new Error('Missing MESSENGER_VERIFY_TOKEN in environment variables.');
