@@ -380,7 +380,8 @@ module.exports = {
     const turnMsg = 
       `🔔 **RUNDA ${game.currentTurn}/${game.maxTurns}** 🔔\n` +
       `Wylosowana litera to: 🌟 **${letter}** 🌟\n\n` +
-      `⏱️ Wszyscy zapisani gracze mają **20 sekund** na wysłanie odpowiedzi!\n` +
+      `⏱️ Wszyscy zapisani gracze mają **30 sekund** na wysłanie odpowiedzi!\n` +
+      `⚠️ **UWAGA:** Bot uznaje odpowiedzi tylko wtedy, gdy odpowiadasz (opcja "Odpowiedz") na tę wiadomość! ⚠️\n\n` +
       `📝 Format: **Państwo Miasto Imię Zwierzę Rzecz Roślina**\n` +
       `*(np. \`Polska Poznań Piotr Pies Pudełko Pokrzywa\` lub z etykietami: \`p: Polska, m: Poznań, i: Piotr, z: Pies, rz: Pudełko, ro: Pokrzywa\`)*\n\n` +
       `*Uwaga: Słowa nie mogą się powtarzać między graczami!*`;
@@ -394,12 +395,12 @@ module.exports = {
       trackMessage(game, msgInfo);
     }
 
-    // End turn after 20 seconds
+    // End turn after 30 seconds
     setTimeout(async () => {
       if (game.active && game.state === 'answering') {
         await this.endTurn(client, message, game, threadId);
       }
-    }, 20000);
+    }, 30000);
   },
 
   // Process answers submitted during the 20 seconds
