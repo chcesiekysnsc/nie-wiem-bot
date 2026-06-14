@@ -1633,6 +1633,8 @@ login({ appState }, loginOptions, (loginErr, api) => {
             const isReply = !!repliedId && 
               (pmGame.lastMessageId === repliedId || (pmGame.validMessageIds && pmGame.validMessageIds.includes(repliedId)));
             
+            console.log(`[PM-INTERCEPT] threadId=${threadId}, senderId=${senderId}, repliedId=${repliedId}, lastMsgId=${pmGame.lastMessageId}, validMsgIds=${JSON.stringify(pmGame.validMessageIds)}, isReply=${isReply}`);
+
             const cleanText = text.trim().replace(/^!/, '');
             
             // Sprawdzamy czy to odpowiedź (reply) na wiadomość rundy
