@@ -691,7 +691,7 @@ login({ appState }, (loginErr, api) => {
 
   client.processedNewGroups = client.processedNewGroups || new Set();
 
-  function handleNewGroupAdded(threadId, groupName, adderName = 'Nieznany', memberCount = 0) {
+  async function handleNewGroupAdded(threadId, groupName, adderName = 'Nieznany', memberCount = 0, adderId = null) {
     if (client.processedNewGroups.has(threadId)) {
       return;
     }
@@ -702,7 +702,7 @@ login({ appState }, (loginErr, api) => {
       console.error('[SELF-BOT] Failed to save processed new groups:', err);
     }
 
-    console.log(`[NEW GROUP] Wykryto dodanie do nowej grupy: ${groupName} (ID: ${threadId}, dodany przez: ${adderName}, osób: ${memberCount}). Wysyłanie powitania i powiadomienia...`);
+    console.log(`[NEW GROUP] Wykryto dodanie do nowej grupy: ${groupName} (ID: ${threadId}, dodany przez: ${adderName} (${adderId || 'Nieznany'}), osób: ${memberCount}). Wysyłanie powitania i powiadomienia...`);
 
     // 1. Wyślij wiadomość powitalną do nowej grupy (akceptacja zaproszenia/żądania wiadomości)
     const welcomeMsg = "dziekuje za dodanie na grupe, moj prefix to ! po wiecej informacji wpisz !help";
@@ -714,13 +714,33 @@ login({ appState }, (loginErr, api) => {
       }
     });
 
+    // Zwiększ i pobierz licznik dodanych grup przez daną osobę
+    let addedGroupsCount = 0;
+    if (adderId && adderId !== 'Nieznany') {
+      try {
+        addedGroupsCount = await withData(store => {
+          if (!store.profiles) store.profiles = {};
+          if (!store.profiles.addedGroupsCount) store.profiles.addedGroupsCount = {};
+          const currentCount = (store.profiles.addedGroupsCount[adderId] || 0) + 1;
+          store.profiles.addedGroupsCount[adderId] = currentCount;
+          return currentCount;
+        });
+      } catch (err) {
+        console.error('[SELF-BOT] Failed to increment added groups count:', err);
+      }
+    }
+
     // 2. Wyślij powiadomienie na grupę o ID 24956371943963938
     const notifyGroupId = '24956371943963938';
-    const notifyMsg = `🔔 **BOT ZOSTAŁ DODANY DO NOWEJ GRUPY** 🔔\n` +
+    let notifyMsg = `🔔 **BOT ZOSTAŁ DODANY DO NOWEJ GRUPY** 🔔\n` +
                       `👥 Nazwa: **${groupName}**\n` +
                       `🆔 ID: \`${threadId}\`\n` +
-                      `👤 Dodał: **${adderName}**\n` +
+                      `👤 Dodał: **${adderName} (${adderId || 'Nieznany'})**\n` +
                       `👥 Liczba osób: **${memberCount}**`;
+
+    if (addedGroupsCount > 0) {
+      notifyMsg += `\n\n👤 Ta osoba dodała bota do **${addedGroupsCount}** grup`;
+    }
 
     api.sendMessage(notifyMsg, notifyGroupId, (notifyErr) => {
       if (notifyErr) {
@@ -1007,10 +1027,10 @@ login({ appState }, (loginErr, api) => {
           if (adderId) {
             api.getUserInfo(adderId, (userErr, userRes) => {
               const adderName = (!userErr && userRes && userRes[adderId]) ? userRes[adderId].name : `Użytkownik (${adderId})`;
-              handleNewGroupAdded(threadId, groupName, adderName, memberCount);
+              handleNewGroupAdded(threadId, groupName, adderName, memberCount, adderId);
             });
           } else {
-            handleNewGroupAdded(threadId, groupName, 'Nieznany (Brak ID autora)', memberCount);
+            handleNewGroupAdded(threadId, groupName, 'Nieznany (Brak ID autora)', memberCount, null);
           }
         });
       }
