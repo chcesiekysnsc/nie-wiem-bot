@@ -302,7 +302,37 @@ if (!client.processedNewGroups) {
   client.processedNewGroups = new Set();
 }
 
+const crypto = require('crypto');
+const rootAppStatePath = path.join(__dirname, 'appstate.json');
 const appStatePath = path.join(__dirname, 'data', 'appstate.json');
+const lastHashPath = path.join(__dirname, 'data', 'last_imported_hash.txt');
+
+if (fs.existsSync(rootAppStatePath)) {
+  try {
+    const rootContent = fs.readFileSync(rootAppStatePath, 'utf8');
+    const rootHash = crypto.createHash('md5').update(rootContent).digest('hex');
+    
+    let lastHash = '';
+    if (fs.existsSync(lastHashPath)) {
+      lastHash = fs.readFileSync(lastHashPath, 'utf8').trim();
+    }
+    
+    if (rootHash !== lastHash) {
+      console.log('[SELF-BOT] Wykryto nowy plik appstate.json w katalogu glownym (nowa wersja z git). Kopiowanie do data/appstate.json...');
+      const dataDir = path.join(__dirname, 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      fs.writeFileSync(appStatePath, rootContent, 'utf8');
+      fs.writeFileSync(lastHashPath, rootHash, 'utf8');
+      console.log('[SELF-BOT] Pomyslnie zaimportowano nowy appstate.json.');
+    } else {
+      console.log('[SELF-BOT] Plik appstate.json w katalogu glownym jest taki sam jak poprzednio zaimportowany. Pomijanie kopiowania.');
+    }
+  } catch (err) {
+    console.error('[SELF-BOT] Blad podczas importowania appstate.json z katalogu glownego:', err);
+  }
+}
 
 // Check if appstate.json is valid
 let isAppStateValid = false;
