@@ -229,7 +229,22 @@ async function runAutomatedLogin() {
     const cookies = await page.cookies();
     const cUser = cookies.find(c => c.name === 'c_user');
     if (!cUser) {
-      console.error('[LOGIN-AUTOMATOR] Login failed: c_user cookie not found after process');
+      const failedUrl = page.url();
+      const failedTitle = await page.title().catch(() => 'No Title');
+      const failedText = await page.evaluate(() => document.body.innerText.substring(0, 1000)).catch(() => 'No Text');
+      console.error(`[LOGIN-AUTOMATOR] Login failed: c_user cookie not found after process.`);
+      console.error(`[LOGIN-AUTOMATOR] Current URL: ${failedUrl}`);
+      console.error(`[LOGIN-AUTOMATOR] Page Title: ${failedTitle}`);
+      console.error(`[LOGIN-AUTOMATOR] Page Text (first 1000 chars):\n${failedText}`);
+      
+      try {
+        const screenshotPath = path.join(__dirname, '../data/login_failed.png');
+        await page.screenshot({ path: screenshotPath });
+        console.log(`[LOGIN-AUTOMATOR] Saved debug screenshot to: ${screenshotPath}`);
+      } catch (err) {
+        console.error('[LOGIN-AUTOMATOR] Failed to save screenshot:', err.message);
+      }
+      
       return false;
     }
 
