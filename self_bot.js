@@ -1,6 +1,35 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+
+// Patch the fca library's message reply parser to ensure we don't lose the replied message ID if graphQL fetch fails
+try {
+  const libPath = path.join(__dirname, 'node_modules', '@dongdev', 'fca-unofficial', 'dist', 'index.js');
+  if (fs.existsSync(libPath)) {
+    let code = fs.readFileSync(libPath, 'utf8');
+    const targetStr = `} else if (d.deltaMessageReply.replyToMessageId) {`;
+    const replacementStr = `} else if (d.deltaMessageReply.replyToMessageId) {
+                  callbackToReturn.messageReply = {
+                    messageID: d.deltaMessageReply.replyToMessageId.id,
+                    threadID: callbackToReturn.threadID,
+                    senderID: "",
+                    attachments: [],
+                    args: [],
+                    body: "",
+                    isGroup: callbackToReturn.isGroup,
+                    mentions: {},
+                    timestamp: Date.now()
+                  };`;
+    if (code.includes(targetStr) && !code.includes('messageID: d.deltaMessageReply.replyToMessageId.id')) {
+      code = code.replace(targetStr, replacementStr);
+      fs.writeFileSync(libPath, code, 'utf8');
+      console.log('[PATCH] Pomyslnie zaaplikowano poprawke parsera odpowiedzi (messageReply fallback) do @dongdev/fca-unofficial');
+    }
+  }
+} catch (patchErr) {
+  console.error('[PATCH ERROR] Blad podczas aplikowania poprawki parsera:', patchErr);
+}
+
 const login = require('@dongdev/fca-unofficial');
 
 // Auto-seed data directory if empty (used for migration/Railway Volume setup)
@@ -1494,7 +1523,7 @@ login({ appState }, (loginErr, api) => {
         const currentPlayer = hangmanGame.players[hangmanGame.currentPlayerIndex];
         if (currentPlayer && currentPlayer.id === senderId) {
           const repliedId = event.messageReply ? event.messageReply.messageID : null;
-          const isReply = event.type === 'message_reply' && repliedId && 
+          const isReply = !!repliedId && 
             (hangmanGame.lastMessageId === repliedId || (hangmanGame.validMessageIds && hangmanGame.validMessageIds.includes(repliedId)));
           if (isReply) {
             const cleanText = text.trim().toLowerCase().replace(/^!/, '');
@@ -1545,7 +1574,7 @@ login({ appState }, (loginErr, api) => {
       if (pmGame && pmGame.active && pmGame.state === 'answering') {
         const isJoined = pmGame.players.some(p => p.id === senderId);
         const repliedId = event.messageReply ? event.messageReply.messageID : null;
-        const isReply = event.type === 'message_reply' && repliedId && 
+        const isReply = !!repliedId && 
           (pmGame.lastMessageId === repliedId || (pmGame.validMessageIds && pmGame.validMessageIds.includes(repliedId)));
         if (isJoined && isReply && !text.startsWith(currentPrefix)) {
           const pmCmd = client.commands.get('panstwamiasta');
