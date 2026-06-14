@@ -1582,6 +1582,7 @@ login({ appState }, loginOptions, (loginErr, api) => {
             if (/^[a-ząćęłńóśźż\s\-]+$/.test(cleanText)) {
               const hangmanCmd = client.commands.get('wisielec');
               if (hangmanCmd && typeof hangmanCmd.handleGuess === 'function') {
+                const senderName = await client.resolveUserName(api, senderId);
                 const messageContext = {
                   client,
                   prefix: currentPrefix,
@@ -1638,6 +1639,7 @@ login({ appState }, loginOptions, (loginErr, api) => {
             const canParse = pmCmd.parseAnswer && pmCmd.parseAnswer(cleanText, pmGame.currentLetter);
 
             if (isReply || canParse) {
+              const senderName = await client.resolveUserName(api, senderId);
               const messageContext = {
                 client,
                 prefix: currentPrefix,
