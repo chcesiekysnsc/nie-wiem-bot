@@ -42,14 +42,23 @@ module.exports = {
         return;
       }
       if (count > 1) {
+        const isCreator = message.author.id === '100060812419294';
         const isAdmin = config.admins.includes(message.author.id);
-        if (!isAdmin && count > 25) {
-          await message.reply('❌ Seryjne obstawianie (multi-bet) dla zwykłych użytkowników ma limit **25** na raz.');
-          return;
-        }
-        if (isAdmin && count > 100) {
-          await message.reply('❌ Seryjne obstawianie (multi-bet) dla administratorów ma limit **100** na raz.');
-          return;
+        if (isCreator) {
+          if (count > 1000) {
+            await message.reply('❌ Seryjne obstawianie (multi-bet) ma limit **1000** na raz.');
+            return;
+          }
+        } else if (isAdmin) {
+          if (count > 100) {
+            await message.reply('❌ Seryjne obstawianie (multi-bet) dla administratorów ma limit **100** na raz.');
+            return;
+          }
+        } else {
+          if (count > 25) {
+            await message.reply('❌ Seryjne obstawianie (multi-bet) dla zwykłych użytkowników ma limit **25** na raz.');
+            return;
+          }
         }
         isMulti = true;
       }
@@ -178,14 +187,19 @@ module.exports = {
       let interruptedReason = '';
 
       for (let i = 1; i <= count; i++) {
-        const betAmount = resolveAmount(rawBet, user.balance);
+        const isCreator = message.author.id === '100060812419294';
+        let betAmount = resolveAmount(rawBet, user.balance);
+        if (isCreator && (betAmount === null || betAmount <= 0)) {
+          betAmount = resolveAmount(rawBet, 1000000000);
+        }
+
         if (betAmount === null || betAmount <= 0) {
           interrupted = true;
           interruptedAt = i;
           interruptedReason = `brak środków na koncie (balans: ${formatCurrency(user.balance)})`;
           break;
         }
-        if (betAmount > user.balance) {
+        if (!isCreator && betAmount > user.balance) {
           interrupted = true;
           interruptedAt = i;
           interruptedReason = `brak wystarczających środków (potrzebne: ${formatCurrency(betAmount)}, posiadasz: ${formatCurrency(user.balance)})`;
