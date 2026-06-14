@@ -1,202 +1,177 @@
 module.exports = [
   {
-    q: "Które państwo jest największe na świecie pod względem powierzchni?",
-    o: ["A. Kanada", "B. Chiny", "C. Rosja", "D. USA"],
+    q: "Która planeta ma największą liczbę znanych księżyców?",
+    o: ["A. Ziemia", "B. Saturn", "C. Jowisz", "D. Mars"],
+    a: "B"
+  },
+  {
+    q: "Jak nazywa się najdłuższa kość w ludzkim ciele?",
+    o: ["A. Kość ramienna", "B. Kość piszczelowa", "C. Kość udowa", "D. Kość strzałkowa"],
     a: "C"
   },
   {
-    q: "Który pierwiastek chemiczny ma symbol 'H'?",
-    o: ["A. Wodór", "B. Hel", "C. Węgiel", "D. Rtęć"],
+    q: "Który gaz stanowi około 78% atmosfery Ziemi?",
+    o: ["A. Tlen", "B. Azot", "C. Dwutlenek węgla", "D. Argon"],
+    a: "B"
+  },
+  {
+    q: "Który polski król zwyciężył pod Wiedniem w 1683 roku?",
+    o: ["A. Kazimierz Wielki", "B. Jan III Sobieski", "C. Zygmunt III Waza", "D. Bolesław Chrobry"],
+    a: "B"
+  },
+  {
+    q: "Jaką wartość ma liczba rzymska XL?",
+    o: ["A. 30", "B. 40", "C. 50", "D. 60"],
+    a: "B"
+  },
+  {
+    q: "Który kontynent przecina równik i Zwrotnik Koziorożca?",
+    o: ["A. Europa", "B. Australia", "C. Afryka", "D. Antarktyda"],
+    a: "C"
+  },
+  {
+    q: "Ile wynosi 15²?",
+    o: ["A. 215", "B. 225", "C. 235", "D. 245"],
+    a: "B"
+  },
+  {
+    q: "Jak nazywa się największa pustynia świata?",
+    o: ["A. Sahara", "B. Gobi", "C. Antarktyda", "D. Kalahari"],
+    a: "C"
+  },
+  {
+    q: "Który pierwiastek ma symbol Ag?",
+    o: ["A. Złoto", "B. Srebro", "C. Argon", "D. Glin"],
+    a: "B"
+  },
+  {
+    q: "Jakie miasto jest stolicą Portugalii?",
+    o: ["A. Porto", "B. Lizbona", "C. Braga", "D. Faro"],
+    a: "B"
+  },
+  {
+    q: "Kto odkrył penicylinę?",
+    o: ["A. Louis Pasteur", "B. Alexander Fleming", "C. Isaac Newton", "D. Marie Curie"],
+    a: "B"
+  },
+  {
+    q: "Jak nazywa się największy ocean świata?",
+    o: ["A. Atlantycki", "B. Spokojny", "C. Indyjski", "D. Arktyczny"],
+    a: "B"
+  },
+  {
+    q: "Który kraj ma największą populację w Afryce?",
+    o: ["A. Egipt", "B. Nigeria", "C. RPA", "D. Etiopia"],
+    a: "B"
+  },
+  {
+    q: "Ile boków ma dwunastokąt?",
+    o: ["A. 10", "B. 11", "C. 12", "D. 14"],
+    a: "C"
+  },
+  {
+    q: "Który pierwiastek jest podstawą diamentów?",
+    o: ["A. Krzem", "B. Węgiel", "C. Grafit", "D. Tlen"],
+    a: "B"
+  },
+  {
+    q: "Jak nazywa się najwyższy szczyt Europy?",
+    o: ["A. Mont Blanc", "B. Elbrus", "C. Matterhorn", "D. Gerlach"],
+    a: "B"
+  },
+  {
+    q: "W którym roku człowiek po raz pierwszy wylądował na Księżycu?",
+    o: ["A. 1965", "B. 1967", "C. 1969", "D. 1971"],
+    a: "C"
+  },
+  {
+    q: "Która planeta jest nazywana Czerwoną Planetą?",
+    o: ["A. Mars", "B. Wenus", "C. Merkury", "D. Saturn"],
     a: "A"
   },
   {
-    q: "W którym roku wybuchła II Wojna Światowa?",
-    o: ["A. 1914", "B. 1918", "C. 1939", "D. 1945"],
+    q: "Ile wynosi 7 x 8?",
+    o: ["A. 54", "B. 56", "C. 58", "D. 64"],
+    a: "B"
+  },
+  {
+    q: "Jak nazywa się stolica Norwegii?",
+    o: ["A. Oslo", "B. Bergen", "C. Trondheim", "D. Stavanger"],
+    a: "A"
+  },
+  {
+    q: "Który organ produkuje insulinę?",
+    o: ["A. Wątroba", "B. Trzustka", "C. Nerka", "D. Serce"],
+    a: "B"
+  },
+  {
+    q: "Jak nazywa się największa wyspa świata?",
+    o: ["A. Grenlandia", "B. Australia", "C. Madagaskar", "D. Nowa Gwinea"],
+    a: "A"
+  },
+  {
+    q: "Który metal ma symbol Fe?",
+    o: ["A. Fluor", "B. Żelazo", "C. Ferm", "D. Franc"],
+    a: "B"
+  },
+  {
+    q: "Ile sekund ma godzina?",
+    o: ["A. 3000", "B. 3200", "C. 3600", "D. 4000"],
     a: "C"
   },
   {
-    q: "Jakie jest najgłębsze jezioro na świecie?",
-    o: ["A. Wiktorii", "B. Bajkał", "C. Michigan", "D. Śniardwy"],
+    q: "Który polski astronom stworzył teorię heliocentryczną?",
+    o: ["A. Galileusz", "B. Mikołaj Kopernik", "C. Kepler", "D. Newton"],
     a: "B"
   },
   {
-    q: "Ile wynosi pierwiastek kwadratowy ze 144?",
-    o: ["A. 10", "B. 12", "C. 14", "D. 16"],
+    q: "Jakie jest największe państwo Ameryki Południowej?",
+    o: ["A. Argentyna", "B. Peru", "C. Brazylia", "D. Chile"],
+    a: "C"
+  },
+  {
+    q: "Ile chromosomów ma zdrowy człowiek?",
+    o: ["A. 44", "B. 46", "C. 48", "D. 50"],
     a: "B"
   },
   {
-    q: "Kto napisał 'Pana Tadeusza'?",
-    o: ["A. Juliusz Słowacki", "B. Bolesław Prus", "C. Henryk Sienkiewicz", "D. Adam Mickiewicz"],
+    q: "Który pierwiastek ma symbol Na?",
+    o: ["A. Azot", "B. Sód", "C. Nikiel", "D. Neon"],
+    a: "B"
+  },
+  {
+    q: "Jak nazywa się proces podziału komórki prowadzący do powstania dwóch identycznych komórek?",
+    o: ["A. Mejoza", "B. Mitoza", "C. Mutacja", "D. Fotosynteza"],
+    a: "B"
+  },
+  {
+    q: "Która planeta ma największy rozmiar w Układzie Słonecznym?",
+    o: ["A. Saturn", "B. Neptun", "C. Jowisz", "D. Uran"],
+    a: "C"
+  },
+  {
+    q: "Jak nazywa się stolica Finlandii?",
+    o: ["A. Turku", "B. Helsinki", "C. Espoo", "D. Tampere"],
+    a: "B"
+  },
+  {
+    q: "Który ocean oblewa zachodnie wybrzeże Ameryki Południowej?",
+    o: ["A. Atlantycki", "B. Arktyczny", "C. Indyjski", "D. Spokojny"],
     a: "D"
   },
   {
-    q: "Która planeta jest najbliżej Słońca?",
-    o: ["A. Wenus", "B. Mars", "C. Merkury", "D. Jowisz"],
+    q: "Ile wynosi 12³?",
+    o: ["A. 144", "B. 1728", "C. 1331", "D. 1296"],
+    a: "B"
+  },
+  {
+    q: "Który kraj słynie z fiordów?",
+    o: ["A. Islandia", "B. Norwegia", "C. Szwecja", "D. Finlandia"],
+    a: "B"
+  },
+  {
+    q: "Jak nazywa się największy narząd człowieka?",
+    o: ["A. Wątroba", "B. Płuca", "C. Skóra", "D. Jelito"],
     a: "C"
-  },
-  {
-    q: "Co jest stolicą Australii?",
-    o: ["A. Sydney", "B. Melbourne", "C. Canberra", "D. Brisbane"],
-    a: "C"
-  },
-  {
-    q: "Jaki instrument ma 88 klawiszy?",
-    o: ["A. Fortepian", "B. Akordeon", "C. Harfa", "D. Skrzypce"],
-    a: "A"
-  },
-  {
-    q: "Jak nazywa się waluta Japonii?",
-    o: ["A. Won", "B. Juan", "C. Jen", "D. Ringgit"],
-    a: "C"
-  },
-  {
-    q: "Kto namalował 'Mona Lisę'?",
-    o: ["A. Michelangelo", "B. Leonardo da Vinci", "C. Vincent van Gogh", "D. Pablo Picasso"],
-    a: "B"
-  },
-  {
-    q: "Który ssak jako jedyny potrafi latać?",
-    o: ["A. Wiewiórka latająca", "B. Nietoperz", "C. Pingwin", "D. Koliber"],
-    a: "B"
-  },
-  {
-    q: "Ile kości ma dorosły człowiek?",
-    o: ["A. 106", "B. 206", "C. 306", "D. 406"],
-    a: "B"
-  },
-  {
-    q: "Z jakiego kraju pochodzi klocki LEGO?",
-    o: ["A. Niemcy", "B. Szwecja", "C. Dania", "D. Norwegia"],
-    a: "C"
-  },
-  {
-    q: "Który ocean jest największy?",
-    o: ["A. Atlantycki", "B. Indyjski", "C. Spokojny (Pacyfik)", "D. Arktyczny"],
-    a: "C"
-  },
-  {
-    q: "Co oznacza skrót 'HTML'?",
-    o: ["A. Hyper Text Markup Language", "B. Hyper Transfer Multi Language", "C. High Tech Modern Language", "D. Home Tool Markup Language"],
-    a: "A"
-  },
-  {
-    q: "Która rzeka jest najdłuższa na świecie?",
-    o: ["A. Amazonka", "B. Nil", "C. Jangcy", "D. Missisipi"],
-    a: "B"
-  },
-  {
-    q: "Które zwierzę jest symbolem mądrości?",
-    o: ["A. Lis", "B. Sowa", "C. Wilk", "D. Lew"],
-    a: "B"
-  },
-  {
-    q: "Kto jest twórcą systemu operacyjnego Linux?",
-    o: ["A. Bill Gates", "B. Steve Jobs", "C. Linus Torvalds", "D. Mark Zuckerberg"],
-    a: "C"
-  },
-  {
-    q: "W którym roku odbył się chrzest Polski?",
-    o: ["A. 966", "B. 1000", "C. 1410", "D. 1918"],
-    a: "A"
-  },
-  {
-    q: "Z ilu graczy składa się jedna drużyna na boisku w piłce nożnej?",
-    o: ["A. 9", "B. 10", "C. 11", "D. 12"],
-    a: "C"
-  },
-  {
-    q: "Co jest stolicą Kanady?",
-    o: ["A. Toronto", "B. Montreal", "C. Ottawa", "D. Vancouver"],
-    a: "C"
-  },
-  {
-    q: "Który kontynent jest najzimniejszy?",
-    o: ["A. Azja", "B. Ameryka Północna", "C. Antarktyda", "D. Europa"],
-    a: "C"
-  },
-  {
-    q: "Z jakiego owocu produkuje się rodzynki?",
-    o: ["A. Śliwka", "B. Winogrono", "C. Jabłko", "D. Banan"],
-    a: "B"
-  },
-  {
-    q: "Jak nazywa się proces, w którym rośliny produkują tlen?",
-    o: ["A. Oddychanie", "B. Fotosynteza", "C. Fermentacja", "D. Parowanie"],
-    a: "B"
-  },
-  {
-    q: "Kto był pierwszym królem Polski?",
-    o: ["A. Mieszko I", "B. Bolesław Chrobry", "C. Kazimierz Wielki", "D. Władysław Łokietek"],
-    a: "B"
-  },
-  {
-    q: "Który metal jest płynny w temperaturze pokojowej?",
-    o: ["A. Ołów", "B. Rtęć", "C. Cynk", "D. Miedź"],
-    a: "B"
-  },
-  {
-    q: "Gdzie znajduje się wieża Eiffla?",
-    o: ["A. Rzym", "B. Paryż", "C. Londyn", "D. Berlin"],
-    a: "B"
-  },
-  {
-    q: "Ile minut ma jeden mecz piłki nożnej (bez dogrywki)?",
-    o: ["A. 80", "B. 90", "C. 100", "D. 120"],
-    a: "B"
-  },
-  {
-    q: "Które miasto jest stolicą Włoch?",
-    o: ["A. Mediolan", "B. Wenecja", "C. Rzym", "D. Neapol"],
-    a: "C"
-  },
-  {
-    q: "Jaki jest najpopularniejszy napój na świecie po wodzie?",
-    o: ["A. Kawa", "B. Herbata", "C. Coca-Cola", "D. Piwo"],
-    a: "B"
-  },
-  {
-    q: "Z jakiego kraju pochodzi pizza?",
-    o: ["A. Francja", "B. Włochy", "C. Hiszpania", "D. Grecja"],
-    a: "B"
-  },
-  {
-    q: "Który superbohater ma pseudonim 'Mroczny Rycerz'?",
-    o: ["A. Spider-Man", "B. Superman", "C. Batman", "D. Iron Man"],
-    a: "C"
-  },
-  {
-    q: "Ile kół ma tradycyjny motocykl?",
-    o: ["A. 1", "B. 2", "C. 3", "D. 4"],
-    a: "B"
-  },
-  {
-    q: "Co jest stolicą Hiszpanii?",
-    o: ["A. Barcelona", "B. Madryt", "C. Walencja", "D. Sewilla"],
-    a: "B"
-  },
-  {
-    q: "Które zwierzę potrafi najszybciej biegać?",
-    o: ["A. Lew", "B. Gepard", "C. Koń", "D. Antylopa"],
-    a: "B"
-  },
-  {
-    q: "Jak nazywa się pies z kreskówki 'Scooby-Doo'?",
-    o: ["A. Scooby-Doo", "B. Pluto", "C. Reksio", "D. Snoopy"],
-    a: "A"
-  },
-  {
-    q: "Która część ciała odpowiada za pompowanie krwi?",
-    o: ["A. Mózg", "B. Płuca", "C. Serce", "D. Wątroba"],
-    a: "C"
-  },
-  {
-    q: "Jaki kolor powstaje z połączenia niebieskiego i żółtego?",
-    o: ["A. Zielony", "B. Fioletowy", "C. Pomarańczowy", "D. Brązowy"],
-    a: "A"
-  },
-  {
-    q: "Z czego produkowana jest mąka?",
-    o: ["A. Ziemniaki", "B. Zboże", "C. Buraki", "D. Kukurydza"],
-    a: "B"
   }
 ];
