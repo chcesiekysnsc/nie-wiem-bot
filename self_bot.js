@@ -1525,9 +1525,9 @@ login({ appState }, (loginErr, api) => {
           const repliedId = event.messageReply ? event.messageReply.messageID : null;
           const isReply = !!repliedId && 
             (hangmanGame.lastMessageId === repliedId || (hangmanGame.validMessageIds && hangmanGame.validMessageIds.includes(repliedId)));
-          if (isReply) {
-            const cleanText = text.trim().toLowerCase().replace(/^!/, '');
-            if (/^[a-ząćęłnóśźż\s\-]+$/.test(cleanText)) {
+          if (isReply && text.trim().startsWith('!')) {
+            const cleanText = text.trim().slice(1).toLowerCase();
+            if (/^[a-ząćęłńóśźż\s\-]+$/.test(cleanText)) {
               const hangmanCmd = client.commands.get('wisielec');
               if (hangmanCmd && typeof hangmanCmd.handleGuess === 'function') {
                 const messageContext = {
@@ -1576,7 +1576,7 @@ login({ appState }, (loginErr, api) => {
         const repliedId = event.messageReply ? event.messageReply.messageID : null;
         const isReply = !!repliedId && 
           (pmGame.lastMessageId === repliedId || (pmGame.validMessageIds && pmGame.validMessageIds.includes(repliedId)));
-        if (isJoined && isReply && !text.startsWith(currentPrefix)) {
+        if (isJoined && isReply && text.trim().startsWith('!')) {
           const pmCmd = client.commands.get('panstwamiasta');
           if (pmCmd && typeof pmCmd.handleAnswer === 'function') {
             const messageContext = {
@@ -1598,7 +1598,8 @@ login({ appState }, (loginErr, api) => {
               }
             };
             try {
-              await pmCmd.handleAnswer(client, messageContext, text);
+              const cleanText = text.trim().slice(1);
+              await pmCmd.handleAnswer(client, messageContext, cleanText);
             } catch (err) {
               console.error('[PANSTWAMIASATA INTERCEPTOR ERROR]', err);
             }
