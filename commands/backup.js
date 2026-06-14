@@ -33,23 +33,33 @@ module.exports = {
 
       for (const file of files) {
         const filePath = path.join(dataDir, file);
-        
-        // Zabezpieczenie przed wysłaniem pustych plików (jeśli plik nie ma rozmiaru)
         const stats = fs.statSync(filePath);
         if (stats.size === 0) {
           continue;
         }
 
-        await client.api.sendMessage({
-          body: `📄 Kopia bazy danych: **${file}**`,
-          attachment: fs.createReadStream(filePath)
-        }, message.threadID);
+        console.log(`[BACKUP] Sending file: ${file} (${stats.size} bytes)...`);
+
+        // Wrap api.sendMessage in a Promise for proper async/await control and error handling
+        await new Promise((resolve, reject) => {
+          client.api.sendMessage({
+            body: `📄 Kopia bazy danych: **${file}**`,
+            attachment: fs.createReadStream(filePath)
+          }, message.threadID, (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        });
       }
 
       await message.reply('✅ Wszystkie pliki bazy danych zostały przesłane jako załączniki. Zapisz je na komputerze w folderze `data/` przed uruchomieniem bota na nowym hostingu.');
     } catch (err) {
       console.error('[BACKUP] Error exporting database files:', err);
-      await message.reply(`❌ Wystąpił błąd podczas tworzenia kopii: ${err.message}`);
+      const errMsg = err.message || err.error || (typeof err === 'object' ? JSON.stringify(err) : err);
+      await message.reply(`❌ Wystąpił błąd podczas tworzenia kopii: ${errMsg}`);
     }
   }
 };
