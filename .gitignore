@@ -1,7 +1,7 @@
 node_modules/
 data/
 Fca_Database/
-appstate.json
+/appstate.json
 *.log
 .env
 temp_*.jpg

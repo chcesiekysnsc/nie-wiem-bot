@@ -18,7 +18,13 @@ function ensureSeededData() {
       for (const file of seedFiles) {
         const targetPath = path.join(dataDir, file);
         const targetExists = fs.existsSync(targetPath);
-        const targetEmpty = targetExists ? !fs.readFileSync(targetPath, 'utf8').trim() : true;
+        let targetEmpty = true;
+        if (targetExists) {
+          const content = fs.readFileSync(targetPath, 'utf8').trim();
+          if (content && content !== '[]' && content !== '{}') {
+            targetEmpty = false;
+          }
+        }
         
         if (targetEmpty) {
           const seedPath = path.join(seedDir, file);
