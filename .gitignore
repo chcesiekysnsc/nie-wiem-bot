@@ -6,3 +6,4 @@ appstate.json
 .env
 temp_*.jpg
 fca-config.json
+scratch/

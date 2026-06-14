@@ -219,15 +219,28 @@ if (!client.processedNewGroups) {
 }
 
 const appStatePath = path.join(__dirname, 'appstate.json');
-if (!fs.existsSync(appStatePath)) {
-  console.error('\n======================================================');
-  console.error('BLAD: Brak pliku "appstate.json" w glownym folderze bota!');
-  console.error('Aby uruchomic bota na koncie osobistym (self-bot), musisz');
-  console.error('wyeksportowac ciasteczka ze swojej przegladarki (np. za pomoca');
-  console.error('rozszerzenia C3C FbState lub Cookie Editor) i zapisac je');
-  console.error('jako "appstate.json" w tym folderze.');
-  console.error('======================================================\n');
-  process.exit(1);
+
+// Check if appstate.json is valid
+let isAppStateValid = false;
+if (fs.existsSync(appStatePath)) {
+  try {
+    const content = fs.readFileSync(appStatePath, 'utf8').trim();
+    if (content && content !== '[]' && content !== '{}') {
+      JSON.parse(content);
+      isAppStateValid = true;
+    }
+  } catch (_) {}
+}
+
+if (!isAppStateValid) {
+  console.log('[SELF-BOT] Plik appstate.json jest pusty, uszkodzony lub go brak. Uruchamianie automatycznego logowania przez Puppeteer (dane z fca-config.json)...');
+  const { execSync } = require('child_process');
+  try {
+    execSync('node utils/run_login.js', { stdio: 'inherit' });
+  } catch (err) {
+    console.error('[SELF-BOT] BLAD: Nie udalo sie automatycznie zalogowac do konta za pomoca podanych danych.');
+    process.exit(1);
+  }
 }
 
 function getPolandOffsetMs(date) {
