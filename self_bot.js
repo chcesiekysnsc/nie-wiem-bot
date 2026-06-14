@@ -454,6 +454,13 @@ if (process.env.PROXY_URL) {
 login({ appState }, loginOptions, (loginErr, api) => {
   if (loginErr) {
     console.error('[SELF-BOT] Logowanie nie powiodlo sie:', loginErr);
+    try {
+      const lastHashPath = path.join(__dirname, 'data', 'last_imported_hash.txt');
+      if (fs.existsSync(lastHashPath)) {
+        fs.unlinkSync(lastHashPath);
+        console.log('[SELF-BOT] Usunieto last_imported_hash.txt, aby wymusic ponowny import appstate.json z gita przy kolejnym starcie.');
+      }
+    } catch (_) {}
     process.exit(1);
   }
 
@@ -895,6 +902,13 @@ login({ appState }, loginOptions, (loginErr, api) => {
   api.listenMqtt(async (err, event) => {
     if (err) {
       console.error('[SELF-BOT] Blad nasluchiwania (wymuszenie restartu):', err);
+      try {
+        const lastHashPath = path.join(__dirname, 'data', 'last_imported_hash.txt');
+        if (fs.existsSync(lastHashPath)) {
+          fs.unlinkSync(lastHashPath);
+          console.log('[SELF-BOT] Usunieto last_imported_hash.txt, aby wymusic ponowny import appstate.json z gita przy kolejnym starcie.');
+        }
+      } catch (_) {}
       process.exit(1);
     }
 
