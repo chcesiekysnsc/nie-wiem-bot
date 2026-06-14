@@ -248,7 +248,7 @@ if (!client.processedNewGroups) {
   client.processedNewGroups = new Set();
 }
 
-const appStatePath = path.join(__dirname, 'appstate.json');
+const appStatePath = path.join(__dirname, 'data', 'appstate.json');
 
 // Check if appstate.json is valid
 let isAppStateValid = false;
@@ -1470,7 +1470,15 @@ login({ appState }, (loginErr, api) => {
               return new Promise((resolve, reject) => {
                 const replyText = renderPayloadToText(payload);
                 if (!replyText) return resolve(null);
-                api.sendMessage(replyText, threadId, (sendErr, msgInfo) => {
+                // Auto-detect @wszyscy / @everyone and add mention
+                let msgPayload;
+                if (replyText.includes('@wszyscy') || replyText.includes('@everyone')) {
+                  const body = replyText.replace(/@wszyscy/g, '@everyone');
+                  msgPayload = { body, mentions: [{ tag: '@everyone', id: 'everyone' }] };
+                } else {
+                  msgPayload = replyText;
+                }
+                api.sendMessage(msgPayload, threadId, (sendErr, msgInfo) => {
                   if (sendErr) return reject(sendErr);
                   resolve(msgInfo);
                 }, messageId);
@@ -1665,7 +1673,15 @@ login({ appState }, (loginErr, api) => {
           if (!replyText) {
             return resolve(null);
           }
-          api.sendMessage(replyText, threadId, (sendErr, msgInfo) => {
+          // Auto-detect @wszyscy / @everyone and add mention
+          let msgPayload;
+          if (replyText.includes('@wszyscy') || replyText.includes('@everyone')) {
+            const body = replyText.replace(/@wszyscy/g, '@everyone');
+            msgPayload = { body, mentions: [{ tag: '@everyone', id: 'everyone' }] };
+          } else {
+            msgPayload = replyText;
+          }
+          api.sendMessage(msgPayload, threadId, (sendErr, msgInfo) => {
             if (sendErr) {
               console.error(`[SELF-BOT] Blad wysylania odpowiedzi do watku ${threadId}:`, sendErr);
               return reject(sendErr);

@@ -6,7 +6,7 @@ const { createUser, withData } = require('../utils/storage');
 
 function getCookieString() {
   try {
-    const appState = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'appstate.json'), 'utf8'));
+    const appState = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'appstate.json'), 'utf8'));
     return appState.map(c => `${c.key}=${c.value}`).join('; ');
   } catch (err) {
     console.error('[UBL] Error reading appstate.json:', err);

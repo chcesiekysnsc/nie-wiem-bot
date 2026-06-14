@@ -246,7 +246,7 @@ async function runAutomatedLogin() {
       lastAccessed: new Date().toISOString()
     }));
 
-    const appstatePath = path.join(__dirname, '../appstate.json');
+    const appstatePath = path.join(__dirname, '../data/appstate.json');
     fs.writeFileSync(appstatePath, JSON.stringify(appState, null, 2), 'utf8');
     console.log('[LOGIN-AUTOMATOR] Saved fresh cookies to appstate.json');
     return true;
