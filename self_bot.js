@@ -1570,8 +1570,15 @@ login({ appState }, loginOptions, (loginErr, api) => {
           const repliedId = event.messageReply ? event.messageReply.messageID : null;
           const isReply = !!repliedId && 
             (hangmanGame.lastMessageId === repliedId || (hangmanGame.validMessageIds && hangmanGame.validMessageIds.includes(repliedId)));
-          if (isReply) {
-            const cleanText = text.trim().toLowerCase().replace(/^!/, '');
+          
+          const cleanText = text.trim().toLowerCase().replace(/^!/, '');
+          
+          // Akceptujemy ruch bez konieczności odpowiadania (reply), jeśli to pojedyncza litera lub słowo o dokładnie takiej samej długości jak hasło.
+          // Zapobiega to przypadkowemu zinterpretowaniu zwykłego czatu gracza jako błędnej próby zgadnięcia całego hasła.
+          const isSingleLetter = /^[a-ząćęłńóśźż]$/.test(cleanText);
+          const isMatchingWordLength = cleanText.length === hangmanGame.word.length && /^[a-ząćęłńóśźż\s\-]+$/.test(cleanText);
+
+          if (isReply || isSingleLetter || isMatchingWordLength) {
             if (/^[a-ząćęłńóśźż\s\-]+$/.test(cleanText)) {
               const hangmanCmd = client.commands.get('wisielec');
               if (hangmanCmd && typeof hangmanCmd.handleGuess === 'function') {
@@ -1618,37 +1625,44 @@ login({ appState }, loginOptions, (loginErr, api) => {
       const pmGame = client.activePanstwaMiasta.get(threadId);
       if (pmGame && pmGame.active && pmGame.state === 'answering') {
         const isJoined = pmGame.players.some(p => p.id === senderId);
-        const repliedId = event.messageReply ? event.messageReply.messageID : null;
-        const isReply = !!repliedId && 
-          (pmGame.lastMessageId === repliedId || (pmGame.validMessageIds && pmGame.validMessageIds.includes(repliedId)));
-        if (isJoined && isReply) {
+        if (isJoined) {
           const pmCmd = client.commands.get('panstwamiasta');
           if (pmCmd && typeof pmCmd.handleAnswer === 'function') {
-            const messageContext = {
-              client,
-              prefix: currentPrefix,
-              author: { id: senderId, username: senderName },
-              content: text,
-              guild: { id: threadId },
-              rawEvent: event,
-              reply: async (payload) => {
-                return new Promise((resolve, reject) => {
-                  const replyText = renderPayloadToText(payload);
-                  if (!replyText) return resolve(null);
-                  api.sendMessage(replyText, threadId, (sendErr, msgInfo) => {
-                    if (sendErr) return reject(sendErr);
-                    resolve(msgInfo);
-                  }, messageId);
-                });
+            const repliedId = event.messageReply ? event.messageReply.messageID : null;
+            const isReply = !!repliedId && 
+              (pmGame.lastMessageId === repliedId || (pmGame.validMessageIds && pmGame.validMessageIds.includes(repliedId)));
+            
+            const cleanText = text.trim().replace(/^!/, '');
+            
+            // Sprawdzamy czy to odpowiedź (reply) lub czy format wiadomości pasuje do schematu Państwa-Miasta (6 słów lub format klucz-wartość)
+            const canParse = pmCmd.parseAnswer && pmCmd.parseAnswer(cleanText, pmGame.currentLetter);
+
+            if (isReply || canParse) {
+              const messageContext = {
+                client,
+                prefix: currentPrefix,
+                author: { id: senderId, username: senderName },
+                content: text,
+                guild: { id: threadId },
+                rawEvent: event,
+                reply: async (payload) => {
+                  return new Promise((resolve, reject) => {
+                    const replyText = renderPayloadToText(payload);
+                    if (!replyText) return resolve(null);
+                    api.sendMessage(replyText, threadId, (sendErr, msgInfo) => {
+                      if (sendErr) return reject(sendErr);
+                      resolve(msgInfo);
+                    }, messageId);
+                  });
+                }
+              };
+              try {
+                await pmCmd.handleAnswer(client, messageContext, cleanText);
+              } catch (err) {
+                console.error('[PANSTWAMIASATA INTERCEPTOR ERROR]', err);
               }
-            };
-            try {
-              const cleanText = text.trim().replace(/^!/, '');
-              await pmCmd.handleAnswer(client, messageContext, cleanText);
-            } catch (err) {
-              console.error('[PANSTWAMIASATA INTERCEPTOR ERROR]', err);
+              return; // Skonsumuj tę wiadomość
             }
-            return; // Skonsumuj tę wiadomość
           }
         }
       }
