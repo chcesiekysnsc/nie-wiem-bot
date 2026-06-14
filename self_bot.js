@@ -1400,6 +1400,14 @@ login({ appState }, (loginErr, api) => {
         }
 
         if (inputAnswer) {
+          if (!miliGame.wrongAnswers) {
+            miliGame.wrongAnswers = new Set();
+          }
+
+          if (miliGame.wrongAnswers.has(senderId)) {
+            return; // Gracz już odpowiedział źle, ignorujemy
+          }
+
           if (inputAnswer === miliGame.correctAnswer) {
             miliGame.active = false;
             client.activeMilionerzy.delete(threadId);
@@ -1418,6 +1426,14 @@ login({ appState }, (loginErr, api) => {
               api.sendMessage(replyMsg, threadId, () => {}, messageId);
             }).catch(err => {
               console.error('[MILIONERZY] Błąd przyznawania nagrody:', err);
+            });
+          } else {
+            miliGame.wrongAnswers.add(senderId);
+            client.resolveUserName(api, senderId).then((playerName) => {
+              const replyMsg = `❌ **${playerName}**, odpowiedź **${inputAnswer}** jest błędna! Nie możesz już odpowiadać w tej rundzie.`;
+              api.sendMessage(replyMsg, threadId, () => {}, messageId);
+            }).catch(err => {
+              console.error('[MILIONERZY] Błąd pobierania nazwy gracza:', err);
             });
           }
           return; // Skonsumuj tę wiadomość, nie przetwarzaj jej jako komendy
