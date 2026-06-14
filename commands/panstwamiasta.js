@@ -46,6 +46,122 @@ for (const thing of THINGS) {
   THINGS_NORMALIZED.set(removeDiacritics(thing), thing);
 }
 
+const axios = require('axios');
+
+const sjpCache = new Map();
+
+const CATEGORY_KEYWORDS = {
+  country: ['państwo', 'republika'],
+  city: ['miasto', 'stolica'],
+  name: ['imię', 'imiona'],
+  animal: ['zwierzę', 'zwierze', 'ssak', 'ptak', 'owad', 'ryba', 'płaz', 'gad', 'rak', 'skorupiak', 'mięczak', 'psowatych', 'kotowatych', 'drapieżnik', 'drapieżny', 'pajęczak', 'pająk', 'stawonóg'],
+  plant: ['roślina', 'roslina', 'grzyb', 'drzewo', 'kwiat', 'krzew', 'warzywo', 'owoc', 'bylina', 'byliny', 'zborze', 'zboże', 'przyprawa', 'zioło', 'ziolo', 'owatych']
+};
+
+async function checkSjpWord(word) {
+  const normWord = word.trim().toLowerCase();
+  if (sjpCache.has(normWord)) {
+    return sjpCache.get(normWord);
+  }
+
+  const url = `https://sjp.pl/${encodeURIComponent(normWord)}`;
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      timeout: 3000
+    });
+
+    if (response.status === 200) {
+      const html = response.data;
+      
+      const regex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
+      let match;
+      const paragraphs = [];
+      while ((match = regex.exec(html)) !== null) {
+        const text = match[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (text) {
+          paragraphs.push(text);
+        }
+      }
+
+      const defs = [];
+      for (let i = 0; i < paragraphs.length; i++) {
+        const p = paragraphs[i].toLowerCase();
+        if (p.startsWith('znaczenie:') || p === 'znaczenie') {
+          if (i + 1 < paragraphs.length) {
+            const nextP = paragraphs[i + 1];
+            const nextPLower = nextP.toLowerCase();
+            if (nextPLower !== 'komentarze' && nextPLower !== '-' && nextPLower !== 'dodaj') {
+              defs.push(nextP.toLowerCase());
+            }
+          }
+        }
+      }
+
+      const result = {
+        exists: true,
+        definitions: defs
+      };
+      sjpCache.set(normWord, result);
+      return result;
+    }
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      const result = { exists: false, definitions: [] };
+      sjpCache.set(normWord, result);
+      return result;
+    }
+    console.error(`[SJP] Błąd podczas sprawdzania słowa "${normWord}":`, error.message);
+  }
+  return null;
+}
+
+async function verifyWordCategory(word, category) {
+  const normWord = word.trim().toLowerCase();
+  const normNoDiacritics = removeDiacritics(normWord);
+
+  // 1. Check local maps first
+  if (category === 'country' && COUNTRIES_NORMALIZED.has(normNoDiacritics)) return true;
+  if (category === 'city' && CITIES_NORMALIZED.has(normNoDiacritics)) return true;
+  if (category === 'name' && NAMES_NORMALIZED.has(normNoDiacritics)) return true;
+  if (category === 'animal' && ANIMALS_NORMALIZED.has(normNoDiacritics)) return true;
+  if (category === 'plant' && PLANTS_NORMALIZED.has(normNoDiacritics)) return true;
+  if (category === 'thing' && THINGS_NORMALIZED.has(normNoDiacritics)) return true;
+
+  // If the word is well-known in another category's local list, reject it for this category
+  const isWellKnownInOther = 
+    (category !== 'country' && COUNTRIES_NORMALIZED.has(normNoDiacritics)) ||
+    (category !== 'city' && CITIES_NORMALIZED.has(normNoDiacritics)) ||
+    (category !== 'name' && NAMES_NORMALIZED.has(normNoDiacritics)) ||
+    (category !== 'animal' && ANIMALS_NORMALIZED.has(normNoDiacritics)) ||
+    (category !== 'plant' && PLANTS_NORMALIZED.has(normNoDiacritics));
+
+  if (isWellKnownInOther) {
+    return false;
+  }
+
+  // 2. Query SJP
+  const sjp = await checkSjpWord(normWord);
+  if (!sjp || !sjp.exists) {
+    return false;
+  }
+
+  if (category === 'thing') {
+    const isOther = ['country', 'city', 'name', 'animal', 'plant'].some(cat => {
+      const keywords = CATEGORY_KEYWORDS[cat];
+      return sjp.definitions.some(def => keywords.some(kw => def.includes(kw)));
+    });
+    return !isOther || sjp.definitions.length === 0;
+  }
+
+  const keywords = CATEGORY_KEYWORDS[category];
+  if (!keywords) return false;
+
+  return sjp.definitions.some(def => keywords.some(kw => def.includes(kw)));
+}
+
 function parseAnswer(text, letter) {
   let cleaned = text.trim();
 
@@ -103,6 +219,8 @@ function trackMessage(game, msgInfo) {
 module.exports = {
   name: 'panstwamiasta',
   aliases: ['panstwa-miasta', 'panstwamiastadolacz', 'panstwamiastastart'],
+  checkSjpWord,
+  verifyWordCategory,
   async execute(client, message, args) {
     const threadId = message.guild?.id || message.rawEvent?.threadID;
     if (!threadId) {
@@ -290,22 +408,33 @@ module.exports = {
       const normThing = removeDiacritics(parsed.thing.trim());
       const normPlant = removeDiacritics(parsed.plant.trim());
 
-      let countryValid = normCountry.startsWith(normLetter) && COUNTRIES_NORMALIZED.has(normCountry);
-
-      const matchesCityNamePattern = /^[a-z]+(-[a-z]+)?$/.test(normCity);
-      const isKnownCity = CITIES_NORMALIZED.has(normCity);
-      let cityValid = normCity.startsWith(normLetter) && (isKnownCity || matchesCityNamePattern) && normCity !== normCountry && normCity.length >= 3;
-
-      let nameValid = normName.startsWith(normLetter) && NAMES_NORMALIZED.has(normName);
-      let animalValid = normAnimal.startsWith(normLetter) && ANIMALS_NORMALIZED.has(normAnimal);
-      let thingValid = normThing.startsWith(normLetter) && THINGS_NORMALIZED.has(normThing);
-      let plantValid = normPlant.startsWith(normLetter) && PLANTS_NORMALIZED.has(normPlant);
+      const [countryValid, cityValid, nameValid, animalValid, thingValid, plantValid] = await Promise.all([
+        normCountry.startsWith(normLetter) && verifyWordCategory(parsed.country.trim(), 'country'),
+        normCity.startsWith(normLetter) && normCity !== normCountry && normCity.length >= 3 && verifyWordCategory(parsed.city.trim(), 'city'),
+        normName.startsWith(normLetter) && verifyWordCategory(parsed.name.trim(), 'name'),
+        normAnimal.startsWith(normLetter) && verifyWordCategory(parsed.animal.trim(), 'animal'),
+        normThing.startsWith(normLetter) && verifyWordCategory(parsed.thing.trim(), 'thing'),
+        normPlant.startsWith(normLetter) && verifyWordCategory(parsed.plant.trim(), 'plant')
+      ]);
 
       if (countryValid && cityValid && nameValid && animalValid && thingValid && plantValid) {
         isGood = true;
       }
 
-      game.submissions.set(playerId, parsed);
+      game.submissions.set(playerId, {
+        country: capitalize(parsed.country.trim()),
+        city: capitalize(parsed.city.trim()),
+        name: capitalize(parsed.name.trim()),
+        animal: capitalize(parsed.animal.trim()),
+        thing: capitalize(parsed.thing.trim()),
+        plant: capitalize(parsed.plant.trim()),
+        countryValid,
+        cityValid,
+        nameValid,
+        animalValid,
+        thingValid,
+        plantValid
+      });
     }
 
     if (messageContext.rawEvent?.messageID && client.api) {
@@ -348,74 +477,43 @@ module.exports = {
       let plantValid = false;
 
       if (sub) {
-        const rawCountry = sub.country.trim();
-        const rawCity = sub.city.trim();
-        const rawName = sub.name.trim();
-        const rawAnimal = sub.animal.trim();
-        const rawThing = sub.thing.trim();
-        const rawPlant = sub.plant.trim();
+        country = sub.country;
+        city = sub.city;
+        name = sub.name;
+        animal = sub.animal;
+        thing = sub.thing;
+        plant = sub.plant;
 
-        const normCountry = removeDiacritics(rawCountry);
-        const normCity = removeDiacritics(rawCity);
-        const normName = removeDiacritics(rawName);
-        const normAnimal = removeDiacritics(rawAnimal);
-        const normThing = removeDiacritics(rawThing);
-        const normPlant = removeDiacritics(rawPlant);
+        countryValid = sub.countryValid;
+        cityValid = sub.cityValid;
+        nameValid = sub.nameValid;
+        animalValid = sub.animalValid;
+        thingValid = sub.thingValid;
+        plantValid = sub.plantValid;
 
-        // Validate Country
-        if (normCountry.startsWith(normLetter) && COUNTRIES_NORMALIZED.has(normCountry)) {
-          countryValid = true;
-          country = capitalize(COUNTRIES_NORMALIZED.get(normCountry));
+        if (countryValid) {
+          const normCountry = removeDiacritics(country.toLowerCase());
           countryFreq[normCountry] = (countryFreq[normCountry] || 0) + 1;
-        } else {
-          country = rawCountry;
         }
-
-        // Validate City: in custom list OR matching naming pattern
-        const matchesNamePattern = /^[a-z]+(-[a-z]+)?$/.test(normCity);
-        const isKnownCity = CITIES_NORMALIZED.has(normCity);
-        if (normCity.startsWith(normLetter) && (isKnownCity || matchesNamePattern) && normCity !== normCountry && normCity.length >= 3) {
-          cityValid = true;
-          city = isKnownCity ? capitalize(CITIES_NORMALIZED.get(normCity)) : capitalize(rawCity);
+        if (cityValid) {
+          const normCity = removeDiacritics(city.toLowerCase());
           cityFreq[normCity] = (cityFreq[normCity] || 0) + 1;
-        } else {
-          city = rawCity;
         }
-
-        // Validate Name
-        if (normName.startsWith(normLetter) && NAMES_NORMALIZED.has(normName)) {
-          nameValid = true;
-          name = capitalize(NAMES_NORMALIZED.get(normName));
+        if (nameValid) {
+          const normName = removeDiacritics(name.toLowerCase());
           nameFreq[normName] = (nameFreq[normName] || 0) + 1;
-        } else {
-          name = rawName;
         }
-
-        // Validate Animal
-        if (normAnimal.startsWith(normLetter) && ANIMALS_NORMALIZED.has(normAnimal)) {
-          animalValid = true;
-          animal = capitalize(ANIMALS_NORMALIZED.get(normAnimal));
+        if (animalValid) {
+          const normAnimal = removeDiacritics(animal.toLowerCase());
           animalFreq[normAnimal] = (animalFreq[normAnimal] || 0) + 1;
-        } else {
-          animal = rawAnimal;
         }
-
-        // Validate Thing
-        if (normThing.startsWith(normLetter) && THINGS_NORMALIZED.has(normThing)) {
-          thingValid = true;
-          thing = capitalize(THINGS_NORMALIZED.get(normThing));
+        if (thingValid) {
+          const normThing = removeDiacritics(thing.toLowerCase());
           thingFreq[normThing] = (thingFreq[normThing] || 0) + 1;
-        } else {
-          thing = rawThing;
         }
-
-        // Validate Plant
-        if (normPlant.startsWith(normLetter) && PLANTS_NORMALIZED.has(normPlant)) {
-          plantValid = true;
-          plant = capitalize(PLANTS_NORMALIZED.get(normPlant));
+        if (plantValid) {
+          const normPlant = removeDiacritics(plant.toLowerCase());
           plantFreq[normPlant] = (plantFreq[normPlant] || 0) + 1;
-        } else {
-          plant = rawPlant;
         }
       }
 
