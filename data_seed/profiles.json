@@ -1,0 +1,223 @@
+{
+  "blacklist": [
+    "100081902020596",
+    "100058754040769",
+    "100077231122056"
+  ],
+  "showIds": [],
+  "blacklistedGroups": [],
+  "gangs": {
+    "wkf": {
+      "name": "WKF",
+      "bossId": "100060812419294",
+      "deputies": [
+        "61571684725864",
+        "100088863765243",
+        "61573024537463"
+      ],
+      "members": [
+        "100060812419294",
+        "61571684725864",
+        "100088863765243",
+        "100080008517632",
+        "100014929176652",
+        "100012858159027",
+        "100083841624670",
+        "100046279354282",
+        "61579212392235",
+        "61562475523609",
+        "61573024537463"
+      ],
+      "vault": 481748,
+      "levelDziupla": 0,
+      "levelBiznesy": 3,
+      "levelFach": 2,
+      "lastHeistTime": 1780676606857,
+      "deposits": {
+        "100060812419294": 78991012,
+        "61573024537463": 92000,
+        "100011378042556": 85956,
+        "100088863765243": 100000,
+        "61562475523609": 62778,
+        "61579212392235": 63832,
+        "100046279354282": 63945
+      },
+      "tributePercent": 50,
+      "lastAttackTime": 0
+    },
+    "sympatycylarego": {
+      "name": "sympatycy larego",
+      "bossId": "61554894353095",
+      "deputies": [
+        "100012709246650"
+      ],
+      "members": [
+        "61554894353095",
+        "100012709246650",
+        "100045093158537",
+        "100028592110425",
+        "61563456404665",
+        "61573228601016",
+        "100047631864167",
+        "100071703912091",
+        "100077231122056"
+      ],
+      "vault": 20656,
+      "levelDziupla": 0,
+      "levelBiznesy": 0,
+      "levelFach": 0,
+      "tributePercent": 25,
+      "lastHeistTime": 1781100992380,
+      "lastAttackTime": 0,
+      "shieldUntil": 1779726322665,
+      "deposits": {
+        "61554894353095": 8772751,
+        "100012709246650": 1310001,
+        "61564076458500": 16661
+      }
+    },
+    "taksiczuj": {
+      "name": "Tak Się Czuję",
+      "bossId": "100011378042556",
+      "deputies": [
+        "100012870817390"
+      ],
+      "members": [
+        "100011378042556",
+        "100012870817390",
+        "100016685764834"
+      ],
+      "vault": 0,
+      "levelDziupla": 0,
+      "levelBiznesy": 3,
+      "levelFach": 0,
+      "tributePercent": 0,
+      "lastHeistTime": 1781431860188,
+      "lastAttackTime": 0,
+      "shieldUntil": 0,
+      "deposits": {
+        "100011378042556": 525000,
+        "100012870817390": 725000
+      }
+    },
+    "nowohuckieswiry": {
+      "name": "NowohuckieSwiry",
+      "bossId": "100058279567414",
+      "deputies": [],
+      "members": [
+        "100058279567414"
+      ],
+      "vault": 0,
+      "levelDziupla": 0,
+      "levelBiznesy": 0,
+      "levelFach": 0,
+      "tributePercent": 0,
+      "lastHeistTime": 0,
+      "lastAttackTime": 0,
+      "shieldUntil": 0
+    }
+  },
+  "lastInterestPayout": 1781417522607,
+  "marriageBanks": {
+    "100012709246650-100028592110425": {
+      "balance": 0,
+      "contributions": {
+        "100012709246650": 0,
+        "100028592110425": 1
+      }
+    },
+    "100046279354282-100060812419294": {
+      "balance": 100000,
+      "contributions": {
+        "100060812419294": 100000
+      }
+    },
+    "100078222663292-100080008517632": {
+      "balance": 0,
+      "contributions": {
+        "100080008517632": 0
+      }
+    },
+    "61554894353095-61573024537463": {
+      "balance": 10000,
+      "contributions": {
+        "61573024537463": 10000
+      }
+    }
+  },
+  "trueBlacklist": [],
+  "market": [],
+  "lastResetYear": 2026,
+  "lastResetMonth": 5,
+  "lastfmConnections": {
+    "100088863765243": {
+      "username": "oklamaa",
+      "incognito": false
+    },
+    "100014929176652": {
+      "username": "K2piq",
+      "incognito": false
+    },
+    "100011378042556": {
+      "username": "eryczeki",
+      "incognito": false
+    },
+    "100058754040769": {
+      "username": "bursztynn11",
+      "incognito": false
+    },
+    "100071703912091": {
+      "username": "oliwka",
+      "incognito": false
+    },
+    "100077680750854": {
+      "username": "PDFOLEKSY",
+      "incognito": false
+    },
+    "100058279567414": {
+      "username": "kubapiro",
+      "incognito": false
+    },
+    "61573024537463": {
+      "username": "PDFOLEKSY",
+      "incognito": false
+    },
+    "100021697509898": {
+      "username": "D1trox",
+      "incognito": false
+    }
+  },
+  "threadSettings": {
+    "5002802079763156": {
+      "loopUsers": [
+        "100093902840911",
+        "61564076458500",
+        "61573024537463",
+        "100060812419294"
+      ],
+      "nicknameGuards": {
+        "100060812419294": "najlepsza lisandra na swiecie",
+        "61564076458500": "kapus 60 placzek",
+        "100023508980414": "moja mala slodka cureczka tatusia",
+        "61554894353095": "najbrzydszy czlowiek na swiecie i najgorszy viktor",
+        "61573024537463": "pedofil gnuj cfel gnida smierdziel"
+      },
+      "prefix": "!",
+      "prefixSetByCreator": false
+    },
+    "5277347745703557": {
+      "nicknameGuards": {
+        "61571684725864": "najlepszy talon na swiecie"
+      }
+    }
+  },
+  "dynamicAdmins": [
+    "61571684725864",
+    "61560227271099",
+    "61562475523609"
+  ],
+  "spamWarnings": {},
+  "addedGroupsCount": {
+    "100060812419294": 1
+  }
+}

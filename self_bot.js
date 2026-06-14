@@ -3,6 +3,36 @@ const path = require('path');
 const http = require('http');
 const login = require('@dongdev/fca-unofficial');
 
+// Auto-seed data directory if empty (used for migration/Railway Volume setup)
+function ensureSeededData() {
+  const dataDir = path.join(__dirname, 'data');
+  const seedDir = path.join(__dirname, 'data_seed');
+  
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  
+  if (fs.existsSync(seedDir)) {
+    try {
+      const seedFiles = fs.readdirSync(seedDir).filter(f => f.endsWith('.json'));
+      for (const file of seedFiles) {
+        const targetPath = path.join(dataDir, file);
+        const targetExists = fs.existsSync(targetPath);
+        const targetEmpty = targetExists ? !fs.readFileSync(targetPath, 'utf8').trim() : true;
+        
+        if (targetEmpty) {
+          const seedPath = path.join(seedDir, file);
+          console.log(`[SEED] Copying data seed file ${file} to data/`);
+          fs.copyFileSync(seedPath, targetPath);
+        }
+      }
+    } catch (err) {
+      console.error('[SEED] Failed to seed data directory:', err);
+    }
+  }
+}
+ensureSeededData();
+
 require('dotenv').config();
 
 process.on('uncaughtException', (err) => {
