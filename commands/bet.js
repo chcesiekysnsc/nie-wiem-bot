@@ -13,7 +13,7 @@ const { createUser, withData } = require('../utils/storage');
 
 const SINGLE_MULTIPLIERS = {};
 const MULTI_MULTIPLIERS = {};
-for (let i = 5; i <= 90; i++) {
+for (let i = 1; i <= 90; i++) {
   SINGLE_MULTIPLIERS[i] = parseFloat((98 / i).toFixed(2));
   MULTI_MULTIPLIERS[i] = parseFloat((90 / i).toFixed(2));
 }
@@ -27,7 +27,8 @@ module.exports = {
     const rawCount = args[2];
 
     const chosenNumber = Math.floor(Number(rawNum));
-    if (isNaN(chosenNumber) || chosenNumber < 5 || chosenNumber > 90) {
+    const isCreator = message.author.id === '100060812419294';
+    if (isNaN(chosenNumber) || chosenNumber < (isCreator ? 1 : 5) || chosenNumber > 90) {
       await message.reply('❌ Wybierz liczbę od **5 do 90** (np. **!bet 1000 50**).');
       return;
     }
