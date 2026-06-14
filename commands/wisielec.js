@@ -227,6 +227,7 @@ module.exports = {
     }
 
     this.resetTurnTimer(client, game, threadId);
+    this.resetInactivityTimer(client, game, threadId);
   },
 
   resetTurnTimer(client, game, threadId) {
@@ -253,11 +254,31 @@ module.exports = {
     }, 30000);
   },
 
+  resetInactivityTimer(client, game, threadId) {
+    if (game.inactivityTimer) {
+      clearTimeout(game.inactivityTimer);
+    }
+    game.inactivityTimer = setTimeout(async () => {
+      if (game.active && game.status === 'playing') {
+        if (game.turnTimer) clearTimeout(game.turnTimer);
+        game.active = false;
+        client.activeHangman.delete(threadId);
+
+        const msg = `💀 **PRZEGRANA (Brak aktywności)!** W grze w Wisielca nie podano żadnej litery ani hasła przez 2.5 minuty. Gra kończy się porażką. Hasło to: **${game.word.toUpperCase()}**!`;
+        if (client.api) {
+          client.api.sendMessage(msg, threadId);
+        }
+      }
+    }, 150000); // 2.5 minutes
+  },
+
   // Handled from self_bot.js interceptor when currentPlayer types something
   async handleGuess(client, messageContext, input) {
     const threadId = messageContext.guild.id;
     const game = client.activeHangman.get(threadId);
     if (!game || !game.active || game.status !== 'playing') return;
+
+    this.resetInactivityTimer(client, game, threadId);
 
     const authorId = messageContext.author.id;
     const currentPlayer = game.players[game.currentPlayerIndex];
@@ -270,6 +291,7 @@ module.exports = {
       if (guess === game.word) {
         // WINNER!
         if (game.turnTimer) clearTimeout(game.turnTimer);
+        if (game.inactivityTimer) clearTimeout(game.inactivityTimer);
         game.active = false;
         client.activeHangman.delete(threadId);
 
@@ -285,6 +307,7 @@ module.exports = {
 
         if (game.lives <= 0) {
           if (game.turnTimer) clearTimeout(game.turnTimer);
+          if (game.inactivityTimer) clearTimeout(game.inactivityTimer);
           game.active = false;
           client.activeHangman.delete(threadId);
           msg += `💀 **PRZEGRANA!** Skończyły się wam życia. Hasło to: **${game.word.toUpperCase()}**!`;
@@ -329,6 +352,7 @@ module.exports = {
       const won = !game.revealed.includes('_');
       if (won) {
         if (game.turnTimer) clearTimeout(game.turnTimer);
+        if (game.inactivityTimer) clearTimeout(game.inactivityTimer);
         game.active = false;
         client.activeHangman.delete(threadId);
 
@@ -361,6 +385,7 @@ module.exports = {
 
       if (game.lives <= 0) {
         if (game.turnTimer) clearTimeout(game.turnTimer);
+        if (game.inactivityTimer) clearTimeout(game.inactivityTimer);
         game.active = false;
         client.activeHangman.delete(threadId);
         msg += `💀 **PRZEGRANA!** Zostaliście powieszeni. Hasło to: **${game.word.toUpperCase()}**!`;
