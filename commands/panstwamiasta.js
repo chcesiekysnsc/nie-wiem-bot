@@ -1,4 +1,4 @@
-const { COUNTRIES, CITIES } = require('../utils/panstwaMiastaData');
+const { COUNTRIES, CITIES, NAMES, ANIMALS, PLANTS, THINGS } = require('../utils/panstwaMiastaData');
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'R', 'S', 'T', 'U', 'W', 'Z'];
 
@@ -26,26 +26,58 @@ for (const city of CITIES) {
   CITIES_NORMALIZED.set(removeDiacritics(city), city);
 }
 
+const NAMES_NORMALIZED = new Map();
+for (const name of NAMES) {
+  NAMES_NORMALIZED.set(removeDiacritics(name), name);
+}
+
+const ANIMALS_NORMALIZED = new Map();
+for (const animal of ANIMALS) {
+  ANIMALS_NORMALIZED.set(removeDiacritics(animal), animal);
+}
+
+const PLANTS_NORMALIZED = new Map();
+for (const plant of PLANTS) {
+  PLANTS_NORMALIZED.set(removeDiacritics(plant), plant);
+}
+
+const THINGS_NORMALIZED = new Map();
+for (const thing of THINGS) {
+  THINGS_NORMALIZED.set(removeDiacritics(thing), thing);
+}
+
 function parseAnswer(text, letter) {
   let cleaned = text.trim();
 
   // 1. Check labeled formats
-  const countryMatch = cleaned.match(/(?:kraj|panstwo|państwo|p):\s*([a-ząćęłnóśźż]+)/i);
-  const cityMatch = cleaned.match(/(?:miasto|m):\s*([a-ząćęłnóśźż]+)/i);
+  const pMatch = cleaned.match(/(?:państwo|panstwo|p):\s*([\p{L}\-]+)/ui);
+  const mMatch = cleaned.match(/(?:miasto|m):\s*([\p{L}\-]+)/ui);
+  const iMatch = cleaned.match(/(?:imię|imie|i):\s*([\p{L}\-]+)/ui);
+  const zMatch = cleaned.match(/(?:zwierzę|zwierze|z):\s*([\p{L}\-]+)/ui);
+  const rzMatch = cleaned.match(/(?:rzecz|rz):\s*([\p{L}\-]+)/ui);
+  const roMatch = cleaned.match(/(?:roślina|roslina|ro|r):\s*([\p{L}\-]+)/ui);
 
-  if (countryMatch && cityMatch) {
+  if (pMatch && mMatch && iMatch && zMatch && rzMatch && roMatch) {
     return {
-      country: countryMatch[1].toLowerCase().trim(),
-      city: cityMatch[1].toLowerCase().trim()
+      country: pMatch[1].toLowerCase().trim(),
+      city: mMatch[1].toLowerCase().trim(),
+      name: iMatch[1].toLowerCase().trim(),
+      animal: zMatch[1].toLowerCase().trim(),
+      thing: rzMatch[1].toLowerCase().trim(),
+      plant: roMatch[1].toLowerCase().trim()
     };
   }
 
-  // 2. Otherwise split by whitespace or commas and take first two words
+  // 2. Otherwise split by whitespace or commas and take first 6 words
   const parts = cleaned.replace(/,/g, ' ').split(/\s+/).map(p => p.trim()).filter(Boolean);
-  if (parts.length >= 2) {
+  if (parts.length >= 6) {
     return {
       country: parts[0].toLowerCase(),
-      city: parts[1].toLowerCase()
+      city: parts[1].toLowerCase(),
+      name: parts[2].toLowerCase(),
+      animal: parts[3].toLowerCase(),
+      thing: parts[4].toLowerCase(),
+      plant: parts[5].toLowerCase()
     };
   }
   return null;
@@ -214,7 +246,8 @@ module.exports = {
       `🔔 **RUNDA ${game.currentTurn}/${game.maxTurns}** 🔔\n` +
       `Wylosowana litera to: 🌟 **${letter}** 🌟\n\n` +
       `⏱️ Wszyscy zapisani gracze mają **20 sekund** na wysłanie odpowiedzi!\n` +
-      `📝 Format: **Kraj Miasto** (np. \`Kanada Kraków\` lub \`Kraj: Kanada, Miasto: Kraków\`)\n\n` +
+      `📝 Format: **Państwo Miasto Imię Zwierzę Rzecz Roślina**\n` +
+      `*(np. \`Polska Poznań Piotr Pies Pudełko Pokrzywa\` lub z etykietami: \`p: Polska, m: Poznań, i: Piotr, z: Pies, rz: Pudełko, ro: Pokrzywa\`)*\n\n` +
       `*Uwaga: Słowa nie mogą się powtarzać między graczami!*`;
 
     if (client.api) {
@@ -250,25 +283,25 @@ module.exports = {
     if (parsed) {
       const letter = game.currentLetter.toLowerCase();
       const normLetter = removeDiacritics(letter);
-      const rawCountry = parsed.country.trim();
-      const rawCity = parsed.city.trim();
-      const normCountry = removeDiacritics(rawCountry);
-      const normCity = removeDiacritics(rawCity);
+      const normCountry = removeDiacritics(parsed.country.trim());
+      const normCity = removeDiacritics(parsed.city.trim());
+      const normName = removeDiacritics(parsed.name.trim());
+      const normAnimal = removeDiacritics(parsed.animal.trim());
+      const normThing = removeDiacritics(parsed.thing.trim());
+      const normPlant = removeDiacritics(parsed.plant.trim());
 
-      let countryValid = false;
-      let cityValid = false;
+      let countryValid = normCountry.startsWith(normLetter) && COUNTRIES_NORMALIZED.has(normCountry);
 
-      if (normCountry.startsWith(normLetter) && COUNTRIES_NORMALIZED.has(normCountry)) {
-        countryValid = true;
-      }
-
-      const matchesNamePattern = /^[a-z]+(-[a-z]+)?$/.test(normCity);
+      const matchesCityNamePattern = /^[a-z]+(-[a-z]+)?$/.test(normCity);
       const isKnownCity = CITIES_NORMALIZED.has(normCity);
-      if (normCity.startsWith(normLetter) && (isKnownCity || matchesNamePattern) && normCity !== normCountry && normCity.length >= 3) {
-        cityValid = true;
-      }
+      let cityValid = normCity.startsWith(normLetter) && (isKnownCity || matchesCityNamePattern) && normCity !== normCountry && normCity.length >= 3;
 
-      if (countryValid && cityValid) {
+      let nameValid = normName.startsWith(normLetter) && NAMES_NORMALIZED.has(normName);
+      let animalValid = normAnimal.startsWith(normLetter) && ANIMALS_NORMALIZED.has(normAnimal);
+      let thingValid = normThing.startsWith(normLetter) && THINGS_NORMALIZED.has(normThing);
+      let plantValid = normPlant.startsWith(normLetter) && PLANTS_NORMALIZED.has(normPlant);
+
+      if (countryValid && cityValid && nameValid && animalValid && thingValid && plantValid) {
         isGood = true;
       }
 
@@ -292,20 +325,42 @@ module.exports = {
     // Frequency counters to find duplicates
     const countryFreq = {};
     const cityFreq = {};
+    const nameFreq = {};
+    const animalFreq = {};
+    const thingFreq = {};
+    const plantFreq = {};
 
     // First pass: validation
     for (const player of game.players) {
       const sub = game.submissions.get(player.id);
       let country = '';
       let city = '';
+      let name = '';
+      let animal = '';
+      let thing = '';
+      let plant = '';
+
       let countryValid = false;
       let cityValid = false;
+      let nameValid = false;
+      let animalValid = false;
+      let thingValid = false;
+      let plantValid = false;
 
       if (sub) {
         const rawCountry = sub.country.trim();
         const rawCity = sub.city.trim();
+        const rawName = sub.name.trim();
+        const rawAnimal = sub.animal.trim();
+        const rawThing = sub.thing.trim();
+        const rawPlant = sub.plant.trim();
+
         const normCountry = removeDiacritics(rawCountry);
         const normCity = removeDiacritics(rawCity);
+        const normName = removeDiacritics(rawName);
+        const normAnimal = removeDiacritics(rawAnimal);
+        const normThing = removeDiacritics(rawThing);
+        const normPlant = removeDiacritics(rawPlant);
 
         // Validate Country
         if (normCountry.startsWith(normLetter) && COUNTRIES_NORMALIZED.has(normCountry)) {
@@ -326,16 +381,64 @@ module.exports = {
         } else {
           city = rawCity;
         }
+
+        // Validate Name
+        if (normName.startsWith(normLetter) && NAMES_NORMALIZED.has(normName)) {
+          nameValid = true;
+          name = capitalize(NAMES_NORMALIZED.get(normName));
+          nameFreq[normName] = (nameFreq[normName] || 0) + 1;
+        } else {
+          name = rawName;
+        }
+
+        // Validate Animal
+        if (normAnimal.startsWith(normLetter) && ANIMALS_NORMALIZED.has(normAnimal)) {
+          animalValid = true;
+          animal = capitalize(ANIMALS_NORMALIZED.get(normAnimal));
+          animalFreq[normAnimal] = (animalFreq[normAnimal] || 0) + 1;
+        } else {
+          animal = rawAnimal;
+        }
+
+        // Validate Thing
+        if (normThing.startsWith(normLetter) && THINGS_NORMALIZED.has(normThing)) {
+          thingValid = true;
+          thing = capitalize(THINGS_NORMALIZED.get(normThing));
+          thingFreq[normThing] = (thingFreq[normThing] || 0) + 1;
+        } else {
+          thing = rawThing;
+        }
+
+        // Validate Plant
+        if (normPlant.startsWith(normLetter) && PLANTS_NORMALIZED.has(normPlant)) {
+          plantValid = true;
+          plant = capitalize(PLANTS_NORMALIZED.get(normPlant));
+          plantFreq[normPlant] = (plantFreq[normPlant] || 0) + 1;
+        } else {
+          plant = rawPlant;
+        }
       }
 
       evaluated.push({
         player,
         country,
         city,
+        name,
+        animal,
+        thing,
+        plant,
         countryValid,
         cityValid,
+        nameValid,
+        animalValid,
+        thingValid,
+        plantValid,
         countryPoints: 0,
         cityPoints: 0,
+        namePoints: 0,
+        animalPoints: 0,
+        thingPoints: 0,
+        plantPoints: 0,
         turnPoints: 0
       });
     }
@@ -343,25 +446,58 @@ module.exports = {
     // Second pass: uniqueness check and scoring
     for (const evalResult of evaluated) {
       if (evalResult.countryValid) {
-        const freq = countryFreq[evalResult.country] || 1;
+        const freq = countryFreq[removeDiacritics(evalResult.country.toLowerCase())] || 1;
         evalResult.countryPoints = freq > 1 ? 5 : 10;
       }
       if (evalResult.cityValid) {
-        const freq = cityFreq[evalResult.city] || 1;
+        const freq = cityFreq[removeDiacritics(evalResult.city.toLowerCase())] || 1;
         evalResult.cityPoints = freq > 1 ? 5 : 10;
       }
-      evalResult.turnPoints = evalResult.countryPoints + evalResult.cityPoints;
+      if (evalResult.nameValid) {
+        const freq = nameFreq[removeDiacritics(evalResult.name.toLowerCase())] || 1;
+        evalResult.namePoints = freq > 1 ? 5 : 10;
+      }
+      if (evalResult.animalValid) {
+        const freq = animalFreq[removeDiacritics(evalResult.animal.toLowerCase())] || 1;
+        evalResult.animalPoints = freq > 1 ? 5 : 10;
+      }
+      if (evalResult.thingValid) {
+        const freq = thingFreq[removeDiacritics(evalResult.thing.toLowerCase())] || 1;
+        evalResult.thingPoints = freq > 1 ? 5 : 10;
+      }
+      if (evalResult.plantValid) {
+        const freq = plantFreq[removeDiacritics(evalResult.plant.toLowerCase())] || 1;
+        evalResult.plantPoints = freq > 1 ? 5 : 10;
+      }
+
+      evalResult.turnPoints = 
+        evalResult.countryPoints + 
+        evalResult.cityPoints + 
+        evalResult.namePoints + 
+        evalResult.animalPoints + 
+        evalResult.thingPoints + 
+        evalResult.plantPoints;
+
       evalResult.player.score += evalResult.turnPoints;
     }
 
     // 2. Build turn summary text
     let summaryText = `⌛ **KONIEC RUNDY (Litera: ${game.currentLetter})** ⌛\n\n**Podsumowanie punktacji tury:**\n`;
     for (const res of evaluated) {
-      const cText = res.countryValid ? `🌍 ${capitalize(res.country)} (+${res.countryPoints} pkt)` : `🌍 ❌ brak/błędny (0 pkt)`;
-      const mText = res.cityValid ? `🏙️ ${capitalize(res.city)} (+${res.cityPoints} pkt)` : `🏙️ ❌ brak/błędny (0 pkt)`;
+      const cText = res.countryValid ? `🌍 ${res.country} (+${res.countryPoints} pkt)` : `🌍 ❌ brak/błędny (0 pkt)`;
+      const mText = res.cityValid ? `🏙️ ${res.city} (+${res.cityPoints} pkt)` : `🏙️ ❌ brak/błędny (0 pkt)`;
+      const nText = res.nameValid ? `👤 ${res.name} (+${res.namePoints} pkt)` : `👤 ❌ brak/błędny (0 pkt)`;
+      const aText = res.animalValid ? `🐾 ${res.animal} (+${res.animalPoints} pkt)` : `🐾 ❌ brak/błędny (0 pkt)`;
+      const tText = res.thingValid ? `📦 ${res.thing} (+${res.thingPoints} pkt)` : `📦 ❌ brak/błędny (0 pkt)`;
+      const pText = res.plantValid ? `🌿 ${res.plant} (+${res.plantPoints} pkt)` : `🌿 ❌ brak/błędny (0 pkt)`;
+
       summaryText += `👤 **${res.player.username}**:\n` +
                     `  • ${cText}\n` +
                     `  • ${mText}\n` +
+                    `  • ${nText}\n` +
+                    `  • ${aText}\n` +
+                    `  • ${tText}\n` +
+                    `  • ${pText}\n` +
                     `  • Razem w turze: **+${res.turnPoints} pkt**\n\n`;
     }
 

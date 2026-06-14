@@ -47,7 +47,111 @@ const CITIES = [
   "caracas", "quito", "santiago", "buenos aires", "rio de janeiro", "sao paulo", "brasilia", "montevideo", "asuncion", "la paz"
 ];
 
+const NAMES = [
+  "adam", "adrian", "adrianna", "agata", "agnieszka", "alan", "albert", "aleksander", "aleksandra", "alicja", "alina", "amelia", "anastazja", "andrzej", "aneta", "aniela", "anna", "antoni", "antonina", "arkadiusz", "artur", "aurelia",
+  "barbara", "bartosz", "bartłomiej", "beata", "benedykt", "bernard", "bernadeta", "błażej", "bogdan", "bogumił", "bogumiła", "bogusław", "bogusława", "bolesław", "bożena", "bronisław", "bronisława", "brygida",
+  "cecylia", "cezary", "cyprian", "cyryl", "czesław", "czesława",
+  "dagmara", "damian", "daniel", "danuta", "daria", "dariusz", "dawid", "dominik", "dominika", "dorota",
+  "edward", "edyta", "eliasz", "eliza", "elżbieta", "emil", "emilia", "emilian", "ernest", "eryk", "estera", "eugeniusz", "ewa", "ewelina",
+  "fabian", "felicjan", "felicja", "feliks", "ferdynand", "filip", "franciszek", "franciszka",
+  "gabriel", "gabriela", "gerard", "gertruda", "gideon", "gracjan", "grażyna", "grzegorz", "gustaw",
+  "halina", "hanna", "helena", "henryk", "henryka", "herbert", "hieronim", "hipolit", "hubert",
+  "ida", "ignacy", "igor", "irena", "ireneusz", "iwona", "iza", "izabela", "izydor",
+  "jacek", "jadwiga", "jagoda", "jan", "janina", "janusz", "jarosław", "jerzy", "joachim", "joanna", "jolanta", "józef", "józefa", "judyta", "julia", "julian", "juliusz", "justyna",
+  "kajetan", "kamil", "kamila", "karol", "karolina", "katarzyna", "kazimierz", "kinga", "klara", "klaudia", "klaudiusz", "klemens", "konrad", "krystian", "krystyna", "krzysztof", "ksawery",
+  "lech", "lena", "leon", "leonard", "leszek", "lidia", "lilianna", "lucjan", "lucyna", "ludwik", "ludwika", "luiza", "łukasz",
+  "maciej", "magdalena", "maja", "małgorzata", "marcel", "marcela", "marcin", "marek", "maria", "marian", "mariola", "mariusz", "marta", "martyna", "mateusz", "maurycy", "maksymilian", "michał", "michalina", "mieczysław", "mikołaj", "milena", "mirosław", "mirosława", "monika",
+  "nadia", "natalia", "natan", "nikodem", "nikola", "norbert",
+  "oktawia", "oktawian", "ola", "olaf", "olga", "olgierd", "oliwia", "oliwier", "oskar", "osvald", "otylia",
+  "patryk", "patrycja", "paulina", "paweł", "piotr", "pola", "przemysław",
+  "radosław", "rafał", "rafaela", "rajmund", "regina", "renata", "robert", "roch", "roman", "rozalia", "róża", "rudolf", "ryszard",
+  "sabina", "salomea", "samuel", "sebastian", "seweryn", "sławek", "sławomir", "stanisław", "stanisława", "stefan", "stefania", "sylwester", "sylwia", "szymon",
+  "tadeusz", "tamara", "tatiana", "teodor", "teodozja", "teresa", "tobiasz", "tomasz", "tymon", "tymoteusz",
+  "urszula", "urszulka", "urban",
+  "wacław", "walenty", "walentyna", "walerian", "waleria", "wanda", "weronika", "wiesław", "wiesława", "wiktor", "wiktoria", "wilhelm", "wincenty", "wioletta", "witold", "władysław", "władysława", "wojciech",
+  "zachariasz", "zbigniew", "zdzisław", "zdzisława", "zenon", "zenona", "zofia", "zuzanna", "zygmunt", "żaneta"
+];
+
+const ANIMALS = [
+  "aligator", "alpaka", "amur", "anakonda", "antylopa", "ara", "aksolotl", "apostoł",
+  "bizon", "borsuk", "bażant", "bocian", "bąk", "biedronka", "baran", "binturong",
+  "czapla", "chomik", "chart", "chrabąszcz", "cykada",
+  "delfin", "dzik", "dingo", "dzięcioł", "daniel", "drop", "dziobak", "dromader", "dydelf",
+  "emu", "eland", "edredon", "echidna",
+  "foka", "flaming", "fretka", "fenek", "flądra",
+  "gazela", "gepard", "goryl", "gołąb", "gęś", "gibon", "glonojad", "gnu", "guziec", "grizzly",
+  "hiena", "hipopotam", "humbak", "harpia", "homar", "hucuł",
+  "ibis", "iguana", "impala", "indyk", "indris", "inia",
+  "jaguar", "jaskółka", "jeż", "jeleń", "jastrząb", "jenot", "jaszczurka", "jarząbek", "jemiołuszka", "jedwabnik",
+  "kot", "kangur", "krowa", "koza", "koń", "kura", "kaczka", "krokodyl", "koliber", "karp", "koala", "krab", "krewetka", "kameleon", "kret", "kuna", "kojot",
+  "lew", "leniwiec", "lama", "lampart", "lemur", "lis", "łosoś", "łabędź", "łania", "łasica",
+  "mysz", "mrówka", "mors", "małpa", "mewa", "motyl", "mucha", "muł", "mops", "mamba", "mątwa", "meduza", "miodojad",
+  "nosorożec", "niedźwiedź", "nandu", "narwal", "nietoperz", "norka",
+  "osioł", "orka", "ośmiornica", "orzeł", "owca", "ogier", "okoń", "opos", "orangutan", "osa", "owad",
+  "pies", "pantera", "pelikan", "papuga", "pająk", "puma", "pingwin", "pstrąg", "przepiórka", "panda", "pyton",
+  "ryś", "ryba", "rak", "renifer", "rosomak", "ropucha", "rzekotka", "rekin",
+  "słoń", "skunks", "szczupak", "sowa", "sarna", "sokół", "szop", "szerszeń", "świnia", "ślimak", "szczur", "sęp", "salamandra", "skorpion", "suseł", "szakal",
+  "tygrys", "tukan", "tapir", "tarpan", "traszka", "termit", "trzmiel", "tuńczyk", "tarantula",
+  "uchatka", "uszatka", "ukwiał",
+  "wieloryb", "wąż", "wielbłąd", "wilk", "wiewiórka", "wrona", "wróbel", "wydra", "wół", "ważka", "wyrak", "wombat",
+  "zebra", "zając", "żubr", "zebu", "żaba", "żółw", "żuraw", "żmija", "żyrafa", "zimorodek", "zaskroniec", "żuk"
+];
+
+const PLANTS = [
+  "akacja", "aster", "aloes", "ananas", "agrest", "aksamitka", "azalia", "agawa", "aronia", "arbuz", "awokado", "arcydzięgiel",
+  "brzoza", "bluszcz", "babka", "buk", "bławatek", "bez", "borówka", "banan", "burak", "brokuł", "bazylia", "barszcz", "begonia", "bukszpan", "bób",
+  "chaber", "cis", "cytryna", "czereśnia", "czosnek", "cebula", "cukinia", "cykoria", "cynamonowiec", "chmiel", "cyprys", "chryzantema",
+  "dąb", "dalia", "dynia", "daktylowiec", "dereń", "dziurawiec", "dziewanna", "dmuchawiec",
+  "eukaliptus", "eszeweria", "wrzos", "estragon", "eustoma",
+  "fiołek", "fikus", "fuksja", "fasola", "figa", "fenkuł", "floks", "forsycja",
+  "goździk", "grab", "grusza", "gruszka", "groch", "granat", "grejpfrut", "gerbera", "głóg", "ginko", "gipsówka",
+  "hiacynt", "hortensja", "heliotrop", "heban", "herbata",
+  "irys", "iglak", "imbir",
+  "jaśmin", "jałowiec", "jarmuż", "jabłko", "jabłoń", "jagoda", "jaskier", "jemioła", "jęczmień",
+  "konwalia", "klon", "krokus", "kapusta", "kalafior", "kukurydza", "konopie", "kasztanowiec", "koniczyna", "kaktus", "kawa", "kolendra", "kminek", "koperek", "kokos",
+  "lawenda", "lilak", "lilia", "len", "lipa", "lubczyk", "laur", "limonka", "lotos",
+  "mięta", "mak", "malina", "marchew", "marchewka", "melon", "modrzew", "magnolia", "malwa", "mimoza", "melisa", "mniszek", "mango", "mandarynka", "mirt", "mech",
+  "narcyz", "niezapominajka", "nagietek", "nasturcja", "naparstnica",
+  "olcha", "ostropest", "owies", "orzech", "oliwka", "oset", "orchidea", "ogórek", "olszyna", "ostrokrzew",
+  "paproć", "róża", "pokrzywa", "pietruszka", "pomidor", "papryka", "por", "poziomka", "pszenica", "piwonia", "piołun", "podbiał, perz", "palma",
+  "rumianek", "rzodkiewka", "rzepa", "rokitnik", "rzepak", "rozmaryn", "roszponka", "rdest", "rabarbar", "rojnik",
+  "sosna", "storczyk", "słonecznik", "sałata", "seler", "szpinak", "soja", "śliwa", "śliwka", "stokrotka", "świerk", "szafran", "skrzyp",
+  "tulipan", "trzcina", "topola", "tymianek", "truskawka", "tarnina", "tatarak", "tuja", "tytoń",
+  "ubiorek", "uczep",
+  "wierzba", "wrzos", "winogrono", "wiśnia", "wiąz", "wyka", "wrotycz", "wanilia", "wawrzyn", "wejmutka", "wilczomlecz", "wiciokrzew", "wilec",
+  "zawilec", "ziemniak", "zboże", "ziele", "żyto", "żonkil", "żurawina", "żeń-szeń"
+];
+
+const THINGS = [
+  "aparat", "auto", "autobus", "album", "akumulator", "antena", "agrafka", "akwarium", "abażur", "amulet", "atlas", "asfalt",
+  "biurko", "but", "butelka", "balon", "bęben", "beczka", "bagaż", "budzik", "broszka", "bransoletka", "beret", "bidon", "bilet", "biżuteria", "blender", "blok", "bumerang",
+  "cegła", "czajnik", "czapka", "cążki", "cukierek", "chusteczka", "cyrkiel", "cymbałki", "czepek",
+  "długopis", "drzwi", "dywan", "dysk", "drabina", "doniczka", "dzwonek", "dmuchawa", "deska", "dokument", "dom", "drut",
+  "ekran", "ekspres", "etui", "ekierka", "etykieta", "eliksir",
+  "fotel", "flakon", "flet", "farba", "flaga", "folder", "futerał", "fajka", "figurka", "flaszka", "filiżanka", "firanka",
+  "garnek", "głośnik", "gumka", "guzik", "gąbka", "gazeta", "grabie", "gwóźdź", "gaśnica", "grzebień", "gogle", "gitara", "gips", "globus", "gniazdko",
+  "hamak", "hantel", "haczyk", "hulajnoga", "hełm", "harfa", "hokej",
+  "igła", "imadło", "instrument", "inhalator", "ikona", "imbryk", "identyfikator",
+  "jacht", "jajko", "jarzmo", "jupiter", "jojo", "jarmułka",
+  "krzesło", "książka", "komputer", "klawiatura", "klucz", "kubek", "kredka", "koperta", "karton", "kłódka", "kieliszek", "kask", "koc", "krawat", "koszyk", "kabel", "kalkulator", "koło", "klamka", "kocioł",
+  "lampa", "linijka", "lustro", "lalka", "laptop", "lód", "lodówka", "list", "lina", "latarka", "lornetka", "lokówka", "laska", "łóżko", "łopata", "łyżka", "łyżwa",
+  "młotek", "monitor", "myszka", "maska", "miska", "mop", "materac", "magnes", "miecz", "medal", "maszyna", "miotła", "mikrofon", "moneta", "mydło", "mundurek", "mebel",
+  "nożyczki", "notes", "naczynie", "nóż", "narty", "nić", "naszyjnik", "namiot", "nabój", "nakrętka", "narzuta",
+  "ołówek", "okno", "okulary", "obraz", "obrus", "odkurzacz", "opona", "ostrzałka", "organizer", "ostrze", "obroża", "opaska",
+  "piórnik", "parasol", "papier", "pędzel", "patelnia", "płyta", "plecak", "poduszka", "pasek", "portfel", "pióro", "puchar", "pieczątka", "piec", "plakat", "piłka", "płaszcz",
+  "rower", "radio", "rura", "ramka", "ręcznik", "rękawiczka", "rysunek", "regał", "robot", "rakieta", "rzutnik", "ruter", "rondel", "ryza",
+  "stół", "szafa", "szklanka", "samochód", "skarpetka", "szczoteczka", "segregator", "spódnica", "spodnie", "słuchawki", "smartfon", "stempel", "śrubokręt", "świeca", "siatka", "statyw", "sanki",
+  "telefon", "torba", "talerz", "tablica", "taśma", "telewizor", "termometr", "tornister", "trampolina", "tarcza", "trąbka", "toster", "trzepaczka",
+  "umywalka", "uchwyt", "ubranie", "uszczelka", "urn", "uprząż",
+  "wazon", "wózek", "wieszak", "widelec", "wanna", "wiadro", "worek", "wentylator", "wkręt", "walizka", "wiertarka", "wata", "wędka", "wełna",
+  "zeszyt", "zegar", "zamek", "zabawka", "zatyczka", "zmywarka", "zapałka", "zasłona", "zlew", "zbroja", "ząb", "złoto"
+];
+
 module.exports = {
   COUNTRIES: new Set(COUNTRIES),
-  CITIES: new Set(CITIES)
+  CITIES: new Set(CITIES),
+  NAMES: new Set(NAMES),
+  ANIMALS: new Set(ANIMALS),
+  PLANTS: new Set(PLANTS),
+  THINGS: new Set(THINGS)
 };
