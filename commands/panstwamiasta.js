@@ -221,6 +221,7 @@ module.exports = {
   aliases: ['panstwa-miasta', 'panstwamiastadolacz', 'panstwamiastastart'],
   checkSjpWord,
   verifyWordCategory,
+  parseAnswer,
   async execute(client, message, args) {
     const threadId = message.guild?.id || message.rawEvent?.threadID;
     if (!threadId) {
