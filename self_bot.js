@@ -1,35 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-
-// Patch the fca library's message reply parser to ensure we don't lose the replied message ID if graphQL fetch fails
-try {
-  const libPath = path.join(__dirname, 'node_modules', '@dongdev', 'fca-unofficial', 'dist', 'index.js');
-  if (fs.existsSync(libPath)) {
-    let code = fs.readFileSync(libPath, 'utf8');
-    const targetStr = `} else if (d.deltaMessageReply.replyToMessageId) {`;
-    const replacementStr = `} else if (d.deltaMessageReply.replyToMessageId) {
-                  callbackToReturn.messageReply = {
-                    messageID: d.deltaMessageReply.replyToMessageId.id,
-                    threadID: callbackToReturn.threadID,
-                    senderID: "",
-                    attachments: [],
-                    args: [],
-                    body: "",
-                    isGroup: callbackToReturn.isGroup,
-                    mentions: {},
-                    timestamp: Date.now()
-                  };`;
-    if (code.includes(targetStr) && !code.includes('messageID: d.deltaMessageReply.replyToMessageId.id')) {
-      code = code.replace(targetStr, replacementStr);
-      fs.writeFileSync(libPath, code, 'utf8');
-      console.log('[PATCH] Pomyslnie zaaplikowano poprawke parsera odpowiedzi (messageReply fallback) do @dongdev/fca-unofficial');
-    }
-  }
-} catch (patchErr) {
-  console.error('[PATCH ERROR] Blad podczas aplikowania poprawki parsera:', patchErr);
-}
-
 const login = require('@dongdev/fca-unofficial');
 
 // Auto-seed data directory if empty (used for migration/Railway Volume setup)
@@ -302,37 +273,7 @@ if (!client.processedNewGroups) {
   client.processedNewGroups = new Set();
 }
 
-const crypto = require('crypto');
-const rootAppStatePath = path.join(__dirname, 'appstate.json');
 const appStatePath = path.join(__dirname, 'data', 'appstate.json');
-const lastHashPath = path.join(__dirname, 'data', 'last_imported_hash.txt');
-
-if (fs.existsSync(rootAppStatePath)) {
-  try {
-    const rootContent = fs.readFileSync(rootAppStatePath, 'utf8');
-    const rootHash = crypto.createHash('md5').update(rootContent).digest('hex');
-    
-    let lastHash = '';
-    if (fs.existsSync(lastHashPath)) {
-      lastHash = fs.readFileSync(lastHashPath, 'utf8').trim();
-    }
-    
-    if (rootHash !== lastHash) {
-      console.log('[SELF-BOT] Wykryto nowy plik appstate.json w katalogu glownym (nowa wersja z git). Kopiowanie do data/appstate.json...');
-      const dataDir = path.join(__dirname, 'data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-      fs.writeFileSync(appStatePath, rootContent, 'utf8');
-      fs.writeFileSync(lastHashPath, rootHash, 'utf8');
-      console.log('[SELF-BOT] Pomyslnie zaimportowano nowy appstate.json.');
-    } else {
-      console.log('[SELF-BOT] Plik appstate.json w katalogu glownym jest taki sam jak poprzednio zaimportowany. Pomijanie kopiowania.');
-    }
-  } catch (err) {
-    console.error('[SELF-BOT] Blad podczas importowania appstate.json z katalogu glownego:', err);
-  }
-}
 
 // Check if appstate.json is valid
 let isAppStateValid = false;
@@ -347,8 +288,14 @@ if (fs.existsSync(appStatePath)) {
 }
 
 if (!isAppStateValid) {
-  console.error('[SELF-BOT] BLAD: Plik appstate.json jest pusty, uszkodzony lub go brak. Logowanie nie jest mozliwe.');
-  process.exit(1);
+  console.log('[SELF-BOT] Plik appstate.json jest pusty, uszkodzony lub go brak. Uruchamianie automatycznego logowania przez Puppeteer (dane z fca-config.json)...');
+  const { execSync } = require('child_process');
+  try {
+    execSync('node utils/run_login.js', { stdio: 'inherit' });
+  } catch (err) {
+    console.error('[SELF-BOT] BLAD: Nie udalo sie automatycznie zalogowac do konta za pomoca podanych danych.');
+    process.exit(1);
+  }
 }
 
 function getPolandOffsetMs(date) {
@@ -438,23 +385,9 @@ try {
 
 console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
 
-const loginOptions = {};
-if (process.env.PROXY_URL) {
-  const sanitizedProxy = process.env.PROXY_URL.replace(/:([^:@]+)@/, ':***@');
-  console.log(`[SELF-BOT] Uzywanie serwera proxy dla polaczenia z Facebookiem: ${sanitizedProxy}`);
-  loginOptions.proxy = process.env.PROXY_URL;
-}
-
-login({ appState }, loginOptions, (loginErr, api) => {
+login({ appState }, (loginErr, api) => {
   if (loginErr) {
     console.error('[SELF-BOT] Logowanie nie powiodlo sie:', loginErr);
-    try {
-      const lastHashPath = path.join(__dirname, 'data', 'last_imported_hash.txt');
-      if (fs.existsSync(lastHashPath)) {
-        fs.unlinkSync(lastHashPath);
-        console.log('[SELF-BOT] Usunieto last_imported_hash.txt, aby wymusic ponowny import appstate.json z gita przy kolejnym starcie.');
-      }
-    } catch (_) {}
     process.exit(1);
   }
 
@@ -896,13 +829,6 @@ login({ appState }, loginOptions, (loginErr, api) => {
   api.listenMqtt(async (err, event) => {
     if (err) {
       console.error('[SELF-BOT] Blad nasluchiwania (wymuszenie restartu):', err);
-      try {
-        const lastHashPath = path.join(__dirname, 'data', 'last_imported_hash.txt');
-        if (fs.existsSync(lastHashPath)) {
-          fs.unlinkSync(lastHashPath);
-          console.log('[SELF-BOT] Usunieto last_imported_hash.txt, aby wymusic ponowny import appstate.json z gita przy kolejnym starcie.');
-        }
-      } catch (_) {}
       process.exit(1);
     }
 
@@ -1561,115 +1487,6 @@ login({ appState }, loginOptions, (loginErr, api) => {
       }
     }
 
-    // Interceptor dla Wisielca (hangman)
-    if (client.activeHangman) {
-      const hangmanGame = client.activeHangman.get(threadId);
-      if (hangmanGame && hangmanGame.active && hangmanGame.status === 'playing') {
-        const currentPlayer = hangmanGame.players[hangmanGame.currentPlayerIndex];
-        if (currentPlayer && currentPlayer.id === senderId) {
-          const repliedId = event.messageReply ? event.messageReply.messageID : null;
-          const isReply = !!repliedId && 
-            (hangmanGame.lastMessageId === repliedId || (hangmanGame.validMessageIds && hangmanGame.validMessageIds.includes(repliedId)));
-          
-          const cleanText = text.trim().toLowerCase().replace(/^!/, '');
-          
-          // Akceptujemy ruch bez konieczności odpowiadania (reply), jeśli to pojedyncza litera lub słowo o dokładnie takiej samej długości jak hasło.
-          // Zapobiega to przypadkowemu zinterpretowaniu zwykłego czatu gracza jako błędnej próby zgadnięcia całego hasła.
-          const isSingleLetter = /^[a-ząćęłńóśźż]$/.test(cleanText);
-          const isMatchingWordLength = cleanText.length === hangmanGame.word.length && /^[a-ząćęłńóśźż\s\-]+$/.test(cleanText);
-
-          if (isReply || isSingleLetter || isMatchingWordLength) {
-            if (/^[a-ząćęłńóśźż\s\-]+$/.test(cleanText)) {
-              const hangmanCmd = client.commands.get('wisielec');
-              if (hangmanCmd && typeof hangmanCmd.handleGuess === 'function') {
-                const senderName = await client.resolveUserName(api, senderId);
-                const messageContext = {
-                  client,
-                  prefix: currentPrefix,
-                  author: { id: senderId, username: senderName },
-                  content: text,
-                  guild: { id: threadId },
-                  rawEvent: event,
-                  reply: async (payload) => {
-                    return new Promise((resolve, reject) => {
-                      const replyText = renderPayloadToText(payload);
-                      if (!replyText) return resolve(null);
-                      let msgPayload;
-                      if (replyText.includes('@wszyscy') || replyText.includes('@everyone')) {
-                        const body = replyText.replace(/@wszyscy/g, '@everyone');
-                        msgPayload = { body, mentions: [{ tag: '@everyone', id: 'everyone' }] };
-                      } else {
-                        msgPayload = replyText;
-                      }
-                      api.sendMessage(msgPayload, threadId, (sendErr, msgInfo) => {
-                        if (sendErr) return reject(sendErr);
-                        resolve(msgInfo);
-                      }, messageId);
-                    });
-                  }
-                };
-                try {
-                  await hangmanCmd.handleGuess(client, messageContext, cleanText);
-                } catch (err) {
-                  console.error('[WISIELEC INTERCEPTOR ERROR]', err);
-                }
-                return; // Skonsumuj tę wiadomość
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Interceptor dla Państw-Miast
-    if (client.activePanstwaMiasta) {
-      const pmGame = client.activePanstwaMiasta.get(threadId);
-      if (pmGame && pmGame.active && pmGame.state === 'answering') {
-        const isJoined = pmGame.players.some(p => p.id === senderId);
-        if (isJoined) {
-          const pmCmd = client.commands.get('panstwamiasta');
-          if (pmCmd && typeof pmCmd.handleAnswer === 'function') {
-            const repliedId = event.messageReply ? event.messageReply.messageID : null;
-            const isReply = !!repliedId && 
-              (pmGame.lastMessageId === repliedId || (pmGame.validMessageIds && pmGame.validMessageIds.includes(repliedId)));
-            
-            console.log(`[PM-INTERCEPT] threadId=${threadId}, senderId=${senderId}, repliedId=${repliedId}, lastMsgId=${pmGame.lastMessageId}, validMsgIds=${JSON.stringify(pmGame.validMessageIds)}, isReply=${isReply}`);
-
-            const cleanText = text.trim().replace(/^!/, '');
-            
-            // Sprawdzamy czy to odpowiedź (reply) na wiadomość rundy
-            if (isReply) {
-              const senderName = await client.resolveUserName(api, senderId);
-              const messageContext = {
-                client,
-                prefix: currentPrefix,
-                author: { id: senderId, username: senderName },
-                content: text,
-                guild: { id: threadId },
-                rawEvent: event,
-                reply: async (payload) => {
-                  return new Promise((resolve, reject) => {
-                    const replyText = renderPayloadToText(payload);
-                    if (!replyText) return resolve(null);
-                    api.sendMessage(replyText, threadId, (sendErr, msgInfo) => {
-                      if (sendErr) return reject(sendErr);
-                      resolve(msgInfo);
-                    }, messageId);
-                  });
-                }
-              };
-              try {
-                await pmCmd.handleAnswer(client, messageContext, cleanText);
-              } catch (err) {
-                console.error('[PANSTWAMIASATA INTERCEPTOR ERROR]', err);
-              }
-              return; // Skonsumuj tę wiadomość
-            }
-          }
-        }
-      }
-    }
-
     // Interceptor dla aktywnej gry w blackjacka
     if (!client.activeBlackjackGames) {
       client.activeBlackjackGames = new Map();
@@ -1790,12 +1607,6 @@ login({ appState }, loginOptions, (loginErr, api) => {
     // Obsługa !multi ruletka jako jednej komendy !multiruletka
     if (commandName === 'multi' && args[0] && args[0].toLowerCase() === 'ruletka') {
       commandName = 'multiruletka';
-      args.shift();
-    }
-
-    // Obsługa !panstwa miasta jako jednej komendy !panstwamiasta
-    if (commandName === 'panstwa' && args[0] && args[0].toLowerCase() === 'miasta') {
-      commandName = 'panstwamiasta';
       args.shift();
     }
 
