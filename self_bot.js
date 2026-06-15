@@ -19,41 +19,53 @@ function ensureSeededData() {
       const rootHash = crypto.createHash('md5').update(rootContent).digest('hex');
       const lastHash = fs.existsSync(lastHashPath) ? fs.readFileSync(lastHashPath, 'utf8') : '';
 
-      if (rootHash !== lastHash) {
-        console.log('[SELF-BOT] Wykryto nowy plik appstate.json w katalogu glownym (nowa wersja z git). Kopiowanie do data/appstate.json...');
+      // Sprawdź UID-y z obu plików
+      let shouldOverwrite = rootHash !== lastHash;
+      let rootUID = null;
+      let dataUID = null;
+
+      try {
+        const rootData = JSON.parse(rootContent);
+        const rootUserObj = rootData.find(c => c.key === 'c_user' || c.name === 'c_user');
+        rootUID = rootUserObj ? rootUserObj.value : null;
+
+        if (fs.existsSync(appStatePath)) {
+          const dataData = JSON.parse(fs.readFileSync(appStatePath, 'utf8'));
+          const dataUserObj = dataData.find(c => c.key === 'c_user' || c.name === 'c_user');
+          dataUID = dataUserObj ? dataUserObj.value : null;
+        }
+      } catch (_) {}
+
+      // Jeśli UID-y się różnią, to bezwzględnie zmieniamy sesję i czyścimy stare bazy sesyjne
+      if (rootUID && dataUID && rootUID !== dataUID) {
+        console.log(`[SELF-BOT] Wykryto zmianę konta w appstate! (stary UID: ${dataUID}, nowy UID: ${rootUID}). Czyszczenie bazy sesji...`);
+        shouldOverwrite = true;
+        
+        // Usuń bazę danych sesji biblioteki FCA, aby nie przywróciła starej sesji
+        const fcaDbPath = path.join(__dirname, 'Fca_Database');
+        if (fs.existsSync(fcaDbPath)) {
+          try {
+            fs.rmSync(fcaDbPath, { recursive: true, force: true });
+            console.log('[SELF-BOT] Pomyślnie wyczyszczono Fca_Database.');
+          } catch (dbErr) {
+            console.error('[SELF-BOT] Błąd podczas usuwania Fca_Database:', dbErr);
+          }
+        }
+      }
+
+      if (shouldOverwrite) {
+        console.log('[SELF-BOT] Nadpisywanie appstate.json w katalogu data/ świeżą sesją...');
         if (!fs.existsSync(dataDir)) {
           fs.mkdirSync(dataDir, { recursive: true });
         }
         fs.writeFileSync(appStatePath, rootContent, 'utf8');
         fs.writeFileSync(lastHashPath, rootHash, 'utf8');
-        console.log('[SELF-BOT] Pomyslnie zaimportowano nowy appstate.json.');
+        console.log('[SELF-BOT] Pomyślnie zsynchronizowano pliki sesyjne.');
       } else {
-        console.log('[SELF-BOT] Plik appstate.json w katalogu glownym jest taki sam jak poprzednio zaimportowany. Pomijanie kopiowania.');
-        
-        // DODATKOWA WALIDACJA: Sprawdź czy c_user w data/appstate.json nie jest przestarzały względem głównego pliku
-        try {
-          if (fs.existsSync(appStatePath)) {
-            const rootData = JSON.parse(rootContent);
-            const dataData = JSON.parse(fs.readFileSync(appStatePath, 'utf8'));
-            
-            const rootUserObj = rootData.find(c => c.key === 'c_user' || c.name === 'c_user');
-            const dataUserObj = dataData.find(c => c.key === 'c_user' || c.name === 'c_user');
-            
-            const rootUID = rootUserObj ? rootUserObj.value : null;
-            const dataUID = dataUserObj ? dataUserObj.value : null;
-            
-            if (rootUID && dataUID && rootUID !== dataUID) {
-              console.log(`[SELF-BOT] Wykryto zmianę konta! Nadpisywanie starej sesji w data (stary UID: ${dataUID}, nowy UID: ${rootUID})`);
-              fs.writeFileSync(appStatePath, rootContent, 'utf8');
-              fs.writeFileSync(lastHashPath, rootHash, 'utf8');
-            }
-          }
-        } catch (err) {
-          console.error('[SELF-BOT] Błąd podczas walidacji zmiany konta:', err);
-        }
+        console.log('[SELF-BOT] Plik appstate.json jest zgodny z zapisanym w data/.');
       }
     } catch (err) {
-      console.error('[SELF-BOT] Blad podczas importowania appstate.json z katalogu glownego:', err);
+      console.error('[SELF-BOT] Błąd podczas importowania appstate.json z katalogu głównego:', err);
     }
   }
   
