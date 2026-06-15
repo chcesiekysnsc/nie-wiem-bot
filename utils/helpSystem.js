@@ -792,32 +792,6 @@ const helpCommands = [
     requirements: "Posiadanie odpowiedniej kwoty portfelu (min. 10 000 viccoinów).",
     aliases: ["mili", "quiz"],
     additionalInfo: ["Czas na odpowiedź to 15 sekund. Jeśli nikt nie odpowie poprawnie, pula organizatora przepada."]
-  },
-  {
-    id: 61,
-    name: "wisielec",
-    category: "SOCIAL_GANGS",
-    shortDescription: "klasyczna gra w wisielca z grupa",
-    description: "Uruchamia grę w Wisielca. Gracze mają 2 minuty na dołączenie. Bot losuje słowo z puli 500 haseł, a zapisani gracze po kolei zgadują litery w ciągu 30 sekund. Pomyłka zbliża do powieszenia (6 żyć).",
-    usage: "!wisielec | !wisielec dolacz | !wisielec start",
-    examples: ["!wisielec", "!wisielec dolacz", "!wisielec start"],
-    cooldown: "Brak.",
-    requirements: "Wymaga przynajmniej 1 gracza.",
-    aliases: ["wisielecz", "hangman"],
-    additionalInfo: ["Gracze po kolei zgadują po jednej literze. W swojej turze można również spróbować odgadnąć całe hasło."]
-  },
-  {
-    id: 62,
-    name: "panstwamiasta",
-    category: "SOCIAL_GANGS",
-    shortDescription: "gra w panstwa-miasta",
-    description: "Uruchamia grę w Państwa-Miasta na określoną liczbę tur. Gracze mają 2 minuty na dołączenie. W każdej rundzie bot losuje literę, a gracze mają 20 sekund na wysłanie kraju i miasta na tę literę. Unikalne poprawne słowa dają 10 pkt, powtórzone 5 pkt.",
-    usage: "!panstwamiasta [ilosc_tur]",
-    examples: ["!panstwamiasta", "!panstwamiasta 4", "!panstwa-miasta dolacz"],
-    cooldown: "Brak.",
-    requirements: "Maksymalnie 4 tury.",
-    aliases: ["panstwa-miasta", "panstwamiastadolacz", "panstwamiastastart"],
-    additionalInfo: ["Odpowiedzi wysyła się w formacie: Kraj Miasto (np. Kanada Kraków). Słowa nie mogą się powtarzać między graczami w tej samej turze."]
   }
 ];
 
