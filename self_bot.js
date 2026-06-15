@@ -8,6 +8,55 @@ function ensureSeededData() {
   const dataDir = path.join(__dirname, 'data');
   const seedDir = path.join(__dirname, 'data_seed');
   
+  const appStatePath = path.join(dataDir, 'appstate.json');
+  const rootAppStatePath = path.join(__dirname, 'appstate.json');
+  const lastHashPath = path.join(dataDir, '.appstate_hash');
+  const crypto = require('crypto');
+
+  if (fs.existsSync(rootAppStatePath)) {
+    try {
+      const rootContent = fs.readFileSync(rootAppStatePath, 'utf8');
+      const rootHash = crypto.createHash('md5').update(rootContent).digest('hex');
+      const lastHash = fs.existsSync(lastHashPath) ? fs.readFileSync(lastHashPath, 'utf8') : '';
+
+      if (rootHash !== lastHash) {
+        console.log('[SELF-BOT] Wykryto nowy plik appstate.json w katalogu glownym (nowa wersja z git). Kopiowanie do data/appstate.json...');
+        if (!fs.existsSync(dataDir)) {
+          fs.mkdirSync(dataDir, { recursive: true });
+        }
+        fs.writeFileSync(appStatePath, rootContent, 'utf8');
+        fs.writeFileSync(lastHashPath, rootHash, 'utf8');
+        console.log('[SELF-BOT] Pomyslnie zaimportowano nowy appstate.json.');
+      } else {
+        console.log('[SELF-BOT] Plik appstate.json w katalogu glownym jest taki sam jak poprzednio zaimportowany. Pomijanie kopiowania.');
+        
+        // DODATKOWA WALIDACJA: Sprawdź czy c_user w data/appstate.json nie jest przestarzały względem głównego pliku
+        try {
+          if (fs.existsSync(appStatePath)) {
+            const rootData = JSON.parse(rootContent);
+            const dataData = JSON.parse(fs.readFileSync(appStatePath, 'utf8'));
+            
+            const rootUserObj = rootData.find(c => c.key === 'c_user' || c.name === 'c_user');
+            const dataUserObj = dataData.find(c => c.key === 'c_user' || c.name === 'c_user');
+            
+            const rootUID = rootUserObj ? rootUserObj.value : null;
+            const dataUID = dataUserObj ? dataUserObj.value : null;
+            
+            if (rootUID && dataUID && rootUID !== dataUID) {
+              console.log(`[SELF-BOT] Wykryto zmianę konta! Nadpisywanie starej sesji w data (stary UID: ${dataUID}, nowy UID: ${rootUID})`);
+              fs.writeFileSync(appStatePath, rootContent, 'utf8');
+              fs.writeFileSync(lastHashPath, rootHash, 'utf8');
+            }
+          }
+        } catch (err) {
+          console.error('[SELF-BOT] Błąd podczas walidacji zmiany konta:', err);
+        }
+      }
+    } catch (err) {
+      console.error('[SELF-BOT] Blad podczas importowania appstate.json z katalogu glownego:', err);
+    }
+  }
+  
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
