@@ -67,16 +67,16 @@ module.exports = {
       const inv = ensureInventoryRecord(store.inventory, userId);
       return itemsList.map(art => {
         const qty = inv[art.id] || 0;
-        const status = qty > 0 ? `🟢 *(${qty} szt.)*` : '🔴 *(brak)*';
-        return `${art.num}. ${art.emoji} **${art.name}** — ${art.shortDesc} ${status}`;
+        const status = qty > 0 ? `🟢 (${qty} szt.)` : '🔴 (brak)';
+        return `${art.num}. ${art.emoji} *${art.name}* — ${art.shortDesc} ${status}`;
       });
     });
 
     const response = 
-      `✨ **Kolekcja Przedmiotów i Artefaktów** ✨\n` +
+      `✨ *Kolekcja Przedmiotów i Artefaktów* ✨\n` +
       `Oto wszystkie standardowe przedmioty i artefakty, które możesz dropnąć z paczek lub zdobyć w grze:\n\n` +
       result.join('\n') + `\n\n` +
-      `💡 Aby sprawdzić szczegółowe działanie danego przedmiotu, wpisz: **!artefakty help <numer>**`;
+      `💡 Aby sprawdzić szczegółowe działanie danego przedmiotu, wpisz: *!artefakty help <numer>*`;
 
     await message.reply(response);
   }

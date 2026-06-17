@@ -2,18 +2,6 @@ const config = require('../config/config');
 const { ensureInventoryRecord, addItem } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
-const ARTEFAKTY_MAP = {
-  1: { id: 'krwawy_zeton', name: 'Krwawy Żeton', emoji: '🩸' },
-  2: { id: 'przekupiony_krupier', name: 'Przekupiony Krupier', emoji: '🧠' },
-  3: { id: 'zlota_karta', name: 'Złota Karta', emoji: '💳' },
-  4: { id: 'stary_zegar', name: 'Stary Zegar', emoji: '⏰' },
-  5: { id: 'kamera', name: 'Kamera', emoji: '📷' },
-  6: { id: 'talizman_fortuny', name: 'Talizman Fortuny', emoji: '📿' },
-  7: { id: 'godlo_gangu', name: 'Godło Gangu', emoji: '🛡️' },
-  8: { id: 'garnitur', name: 'Garnitur', emoji: '👔' },
-  9: { id: 'kosc_ryzyka', name: 'Kostka Ryzyka', emoji: '🎲' }
-};
-
 module.exports = {
   name: 'itemadd',
   aliases: ['additem'],
@@ -27,19 +15,52 @@ module.exports = {
       return;
     }
 
-    const artNum = parseInt(args[0], 10);
-    const art = ARTEFAKTY_MAP[artNum];
+    // Dynamicznie tworzymy listę wszystkich przedmiotów z config.shopItems
+    const itemsList = Object.entries(config.shopItems).map(([id, item], idx) => ({
+      num: idx + 1,
+      id: id,
+      name: item.name,
+      emoji: item.emoji || '📦'
+    }));
 
-    if (!art) {
-      await message.reply('❌ Użyj: **!itemadd <nr_artefaktu (1-9)>**\n1. Krwawy Żeton\n2. Przekupiony Krupier\n3. Złota Karta\n4. Stary Zegar\n5. Kamera\n6. Talizman Fortuny\n7. Godło Gangu\n8. Garnitur\n9. Kostka Ryzyka');
+    const input = String(args[0] || '').trim().toLowerCase();
+    if (!input) {
+      // Wyświetl całą listę z numerami i ID
+      let listMsg = `🎁 **KREATOR PRZEDMIOTÓW (ADMIN)** 🎁\n`;
+      listMsg += `Użyj: **!itemadd <numer/ID> [ilość]** (np. *!itemadd 1 5* lub *!itemadd vip*)\n\n`;
+      listMsg += `📋 **Lista dostępnych przedmiotów:**\n`;
+      
+      itemsList.forEach(item => {
+        listMsg += `${item.num}. ${item.emoji} **${item.name}** (\`${item.id}\`)\n`;
+      });
+      
+      await message.reply(listMsg);
       return;
+    }
+
+    // Szukamy po numerze lub po ID
+    const parsedNum = parseInt(input, 10);
+    const item = itemsList.find(i => i.num === parsedNum || i.id === input);
+
+    if (!item) {
+      await message.reply(`❌ Nie znaleziono przedmiotu o ID lub numerze: **${input}**. Wpisz **!itemadd** bez parametrów, aby zobaczyć listę.`);
+      return;
+    }
+
+    // Opcjonalna ilość (domyślnie 1)
+    let qty = 1;
+    if (args[1]) {
+      const parsedQty = parseInt(args[1], 10);
+      if (!isNaN(parsedQty) && parsedQty > 0) {
+        qty = parsedQty;
+      }
     }
 
     await withData(store => {
       const inv = ensureInventoryRecord(store.inventory, authorId);
-      addItem(inv, art.id, 1);
+      addItem(inv, item.id, qty);
     });
 
-    await message.reply(`🎁 Pomyślnie dodałeś artefakt **${art.emoji} ${art.name}** do swojego ekwipunku!`);
+    await message.reply(`🎁 Pomyślnie dodałeś **${qty}x** ${item.emoji} **${item.name}** do swojego ekwipunku!`);
   }
 };
