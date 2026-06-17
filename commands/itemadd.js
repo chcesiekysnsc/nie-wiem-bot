@@ -2,6 +2,24 @@ const config = require('../config/config');
 const { ensureInventoryRecord, addItem } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
+const eventItemIds = ['szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia'];
+
+const getNonEventItems = () => {
+  const list = [];
+  let num = 1;
+  for (const [id, item] of Object.entries(config.shopItems)) {
+    if (eventItemIds.includes(id)) continue;
+    if (item.buyable !== false) continue;
+    list.push({
+      num: num++,
+      id: id,
+      name: item.name,
+      emoji: item.emoji || '📦'
+    });
+  }
+  return list;
+};
+
 module.exports = {
   name: 'itemadd',
   aliases: ['additem'],
@@ -15,13 +33,7 @@ module.exports = {
       return;
     }
 
-    // Dynamicznie tworzymy listę wszystkich przedmiotów z config.shopItems
-    const itemsList = Object.entries(config.shopItems).map(([id, item], idx) => ({
-      num: idx + 1,
-      id: id,
-      name: item.name,
-      emoji: item.emoji || '📦'
-    }));
+    const itemsList = getNonEventItems();
 
     const input = String(args[0] || '').trim().toLowerCase();
     if (!input) {
