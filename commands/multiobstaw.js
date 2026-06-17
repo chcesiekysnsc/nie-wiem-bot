@@ -88,6 +88,11 @@ module.exports = {
       return;
     }
 
+    if (selections.length !== activeMulti.matches.length) {
+      await message.reply(`❌ Twój kupon nie zawiera wszystkich meczów z oferty! Wymagane jest obstawienie wszystkich **${activeMulti.matches.length}** meczów (obstawiłeś: **${selections.length}**).`);
+      return;
+    }
+
     client.meczInProgress.add(userId);
 
     // 4. Walidacja i potrącenie stawki

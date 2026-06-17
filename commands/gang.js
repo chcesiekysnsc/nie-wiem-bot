@@ -1,4 +1,4 @@
-const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem } = require('../utils/economy');
+const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 module.exports = {
@@ -891,12 +891,22 @@ module.exports = {
           // Rozdaj pieniądze każdemu uczestnikowi, obliczając haracza
           const tributePercent = currentGang.tributePercent || 0;
           let totalTribute = 0;
+          const participantBonuses = {};
           for (const pid of listParticipants) {
             const pUser = createUser(pid, store.users);
             const isExcluded = pUser.gangRole === 'boss' || pUser.gangRole === 'deputy';
             const tributeAmount = (!isExcluded && tributePercent > 0) ? Math.floor(rewardPerPerson * (tributePercent / 100)) : 0;
             totalTribute += tributeAmount;
-            pUser.balance += rewardPerPerson - tributeAmount;
+            
+            let finalReward = rewardPerPerson - tributeAmount;
+            const inventory = ensureInventoryRecord(store.inventory, pid);
+            let godloBonus = 0;
+            if (hasItem(inventory, 'godlo_gangu')) {
+              godloBonus = Math.floor(finalReward * 0.10);
+              finalReward += godloBonus;
+              participantBonuses[pid] = godloBonus;
+            }
+            pUser.balance += finalReward;
           }
           // Dodaj haracza do sejfu gangu
           currentGang.vault += totalTribute;
@@ -906,7 +916,8 @@ module.exports = {
             heistType,
             totalReward,
             rewardPerPerson,
-            tributePercent
+            tributePercent,
+            participantBonuses
           };
         });
 
@@ -921,10 +932,24 @@ module.exports = {
           const tributePerPerson = Math.floor(heistOutcome.rewardPerPerson * ((heistOutcome.tributePercent || 0) / 100));
           const finalRewardPerPerson = heistOutcome.rewardPerPerson - tributePerPerson;
           const tributeText = tributePerPerson > 0 ? `\n💰 Haracza dla gangu: **-${formatCurrency(tributePerPerson)}** na osobę (nie dotyczy Bossa i Zastępców)` : '';
+          
+          let bonusText = '';
+          const bonusPlayers = [];
+          for (const pid of listParticipants) {
+            const b = heistOutcome.participantBonuses[pid];
+            if (b > 0) {
+              const name = client.userNames.get(pid) || `Gracz_${pid.slice(-6)}`;
+              bonusPlayers.push(`• **${name}**: **+${formatCurrency(b)}** (🛡️ Godło)`);
+            }
+          }
+          if (bonusPlayers.length > 0) {
+            bonusText = `\n\n✨ **Bonusy za posiadanie 🛡️ Godła Gangu (+10%):**\n` + bonusPlayers.join('\n');
+          }
+
           await message.reply(`💰 **SKOK GANGU ZAKOŃCZONY SUKCESEM!** 💰\n` +
             `Ekipa w składzie: **${names}** przeprowadziła pomyślnie: **${heistOutcome.heistType}**!\n\n` +
             `💵 Całkowity łup: **${formatCurrency(heistOutcome.totalReward)}**\n` +
-            `💸 Każdy z uczestników otrzymuje: **+${formatCurrency(finalRewardPerPerson)}** (brutto: ${formatCurrency(heistOutcome.rewardPerPerson)})${tributeText}`);
+            `💸 Każdy z uczestników otrzymuje: **+${formatCurrency(finalRewardPerPerson)}** (brutto: ${formatCurrency(heistOutcome.rewardPerPerson)})${tributeText}${bonusText}`);
         } else {
           await message.reply(`🚨 **SKOK ZAKOŃCZYŁ SIĘ WPADKĄ!** 🚨\n` +
             `Ekipa w składzie: **${names}** została osaczona przez policję.\n\n` +
@@ -1234,9 +1259,18 @@ module.exports = {
             attackerGang.vault += vaultShare;
 
             const zetonWinners = [];
+            const attackerBonuses = {};
             for (const pid of listAttackers) {
               const pUser = createUser(pid, store.users);
-              pUser.balance += sharePerPerson;
+              let finalShare = sharePerPerson;
+              const inventory = ensureInventoryRecord(store.inventory, pid);
+              let godloBonus = 0;
+              if (hasItem(inventory, 'godlo_gangu')) {
+                godloBonus = Math.floor(finalShare * 0.05);
+                finalShare += godloBonus;
+                attackerBonuses[pid] = godloBonus;
+              }
+              pUser.balance += finalShare;
               
               if (Math.random() < 0.04) {
                 const pInv = ensureInventoryRecord(store.inventory, pid);
@@ -1252,7 +1286,8 @@ module.exports = {
               stolenTotal,
               vaultShare,
               sharePerPerson,
-              zetonWinners
+              zetonWinners,
+              attackerBonuses
             };
           } else {
             // Failure Penalty:
@@ -1266,11 +1301,20 @@ module.exports = {
             defenderGang.vault += penaltyVault;
 
             let sharePerDefender = 0;
+            const defenderBonuses = {};
             if (listDefenders.length > 0) {
               sharePerDefender = Math.floor(penaltyDefenders / listDefenders.length);
               for (const pid of listDefenders) {
                 const pUser = createUser(pid, store.users);
-                pUser.balance += sharePerDefender;
+                let finalShare = sharePerDefender;
+                const inventory = ensureInventoryRecord(store.inventory, pid);
+                let godloBonus = 0;
+                if (hasItem(inventory, 'godlo_gangu')) {
+                  godloBonus = Math.floor(finalShare * 0.05);
+                  finalShare += godloBonus;
+                  defenderBonuses[pid] = godloBonus;
+                }
+                pUser.balance += finalShare;
               }
             } else {
               // If there were no defending players checked in, the 15% goes to defender's vault
@@ -1284,7 +1328,8 @@ module.exports = {
               penaltyVault,
               penaltyDefenders,
               sharePerDefender,
-              totalPenalty
+              totalPenalty,
+              defenderBonuses
             };
           }
         });
@@ -1310,6 +1355,19 @@ module.exports = {
             zetonNote = `\n🎁 **LEGENDA WOJENNA!** Uczestnicy: **${zetonNames}** zdobyli 🩸 **Krwawy Żeton**!`;
           }
 
+          let godloNote = '';
+          const godloPlayers = [];
+          for (const pid of listAttackers) {
+            const b = outcome.attackerBonuses[pid];
+            if (b > 0) {
+              const name = client.userNames.get(pid) || `Gracz_${pid.slice(-6)}`;
+              godloPlayers.push(`• **${name}**: **+${formatCurrency(b)}** (🛡️ Godło)`);
+            }
+          }
+          if (godloPlayers.length > 0) {
+            godloNote = `\n\n✨ **Bonusy za posiadanie 🛡️ Godła Gangu (+5%):**\n` + godloPlayers.join('\n');
+          }
+
           await message.reply(
             `⚔️ **WOJNA GANGÓW ZAKOŃCZONA SUKCESEM!** ⚔️\n` +
             `Gang **${startResult.attackerGangName}** zniszczył obronę gangu **${startResult.defenderGangName}**!\n\n` +
@@ -1317,9 +1375,22 @@ module.exports = {
             `💰 **ŁUP WOJENNY:**\n` +
             `• Skradziono z wrogiego sejfu: **${formatCurrency(outcome.stolenTotal)}**\n` +
             `• Trafiło do sejfu Waszego gangu (30%): **+${formatCurrency(outcome.vaultShare)}**\n` +
-            `• Każdy uczestnik ataku (**${attackerNames}**) otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!${zetonNote}`
+            `• Każdy uczestnik ataku (**${attackerNames}**) otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!${zetonNote}${godloNote}`
           );
         } else {
+          let godloNote = '';
+          const godloPlayers = [];
+          for (const pid of listDefenders) {
+            const b = outcome.defenderBonuses[pid];
+            if (b > 0) {
+              const name = client.userNames.get(pid) || `Gracz_${pid.slice(-6)}`;
+              godloPlayers.push(`• **${name}**: **+${formatCurrency(b)}** (🛡️ Godło)`);
+            }
+          }
+          if (godloPlayers.length > 0) {
+            godloNote = `\n\n✨ **Bonusy za posiadanie 🛡️ Godła Gangu (+5%):**\n` + godloPlayers.join('\n');
+          }
+
           const defenderDistribution = listDefenders.length > 0 
             ? `Każdy obrońca (**${defenderNames}**) otrzymuje: **+${formatCurrency(outcome.sharePerDefender)}** do portfela!`
             : `Ponieważ nikt nie bronił gangu osobiście, całe **${formatCurrency(outcome.totalPenalty)}** zasiliło sejf broniących!`;
@@ -1331,7 +1402,7 @@ module.exports = {
             `💸 **KONSEKWENCJE PORAŻKI:**\n` +
             `• Gang szturmujący traci łącznie **${formatCurrency(outcome.totalPenalty)}** ze swojego sejfu!\n` +
             `• Sejf obrońców zyskuje: **+${formatCurrency(outcome.penaltyVault)}**\n` +
-            `• ${defenderDistribution}`
+            `• ${defenderDistribution}${godloNote}`
           );
         }
       }, 120000).unref();

@@ -73,10 +73,10 @@ module.exports = {
     });
 
     const response = 
-      `✨ **Kolekcja Przedmiotów w Grze** ✨\n` +
-      `Oto wszystkie standardowe przedmioty i artefakty (nieeventowe), które możesz posiadać:\n\n` +
+      `✨ **Kolekcja Przedmiotów i Artefaktów** ✨\n` +
+      `Oto wszystkie standardowe przedmioty i artefakty, które możesz dropnąć z paczek lub zdobyć w grze:\n\n` +
       result.join('\n') + `\n\n` +
-      `💡 Aby sprawdzić szczegóły danego przedmiotu, wpisz: **!artefakty help <numer>**`;
+      `💡 Aby sprawdzić szczegółowe działanie danego przedmiotu, wpisz: **!artefakty help <numer>**`;
 
     await message.reply(response);
   }

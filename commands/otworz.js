@@ -45,7 +45,8 @@ const PACZKI = {
       { chance: 30, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }] }, // 3% = 30/1000
       { chance: 20, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] }, // 2% = 20/1000
       { chance: 20, items: [{ id: 'zlota_karta', qty: 1, label: '💳 Złota Karta' }] }, // 2% = 20/1000
-      { chance: 10, items: [{ id: 'kamera', qty: 1, label: '📷 Kamera' }] } // 1% = 10/1000
+      { chance: 10, items: [{ id: 'kamera', qty: 1, label: '📷 Kamera' }] }, // 1% = 10/1000
+      { chance: 10, items: [{ id: 'talizman_fortuny', qty: 1, label: '📿 Talizman Fortuny', permanent: true }] } // 1% = 10/1000
     ]
   },
   diamentowa: {
@@ -58,7 +59,9 @@ const PACZKI = {
       { chance: 50, items: [{ id: 'vip',  qty: 1, label: '👑 VIP Pass',          permanent: true }] }, // 5% = 50/1000
       { chance: 50, items: [{ id: 'sejf', qty: 1, label: '🏦 Ulepszenie Banku',  permanent: true }] }, // 5% = 50/1000
       { chance: 20, items: [{ id: 'krwawy_zeton', qty: 1, label: '🩸 Krwawy Żeton' }] }, // 2% = 20/1000
-      { chance: 5,  items: [{ id: 'stary_zegar', qty: 1, label: '⏰ Stary Zegar' }] }  // 0.5% = 5/1000
+      { chance: 5,  items: [{ id: 'stary_zegar', qty: 1, label: '⏰ Stary Zegar' }] },  // 0.5% = 5/1000
+      { chance: 30, items: [{ id: 'godlo_gangu', qty: 1, label: '🛡️ Godło Gangu', permanent: true }] }, // 3% = 30/1000
+      { chance: 30, items: [{ id: 'garnitur', qty: 1, label: '👔 Garnitur', permanent: true }] } // 3% = 30/1000
     ]
   },
   tytanowa: {
@@ -71,15 +74,20 @@ const PACZKI = {
       { chance: 20, items: [{ id: 'przekupiony_krupier', qty: 1, label: '🧠 Przekupiony Krupier' }] }, // 2% = 20/1000
       { chance: 150, items: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }] }, // 15% = 150/1000
       { chance: 150, items: [{ id: 'piwo',  qty: 1, label: '🍺 Piwo'  }] },  // 15% = 150/1000
-      { chance: 100, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] } // 10% = 100/1000 (total for bomba/piwo/klodka = 40% = 400/1000)
+      { chance: 100, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] }, // 10% = 100/1000 (total for bomba/piwo/klodka = 40% = 400/1000)
+      { chance: 30, items: [{ id: 'kosc_ryzyka', qty: 1, label: '🎲 Kostka Ryzyka', permanent: true }] } // 3% = 30/1000
     ]
   }
 };
 
 // Zamienniki gdy gracz już posiada dany permanent item
 const FALLBACKS = {
-  vip:  [{ id: 'klodka', qty: 2, label: '🔒 Kłódka x2' }, { id: 'piwo',  qty: 1, label: '🍺 Piwo'        }],
-  sejf: [{ id: 'bomba',  qty: 1, label: '💣 Bomba'      }, { id: 'klodka', qty: 2, label: '🔒 Kłódka x2' }]
+  vip:              [{ id: 'klodka', qty: 2, label: '🔒 Kłódka x2' }, { id: 'piwo',  qty: 1, label: '🍺 Piwo'        }],
+  sejf:             [{ id: 'bomba',  qty: 1, label: '💣 Bomba'      }, { id: 'klodka', qty: 2, label: '🔒 Kłódka x2' }],
+  talizman_fortuny: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }],
+  godlo_gangu:      [{ id: 'bomba', qty: 1, label: '💣 Bomba' }, { id: 'klodka', qty: 1, label: '🔒 Kłódka' }],
+  garnitur:         [{ id: 'bomba', qty: 1, label: '💣 Bomba' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }],
+  kosc_ryzyka:      [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }]
 };
 
 // Losuje drop na podstawie tabeli szans (1-1000)
@@ -113,9 +121,9 @@ module.exports = {
         `Użyj: **!otworz <brazowa|srebrna|zlota|diamentowa|tytanowa>**\n\n` +
         `🟫 **Brązowa** (50k)    — 20 250 – 65 250 + 10% Bilet Loterii\n` +
         `⬜ **Srebrna** (100k)   — 64 125 – 131 625 + 10% Kłódka lub Piwo\n` +
-        `🟨 **Złota** (200k)     — 130 500 – 220 500 + 10% szans: Bomba, Kłódka+Piwo, Bilet, 2% Złota Karta, 1% Kamera\n` +
-        `🟦 **Diamentowa** (500k) — 202 500 – 652 500 + 10% szans: VIP, Sejf, 2% Krwawy Żeton, 0.5% Stary Zegar\n` +
-        `🩶 **Tytanowa** (800k)   — 495 000 – 900 000 + 2% Przekupiony Krupier, 40% Bomba/Piwo/Kłódka\n\n` +
+        `🟨 **Złota** (200k)     — 130 500 – 220 500 + 10% szans: Bomba, Kłódka+Piwo, Bilet, 2% Złota Karta, 1% Kamera, 1% Talizman Fortuny\n` +
+        `🟦 **Diamentowa** (500k) — 202 500 – 652 500 + 10% szans: VIP, Sejf, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur\n` +
+        `🩶 **Tytanowa** (800k)   — 495 000 – 900 000 + 2% Przekupiony Krupier, 3% Kostka Ryzyka, 40% Bomba/Piwo/Kłódka\n\n` +
         `💡 Kup paczki w sklepie: **!sklep**`
       );
       return;
@@ -230,6 +238,10 @@ module.exports = {
         dropLine = `💨 *Brak dodatkowego dropu tym razem...*`;
       }
 
+      if (result.itemsSummary['kosc_ryzyka'] && result.fallbackCount === 0) {
+        dropLine += `\n\n🎲 **Kostka Ryzyka:** Odblokowałeś nową komendę **!kosc**! Pozwala ona raz na 24h zaryzykować ostatnią wygraną z kasyna (do 500k) w rzucie 50/50.`;
+      }
+
       await message.reply(
         `${pack.emoji} **OTWIERANIE — ${pack.name.toUpperCase()}**\n` +
         `🔑 Wkładanie klucza...\n` +
@@ -250,6 +262,10 @@ module.exports = {
         }
       } else {
         dropLine = `💨 *Brak dodatkowych dropów z tych paczek...*`;
+      }
+
+      if (result.itemsSummary['kosc_ryzyka'] && result.fallbackCount === 0) {
+        dropLine += `\n\n🎲 **Kostka Ryzyka:** Odblokowałeś nową komendę **!kosc**! Pozwala ona raz na 24h zaryzykować ostatnią wygraną z kasyna (do 500k) w rzucie 50/50.`;
       }
 
       await message.reply(

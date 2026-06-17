@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, msToReadable } = require('../utils/economy');
+const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 module.exports = {
@@ -184,7 +184,16 @@ module.exports = {
         }
 
         // Give payout
-        user.balance += compDef.payout;
+        let payout = compDef.payout;
+        const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+        const hasGarnitur = hasItem(inventory, 'garnitur');
+        let garniturBonus = 0;
+        if (hasGarnitur) {
+          garniturBonus = Math.floor(payout * 0.10);
+          payout += garniturBonus;
+        }
+
+        user.balance += payout;
         user.company.lastPayout = now;
 
         // Check for breakdown (progressive breakdown chance)
@@ -193,7 +202,7 @@ module.exports = {
           user.company.isBroken = true;
         }
 
-        return { success: true, compDef, payout: compDef.payout, broke, balance: user.balance };
+        return { success: true, compDef, payout, garniturBonus, broke, balance: user.balance };
       });
 
       if (result.error) {
@@ -202,7 +211,13 @@ module.exports = {
       }
 
       let replyText = `💰 Zebrałeś wypłatę z firmy **${result.compDef.emoji} ${result.compDef.name}**!\n`;
-      replyText += `➕ Zysk: **+${formatCurrency(result.payout)}**\n`;
+      if (result.garniturBonus > 0) {
+        replyText += `➕ Zysk nominalny: **+${formatCurrency(result.payout - result.garniturBonus)}**\n`;
+        replyText += `👔 **Garnitur (+10%):** **+${formatCurrency(result.garniturBonus)}**\n`;
+        replyText += `➕ Łączny zysk: **+${formatCurrency(result.payout)}**\n`;
+      } else {
+        replyText += `➕ Zysk: **+${formatCurrency(result.payout)}**\n`;
+      }
       replyText += `💰 Stan portfela: **${formatCurrency(result.balance)}**\n`;
 
       if (result.broke) {

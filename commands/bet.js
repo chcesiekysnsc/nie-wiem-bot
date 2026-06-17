@@ -113,11 +113,15 @@ module.exports = {
         }
 
         let winAmount = 0;
+        let talizmanBonus = 0;
         if (won) {
           winAmount = Math.round(bet * multiplier) - bet;
           if (user.badges && user.badges.includes(config.badges.uzalezniony)) {
             winAmount = Math.round(winAmount * 1.03);
           }
+          const { applyTalizmanBonus } = require('../utils/economy');
+          talizmanBonus = applyTalizmanBonus(user, inventory, winAmount);
+          winAmount += talizmanBonus;
           user.balance += winAmount;
         } else {
           user.balance -= bet;
@@ -135,7 +139,9 @@ module.exports = {
           balance: user.balance,
           badgeSaved,
           szkarlatneOkoSaved,
-          activeBadgeName
+          activeBadgeName,
+          talizmanBonus,
+          streak: user.gambleStreak || 0
         };
       });
 
@@ -146,6 +152,10 @@ module.exports = {
 
       const winText = result.won ? `Wygrana! **+${formatCurrency(result.net)}**` : `Przegrana. **-${formatCurrency(Math.abs(result.net))}**`;
       let replyText = `🎰 Bet: Wylosowano **${result.rolledNumber}** (Typ: < ${chosenNumber}). ${winText}. Twój balans: **${formatCurrency(result.balance)}**`;
+
+      if (result.won && result.talizmanBonus > 0) {
+        replyText += `\n📿 **Talizman Fortuny:** Otrzymujesz bonus **+${formatCurrency(result.talizmanBonus)}** (seria: ${result.streak} wygranych pod rząd)`;
+      }
 
       if (result.badgeSaved && result.activeBadgeName) {
         replyText += `\n🍀 Odznaka **${result.activeBadgeName}** dała Ci dodatkową szansę i uratowała przed przegraną!`;

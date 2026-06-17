@@ -299,6 +299,46 @@ module.exports = {
       type: 'stackable',
       buyable: true
     },
+    talizman_fortuny: {
+      name: 'Talizman Fortuny',
+      emoji: '📿',
+      price: 0,
+      shortDesc: '+1% do wygranej za każdy streak wygranych (max +10%)',
+      description: 'Zwiększa wygraną netto o 1% za każdą kolejną wygraną z rzędu w kasynie (max. +10%). Przegrana resetuje passę.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępny tylko ze Złotej Paczki (1.0%).'
+    },
+    godlo_gangu: {
+      name: 'Godło Gangu',
+      emoji: '🛡️',
+      price: 0,
+      shortDesc: '+10% z napadów gangu, +5% z wojen gangów',
+      description: 'Zwiększa zyski z napadów gangu (!gang skok) o 10% oraz udział w łupach z wojny gangów (!gang atak) o 5%.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępne tylko z Diamentowej Paczki (3.0%).'
+    },
+    garnitur: {
+      name: 'Garnitur',
+      emoji: '👔',
+      price: 0,
+      shortDesc: '+10% dochodu z firm.',
+      description: 'Zwiększa zyski zbierane z Twojej firmy (!firma zbierz) o 10%.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Diamentowej Paczki (3.0%).'
+    },
+    kosc_ryzyka: {
+      name: 'Kostka Ryzyka',
+      emoji: '🎲',
+      price: 0,
+      shortDesc: 'Odblokowuje !kosc (raz na 24h ryzykujesz ostatnią wygraną 50/50).',
+      description: 'Odblokowuje specjalną komendę !kosc. Raz na dobę pozwala zaryzykować ostatnią wygraną kwotę netto z kasyna (do 500k) w rzucie 50/50 - możesz ją podwoić lub stracić.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępna tylko z Tytanowej Paczki (3.0%).'
+    },
     szkarlatne_oko: {
       name: 'Szkarłatne Oko Krupiera',
       emoji: '👁️',

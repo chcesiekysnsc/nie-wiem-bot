@@ -161,6 +161,17 @@ function addXp(user, amount, inventoryRecord = null) {
   };
 }
 
+function applyTalizmanBonus(user, inventoryRecord, netGain) {
+  if (netGain <= 0) return 0;
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'talizman_fortuny')) return 0;
+
+  const streak = user.gambleStreak || 0;
+  const pct = Math.min(10, streak);
+  if (pct <= 0) return 0;
+
+  return Math.floor(netGain * (pct / 100));
+}
+
 function recordGame(user, net, xpGain = 25, inventoryRecord = null) {
   user.gamesPlayed += 1;
 
@@ -173,12 +184,15 @@ function recordGame(user, net, xpGain = 25, inventoryRecord = null) {
     finalXpGain = Math.round(finalXpGain * multiplier);
   }
 
-  if (net >= 0) {
+  if (net > 0) {
     user.totalWon += net;
     user.wins = (user.wins || 0) + 1;
-  } else {
+    user.gambleStreak = (user.gambleStreak || 0) + 1;
+    user.lastGambleWin = net;
+  } else if (net < 0) {
     user.totalLost += Math.abs(net);
     user.losses = (user.losses || 0) + 1;
+    user.gambleStreak = 0;
   }
 
   return addXp(user, finalXpGain, inventoryRecord);
@@ -385,5 +399,6 @@ module.exports = {
   refreshBadges,
   MILESTONE_REWARDS,
   getMilestoneRewardDescription,
-  giveMilestoneReward
+  giveMilestoneReward,
+  applyTalizmanBonus
 };

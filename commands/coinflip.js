@@ -91,13 +91,22 @@ module.exports = {
       if (won && user.badges && user.badges.includes(config.badges.uzalezniony)) {
         payout += Math.round(bet * 0.03);
       }
+
+      let talizmanBonus = 0;
+      if (won) {
+        const netGainBeforeTalizman = payout - bet;
+        const { applyTalizmanBonus } = require('../utils/economy');
+        talizmanBonus = applyTalizmanBonus(user, inventory, netGainBeforeTalizman);
+        payout += talizmanBonus;
+      }
+
       user.balance += payout;
 
       const net = payout - bet;
       const xpResult = recordGame(user, net, 25, inventory);
       refreshBadges(user, inventory);
 
-      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, badgeUsed, dealerCheated };
+      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, badgeUsed, dealerCheated, talizmanBonus, streak: user.gambleStreak || 0 };
     });
 
     if (result.error) {
@@ -108,6 +117,10 @@ module.exports = {
     const outcome = displayChoice(result.flip);
     const winText = result.won ? `Wygrana! +${formatCurrency(result.net)}` : `Przegrana. -${formatCurrency(result.bet)}`;
     let replyText = `🪙 Coinflip: Wypadło **${outcome}**. ${winText}`;
+
+    if (result.won && result.talizmanBonus > 0) {
+      replyText += `\n📿 **Talizman Fortuny:** Otrzymujesz bonus **+${formatCurrency(result.talizmanBonus)}** (seria: ${result.streak} wygranych pod rząd)`;
+    }
 
     if (result.dealerCheated) {
       replyText += `\n🧠 **Przekupiony Krupier:** *Krupier zręcznie obrócił monetę w locie na **${outcome}**!*`;

@@ -173,10 +173,18 @@ module.exports = {
           payout += Math.round(profit * 0.03);
           net = payout - bet;
         }
+        let talizmanBonus = 0;
+        if (payout > bet) {
+          const profit = payout - bet;
+          const { applyTalizmanBonus } = require('../utils/economy');
+          talizmanBonus = applyTalizmanBonus(user, inventory, profit);
+          payout += talizmanBonus;
+          net = payout - bet;
+        }
         user.balance += payout;
         const xpResult = recordGame(user, net, 25, inventory);
         refreshBadges(user, inventory);
-        return { balance: user.balance, xpResult };
+        return { balance: user.balance, xpResult, talizmanBonus, streak: user.gambleStreak || 0 };
       });
 
       let replyText = `🃏 **Gra w Blackjacka rozstrzygnięta!**\n\n` +
@@ -184,6 +192,10 @@ module.exports = {
         `👤 Twoja Ręka: ${renderHand(playerCards)} (Wartość: 21 pkt)\n\n` +
         `${outcome}\n` +
         `Twój balans: **${formatCurrency(dbResult.balance)}**`;
+
+      if (payout > bet && dbResult.talizmanBonus > 0) {
+        replyText += `\n📿 **Talizman Fortuny:** Otrzymujesz bonus **+${formatCurrency(dbResult.talizmanBonus)}** (seria: ${dbResult.streak} wygranych pod rząd)`;
+      }
 
       if (dbResult.xpResult && dbResult.xpResult.leveledUp) {
         replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${dbResult.xpResult.newLevel}**!`;
@@ -536,10 +548,19 @@ module.exports = {
         finalNet = finalPayout - game.bet;
       }
 
+      let talizmanBonus = 0;
+      if (finalPayout > game.bet) {
+        const profit = finalPayout - game.bet;
+        const { applyTalizmanBonus } = require('../utils/economy');
+        talizmanBonus = applyTalizmanBonus(user, inventory, profit);
+        finalPayout += talizmanBonus;
+        finalNet = finalPayout - game.bet;
+      }
+
       user.balance += finalPayout;
       const xpResult = recordGame(user, finalNet, 25, inventory);
       refreshBadges(user, inventory);
-      return { balance: user.balance, xpResult, outcome: finalOutcome };
+      return { balance: user.balance, xpResult, outcome: finalOutcome, talizmanBonus, streak: user.gambleStreak || 0 };
     });
 
     let replyText = `🃏 **Koniec gry w Blackjacka!**${cheatNote}\n\n` +
@@ -549,6 +570,10 @@ module.exports = {
       `Twój balans: **${formatCurrency(dbResult.balance)}**`;
 
     const wonHand = dbResult.outcome.includes('Wygrana');
+    if (wonHand && dbResult.talizmanBonus > 0) {
+      replyText += `\n📿 **Talizman Fortuny:** Otrzymujesz bonus **+${formatCurrency(dbResult.talizmanBonus)}** (seria: ${dbResult.streak} wygranych pod rząd)`;
+    }
+
     const cheated = game.playerCards.some(c => c.isCheat);
     if (wonHand && cheated) {
       replyText += `\n🧠 Ta wygrana została ułatwiona przez pasywny przedmiot **Przekupiony Krupier**!`;
