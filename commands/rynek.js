@@ -2,18 +2,28 @@ const config = require('../config/config');
 const { formatCurrency, ensureInventoryRecord, hasItem, addItem, removeItem } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
-const ARTEFAKTY_MAP = {
-  1: { id: 'krwawy_zeton', name: 'Krwawy Żeton', emoji: '🩸' },
-  2: { id: 'przekupiony_krupier', name: 'Przekupiony Krupier', emoji: '🧠' },
-  3: { id: 'zlota_karta', name: 'Złota Karta', emoji: '💳' },
-  4: { id: 'stary_zegar', name: 'Stary Zegar', emoji: '⏰' },
-  5: { id: 'kamera', name: 'Kamera', emoji: '📷' }
+const eventItemIds = ['szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia'];
+
+const getArtefaktyMap = () => {
+  const map = {};
+  let num = 1;
+  for (const [id, item] of Object.entries(config.shopItems)) {
+    if (eventItemIds.includes(id)) continue;
+    if (item.buyable !== false) continue;
+    map[num++] = {
+      id: id,
+      name: item.name,
+      emoji: item.emoji || '📦'
+    };
+  }
+  return map;
 };
 
 module.exports = {
   name: 'rynek',
   aliases: ['market'],
   async execute(client, message, args) {
+    const ARTEFAKTY_MAP = getArtefaktyMap();
     const action = String(args[0] || '').toLowerCase();
     const userId = message.author.id;
 
@@ -33,7 +43,7 @@ module.exports = {
 
       const art = ARTEFAKTY_MAP[artNum];
       if (!art) {
-        await message.reply('❌ Nieprawidłowy numer artefaktu. Użyj numerów od 1 do 5 (takich jak w **!artefakty**).');
+        await message.reply(`❌ Nieprawidłowy numer artefaktu. Użyj numerów od 1 do ${Object.keys(ARTEFAKTY_MAP).length} (takich jak w **!artefakty**).`);
         return;
       }
 
