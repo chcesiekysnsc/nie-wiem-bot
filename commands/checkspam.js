@@ -24,6 +24,7 @@ module.exports = {
     let newGroupsFound = 0;
     let pendingProcessed = false;
     let otherProcessed = false;
+    const foundGroups = [];
 
     function saveProcessedGroups() {
       try {
@@ -44,24 +45,34 @@ module.exports = {
       for (const thread of list) {
         const isGroup = thread.isGroup === true || thread.threadType === 'GROUP';
         if (isGroup && thread.threadID) {
-          if (!client.processedNewGroups.has(thread.threadID)) {
-            client.processedNewGroups.add(thread.threadID);
+          const name = thread.name || "Bez nazwy";
+          const id = thread.threadID;
+          const memberCount = (thread.participantIDs) ? thread.participantIDs.length : 0;
+
+          foundGroups.push({
+            name,
+            id,
+            folder: folderName,
+            memberCount
+          });
+
+          // Always try sending the welcome message to attempt activation/moving from spam
+          const welcomeMsg = "dziekuje za dodanie na grupe, moj prefix to ! po wiecej informacji wpisz !help";
+          client.api.sendMessage(welcomeMsg, id, (sendErr) => {
+            if (sendErr) {
+              console.error(`[CHECKSPAM] welcome error for ${id}:`, sendErr);
+            }
+          });
+
+          if (!client.processedNewGroups.has(id)) {
+            client.processedNewGroups.add(id);
             newGroupsFound++;
 
-            // 1. Send welcome message
-            const welcomeMsg = "dziekuje za dodanie na grupe, moj prefix to ! po wiecej informacji wpisz !help";
-            client.api.sendMessage(welcomeMsg, thread.threadID, (sendErr) => {
-              if (sendErr) {
-                console.error(`[CHECKSPAM] welcome error for ${thread.threadID}:`, sendErr);
-              }
-            });
-
-            // 2. Send monitoring notification
+            // Send monitoring notification
             const notifyGroupId = '24956371943963938';
-            const memberCount = (thread.participantIDs) ? thread.participantIDs.length : 0;
             const notifyMsg = `🔔 **BOT ODNALAZŁ GRUPĘ W ${folderName.toUpperCase()}** 🔔\n` +
-                              `👥 Nazwa: **${thread.name || "Bez nazwy"}**\n` +
-                              `🆔 ID: \`${thread.threadID}\`\n` +
+                              `👥 Nazwa: **${name}**\n` +
+                              `🆔 ID: \`${id}\`\n` +
                               `👥 Liczba osób: **${memberCount}**`;
             client.api.sendMessage(notifyMsg, notifyGroupId, (notifyErr) => {
               if (notifyErr) {
@@ -91,9 +102,13 @@ module.exports = {
       if (pendingProcessed && otherProcessed) {
         if (newGroupsFound > 0) {
           saveProcessedGroups();
-          message.reply(`✅ Skanowanie zakończone! Odnaleziono i aktywowano **${newGroupsFound}** nowych grup.`);
+        }
+
+        if (foundGroups.length > 0) {
+          const listText = foundGroups.map(g => `• **${g.name}** (ID: \`${g.id}\`, Osoby: **${g.memberCount}**) w folderze *${g.folder}*`).join('\n');
+          message.reply(`✅ **Skanowanie zakończone!**\n\nZnaleziono następujące grupy w Spam/Inne (wysłano ponowne powitanie w celu aktywacji):\n${listText}`);
         } else {
-          message.reply('✅ Skanowanie zakończone. Nie znaleziono żadnych nowych grup w folderach Spam/Inne.');
+          message.reply('✅ Skanowanie zakończone. Nie znaleziono żadnych grup w folderach Spam/Inne.');
         }
       }
     }
