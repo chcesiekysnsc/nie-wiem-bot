@@ -818,6 +818,19 @@ const helpCommands = [
     requirements: "Maksymalnie 4 tury.",
     aliases: ["panstwa-miasta", "panstwamiastadolacz", "panstwamiastastart"],
     additionalInfo: ["Odpowiedzi wysyła się w formacie: Kraj Miasto (np. Kanada Kraków). Słowa nie mogą się powtarzać między graczami w tej samej turze."]
+  },
+  {
+    id: 63,
+    name: "femboy",
+    category: "SOCIAL_GANGS",
+    shortDescription: "sprawdza poziom bycia femboyem",
+    description: "Mierzy w procentach poziom bycia femboyem dla oznaczonej osoby. Wynik jest deterministyczny.",
+    usage: "!femboy @osoba",
+    examples: ["!femboy @Kowalski"],
+    cooldown: "3 sekundy",
+    requirements: "Oznaczenie osoby.",
+    aliases: ["fem", "boy"],
+    additionalInfo: []
   }
 ];
 

@@ -211,21 +211,13 @@ module.exports = {
       return;
     }
 
-    const gameObj = {
+    // Zapisz stan gry
+    client.activeBlackjackGames.set(authorId, {
       bet,
       playerCards,
       dealerCards,
       deck,
       threadId
-    };
-
-    // Zapisz stan gry
-    client.activeBlackjackGames.set(authorId, gameObj);
-
-    // Zapisz w bazie danych
-    await withData(store => {
-      store.profiles.activeBlackjackGames = store.profiles.activeBlackjackGames || {};
-      store.profiles.activeBlackjackGames[authorId] = gameObj;
     });
 
     await message.reply(
@@ -324,21 +316,10 @@ module.exports = {
 
         await message.reply(replyText);
         client.activeBlackjackGames.delete(authorId);
-        await withData(store => {
-          if (store.profiles.activeBlackjackGames) {
-            delete store.profiles.activeBlackjackGames[authorId];
-          }
-        });
       } else if (playerValue === 21) {
         // Automatyczny stand przy 21
         await this.handleAction(client, message, 'stand');
       } else {
-        // Zapisz stan gry w bazie danych
-        await withData(store => {
-          store.profiles.activeBlackjackGames = store.profiles.activeBlackjackGames || {};
-          store.profiles.activeBlackjackGames[authorId] = game;
-        });
-
         // Gra toczy się dalej
         await message.reply(
           `🃏 **Blackjack (Kolejna karta)**${cheatNote}\n` +
@@ -447,11 +428,6 @@ module.exports = {
 
         await message.reply(replyText);
         client.activeBlackjackGames.delete(authorId);
-        await withData(store => {
-          if (store.profiles.activeBlackjackGames) {
-            delete store.profiles.activeBlackjackGames[authorId];
-          }
-        });
       } else {
         // Automatyczne zatrzymanie (stand) po dobraniu 1 karty przy double
         await this.executeDealerTurn(client, message, game, playerValue, cheatNote);
@@ -592,10 +568,5 @@ module.exports = {
     await message.reply(replyText);
 
     client.activeBlackjackGames.delete(authorId);
-    await withData(store => {
-      if (store.profiles.activeBlackjackGames) {
-        delete store.profiles.activeBlackjackGames[authorId];
-      }
-    });
   }
 };

@@ -131,7 +131,8 @@ module.exports = {
           payout,
           tax,
           sellerId: offer.sellerId,
-          sellerName: getName(offer.sellerId)
+          sellerName: getName(offer.sellerId),
+          sellerThreadId: seller.lastActiveThreadId
         };
       });
 
@@ -147,19 +148,18 @@ module.exports = {
         `📦 Przedmiot trafił do Twojego ekwipunku (**!eq**).`
       );
 
-      // Powiadomienie dla sprzedawcy (opcjonalne, wyślemy jeśli bot ma z nim kontakt)
-      if (client.api) {
+      // Powiadomienie dla sprzedawcy (wyślemy na ostatnią grupę, na której sprzedawca użył komendy)
+      if (client.api && buyResult.sellerThreadId) {
         try {
-          const sellerUser = createUser(buyResult.sellerId, loadData('users'));
-          const threadId = sellerUser.lastActiveThreadId;
-          if (threadId) {
-            client.api.sendMessage(
-              `💰 **RYNEK ALARM!** Użytkownik **${getName(userId)}** kupił Twój wystawiony przedmiot **${buyResult.itemEmoji} ${buyResult.itemName}**!\n` +
-              `Otrzymujesz: **+${formatCurrency(buyResult.payout)}** (cena ${formatCurrency(buyResult.price)} minus 10% podatku).`,
-              threadId
-            );
-          }
-        } catch (_) {}
+          const buyerName = message.author?.username || getName(userId);
+          client.api.sendMessage(
+            `💰 **RYNEK ALARM!** Użytkownik **${buyerName}** kupił Twój wystawiony przedmiot **${buyResult.itemEmoji} ${buyResult.itemName}**!\n` +
+            `Otrzymujesz: **+${formatCurrency(buyResult.payout)}** (cena ${formatCurrency(buyResult.price)} minus 10% podatku).`,
+            buyResult.sellerThreadId
+          );
+        } catch (err) {
+          console.error('[RYNEK] Błąd wysyłania powiadomienia do sprzedawcy:', err);
+        }
       }
       return;
     }

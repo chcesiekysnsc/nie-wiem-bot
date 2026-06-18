@@ -288,25 +288,6 @@ function loadCommands() {
 
 loadCommands();
 
-// Ładowanie zaległych/aktywnych gier w blackjacka z bazy danych przy starcie
-(async () => {
-  try {
-    if (!client.activeBlackjackGames) {
-      client.activeBlackjackGames = new Map();
-    }
-    await withData(store => {
-      if (store.profiles.activeBlackjackGames) {
-        for (const [userId, game] of Object.entries(store.profiles.activeBlackjackGames)) {
-          client.activeBlackjackGames.set(userId, game);
-        }
-      }
-    });
-    console.log(`[SELF-BOT] Załadowano ${client.activeBlackjackGames.size} aktywnych gier w blackjacka z bazy.`);
-  } catch (err) {
-    console.error('[SELF-BOT] Błąd ładowania aktywnych gier w blackjacka:', err);
-  }
-})();
-
 const activeThreadsPath = path.join(__dirname, 'data', 'active_threads.json');
 try {
   if (fs.existsSync(activeThreadsPath)) {
