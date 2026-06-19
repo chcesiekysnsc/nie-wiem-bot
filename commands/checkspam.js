@@ -25,6 +25,8 @@ module.exports = {
     let pendingProcessed = false;
     let otherProcessed = false;
     const foundGroups = [];
+    let skippedPrivateCount = 0;
+    const allFetchedThreads = [];
 
     function saveProcessedGroups() {
       try {
@@ -43,7 +45,24 @@ module.exports = {
       if (!list || !Array.isArray(list)) return;
 
       for (const thread of list) {
-        const isGroup = thread.isGroup === true || thread.threadType === 'GROUP';
+        // Collect thread metadata for debug logs
+        allFetchedThreads.push({
+          folder: folderName,
+          threadID: thread.threadID || null,
+          name: thread.name || null,
+          isGroup: thread.isGroup,
+          threadType: thread.threadType,
+          participantCount: thread.participantIDs ? thread.participantIDs.length : 0,
+          participantIDs: thread.participantIDs || []
+        });
+
+        // Flexible check: isGroup flag, threadType (string or number), or more than 2 participants
+        const isGroup = thread.isGroup === true || 
+                        thread.threadType === 'GROUP' || 
+                        thread.threadType === 2 || 
+                        thread.threadType === '2' || 
+                        (thread.participantIDs && thread.participantIDs.length > 2);
+
         if (isGroup && thread.threadID) {
           const name = thread.name || "Bez nazwy";
           const id = thread.threadID;
@@ -80,6 +99,8 @@ module.exports = {
               }
             });
           }
+        } else {
+          skippedPrivateCount++;
         }
       }
     }
@@ -100,15 +121,24 @@ module.exports = {
 
     function checkFinished() {
       if (pendingProcessed && otherProcessed) {
+        // Save raw list of all checked threads to facilitate remote troubleshooting
+        try {
+          const debugPath = path.join(__dirname, '../data/spamcheck_debug.json');
+          fs.writeFileSync(debugPath, JSON.stringify(allFetchedThreads, null, 2), 'utf8');
+          console.log('[CHECKSPAM] Saved debugging logs to', debugPath);
+        } catch (err) {
+          console.error('[CHECKSPAM] Failed to save debug logs:', err);
+        }
+
         if (newGroupsFound > 0) {
           saveProcessedGroups();
         }
 
         if (foundGroups.length > 0) {
           const listText = foundGroups.map(g => `• **${g.name}** (ID: \`${g.id}\`, Osoby: **${g.memberCount}**) w folderze *${g.folder}*`).join('\n');
-          message.reply(`✅ **Skanowanie zakończone!**\n\nZnaleziono następujące grupy w Spam/Inne (wysłano ponowne powitanie w celu aktywacji):\n${listText}`);
+          message.reply(`✅ **Skanowanie zakończone!**\n\nZnaleziono następujące grupy w Spam/Inne (wysłano ponowne powitanie w celu aktywacji):\n${listText}\n\n*(Pominięto ${skippedPrivateCount} czatów prywatnych)*`);
         } else {
-          message.reply('✅ Skanowanie zakończone. Nie znaleziono żadnych grup w folderach Spam/Inne.');
+          message.reply(`✅ Skanowanie zakończone. Nie znaleziono żadnych grup w folderach Spam/Inne. (Pominięto ${skippedPrivateCount} czatów prywatnych)`);
         }
       }
     }
