@@ -24,19 +24,41 @@ module.exports = {
         return;
       }
       
-      await message.reply('📂 Przygotowuję i wysyłam plik logów z ostatniego skanowania...');
       try {
-        await new Promise((resolve, reject) => {
-          client.api.sendMessage({
-            body: '📂 Oto log z ostatniego skanowania folderów Spam/Inne:',
-            attachment: fs.createReadStream(debugPath)
-          }, message.threadID, (err) => {
-            if (err) reject(err);
-            else resolve();
-          });
-        });
+        const contentStr = fs.readFileSync(debugPath, 'utf8');
+        const debugData = JSON.parse(contentStr);
+        
+        let reply = `📂 **LOG OSTATNIEGO SKANOWANIA**\n`;
+        reply += `• Czas: \`${debugData.timestamp}\`\n`;
+        reply += `• Błąd Pending: \`${debugData.pendingError || 'brak'}\`\n`;
+        reply += `• Błąd Other: \`${debugData.otherError || 'brak'}\`\n`;
+        reply += `• Liczba wątków: **${debugData.threads ? debugData.threads.length : 0}**\n\n`;
+        
+        if (!debugData.threads || debugData.threads.length === 0) {
+          reply += `*Brak wątków do wyświetlenia.*`;
+          await message.reply(reply);
+          return;
+        }
+
+        reply += `📋 **Lista wątków (szczegóły):**\n`;
+        for (let i = 0; i < debugData.threads.length; i++) {
+          const t = debugData.threads[i];
+          const threadDesc = `${i + 1}. Folder: *${t.folder}*\n` +
+                             `   ID: \`${t.threadID}\`\n` +
+                             `   Nazwa: **${t.name || 'Bez nazwy'}**\n` +
+                             `   isGroup: \`${t.isGroup}\`, threadType: \`${t.threadType}\`\n` +
+                             `   Osoby: **${t.participantCount}**\n\n`;
+                             
+          if (reply.length + threadDesc.length > 1900) {
+            reply += `*(...i ${debugData.threads.length - i} więcej wątków - limit znaków)*`;
+            break;
+          }
+          reply += threadDesc;
+        }
+        
+        await message.reply(reply);
       } catch (err) {
-        await message.reply(`❌ Nie udało się wysłać pliku: \`${err.message || JSON.stringify(err)}\``);
+        await message.reply(`❌ Błąd odczytu logów: \`${err.message || JSON.stringify(err)}\``);
       }
       return;
     }
