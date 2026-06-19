@@ -384,6 +384,24 @@ function getMsUntilNextTaxTime() {
   return Math.max(0, nextTaxTimeUTC - now.getTime());
 }
 
+function getMsUntilNextMonthlyReset() {
+  const now = new Date();
+  const offset = getPolandOffsetMs(now);
+  const polandTime = now.getTime() + offset;
+  
+  const polandDate = new Date(polandTime);
+  let nextYear = polandDate.getUTCFullYear();
+  let nextMonth = polandDate.getUTCMonth() + 1;
+  if (nextMonth > 11) {
+    nextMonth = 0;
+    nextYear += 1;
+  }
+  
+  const nextResetPolandTime = Date.UTC(nextYear, nextMonth, 1, 0, 0, 0, 0);
+  const nextResetUTC = nextResetPolandTime - offset;
+  return Math.max(0, nextResetUTC - now.getTime());
+}
+
 function getLastTaxTime() {
   const now = new Date();
   const offset = getPolandOffsetMs(now);
@@ -620,6 +638,81 @@ login({ appState }, (loginErr, api) => {
   client.lastTaxCollection = getLastTaxTime();
   client.getMsUntilNextTaxTime = getMsUntilNextTaxTime;
   startTaxCollection();
+
+  // System automatycznego resetu ekonomii co miesiąc o 00:00 czasu polskiego
+  async function checkAndAnnounceMonthlyReset() {
+    try {
+      let resetTriggered = false;
+      let winners = [];
+
+      await withData(store => {
+        if (store.profiles.justReset) {
+          resetTriggered = true;
+          winners = store.profiles.lastResetWinners || [];
+          store.profiles.justReset = false;
+        }
+      });
+
+      if (resetTriggered && client.api) {
+        console.log('[MONTHLY RESET] Detected justReset flag. Broadcasting announcement...');
+        const eventItems = {
+          'szkarlatne_oko': { emoji: '👁️', name: 'Szkarłatne Oko Krupiera' },
+          'cien_nocy': { emoji: '🥷', name: 'Cień Nocy' },
+          'wampirzy_sztylet': { emoji: '🩸', name: 'Wampirzy Sztylet' },
+          'szwajcarski_klucz': { emoji: '🔑', name: 'Szwajcarski Klucz' },
+          'krysztal_doswiadczenia': { emoji: '🔮', name: 'Kryształ Doświadczenia' }
+        };
+
+        let winnerLines = [];
+        for (let i = 0; i < winners.length; i++) {
+          const w = winners[i];
+          const name = await client.resolveUserName(client.api, w.userId);
+          const item = eventItems[w.item] || { emoji: '🎁', name: w.item };
+          winnerLines.push(`${i + 1}. 👤 **${name}** (Majątek: **${(w.total || 0).toLocaleString()}**) — Otrzymuje: ${item.emoji} **${item.name}**`);
+        }
+
+        const announceMsg = 
+          `🎉 📅 **ROZPOCZĄŁ SIĘ NOWY MIESIĄC - WIELKI RESET EKONOMII** 📅 🎉\n\n` +
+          `Wszystkie portfele, banki i gangi zostały zresetowane do wartości początkowych!\n\n` +
+          `🏆 **Zwycięzcy Sezonu (Top 5 Graczy bez multikont):**\n` +
+          (winnerLines.length > 0 ? winnerLines.join('\n') : 'Brak kwalifikujących się graczy.') + `\n\n` +
+          `💪 Czas na nowy sezon! Powodzenia w zdobywaniu kolejnych szczytów ekonomii!`;
+
+        const targets = Array.from(client.activeThreadIds);
+        if (targets.length > 0) {
+          for (const tId of targets) {
+            client.api.sendMessage(announceMsg, tId);
+          }
+        } else if (client.lastThreadId) {
+          client.api.sendMessage(announceMsg, client.lastThreadId);
+        }
+      }
+    } catch (err) {
+      console.error('[MONTHLY RESET] Błąd podczas sprawdzania/ogłaszania resetu:', err);
+    }
+  }
+
+  function startMonthlyResetTimer() {
+    const delay = getMsUntilNextMonthlyReset() + 2000;
+    setTimeout(async () => {
+      try {
+        console.log('[MONTHLY RESET] Timer fired. Checking/triggering reset...');
+        await checkAndAnnounceMonthlyReset();
+      } catch (err) {
+        console.error('[MONTHLY RESET TIMER] Błąd podczas automatycznego resetu:', err);
+      }
+      startMonthlyResetTimer();
+    }, delay);
+  }
+
+  startMonthlyResetTimer();
+
+  // Sprawdź czy nastąpił reset przy starcie bota (np. jeśli był wyłączony o północy)
+  setTimeout(() => {
+    checkAndAnnounceMonthlyReset().catch(err => {
+      console.error('[MONTHLY RESET] Błąd przy sprawdzaniu resetu na starcie:', err);
+    });
+  }, 5000);
 
   // System przypomnień o pożyczkach co 12 godzin (zawsze o północy i w południe)
   function startLoanReminder() {

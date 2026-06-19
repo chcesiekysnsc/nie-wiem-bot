@@ -305,6 +305,14 @@ function performMonthlyReset(store) {
     console.log(`[MONTHLY RESET] Awarded ${itemId} to top player ${topUser.userId} (Rank ${i + 1})`);
   }
 
+  // Zapisz zwycięzców do profili przed resetem portfeli
+  store.profiles.lastResetWinners = eligibleUsers.slice(0, 5).map((u, i) => ({
+    userId: u.userId,
+    total: u.total,
+    item: rewards[i]
+  }));
+  store.profiles.justReset = true;
+
   // 3. Reset balances and non-permanent inventory for all users
   const keepKeys = [
     'szkarlatne_oko',
@@ -362,6 +370,17 @@ function performMonthlyReset(store) {
   console.log('[MONTHLY RESET] Completed successfully!');
 }
 
+function getPolandYearAndMonth(date) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric', month: 'numeric'
+  });
+  const parts = formatter.formatToParts(date);
+  const year = Number(parts.find(p => p.type === 'year').value);
+  const month = Number(parts.find(p => p.type === 'month').value) - 1; // 0-indexed
+  return { year, month };
+}
+
 async function withData(callback) {
   const run = async () => {
     ensureDataFiles();
@@ -379,10 +398,8 @@ async function withData(callback) {
     const dynamicAdmins = store.profiles.dynamicAdmins || [];
     config.admins = [...new Set([...hardcodedAdmins, ...dynamicAdmins])];
 
-    // Automatyczny reset ekonomii na początku nowego miesiąca
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth();
+    // Automatyczny reset ekonomii na początku nowego miesiąca (czasu polskiego)
+    const { year: currentYear, month: currentMonth } = getPolandYearAndMonth(new Date());
 
     if (store.profiles.lastResetYear === undefined || store.profiles.lastResetMonth === undefined) {
       store.profiles.lastResetYear = currentYear;
