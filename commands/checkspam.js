@@ -16,6 +16,31 @@ module.exports = {
       return;
     }
 
+    const subCommand = String(args[0] || '').toLowerCase();
+    if (subCommand === 'debug') {
+      const debugPath = path.join(__dirname, '../data/spamcheck_debug.json');
+      if (!fs.existsSync(debugPath)) {
+        await message.reply('❌ Brak pliku debugowania. Wykonaj najpierw standardowe skanowanie !spamcheck.');
+        return;
+      }
+      
+      await message.reply('📂 Przygotowuję i wysyłam plik logów z ostatniego skanowania...');
+      try {
+        await new Promise((resolve, reject) => {
+          client.api.sendMessage({
+            body: '📂 Oto log z ostatniego skanowania folderów Spam/Inne:',
+            attachment: fs.createReadStream(debugPath)
+          }, message.threadID, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      } catch (err) {
+        await message.reply(`❌ Nie udało się wysłać pliku: \`${err.message || JSON.stringify(err)}\``);
+      }
+      return;
+    }
+
     await message.reply('🔍 Rozpoczynam ręczne skanowanie folderów Spam (Pending) oraz Inne (Other) w poszukiwaniu nowych grup...');
 
     const processedGroupsPath = path.join(__dirname, '../data/processed_groups.json');
@@ -27,6 +52,8 @@ module.exports = {
     const foundGroups = [];
     let skippedPrivateCount = 0;
     const allFetchedThreads = [];
+    let pendingError = null;
+    let otherError = null;
 
     function saveProcessedGroups() {
       try {
@@ -39,6 +66,11 @@ module.exports = {
     function processThreadList(err, list, folderName) {
       if (err) {
         console.error(`[CHECKSPAM] Error fetching ${folderName} threads:`, err);
+        if (folderName === 'Spam (Pending)') {
+          pendingError = err;
+        } else {
+          otherError = err;
+        }
         return;
       }
 
@@ -124,7 +156,12 @@ module.exports = {
         // Save raw list of all checked threads to facilitate remote troubleshooting
         try {
           const debugPath = path.join(__dirname, '../data/spamcheck_debug.json');
-          fs.writeFileSync(debugPath, JSON.stringify(allFetchedThreads, null, 2), 'utf8');
+          fs.writeFileSync(debugPath, JSON.stringify({
+            timestamp: new Date().toISOString(),
+            pendingError: pendingError ? (pendingError.message || pendingError.error || JSON.stringify(pendingError)) : null,
+            otherError: otherError ? (otherError.message || otherError.error || JSON.stringify(otherError)) : null,
+            threads: allFetchedThreads
+          }, null, 2), 'utf8');
           console.log('[CHECKSPAM] Saved debugging logs to', debugPath);
         } catch (err) {
           console.error('[CHECKSPAM] Failed to save debug logs:', err);
@@ -134,12 +171,26 @@ module.exports = {
           saveProcessedGroups();
         }
 
+        let responseMsg = '';
+        if (pendingError || otherError) {
+          responseMsg += `⚠️ **Wystąpiły błędy podczas pobierania wątków:**\n`;
+          if (pendingError) {
+            responseMsg += `• Spam (Pending): \`${pendingError.message || pendingError.error || JSON.stringify(pendingError)}\`\n`;
+          }
+          if (otherError) {
+            responseMsg += `• Inne (Other): \`${otherError.message || otherError.error || JSON.stringify(otherError)}\`\n`;
+          }
+          responseMsg += `\n`;
+        }
+
         if (foundGroups.length > 0) {
           const listText = foundGroups.map(g => `• **${g.name}** (ID: \`${g.id}\`, Osoby: **${g.memberCount}**) w folderze *${g.folder}*`).join('\n');
-          message.reply(`✅ **Skanowanie zakończone!**\n\nZnaleziono następujące grupy w Spam/Inne (wysłano ponowne powitanie w celu aktywacji):\n${listText}\n\n*(Pominięto ${skippedPrivateCount} czatów prywatnych)*`);
+          responseMsg += `✅ **Skanowanie zakończone!**\n\nZnaleziono następujące grupy w Spam/Inne (wysłano ponowne powitanie w celu aktywacji):\n${listText}\n\n*(Pominięto ${skippedPrivateCount} czatów prywatnych)*`;
         } else {
-          message.reply(`✅ Skanowanie zakończone. Nie znaleziono żadnych grup w folderach Spam/Inne. (Pominięto ${skippedPrivateCount} czatów prywatnych)`);
+          responseMsg += `✅ Skanowanie zakończone. Nie znaleziono żadnych grup w folderach Spam/Inne. (Pominięto ${skippedPrivateCount} czatów prywatnych)`;
         }
+
+        message.reply(responseMsg);
       }
     }
   }
