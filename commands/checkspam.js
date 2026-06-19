@@ -17,8 +17,9 @@ module.exports = {
     }
 
     const subCommand = String(args[0] || '').toLowerCase();
-    if (subCommand === 'restart') {
-      await message.reply('🔄 Restartuję bota w celu odświeżenia połączeń MQTT...');
+    if (subCommand === 'restart' || subCommand === 'reset') {
+      const activeGroupsCount = client.activeThreadIds ? client.activeThreadIds.size : 0;
+      await message.reply(`🔄 Restartuję bota w celu odświeżenia połączeń MQTT... (Zresetowano na ${activeGroupsCount} grupach)`);
       setTimeout(() => {
         console.log('[CHECKSPAM] Manual restart triggered...');
         process.exit(1);
