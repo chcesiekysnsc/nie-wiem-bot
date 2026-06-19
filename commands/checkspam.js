@@ -149,17 +149,23 @@ module.exports = {
           const memberCount = (thread.participantIDs) ? thread.participantIDs.length : 0;
 
           // If the group is not registered in active thread IDs, add it
+          let isNewGroup = false;
           if (!client.activeThreadIds.has(id)) {
             client.activeThreadIds.add(id);
             activeThreadsUpdated = true;
+            isNewGroup = true;
           }
 
-          foundGroups.push({
-            name,
-            id,
-            folder: folderName,
-            memberCount
-          });
+          const isNewlyExtracted = isNewGroup || tag === 'PENDING' || tag === 'OTHER' || tag === 'ARCHIVED';
+
+          if (isNewlyExtracted) {
+            foundGroups.push({
+              name,
+              id,
+              folder: folderName,
+              memberCount
+            });
+          }
 
           // Always try sending the welcome message to attempt activation/moving from spam for pending folders
           if (tag === 'PENDING' || tag === 'OTHER') {
