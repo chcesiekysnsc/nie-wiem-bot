@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, hasItem } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, hasItem, getPassiveMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 async function resolveName(client, userId) {
@@ -206,7 +206,11 @@ module.exports = {
         }
         const hasOko = hasItem(inventory, 'szkarlatne_oko');
         const okoBonus = hasOko ? 1.5 : 0;
-        const totalRescueBonus = badgeBonus + okoBonus;
+        
+        const ananasMultiplier = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
+        const ananasBonus = ananasMultiplier * 100;
+        
+        const totalRescueBonus = badgeBonus + okoBonus + ananasBonus;
 
         // Losowanie bota
         const choices = ['kamien', 'papier', 'nozyce'];
@@ -236,6 +240,7 @@ module.exports = {
           }
         }
 
+        let ananasSaved = false;
         if (state === 'lose' && totalRescueBonus > 0) {
           const rollRescue = Math.random() * 100;
           if (rollRescue < totalRescueBonus) {
@@ -243,8 +248,10 @@ module.exports = {
             botMove = playerMove;
             if (rollRescue < badgeBonus) {
               badgeSaved = true;
-            } else {
+            } else if (rollRescue < badgeBonus + okoBonus) {
               okoSaved = true;
+            } else {
+              ananasSaved = true;
             }
           }
         }
@@ -271,6 +278,7 @@ module.exports = {
           krupierSaved,
           badgeSaved,
           okoSaved,
+          ananasSaved,
           activeBadgeName,
           xpResult
         };
@@ -306,6 +314,9 @@ module.exports = {
       }
       if (result.okoSaved) {
         replyText += `\n👁️ Przedmiot **Szkarłatne Oko Krupiera** uratował Cię przed przegraną (zmieniono na remis)!`;
+      }
+      if (result.ananasSaved) {
+        replyText += `\n🍕 Przedmiot **Ananas na Pizzy** uratował Cię przed przegraną (zmieniono na remis)!`;
       }
 
       if (result.xpResult && result.xpResult.leveledUp) {

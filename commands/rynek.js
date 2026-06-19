@@ -2,7 +2,10 @@ const config = require('../config/config');
 const { formatCurrency, ensureInventoryRecord, hasItem, addItem, removeItem } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
-const eventItemIds = ['szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia'];
+const eventItemIds = [
+  'szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia',
+  'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta', 'kosci_oszusta', 'czterolistna_moneta'
+];
 
 const getArtefaktyMap = () => {
   const map = {};

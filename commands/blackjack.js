@@ -6,7 +6,8 @@ const {
   refreshBadges,
   resolveAmount,
   ensureInventoryRecord,
-  hasItem
+  hasItem,
+  getPassiveMultiplier
 } = require('../utils/economy');
 const { createUser, withData, loadData } = require('../utils/storage');
 
@@ -278,18 +279,35 @@ module.exports = {
           if (hasOko) {
             helperChance += 0.015;
           }
+          const ananasBonus = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
+          helperChance += ananasBonus;
+
+          let wasRescued = false;
           if (helperChance > 0) {
             const secondRoll = Math.random();
             if (secondRoll < helperChance) {
               payout = game.bet;
               net = 0;
               let saveSource = 'Twoim bonusom';
-              if (hasOko && secondRoll >= badgeChance) {
-                saveSource = 'pasywnemu przedmiotowi 👁️ Szkarłatne Oko Krupiera';
-              } else if (badgeChance > 0) {
+              let current = 0;
+              if (secondRoll < (current += badgeChance)) {
                 saveSource = `odznace **${activeBadgeName}**`;
+              } else if (hasOko && secondRoll < (current += 0.015)) {
+                saveSource = 'pasywnemu przedmiotowi 👁️ Szkarłatne Oko Krupiera';
+              } else if (ananasBonus > 0 && secondRoll < (current += ananasBonus)) {
+                saveSource = 'pasywnemu przedmiotowi 🍕 Ananas na Pizzy';
               }
               outcomeText = ` Uratowany! Dzięki ${saveSource} unikasz porażki i otrzymujesz zwrot stawki.`;
+              wasRescued = true;
+            }
+          }
+
+          if (!wasRescued) {
+            const kosciBonusPct = getPassiveMultiplier(inventory, 'kosci_oszusta', 0.02);
+            if (kosciBonusPct > 0 && Math.random() < kosciBonusPct) {
+              payout = game.bet;
+              net = 0;
+              outcomeText = ` Uratowany! Dzięki przedmiotowi 🎲 Kości Oszusta otrzymujesz zwrot pełnej stawki!`;
             }
           }
 
@@ -390,18 +408,35 @@ module.exports = {
           if (hasOko) {
             helperChance += 0.015;
           }
+          const ananasBonus = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
+          helperChance += ananasBonus;
+
+          let wasRescued = false;
           if (helperChance > 0) {
             const secondRoll = Math.random();
             if (secondRoll < helperChance) {
               payout = game.bet;
               net = 0;
               let saveSource = 'Twoim bonusom';
-              if (hasOko && secondRoll >= badgeChance) {
-                saveSource = 'pasywnemu przedmiotowi 👁️ Szkarłatne Oko Krupiera';
-              } else if (badgeChance > 0) {
+              let current = 0;
+              if (secondRoll < (current += badgeChance)) {
                 saveSource = `odznace **${activeBadgeName}**`;
+              } else if (hasOko && secondRoll < (current += 0.015)) {
+                saveSource = 'pasywnemu przedmiotowi 👁️ Szkarłatne Oko Krupiera';
+              } else if (ananasBonus > 0 && secondRoll < (current += ananasBonus)) {
+                saveSource = 'pasywnemu przedmiotowi 🍕 Ananas na Pizzy';
               }
               outcomeText = ` Uratowany! Dzięki ${saveSource} unikasz porażki i otrzymujesz zwrot stawki.`;
+              wasRescued = true;
+            }
+          }
+
+          if (!wasRescued) {
+            const kosciBonusPct = getPassiveMultiplier(inventory, 'kosci_oszusta', 0.02);
+            if (kosciBonusPct > 0 && Math.random() < kosciBonusPct) {
+              payout = game.bet;
+              net = 0;
+              outcomeText = ` Uratowany! Dzięki przedmiotowi 🎲 Kości Oszusta otrzymujesz zwrot pełnej stawki!`;
             }
           }
 
@@ -502,18 +537,35 @@ module.exports = {
         if (hasOko) {
           helperChance += 0.015;
         }
+        const ananasBonus = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
+        helperChance += ananasBonus;
+
+        let wasRescued = false;
         if (helperChance > 0) {
           const secondRoll = Math.random();
           if (secondRoll < helperChance) {
             finalPayout = game.bet;
             finalNet = 0;
             let saveSource = 'Twoim bonusom';
-            if (hasOko && secondRoll >= badgeChance) {
-              saveSource = 'pasywnemu przedmiotowi 👁️ Szkarłatne Oko Krupiera';
-            } else if (badgeChance > 0) {
+            let current = 0;
+            if (secondRoll < (current += badgeChance)) {
               saveSource = `odznace **${activeBadgeName}**`;
+            } else if (hasOko && secondRoll < (current += 0.015)) {
+              saveSource = 'pasywnemu przedmiotowi 👁️ Szkarłatne Oko Krupiera';
+            } else if (ananasBonus > 0 && secondRoll < (current += ananasBonus)) {
+              saveSource = 'pasywnemu przedmiotowi 🍕 Ananas na Pizzy';
             }
             finalOutcome = `⚖️ **Push (Uratowany!)** - Dzięki ${saveSource} unikasz porażki i otrzymujesz zwrot stawki.`;
+            wasRescued = true;
+          }
+        }
+
+        if (!wasRescued) {
+          const kosciBonusPct = getPassiveMultiplier(inventory, 'kosci_oszusta', 0.02);
+          if (kosciBonusPct > 0 && Math.random() < kosciBonusPct) {
+            finalPayout = game.bet;
+            finalNet = 0;
+            finalOutcome = `❌ **Przegrana!** Krupier ma więcej punktów. Jednak dzięki przedmiotowi 🎲 Kości Oszusta otrzymujesz zwrot pełnej stawki!`;
           }
         }
       }

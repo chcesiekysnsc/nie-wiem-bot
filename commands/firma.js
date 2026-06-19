@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord } = require('../utils/economy');
+const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 module.exports = {
@@ -186,13 +186,20 @@ module.exports = {
         // Give payout
         let payout = compDef.payout;
         const inventory = ensureInventoryRecord(store.inventory, message.author.id);
-        const hasGarnitur = hasItem(inventory, 'garnitur');
+        
+        const garniturBonusPct = getPassiveMultiplier(inventory, 'garnitur', 0.10);
         let garniturBonus = 0;
-        if (hasGarnitur) {
-          garniturBonus = Math.floor(payout * 0.10);
-          payout += garniturBonus;
+        if (garniturBonusPct > 0) {
+          garniturBonus = Math.floor(compDef.payout * garniturBonusPct);
         }
 
+        const kaczkaBonusPct = getPassiveMultiplier(inventory, 'kaczka_biznesu', 0.05);
+        let kaczkaBonus = 0;
+        if (kaczkaBonusPct > 0) {
+          kaczkaBonus = Math.floor(compDef.payout * kaczkaBonusPct);
+        }
+
+        payout += garniturBonus + kaczkaBonus;
         user.balance += payout;
         user.company.lastPayout = now;
 
@@ -202,7 +209,17 @@ module.exports = {
           user.company.isBroken = true;
         }
 
-        return { success: true, compDef, payout, garniturBonus, broke, balance: user.balance };
+        return {
+          success: true,
+          compDef,
+          payout,
+          garniturBonus,
+          garniturBonusPct,
+          kaczkaBonus,
+          kaczkaBonusPct,
+          broke,
+          balance: user.balance
+        };
       });
 
       if (result.error) {
@@ -211,9 +228,16 @@ module.exports = {
       }
 
       let replyText = `💰 Zebrałeś wypłatę z firmy **${result.compDef.emoji} ${result.compDef.name}**!\n`;
-      if (result.garniturBonus > 0) {
-        replyText += `➕ Zysk nominalny: **+${formatCurrency(result.payout - result.garniturBonus)}**\n`;
-        replyText += `👔 **Garnitur (+10%):** **+${formatCurrency(result.garniturBonus)}**\n`;
+      if (result.garniturBonus > 0 || result.kaczkaBonus > 0) {
+        replyText += `➕ Zysk nominalny: **+${formatCurrency(result.compDef.payout)}**\n`;
+        if (result.garniturBonus > 0) {
+          const pct = Math.round(result.garniturBonusPct * 100);
+          replyText += `👔 **Garnitur (+${pct}%):** **+${formatCurrency(result.garniturBonus)}**\n`;
+        }
+        if (result.kaczkaBonus > 0) {
+          const pct = Math.round(result.kaczkaBonusPct * 100);
+          replyText += `🦆 **Kaczka Biznesu (+${pct}%):** **+${formatCurrency(result.kaczkaBonus)}**\n`;
+        }
         replyText += `➕ Łączny zysk: **+${formatCurrency(result.payout)}**\n`;
       } else {
         replyText += `➕ Zysk: **+${formatCurrency(result.payout)}**\n`;

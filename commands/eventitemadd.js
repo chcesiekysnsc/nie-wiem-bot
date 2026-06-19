@@ -14,7 +14,7 @@ module.exports = {
 
     const nr = Number(args[0]);
     if (isNaN(nr) || !eventItems[nr]) {
-      await message.reply('❌ Użyj: **!eventitemadd <nr>** (1-5). Wpisz **!eventitemy**, aby zobaczyć listę.');
+      await message.reply('❌ Użyj: **!eventitemadd <nr>** (1-10). Wpisz **!eventitemy**, aby zobaczyć listę.');
       return;
     }
 

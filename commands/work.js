@@ -6,7 +6,8 @@ const {
   hasItem,
   msToReadable,
   randomInt,
-  refreshBadges
+  refreshBadges,
+  getPassiveMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -44,6 +45,11 @@ module.exports = {
       let reward = randomInt(config.economy.workMin, config.economy.workMax);
       if (hasItem(inventory, 'vip')) {
         reward = Math.floor(reward * config.economy.workVipBonus);
+      }
+
+      const walizkaBonus = getPassiveMultiplier(inventory, 'walizka', 0.05);
+      if (walizkaBonus > 0) {
+        reward = Math.floor(reward * (1 + walizkaBonus));
       }
 
       if (user.badges && user.badges.includes(config.badges.krolSpamu)) {

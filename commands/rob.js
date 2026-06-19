@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem, getPassiveMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 const robCooldowns = new Map();   // userId -> timestamp wolny od kiedy
@@ -147,7 +147,18 @@ module.exports = {
       if (robber.badges && robber.badges.includes(config.badges.zwyciezca)) {
         baseSuccessChance += 0.05;
       }
+
+      const wlamywaczBonus = getPassiveMultiplier(robberInv, 'zestaw_wlamywacza', 0.03);
+      baseSuccessChance += wlamywaczBonus;
+
+      const alarmBonus = getPassiveMultiplier(victimInv, 'alarm', 0.04);
+      baseSuccessChance -= alarmBonus;
+
       const success = Math.random() < baseSuccessChance;
+
+      const latarkaBonusPct = getPassiveMultiplier(robberInv, 'latarka', 0.02);
+      const kominiarkaBonusPct = getPassiveMultiplier(robberInv, 'kominiarka', 0.10);
+      const piesBonusPct = getPassiveMultiplier(victimInv, 'pies_strozujacy', 0.05);
 
       if (success) {
         const percent = hasBeer ? 0.25 : 0.20;
@@ -168,6 +179,12 @@ module.exports = {
         let stolen = Math.floor(baseStolen * (1 + bonusPercent));
         if (robberHasZeton) {
           stolen = Math.floor(stolen * 1.04);
+        }
+
+        let latarkaBonus = 0;
+        if (latarkaBonusPct > 0) {
+          latarkaBonus = Math.floor(stolen * latarkaBonusPct);
+          stolen += latarkaBonus;
         }
 
         let sztyletBonus = 0;
@@ -211,24 +228,137 @@ module.exports = {
           }
         }
 
+        // Check Czarna Bandera for second robbery!
+        let secondRob = null;
+        const banderaPct = getPassiveMultiplier(robberInv, 'czarna_bandera', 0.05);
+        if (banderaPct > 0 && Math.random() < banderaPct) {
+          let secondStealable = victim.balance;
+          if (victim.activeLoan) {
+            secondStealable = Math.max(0, victim.balance - victim.activeLoan.originalAmount);
+          }
+          if (secondStealable >= 1000) {
+            let secondSuccessChance = robberHasZeton ? 0.66 : 0.60;
+            if (robber.badges && robber.badges.includes(config.badges.zwyciezca)) {
+              secondSuccessChance += 0.05;
+            }
+            secondSuccessChance += wlamywaczBonus;
+            secondSuccessChance -= alarmBonus;
+
+            const secondSuccess = Math.random() < secondSuccessChance;
+            if (secondSuccess) {
+              const secondBaseStolen = Math.max(1, Math.floor(secondStealable * percent));
+              let secondStolen = Math.floor(secondBaseStolen * (1 + bonusPercent));
+              if (robberHasZeton) {
+                secondStolen = Math.floor(secondStolen * 1.04);
+              }
+              let secondLatarka = 0;
+              if (latarkaBonusPct > 0) {
+                secondLatarka = Math.floor(secondStolen * latarkaBonusPct);
+                secondStolen += secondLatarka;
+              }
+              let secondSztylet = 0;
+              if (hasItem(robberInv, 'wampirzy_sztylet')) {
+                secondSztylet = Math.floor(secondStolen * 0.05);
+              }
+              let secondTribute = 0;
+              if (robber.gangId && store.profiles.gangs && store.profiles.gangs[robber.gangId]) {
+                const gang = store.profiles.gangs[robber.gangId];
+                const tributePercent = gang.tributePercent || 0;
+                const isExcluded = robber.gangRole === 'boss' || robber.gangRole === 'deputy';
+                if (tributePercent > 0 && !isExcluded) {
+                  secondTribute = Math.floor(secondStolen * (tributePercent / 100));
+                }
+              }
+              const secondNet = secondStolen - secondTribute + secondSztylet;
+              victim.balance = Math.max(0, victim.balance - (secondStolen + secondSztylet));
+              robber.balance += secondNet;
+
+              if (secondTribute > 0) {
+                const gang = store.profiles.gangs[robber.gangId];
+                const bossUser = createUser(gang.bossId, store.users);
+                bossUser.balance += secondTribute;
+              }
+
+              secondRob = { success: true, stolen: secondNet, tribute: secondTribute, sztyletBonus: secondSztylet };
+            } else {
+              let secondFine = Math.max(1, Math.floor(robber.balance * losePercent));
+              if (robberHasZeton) {
+                secondFine = Math.floor(secondFine * 1.08);
+              }
+              if (kominiarkaBonusPct > 0) {
+                secondFine = Math.floor(secondFine * (1 - kominiarkaBonusPct));
+              }
+              let secondPies = 0;
+              if (piesBonusPct > 0) {
+                secondPies = Math.floor(secondFine * piesBonusPct);
+              }
+              const victimHasKamera = hasItem(victimInv, 'kamera');
+              let secondPayout = victimHasKamera ? Math.floor(secondFine * 1.05) : secondFine;
+              secondPayout += secondPies;
+
+              robber.balance -= secondFine;
+              victim.balance += secondPayout;
+
+              secondRob = { success: false, fine: secondFine, payout: secondPayout, piesBonus: secondPies };
+            }
+          } else {
+            secondRob = { error: 'Not enough balance' };
+          }
+        }
+
         robber.gamesPlayed += 1;
         refreshBadges(robber, robberInv);
         refreshBadges(victim, victimInv);
-        return { success: true, stolen: netStolen, tribute, gangBonus, beer: hasBeer, victimLastActiveThreadId, robberHasZeton, sztyletBonus, sztyletResetTriggered };
+        return {
+          success: true,
+          stolen: netStolen,
+          tribute,
+          gangBonus,
+          beer: hasBeer,
+          victimLastActiveThreadId,
+          robberHasZeton,
+          sztyletBonus,
+          sztyletResetTriggered,
+          latarkaBonus,
+          latarkaBonusPct,
+          secondRob
+        };
       } else {
         const losePercent = hasBeer ? 0.40 : 0.30;
         let fine = Math.max(1, Math.floor(robber.balance * losePercent));
         if (robberHasZeton) {
           fine = Math.floor(fine * 1.08);
         }
+        if (kominiarkaBonusPct > 0) {
+          fine = Math.floor(fine * (1 - kominiarkaBonusPct));
+        }
+
+        let piesBonus = 0;
+        if (piesBonusPct > 0) {
+          piesBonus = Math.floor(fine * piesBonusPct);
+        }
+
         const victimHasKamera = hasItem(victimInv, 'kamera');
-        const payout = victimHasKamera ? Math.floor(fine * 1.05) : fine;
+        let payout = victimHasKamera ? Math.floor(fine * 1.05) : fine;
+        payout += piesBonus;
+
         robber.balance -= fine;
         victim.balance += payout;
         robber.gamesPlayed += 1;
         refreshBadges(robber, robberInv);
         refreshBadges(victim, victimInv);
-        return { success: false, fine, payout, beer: hasBeer, victimLastActiveThreadId, robberHasZeton, victimHasKamera };
+        return {
+          success: false,
+          fine,
+          payout,
+          beer: hasBeer,
+          victimLastActiveThreadId,
+          robberHasZeton,
+          victimHasKamera,
+          kominiarkaBonusPct,
+          piesBonusPct,
+          piesBonus
+        };
       }
     });
 
@@ -281,28 +411,69 @@ module.exports = {
       if (result.success) {
         const beerNote = result.beer ? ' (Wypite Piwo +25%!)' : '';
         const zetonNote = result.robberHasZeton ? ' (Krwawy Żeton +4%!)' : '';
-        let sztyletNote = '';
+        
+        let itemsUsedNotes = [];
+        if (result.latarkaBonus) {
+          itemsUsedNotes.push(`**+${formatCurrency(result.latarkaBonus)}** z 🔦 Latarki`);
+        }
         if (result.sztyletBonus) {
-          if (result.sztyletResetTriggered) {
-            sztyletNote = ` (w tym **+${formatCurrency(result.sztyletBonus)}** z Wampirzego Sztyletu, który zresetował Twoje cooldowny!)`;
-          } else {
-            sztyletNote = ` (w tym **+${formatCurrency(result.sztyletBonus)}** z Wampirzego Sztyletu)`;
+          itemsUsedNotes.push(`**+${formatCurrency(result.sztyletBonus)}** z 🗡️ Wampirzego Sztyletu${result.sztyletResetTriggered ? ' (zresetowano cooldowny)' : ''}`);
+        }
+        const itemsNote = itemsUsedNotes.length > 0 ? ` (w tym ${itemsUsedNotes.join(' oraz ')})` : '';
+        const bonusNote = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z fachu gangu)` : '';
+
+        if (result.tribute > 0) {
+          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}${zetonNote}${itemsNote} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa).${beerNote}`;
+        } else {
+          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}${zetonNote}${itemsNote}.${beerNote}`;
+        }
+        notifyMsg = `💰 **ALARM!** Użytkownik **${robberName}** okradł **${targetName}** na kwotę **${formatCurrency(result.stolen)}**!${bonusNote}${zetonNote}${itemsNote}${beerNote}`;
+
+        if (result.secondRob) {
+          if (result.secondRob.success) {
+            const secStolen = result.secondRob.stolen;
+            const secTribute = result.secondRob.tribute;
+            const secSztylet = result.secondRob.sztyletBonus;
+            let secNote = `\n🏴 **Czarna Bandera: DRUGI NAPAD!** Napad udany! Dodatkowo ukradłeś **${formatCurrency(secStolen)}** od **${targetName}**`;
+            if (secTribute > 0) {
+              secNote += ` (pobrano **${formatCurrency(secTribute)}** haraczu dla Bossa)`;
+            }
+            if (secSztylet > 0) {
+              secNote += ` (w tym **+${formatCurrency(secSztylet)}** ze Sztyletu)`;
+            }
+            replyMsg += secNote;
+            notifyMsg += `\n🏴 **DRUGI NAPAD!** Złodziej uderzył ponownie i ukradł dodatkowe **+${formatCurrency(secStolen)}**!`;
+          } else if (result.secondRob.success === false) {
+            const secFine = result.secondRob.fine;
+            const secPayout = result.secondRob.payout;
+            caughtBan.set(authorId, now + 60 * 60 * 1000); // 1h ban
+            let secNote = `\n🏴 **Czarna Bandera: DRUGI NAPAD!** Wpadka! Zostałeś złapany i tracisz dodatkowe **${formatCurrency(secFine)}** na rzecz **${targetName}**. Ban na okradanie: 1h.`;
+            replyMsg += secNote;
+            notifyMsg += `\n🏴 **DRUGI NAPAD!** Napastnik zaatakował ponownie, ale wpadł! Otrzymujesz dodatkowe zadośćuczynienie w wysokości **+${formatCurrency(secPayout)}**!`;
           }
         }
-        const bonusNote = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z fachu gangu)` : '';
-        if (result.tribute > 0) {
-          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}${zetonNote}${sztyletNote} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa).${beerNote}`;
-        } else {
-          replyMsg = `💰 Rob udany! Ukradłeś **${formatCurrency(result.stolen)}** od **${targetName}**${bonusNote}${zetonNote}${sztyletNote}.${beerNote}`;
-        }
-        notifyMsg = `💰 **ALARM!** Użytkownik **${robberName}** okradł **${targetName}** na kwotę **${formatCurrency(result.stolen)}**!${bonusNote}${zetonNote}${sztyletNote}${beerNote}`;
       } else {
         const beerNote = result.beer ? ' (Wypite Piwo -40%!)' : '';
         const zetonNote = result.robberHasZeton ? ' (w tym **+8%** kary z Krwawego Żetonu)' : '';
-        const kameraNote = result.victimHasKamera ? ' (w tym **+5%** z Twojej Kamery)' : '';
-        const robberKameraNote = result.victimHasKamera ? ' (+5% bonusu z Kamery dla ofiary)' : '';
-        replyMsg = `🚔 Wpadka! Policja Cię złapała. Tracisz **${formatCurrency(result.fine)}** na rzecz **${targetName}**${zetonNote}${robberKameraNote}. Ban na okradanie: 1h.${beerNote}`;
-        notifyMsg = `🚔 **ALARM!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale wpadł i policja oddała Ci zadośćuczynienie w wysokości **+${formatCurrency(result.payout)}**!${kameraNote}${beerNote}`;
+        
+        let failNotes = [];
+        if (result.kominiarkaBonusPct > 0) {
+          const pct = Math.round(result.kominiarkaBonusPct * 100);
+          failNotes.push(`kara zmniejszona o **${pct}%** dzięki 🥷 Kominiarce`);
+        }
+        const robberFailNote = failNotes.length > 0 ? ` (${failNotes.join(', ')})` : '';
+
+        let victimFailNotes = [];
+        if (result.victimHasKamera) {
+          victimFailNotes.push(`**+5%** z Kamery`);
+        }
+        if (result.piesBonus > 0) {
+          victimFailNotes.push(`**+${formatCurrency(result.piesBonus)}** z 🐕 Psa Stróżującego`);
+        }
+        const victimNote = victimFailNotes.length > 0 ? ` (w tym ${victimFailNotes.join(' oraz ')})` : '';
+
+        replyMsg = `🚔 Wpadka! Policja Cię złapała. Tracisz **${formatCurrency(result.fine)}** na rzecz **${targetName}**${zetonNote}${robberFailNote}. Ban na okradanie: 1h.${beerNote}`;
+        notifyMsg = `🚔 **ALARM!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale wpadł i policja oddała Ci zadośćuczynienie w wysokości **+${formatCurrency(result.payout)}**!${victimNote}${beerNote}`;
       }
     }
 

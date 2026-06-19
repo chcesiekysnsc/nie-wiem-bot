@@ -121,8 +121,16 @@ function xpForLevel(level, prestige = 0) {
 
 function addXp(user, amount, inventoryRecord = null) {
   let finalAmount = amount;
-  if (inventoryRecord && hasItem(inventoryRecord, 'krysztal_doswiadczenia')) {
-    finalAmount = Math.round(finalAmount * 1.15);
+  if (inventoryRecord) {
+    const hasCzterolistna = hasItem(inventoryRecord, 'czterolistna_moneta');
+    let xpMultiplier = 1.0;
+    if (hasItem(inventoryRecord, 'krysztal_doswiadczenia')) {
+      xpMultiplier += hasCzterolistna ? 0.16 : 0.15;
+    }
+    if (hasItem(inventoryRecord, 'podrecznik_praktykanta')) {
+      xpMultiplier += hasCzterolistna ? 0.06 : 0.05;
+    }
+    finalAmount = Math.round(finalAmount * xpMultiplier);
   }
   user.xp += Math.max(0, Math.floor(finalAmount || 0));
   const oldLevel = user.level;
@@ -381,6 +389,12 @@ function refreshBadges(user, inventoryRecord) {
   return user.badges;
 }
 
+function getPassiveMultiplier(inventoryRecord, itemId, baseBonus) {
+  if (!hasItem(inventoryRecord, itemId)) return 0;
+  const hasCzterolistna = hasItem(inventoryRecord, 'czterolistna_moneta');
+  return parseFloat((baseBonus + (hasCzterolistna ? 0.01 : 0.00)).toFixed(4));
+}
+
 module.exports = {
   randomInt,
   formatNumber,
@@ -400,5 +414,6 @@ module.exports = {
   MILESTONE_REWARDS,
   getMilestoneRewardDescription,
   giveMilestoneReward,
-  applyTalizmanBonus
+  applyTalizmanBonus,
+  getPassiveMultiplier
 };

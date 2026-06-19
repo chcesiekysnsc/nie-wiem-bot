@@ -1,4 +1,4 @@
-const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem } = require('../utils/economy');
+const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 module.exports = {
@@ -892,6 +892,7 @@ module.exports = {
           const tributePercent = currentGang.tributePercent || 0;
           let totalTribute = 0;
           const participantBonuses = {};
+          const participantInsygnia = {};
           for (const pid of listParticipants) {
             const pUser = createUser(pid, store.users);
             const isExcluded = pUser.gangRole === 'boss' || pUser.gangRole === 'deputy';
@@ -900,13 +901,22 @@ module.exports = {
             
             let finalReward = rewardPerPerson - tributeAmount;
             const inventory = ensureInventoryRecord(store.inventory, pid);
+            
+            const insygniaMultiplier = getPassiveMultiplier(inventory, 'insygnia_gang', 0.08);
+            let insygniaBonus = 0;
+            if (insygniaMultiplier > 0) {
+              insygniaBonus = Math.floor(finalReward * insygniaMultiplier);
+            }
+
             let godloBonus = 0;
             if (hasItem(inventory, 'godlo_gangu')) {
               godloBonus = Math.floor(finalReward * 0.10);
-              finalReward += godloBonus;
-              participantBonuses[pid] = godloBonus;
             }
+            finalReward += godloBonus + insygniaBonus;
             pUser.balance += finalReward;
+            
+            participantBonuses[pid] = godloBonus;
+            participantInsygnia[pid] = insygniaBonus;
           }
           // Dodaj haracza do sejfu gangu
           currentGang.vault += totalTribute;
@@ -917,7 +927,8 @@ module.exports = {
             totalReward,
             rewardPerPerson,
             tributePercent,
-            participantBonuses
+            participantBonuses,
+            participantInsygnia
           };
         });
 
@@ -937,13 +948,21 @@ module.exports = {
           const bonusPlayers = [];
           for (const pid of listParticipants) {
             const b = heistOutcome.participantBonuses[pid];
+            const ins = heistOutcome.participantInsygnia[pid];
+            const name = client.userNames.get(pid) || `Gracz_${pid.slice(-6)}`;
+            const playerBonuses = [];
             if (b > 0) {
-              const name = client.userNames.get(pid) || `Gracz_${pid.slice(-6)}`;
-              bonusPlayers.push(`• **${name}**: **+${formatCurrency(b)}** (🛡️ Godło)`);
+              playerBonuses.push(`**+${formatCurrency(b)}** (🛡️ Godło)`);
+            }
+            if (ins > 0) {
+              playerBonuses.push(`**+${formatCurrency(ins)}** (🩶 Insygnia)`);
+            }
+            if (playerBonuses.length > 0) {
+              bonusPlayers.push(`• **${name}**: ${playerBonuses.join(' + ')}`);
             }
           }
           if (bonusPlayers.length > 0) {
-            bonusText = `\n\n✨ **Bonusy za posiadanie 🛡️ Godła Gangu (+10%):**\n` + bonusPlayers.join('\n');
+            bonusText = `\n\n✨ **Bonusy z przedmiotów:**\n` + bonusPlayers.join('\n');
           }
 
           await message.reply(`💰 **SKOK GANGU ZAKOŃCZONY SUKCESEM!** 💰\n` +
@@ -1264,13 +1283,21 @@ module.exports = {
               const pUser = createUser(pid, store.users);
               let finalShare = sharePerPerson;
               const inventory = ensureInventoryRecord(store.inventory, pid);
+              
+              const insygniaMultiplier = getPassiveMultiplier(inventory, 'insygnia_gang', 0.08);
+              let insygniaBonus = 0;
+              if (insygniaMultiplier > 0) {
+                insygniaBonus = Math.floor(finalShare * insygniaMultiplier);
+              }
+
               let godloBonus = 0;
               if (hasItem(inventory, 'godlo_gangu')) {
                 godloBonus = Math.floor(finalShare * 0.05);
-                finalShare += godloBonus;
-                attackerBonuses[pid] = godloBonus;
               }
+              
+              finalShare += godloBonus + insygniaBonus;
               pUser.balance += finalShare;
+              attackerBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
               
               if (Math.random() < 0.04) {
                 const pInv = ensureInventoryRecord(store.inventory, pid);
@@ -1308,13 +1335,21 @@ module.exports = {
                 const pUser = createUser(pid, store.users);
                 let finalShare = sharePerDefender;
                 const inventory = ensureInventoryRecord(store.inventory, pid);
+                
+                const insygniaMultiplier = getPassiveMultiplier(inventory, 'insygnia_gang', 0.08);
+                let insygniaBonus = 0;
+                if (insygniaMultiplier > 0) {
+                  insygniaBonus = Math.floor(finalShare * insygniaMultiplier);
+                }
+
                 let godloBonus = 0;
                 if (hasItem(inventory, 'godlo_gangu')) {
                   godloBonus = Math.floor(finalShare * 0.05);
-                  finalShare += godloBonus;
-                  defenderBonuses[pid] = godloBonus;
                 }
+                
+                finalShare += godloBonus + insygniaBonus;
                 pUser.balance += finalShare;
+                defenderBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
               }
             } else {
               // If there were no defending players checked in, the 15% goes to defender's vault
@@ -1359,13 +1394,18 @@ module.exports = {
           const godloPlayers = [];
           for (const pid of listAttackers) {
             const b = outcome.attackerBonuses[pid];
-            if (b > 0) {
+            if (b) {
               const name = client.userNames.get(pid) || `Gracz_${pid.slice(-6)}`;
-              godloPlayers.push(`• **${name}**: **+${formatCurrency(b)}** (🛡️ Godło)`);
+              const playerBonuses = [];
+              if (b.godlo > 0) playerBonuses.push(`**+${formatCurrency(b.godlo)}** (🛡️ Godło)`);
+              if (b.insygnia > 0) playerBonuses.push(`**+${formatCurrency(b.insygnia)}** (🩶 Insygnia)`);
+              if (playerBonuses.length > 0) {
+                godloPlayers.push(`• **${name}**: ${playerBonuses.join(' + ')}`);
+              }
             }
           }
           if (godloPlayers.length > 0) {
-            godloNote = `\n\n✨ **Bonusy za posiadanie 🛡️ Godła Gangu (+5%):**\n` + godloPlayers.join('\n');
+            godloNote = `\n\n✨ **Bonusy z przedmiotów:**\n` + godloPlayers.join('\n');
           }
 
           await message.reply(
@@ -1382,13 +1422,18 @@ module.exports = {
           const godloPlayers = [];
           for (const pid of listDefenders) {
             const b = outcome.defenderBonuses[pid];
-            if (b > 0) {
+            if (b) {
               const name = client.userNames.get(pid) || `Gracz_${pid.slice(-6)}`;
-              godloPlayers.push(`• **${name}**: **+${formatCurrency(b)}** (🛡️ Godło)`);
+              const playerBonuses = [];
+              if (b.godlo > 0) playerBonuses.push(`**+${formatCurrency(b.godlo)}** (🛡️ Godło)`);
+              if (b.insygnia > 0) playerBonuses.push(`**+${formatCurrency(b.insygnia)}** (🩶 Insygnia)`);
+              if (playerBonuses.length > 0) {
+                godloPlayers.push(`• **${name}**: ${playerBonuses.join(' + ')}`);
+              }
             }
           }
           if (godloPlayers.length > 0) {
-            godloNote = `\n\n✨ **Bonusy za posiadanie 🛡️ Godła Gangu (+5%):**\n` + godloPlayers.join('\n');
+            godloNote = `\n\n✨ **Bonusy z przedmiotów:**\n` + godloPlayers.join('\n');
           }
 
           const defenderDistribution = listDefenders.length > 0 

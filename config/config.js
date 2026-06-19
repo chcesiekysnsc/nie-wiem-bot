@@ -191,32 +191,32 @@ module.exports = {
       name: 'Brązowa Paczka',
       emoji: '🟫',
       price: 50000,
-      shortDesc: 'Lootbox: 20.25k–65.25k + 10% szans na Bilet.',
-      description: 'Otwórz komendą: !otworz brazowa\nZawartość: losowa kwota od 20 250 do 65 250 viccoinów (rozkład równomierny).\nBonus drop (10%): 🎟️ Bilet Loterii.',
+      shortDesc: 'Lootbox: 20.25k–65.25k + 10% Bilet Loterii + 3% Walizka.',
+      description: 'Otwórz komendą: !otworz brazowa\nZawartość: losowa kwota od 20 250 do 65 250 viccoinów (rozkład równomierny).\nBonus drop: 10% Bilet Loterii, 3% Walizka.',
       type: 'stackable'
     },
     paczka_srebrna: {
       name: 'Srebrna Paczka',
       emoji: '⬜',
       price: 100000,
-      shortDesc: 'Lootbox: 64.125k–131.625k + 10% szans na przedmiot.',
-      description: 'Otwórz komendą: !otworz srebrna\nZawartość: losowa kwota od 64 125 do 131 625 viccoinów.\nBonus drop (10%): 5% szans na 🔒 Kłódkę, 5% szans na 🍺 Piwo.',
+      shortDesc: 'Lootbox: 64.125k–131.625k + szansa na Kłódkę, Piwo, Kominiarkę, Podręcznik.',
+      description: 'Otwórz komendą: !otworz srebrna\nZawartość: losowa kwota od 64 125 do 131 625 viccoinów.\nBonus drop: 5% Kłódka, 5% Piwo, 2.5% Kominiarka, 2.5% Podręcznik Praktykanta.',
       type: 'stackable'
     },
     paczka_zlota: {
       name: 'Złota Paczka',
       emoji: '🟨',
       price: 200000,
-      shortDesc: 'Lootbox: 130.5k–220.5k + 13% szans na przedmiot/artefakt.',
-      description: 'Otwórz komendą: !otworz zlota\nZawartość: losowa kwota od 130 500 do 220 500 viccoinów.\nBonus drop (13%): 5% na 💣 Bombę, 3% na 🔒 Kłódkę + 🍺 Piwo jednocześnie, 2% na 🎟️ Bilet, 2% na 💳 Złotą Kartę, 1% na 📷 Kamerę.',
+      shortDesc: 'Lootbox: 130.5k–220.5k + szansa na itemy/Księgę/Włamywacza/Latarkę.',
+      description: 'Otwórz komendą: !otworz zlota\nZawartość: losowa kwota od 130 500 do 220 500 viccoinów.\nBonus drop: 5% Bomba, 3% Kłódka+Piwo, 2% Bilet, 2% Złota Karta, 1% Kamera, 1% Talizman Fortuny, 1% Księga Inwestora, 1.5% Zestaw Włamywacza, 1.5% Latarka.',
       type: 'stackable'
     },
     paczka_diamentowa: {
       name: 'Diamentowa Paczka',
       emoji: '🟦',
       price: 500000,
-      shortDesc: 'Lootbox: 202.5k–652.5k + 12.5% szans na VIP/Sejf/Artefakty!',
-      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 202 500 do 652 500 viccoinów.\nBonus drop (12.5%): 5% na 👑 VIP Pass, 5% na 🏦 Ulepszenie Banku, 2% na 🩸 Krwawy Żeton, 0.5% na ⏰ Stary Zegar.\nJeśli już posiadasz dany przedmiot permanentny — otrzymujesz zamiennik o podobnej wartości.',
+      shortDesc: 'Lootbox: 202.5k–652.5k + szansa na VIP/Sejf/Alarm/Psa/Kaczkę.',
+      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 202 500 do 652 500 viccoinów.\nBonus drop: 5% VIP Pass, 5% Ulepszenie Banku, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur, 2% Alarm, 2% Pies Stróżujący, 1.5% Kaczka Biznesu.',
       type: 'stackable'
     },
     // Poniższe itemy są niedostępne w sklepie — wypadają tylko z paczek
@@ -294,8 +294,8 @@ module.exports = {
       name: 'Tytanowa Paczka',
       emoji: '🩶',
       price: 800000,
-      shortDesc: 'Lootbox: 495k–900k + 2% na Krupiera, 40% na bombę/piwo/kłódkę.',
-      description: 'Otwórz komendą: !otworz tytanowa\nZawartość: losowa kwota od 495 000 do 900 000 viccoinów.\nBonus drop (2%): 🧠 Przekupiony Krupier.\nDodatkowo 40% szans na wylosowanie bomby, piwa lub kłódki.',
+      shortDesc: 'Lootbox: 495k–900k + szansa na Krupiera, Kostkę, Insygnia.',
+      description: 'Otwórz komendą: !otworz tytanowa\nZawartość: losowa kwota od 495 000 do 900 000 viccoinów.\nBonus drop: 2% Przekupiony Krupier, 3% Kostka Ryzyka, 3% Insygnia Gangu, 40% Bomba/Piwo/Kłódka.',
       type: 'stackable',
       buyable: true
     },
@@ -388,6 +388,156 @@ module.exports = {
       type: 'permanent',
       buyable: false,
       shopNote: 'Unikalna nagroda za TOP 5 sezonu!'
+    },
+    ananas_na_pizzy: {
+      name: 'Ananas na Pizzy',
+      emoji: '🍕',
+      price: 0,
+      shortDesc: 'Event: +2% szczęścia w kasynie.',
+      description: 'Permanentny przedmiot eventowy. Daje stałe +2% do wszystkich szans wygranej/ocalenia w kasynie (!blackjack, !slots, !coinflip, !ruletka, !bet, jackpoty, losowe eventy, skrzynki).',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 1 sezonu!'
+    },
+    czarna_bandera: {
+      name: 'Czarna Bandera',
+      emoji: '🏴',
+      price: 0,
+      shortDesc: 'Event: 5% szansy na Drugi Napad przy !rob.',
+      description: 'Permanentny przedmiot eventowy. Po każdym udanym napadzie (!rob) istnieje 5% szansy na aktywację efektu „Drugi Napad” (dodatkowa kradzież bez cooldownu na tę samą osobę).',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 2 sezonu!'
+    },
+    czarna_karta: {
+      name: 'Czarna Karta Bankowa',
+      emoji: '💳',
+      price: 0,
+      shortDesc: 'Event: Dodatkowe +2% odsetek co 6h do salda.',
+      description: 'Permanentny przedmiot eventowy. Co każde 6 godzin dopisuje do Twojego salda portfela dodatkowe 2% monet zdeponowanych w banku.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 3 sezonu!'
+    },
+    kosci_oszusta: {
+      name: 'Kości Oszusta',
+      emoji: '🎲',
+      price: 0,
+      shortDesc: 'Event: 2% szansy na odzyskanie stawki przy przegranej.',
+      description: 'Permanentny przedmiot eventowy. Przy każdej przegranej w grach hazardowych istnieje 2% szansy na pełen zwrot postawionej stawki.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 4 sezonu!'
+    },
+    czterolistna_moneta: {
+      name: 'Czterolistna Moneta',
+      emoji: '🍀',
+      price: 0,
+      shortDesc: 'Event: Wzmacnia wszystkie pozytywne bonusy o +1%.',
+      description: 'Permanentny przedmiot eventowy. Zwiększa o +1 punkt procentowy wszystkie posiadane pozytywne bonusy w grze (XP, odsetki, zyski z pracy/firm, szanse w kasynie/napadu, itp.).',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 5 sezonu!'
+    },
+    walizka: {
+      name: 'Walizka',
+      emoji: '💼',
+      price: 0,
+      shortDesc: '+5% monet z !work.',
+      description: 'Pasywny przedmiot. Zwiększa bazowe zarobki z komendy !work o 5%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko z Brązowej Paczki (3.0%).'
+    },
+    ksiega_inwestora: {
+      name: 'Księga Inwestora',
+      emoji: '📖',
+      price: 0,
+      shortDesc: 'Dodatkowe odsetki co 12h (0.25% z banku).',
+      description: 'Pasywny przedmiot. Co 12 godzin dopisuje do portfela bonus równy 0.25% monet zdeponowanych w banku (odpowiednik 0.5% co 24h).',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko ze Złotej Paczki (1.0%).'
+    },
+    zestaw_wlamywacza: {
+      name: 'Zestaw Włamywacza',
+      emoji: '🛠️',
+      price: 0,
+      shortDesc: '+3% szansy powodzenia !rob.',
+      description: 'Pasywny przedmiot. Zwiększa szansę powodzenia napadu (!rob) o 3%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko ze Złotej Paczki (1.5%).'
+    },
+    kominiarka: {
+      name: 'Kominiarka',
+      emoji: '🥷',
+      price: 0,
+      shortDesc: 'Zmniejsza karę przy wpadce na !rob o 10%.',
+      description: 'Pasywny przedmiot. Jeśli napad (!rob) się nie powiedzie, płacisz karę mniejszą o 10%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko ze Srebrnej Paczki (2.5%).'
+    },
+    latarka: {
+      name: 'Latarka',
+      emoji: '🔦',
+      price: 0,
+      shortDesc: 'Udany !rob kradnie dodatkowe 2% łupu.',
+      description: 'Pasywny przedmiot. Po udanym napadzie (!rob) kradniesz dodatkowo 2% z portfela ofiary. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko ze Złotej Paczki (1.5%).'
+    },
+    alarm: {
+      name: 'Alarm',
+      emoji: '🚨',
+      price: 0,
+      shortDesc: '-4% szansy powodzenia napadu na Ciebie.',
+      description: 'Defensywny przedmiot pasywny. Zmniejsza szansę na to, że ktoś pomyślnie Cię okradnie (!rob) o 4%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Diamentowej Paczki (2.0%).'
+    },
+    pies_strozujacy: {
+      name: 'Pies Stróżujący',
+      emoji: '🐕',
+      price: 0,
+      shortDesc: 'Otrzymujesz dodatkowe 5% kary, gdy złodziej wpadnie.',
+      description: 'Defensywny przedmiot pasywny. Gdy złodziej próbujący Cię okraść wpadnie, otrzymujesz dodatkowo 5% z kwoty kary nałożonej na niego. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Diamentowej Paczki (2.0%).'
+    },
+    insygnia_gang: {
+      name: 'Insygnia Gangu',
+      emoji: '🏴‍☠️',
+      price: 0,
+      shortDesc: '+8% nagród z aktywności gangowych.',
+      description: 'Pasywny przedmiot. Zwiększa nagrody uzyskiwane z aktywności gangowych (napady i wojny gangów) o 8%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępne tylko z Tytanowej Paczki (3.0%).'
+    },
+    podrecznik_praktykanta: {
+      name: 'Podręcznik Praktykanta',
+      emoji: '📘',
+      price: 0,
+      shortDesc: '+5% XP ze wszystkich źródeł.',
+      description: 'Pasywny przedmiot. Zwiększa zdobywane doświadczenie (XP) ze wszystkich źródeł o 5%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko ze Srebrnej Paczki (2.5%).'
+    },
+    kaczka_biznesu: {
+      name: 'Kaczka Biznesu',
+      emoji: '🦆',
+      price: 0,
+      shortDesc: '+5% dochodu z firm.',
+      description: 'Pasywny przedmiot. Zwiększa dochód generowany przez Twoje firmy o 5%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko z Diamentowej Paczki (1.5%).'
     }
   },
   badges: {

@@ -20,7 +20,8 @@ const PACZKI = {
     minCash: 20250,
     maxCash: 65250,
     drops: [
-      { chance: 100, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] } // 10% = 100/1000
+      { chance: 100, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] }, // 10%
+      { chance: 30,  items: [{ id: 'walizka', qty: 1, label: '💼 Walizka', permanent: true }] } // 3%
     ]
   },
   srebrna: {
@@ -30,8 +31,10 @@ const PACZKI = {
     minCash: 64125,
     maxCash: 131625,
     drops: [
-      { chance: 50, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] }, // 5% = 50/1000
-      { chance: 50, items: [{ id: 'piwo',   qty: 1, label: '🍺 Piwo'   }] }  // 5% = 50/1000
+      { chance: 50, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] },
+      { chance: 50, items: [{ id: 'piwo',   qty: 1, label: '🍺 Piwo'   }] },
+      { chance: 25, items: [{ id: 'kominiarka', qty: 1, label: '🥷 Kominiarka', permanent: true }] }, // 2.5%
+      { chance: 25, items: [{ id: 'podrecznik_praktykanta', qty: 1, label: '📘 Podręcznik Praktykanta', permanent: true }] } // 2.5%
     ]
   },
   zlota: {
@@ -41,12 +44,15 @@ const PACZKI = {
     minCash: 130500,
     maxCash: 220500,
     drops: [
-      { chance: 50, items: [{ id: 'bomba',  qty: 1, label: '💣 Bomba'  }] }, // 5% = 50/1000
-      { chance: 30, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }] }, // 3% = 30/1000
-      { chance: 20, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] }, // 2% = 20/1000
-      { chance: 20, items: [{ id: 'zlota_karta', qty: 1, label: '💳 Złota Karta' }] }, // 2% = 20/1000
-      { chance: 10, items: [{ id: 'kamera', qty: 1, label: '📷 Kamera' }] }, // 1% = 10/1000
-      { chance: 10, items: [{ id: 'talizman_fortuny', qty: 1, label: '📿 Talizman Fortuny', permanent: true }] } // 1% = 10/1000
+      { chance: 50, items: [{ id: 'bomba',  qty: 1, label: '💣 Bomba'  }] },
+      { chance: 30, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }] },
+      { chance: 20, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] },
+      { chance: 20, items: [{ id: 'zlota_karta', qty: 1, label: '💳 Złota Karta' }] },
+      { chance: 10, items: [{ id: 'kamera', qty: 1, label: '📷 Kamera' }] },
+      { chance: 10, items: [{ id: 'talizman_fortuny', qty: 1, label: '📿 Talizman Fortuny', permanent: true }] },
+      { chance: 15, items: [{ id: 'zestaw_wlamywacza', qty: 1, label: '🛠️ Zestaw Włamywacza', permanent: true }] }, // 1.5%
+      { chance: 15, items: [{ id: 'latarka', qty: 1, label: '🔦 Latarka', permanent: true }] }, // 1.5%
+      { chance: 10, items: [{ id: 'ksiega_inwestora', qty: 1, label: '📖 Księga Inwestora', permanent: true }] } // 1.0%
     ]
   },
   diamentowa: {
@@ -56,12 +62,15 @@ const PACZKI = {
     minCash: 202500,
     maxCash: 652500,
     drops: [
-      { chance: 50, items: [{ id: 'vip',  qty: 1, label: '👑 VIP Pass',          permanent: true }] }, // 5% = 50/1000
-      { chance: 50, items: [{ id: 'sejf', qty: 1, label: '🏦 Ulepszenie Banku',  permanent: true }] }, // 5% = 50/1000
-      { chance: 20, items: [{ id: 'krwawy_zeton', qty: 1, label: '🩸 Krwawy Żeton' }] }, // 2% = 20/1000
-      { chance: 5,  items: [{ id: 'stary_zegar', qty: 1, label: '⏰ Stary Zegar' }] },  // 0.5% = 5/1000
-      { chance: 30, items: [{ id: 'godlo_gangu', qty: 1, label: '🛡️ Godło Gangu', permanent: true }] }, // 3% = 30/1000
-      { chance: 30, items: [{ id: 'garnitur', qty: 1, label: '👔 Garnitur', permanent: true }] } // 3% = 30/1000
+      { chance: 50, items: [{ id: 'vip',  qty: 1, label: '👑 VIP Pass',          permanent: true }] },
+      { chance: 50, items: [{ id: 'sejf', qty: 1, label: '🏦 Ulepszenie Banku',  permanent: true }] },
+      { chance: 20, items: [{ id: 'krwawy_zeton', qty: 1, label: '🩸 Krwawy Żeton' }] },
+      { chance: 5,  items: [{ id: 'stary_zegar', qty: 1, label: '⏰ Stary Zegar' }] },
+      { chance: 30, items: [{ id: 'godlo_gangu', qty: 1, label: '🛡️ Godło Gangu', permanent: true }] },
+      { chance: 30, items: [{ id: 'garnitur', qty: 1, label: '👔 Garnitur', permanent: true }] },
+      { chance: 20, items: [{ id: 'alarm', qty: 1, label: '🚨 Alarm', permanent: true }] }, // 2.0%
+      { chance: 20, items: [{ id: 'pies_strozujacy', qty: 1, label: '🐕 Pies Stróżujący', permanent: true }] }, // 2.0%
+      { chance: 15, items: [{ id: 'kaczka_biznesu', qty: 1, label: '🦆 Kaczka Biznesu', permanent: true }] } // 1.5%
     ]
   },
   tytanowa: {
@@ -71,11 +80,12 @@ const PACZKI = {
     minCash: 495000,
     maxCash: 900000,
     drops: [
-      { chance: 20, items: [{ id: 'przekupiony_krupier', qty: 1, label: '🧠 Przekupiony Krupier' }] }, // 2% = 20/1000
-      { chance: 150, items: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }] }, // 15% = 150/1000
-      { chance: 150, items: [{ id: 'piwo',  qty: 1, label: '🍺 Piwo'  }] },  // 15% = 150/1000
-      { chance: 100, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] }, // 10% = 100/1000 (total for bomba/piwo/klodka = 40% = 400/1000)
-      { chance: 30, items: [{ id: 'kosc_ryzyka', qty: 1, label: '🎲 Kostka Ryzyka', permanent: true }] } // 3% = 30/1000
+      { chance: 20, items: [{ id: 'przekupiony_krupier', qty: 1, label: '🧠 Przekupiony Krupier' }] },
+      { chance: 150, items: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }] },
+      { chance: 150, items: [{ id: 'piwo',  qty: 1, label: '🍺 Piwo'  }] },
+      { chance: 100, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] },
+      { chance: 30, items: [{ id: 'kosc_ryzyka', qty: 1, label: '🎲 Kostka Ryzyka', permanent: true }] },
+      { chance: 30, items: [{ id: 'insygnia_gang', qty: 1, label: '🏴‍☠️ Insygnia Gangu', permanent: true }] } // 3.0%
     ]
   }
 };
@@ -87,7 +97,17 @@ const FALLBACKS = {
   talizman_fortuny: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }],
   godlo_gangu:      [{ id: 'bomba', qty: 1, label: '💣 Bomba' }, { id: 'klodka', qty: 1, label: '🔒 Kłódka' }],
   garnitur:         [{ id: 'bomba', qty: 1, label: '💣 Bomba' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }],
-  kosc_ryzyka:      [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }]
+  kosc_ryzyka:      [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }],
+  walizka:          [{ id: 'ticket', qty: 2, label: '🎟️ Bilet Loterii x2' }],
+  podrecznik_praktykanta: [{ id: 'piwo', qty: 1, label: '🍺 Piwo' }],
+  kominiarka:       [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }],
+  zestaw_wlamywacza: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }],
+  latarka:          [{ id: 'piwo', qty: 1, label: '🍺 Piwo' }],
+  ksiega_inwestora: [{ id: 'klodka', qty: 2, label: '🔒 Kłódka x2' }],
+  alarm:            [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }],
+  pies_strozujacy:  [{ id: 'klodka', qty: 2, label: '🔒 Kłódka x2' }],
+  kaczka_biznesu:   [{ id: 'bomba', qty: 1, label: '💣 Bomba' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }],
+  insygnia_gang:    [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }]
 };
 
 // Losuje drop na podstawie tabeli szans (1-1000)

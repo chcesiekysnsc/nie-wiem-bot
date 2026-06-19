@@ -6,34 +6,69 @@ const eventItems = {
     name: 'Szkarłatne Oko Krupiera',
     emoji: '👁️',
     desc: 'Stałe +1.5% szansy na wygraną w blackjacku, slots, ruletce, bet i coinflip. Stackuje się z innymi odznakami.',
-    award: 'TOP 1 sezonu'
+    award: 'TOP 1 sezonu (stary)'
   },
   2: {
     id: 'cien_nocy',
     name: 'Cień Nocy',
     emoji: '🥷',
     desc: 'Skraca cooldown na okradanie (!rob) o 25%. Stackuje się z innymi bonusami.',
-    award: 'TOP 2 sezonu'
+    award: 'TOP 2 sezonu (stary)'
   },
   3: {
     id: 'wampirzy_sztylet',
     name: 'Wampirzy Sztylet',
     emoji: '🩸',
     desc: 'Udany rob resetuje cooldowny komend !work oraz !crime i kradnie dodatkowe 5% portfela ofiary.',
-    award: 'TOP 3 sezonu'
+    award: 'TOP 3 sezonu (stary)'
   },
   4: {
     id: 'szwajcarski_klucz',
     name: 'Szwajcarski Klucz',
     emoji: '🔑',
     desc: 'Zwiększa pojemność banku o 100 000 monet. Stackuje się z innymi bonusami.',
-    award: 'TOP 4 sezonu'
+    award: 'TOP 4 sezonu (stary)'
   },
   5: {
     id: 'krysztal_doswiadczenia',
     name: 'Kryształ Doświadczenia',
     emoji: '🔮',
     desc: 'Zwiększa zdobywane XP ze wszystkich źródeł (work, crime, gry, czat) o 15%. Stackuje się z innymi bonusami.',
+    award: 'TOP 5 sezonu (stary)'
+  },
+  6: {
+    id: 'ananas_na_pizzy',
+    name: 'Ananas na Pizzy',
+    emoji: '🍕',
+    desc: 'Stałe +2% szczęścia do wszystkich pozytywnych zdarzeń losowych w ekonomii (!blackjack, !slots, !coinflip, !ruletka, !bet, jackpoty, losowe eventy, skrzynki).',
+    award: 'TOP 1 sezonu'
+  },
+  7: {
+    id: 'czarna_bandera',
+    name: 'Czarna Bandera',
+    emoji: '🏴',
+    desc: 'Po każdym udanym !rob istnieje 5% szansy na aktywację efektu „Drugi Napad” (dodatkowa kradzież bez cooldownu na tę samą osobę).',
+    award: 'TOP 2 sezonu'
+  },
+  8: {
+    id: 'czarna_karta',
+    name: 'Czarna Karta Bankowa',
+    emoji: '💳',
+    desc: 'Co każde 6 godzin dopisuje do salda portfela dodatkowe 2% monet zdeponowanych w banku.',
+    award: 'TOP 3 sezonu'
+  },
+  9: {
+    id: 'kosci_oszusta',
+    name: 'Kości Oszusta',
+    emoji: '🎲',
+    desc: 'Przy każdej przegranej w grach hazardowych istnieje 2% szansy na pełen zwrot postawionej stawki.',
+    award: 'TOP 4 sezonu'
+  },
+  10: {
+    id: 'czterolistna_moneta',
+    name: 'Czterolistna Moneta',
+    emoji: '🍀',
+    desc: 'Wzmacnia o +1 punkt procentowy wszystkie posiadane pozytywne bonusy w grze (XP, odsetki, zyski z pracy/firm, szanse w kasynie/napadu, itp.).',
     award: 'TOP 5 sezonu'
   }
 };
@@ -52,9 +87,8 @@ module.exports = {
         return;
       }
 
-      const nr = Number(args[1]);
       if (isNaN(nr) || !eventItems[nr]) {
-        await message.reply(`❌ Podaj poprawny numer przedmiotu (1-5). Użyj: **!eventitemy ${subCommand} <nr> <@osoba/ID>**`);
+        await message.reply(`❌ Podaj poprawny numer przedmiotu (1-10). Użyj: **!eventitemy ${subCommand} <nr> <@osoba/ID>**`);
         return;
       }
 
@@ -113,7 +147,7 @@ module.exports = {
     }
 
     if (isNaN(nr) || !eventItems[nr]) {
-      await message.reply('❌ Podaj poprawny numer przedmiotu (1-5).');
+      await message.reply('❌ Podaj poprawny numer przedmiotu (1-10).');
       return;
     }
 

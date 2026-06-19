@@ -289,11 +289,11 @@ function performMonthlyReset(store) {
 
   // 2. Distribute items to TOP 5 eligible users
   const rewards = [
-    'szkarlatne_oko',
-    'cien_nocy',
-    'wampirzy_sztylet',
-    'szwajcarski_klucz',
-    'krysztal_doswiadczenia'
+    'ananas_na_pizzy',
+    'czarna_bandera',
+    'czarna_karta',
+    'kosci_oszusta',
+    'czterolistna_moneta'
   ];
 
   for (let i = 0; i < Math.min(5, eligibleUsers.length); i++) {
@@ -319,7 +319,12 @@ function performMonthlyReset(store) {
     'cien_nocy',
     'wampirzy_sztylet',
     'szwajcarski_klucz',
-    'krysztal_doswiadczenia'
+    'krysztal_doswiadczenia',
+    'ananas_na_pizzy',
+    'czarna_bandera',
+    'czarna_karta',
+    'kosci_oszusta',
+    'czterolistna_moneta'
   ];
 
   for (const [userId, user] of Object.entries(store.users)) {
@@ -410,7 +415,7 @@ async function withData(callback) {
       store.profiles.lastResetMonth = currentMonth;
     }
 
-    // Oblicz odsetki bankowe co 12h (2% do salda z bonusami odznaki)
+    // Oblicz odsetki bankowe co 12h (2% do salda z bonusami odznaki + Księga Inwestora)
     store.profiles.lastInterestPayout = store.profiles.lastInterestPayout || Date.now();
     const intervalMs = 12 * 60 * 60 * 1000;
     let timePassed = Date.now() - store.profiles.lastInterestPayout;
@@ -418,17 +423,25 @@ async function withData(callback) {
       for (const [userId, user] of Object.entries(store.users)) {
         if (user && user.bank > 0) {
           let rate = 0.02;
+          const userInv = store.inventory[userId] || {};
+          const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
+
           if (user.badges) {
             if (user.badges.includes(config.badges.bogacz)) {
-              rate += 0.005;
+              rate += hasCzterolistna ? 0.015 : 0.005;
             }
             if (user.badges.includes(config.badges.milioner)) {
-              rate += 0.01;
+              rate += hasCzterolistna ? 0.02 : 0.01;
             }
             if (user.badges.includes(config.badges.miliarder)) {
-              rate += 0.02;
+              rate += hasCzterolistna ? 0.03 : 0.02;
             }
           }
+
+          if ((userInv['ksiega_inwestora'] || 0) > 0) {
+            rate += hasCzterolistna ? 0.0075 : 0.0025; // +0.25% or +0.75% co 12h
+          }
+
           const interest = Math.floor(user.bank * rate);
           if (interest > 0) {
             user.balance = (user.balance || 0) + interest;
@@ -437,6 +450,28 @@ async function withData(callback) {
       }
       store.profiles.lastInterestPayout += intervalMs;
       timePassed = Date.now() - store.profiles.lastInterestPayout;
+    }
+
+    // Oblicz odsetki z Czarnej Karty Bankowej co 6h
+    store.profiles.lastCzarnaKartaPayout = store.profiles.lastCzarnaKartaPayout || Date.now();
+    const czarnaIntervalMs = 6 * 60 * 60 * 1000;
+    let timePassedCzarna = Date.now() - store.profiles.lastCzarnaKartaPayout;
+    while (timePassedCzarna >= czarnaIntervalMs) {
+      for (const [userId, user] of Object.entries(store.users)) {
+        if (user && user.bank > 0) {
+          const userInv = store.inventory[userId] || {};
+          if ((userInv['czarna_karta'] || 0) > 0) {
+            const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
+            const rate = hasCzterolistna ? 0.03 : 0.02; // +2% bazowo, +3% z Czterolistną Monetą co 6h
+            const interest = Math.floor(user.bank * rate);
+            if (interest > 0) {
+              user.balance = (user.balance || 0) + interest;
+            }
+          }
+        }
+      }
+      store.profiles.lastCzarnaKartaPayout += czarnaIntervalMs;
+      timePassedCzarna = Date.now() - store.profiles.lastCzarnaKartaPayout;
     }
 
     // Oblicz odsetki i auto-spłatę pożyczek (oprocentowanie co 6h, auto-spłata po 48h)

@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { ensureInventoryRecord, formatCurrency, hasItem, recordGame, refreshBadges, resolveAmount } = require('../utils/economy');
+const { ensureInventoryRecord, formatCurrency, hasItem, recordGame, refreshBadges, resolveAmount, getPassiveMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 function normalizeChoice(input) {
@@ -56,6 +56,9 @@ module.exports = {
         baseChance += 0.015;
       }
 
+      const ananasBonus = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
+      baseChance += ananasBonus;
+
       const roll = crypto.randomInt(0, 10000);
       let won = roll < (baseChance * 10000);
       let dealerCheated = false;
@@ -75,25 +78,39 @@ module.exports = {
 
       let badgeSaved = false;
       let szkarlatneOkoSaved = false;
+      let ananasSaved = false;
       if (won && !dealerCheated) {
         const baseThreshold = 0.485 * 10000;
         const badgeThreshold = baseThreshold + (badgeBonusChance * 10000);
+        const okoThreshold = badgeThreshold + (hasOko ? 150 : 0);
+        const ananasThreshold = okoThreshold + (ananasBonus * 10000);
         if (roll >= baseThreshold && roll < badgeThreshold) {
           badgeSaved = true;
-        } else if (roll >= badgeThreshold && roll < badgeThreshold + (hasOko ? 150 : 0)) {
+        } else if (roll >= badgeThreshold && roll < okoThreshold) {
           szkarlatneOkoSaved = true;
+        } else if (roll >= okoThreshold && roll < ananasThreshold) {
+          ananasSaved = true;
+        }
+      }
+
+      let kosciRefunded = false;
+      if (!won) {
+        const kosciBonusPct = getPassiveMultiplier(inventory, 'kosci_oszusta', 0.02);
+        if (kosciBonusPct > 0 && Math.random() < kosciBonusPct) {
+          won = true;
+          kosciRefunded = true;
         }
       }
 
       const flip = won ? choice : (choice === 'heads' ? 'tails' : 'heads');
 
-      let payout = won ? bet * 2 : 0;
-      if (won && user.badges && user.badges.includes(config.badges.uzalezniony)) {
+      let payout = won ? (kosciRefunded ? bet : bet * 2) : 0;
+      if (won && !kosciRefunded && user.badges && user.badges.includes(config.badges.uzalezniony)) {
         payout += Math.round(bet * 0.03);
       }
 
       let talizmanBonus = 0;
-      if (won) {
+      if (won && !kosciRefunded) {
         const netGainBeforeTalizman = payout - bet;
         const { applyTalizmanBonus } = require('../utils/economy');
         talizmanBonus = applyTalizmanBonus(user, inventory, netGainBeforeTalizman);
@@ -106,7 +123,7 @@ module.exports = {
       const xpResult = recordGame(user, net, 25, inventory);
       refreshBadges(user, inventory);
 
-      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, badgeUsed, dealerCheated, talizmanBonus, streak: user.gambleStreak || 0 };
+      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, ananasSaved, kosciRefunded, badgeUsed, dealerCheated, talizmanBonus, streak: user.gambleStreak || 0 };
     });
 
     if (result.error) {
@@ -130,6 +147,12 @@ module.exports = {
     }
     if (result.szkarlatneOkoSaved) {
       replyText += `\n👁️ Przedmiot **Szkarłatne Oko Krupiera** dał Ci dodatkową szansę i uratował przed przegraną!`;
+    }
+    if (result.ananasSaved) {
+      replyText += `\n🍕 Przedmiot **Ananas na Pizzy** dał Ci dodatkową szansę i uratował przed przegraną!`;
+    }
+    if (result.kosciRefunded) {
+      replyText += `\n🎲 Przedmiot **Kości Oszusta** uratował Cię przed stratą i zwrócił całą stawkę!`;
     }
 
     if (result.xpResult && result.xpResult.leveledUp) {

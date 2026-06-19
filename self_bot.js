@@ -660,7 +660,12 @@ login({ appState }, (loginErr, api) => {
           'cien_nocy': { emoji: '🥷', name: 'Cień Nocy' },
           'wampirzy_sztylet': { emoji: '🩸', name: 'Wampirzy Sztylet' },
           'szwajcarski_klucz': { emoji: '🔑', name: 'Szwajcarski Klucz' },
-          'krysztal_doswiadczenia': { emoji: '🔮', name: 'Kryształ Doświadczenia' }
+          'krysztal_doswiadczenia': { emoji: '🔮', name: 'Kryształ Doświadczenia' },
+          'ananas_na_pizzy': { emoji: '🍕', name: 'Ananas na Pizzy' },
+          'czarna_bandera': { emoji: '🏴', name: 'Czarna Bandera' },
+          'czarna_karta': { emoji: '💳', name: 'Czarna Karta Bankowa' },
+          'kosci_oszusta': { emoji: '🎲', name: 'Kości Oszusta' },
+          'czterolistna_moneta': { emoji: '🍀', name: 'Czterolistna Moneta' }
         };
 
         let winnerLines = [];
