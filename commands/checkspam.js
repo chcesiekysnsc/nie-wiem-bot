@@ -17,6 +17,15 @@ module.exports = {
     }
 
     const subCommand = String(args[0] || '').toLowerCase();
+    if (subCommand === 'restart') {
+      await message.reply('🔄 Restartuję bota w celu odświeżenia połączeń MQTT...');
+      setTimeout(() => {
+        console.log('[CHECKSPAM] Manual restart triggered...');
+        process.exit(1);
+      }, 1000);
+      return;
+    }
+
     if (subCommand === 'debug') {
       const debugPath = path.join(__dirname, '../data/spamcheck_debug.json');
       if (!fs.existsSync(debugPath)) {
@@ -189,8 +198,10 @@ module.exports = {
           console.error('[CHECKSPAM] Failed to save debug logs:', err);
         }
 
+        let shouldRestart = false;
         if (newGroupsFound > 0) {
           saveProcessedGroups();
+          shouldRestart = true;
         }
 
         let responseMsg = '';
@@ -208,11 +219,24 @@ module.exports = {
         if (foundGroups.length > 0) {
           const listText = foundGroups.map(g => `• **${g.name}** (ID: \`${g.id}\`, Osoby: **${g.memberCount}**) w folderze *${g.folder}*`).join('\n');
           responseMsg += `✅ **Skanowanie zakończone!**\n\nZnaleziono następujące grupy w Spam/Inne (wysłano ponowne powitanie w celu aktywacji):\n${listText}\n\n*(Pominięto ${skippedPrivateCount} czatów prywatnych)*`;
+          if (shouldRestart) {
+            responseMsg += `\n\n🔄 **Wykryto nowe grupy!** Automatyczny restart bota za 4 sekundy w celu odświeżenia połączeń MQTT i aktywacji nasłuchiwania na nowych czatach...`;
+          }
         } else {
           responseMsg += `✅ Skanowanie zakończone. Nie znaleziono żadnych grup w folderach Spam/Inne. (Pominięto ${skippedPrivateCount} czatów prywatnych)`;
+          if (shouldRestart) {
+            responseMsg += `\n\n🔄 Automatyczny restart bota za 4 sekundy w celu odświeżenia połączeń MQTT...`;
+          }
         }
 
         message.reply(responseMsg);
+
+        if (shouldRestart) {
+          setTimeout(() => {
+            console.log('[CHECKSPAM] Exiting for auto-restart after activating new groups...');
+            process.exit(1);
+          }, 4000);
+        }
       }
     }
   }
