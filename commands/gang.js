@@ -144,15 +144,8 @@ module.exports = {
       const targetBoss = await withData(store => createUser(readResult.targetBossId, store.users));
       const targetThreadId = targetBoss.lastActiveThreadId || message.threadID;
 
-      const tagText = `@${targetBossName}`;
-
       if (writeResult.action === 'broken') {
-        const localBody = `💔 Zerwałeś sojusz z gangiem **${readResult.targetGangName}** (Boss: ${tagText})!`;
-        const localPayload = {
-          body: localBody,
-          mentions: [{ tag: tagText, id: readResult.targetBossId }]
-        };
-        client.api.sendMessage(localPayload, message.threadID, () => {}, message.messageID);
+        await message.reply(`💔 Zerwałeś sojusz z gangiem **${readResult.targetGangName}**!`);
 
         // Notify target boss
         const notifyBody = `💔 Boss gangu **${readResult.myGangName}** zerwał sojusz z Twoim gangiem **${readResult.targetGangName}**!`;
@@ -162,12 +155,7 @@ module.exports = {
         };
         client.api.sendMessage(notifyPayload, targetThreadId);
       } else if (writeResult.action === 'accepted') {
-        const localBody = `🤝 Sojusz z gangiem **${readResult.targetGangName}** (Boss: ${tagText}) został zawarty!`;
-        const localPayload = {
-          body: localBody,
-          mentions: [{ tag: tagText, id: readResult.targetBossId }]
-        };
-        client.api.sendMessage(localPayload, message.threadID, () => {}, message.messageID);
+        await message.reply(`🤝 Sojusz z gangiem **${readResult.targetGangName}** został zawarty!`);
 
         // Notify target boss only if they are on a different group
         if (targetThreadId !== message.threadID) {
@@ -179,12 +167,7 @@ module.exports = {
           client.api.sendMessage(notifyPayload, targetThreadId);
         }
       } else if (writeResult.action === 'proposed') {
-        const localBody = `⌛ Wysłano propozycję sojuszu do gangu **${readResult.targetGangName}** (Boss: ${tagText}). Oczekiwanie na akceptację Bossa...`;
-        const localPayload = {
-          body: localBody,
-          mentions: [{ tag: tagText, id: readResult.targetBossId }]
-        };
-        client.api.sendMessage(localPayload, message.threadID, () => {}, message.messageID);
+        await message.reply(`⌛ Wysłano propozycję sojuszu do gangu **${readResult.targetGangName}**. Oczekiwanie na akceptację Bossa...`);
 
         // Notify target boss
         const notifyBody = `🔔 Boss gangu **${readResult.myGangName}** (${myBossName}) chce zawrzeć sojusz z Twoim gangiem **${readResult.targetGangName}**!\n\n💡 Aby zaakceptować propozycję, wpisz na czacie: **!gang sojusz ${readResult.myGangName}**`;
