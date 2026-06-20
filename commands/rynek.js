@@ -30,7 +30,15 @@ module.exports = {
     const action = String(args[0] || '').toLowerCase();
     const userId = message.author.id;
 
-    const getName = (id) => {
+    const getNameAsync = async (id) => {
+      if (client.resolveUserName) {
+        try {
+          const name = await client.resolveUserName(id);
+          if (name) return name;
+        } catch (e) {
+          console.error('[RYNEK] Error resolving user name:', e);
+        }
+      }
       if (client.userNames && client.userNames.has(id)) {
         return client.userNames.get(id);
       }
@@ -144,7 +152,6 @@ module.exports = {
           payout,
           tax,
           sellerId: offer.sellerId,
-          sellerName: getName(offer.sellerId),
           sellerThreadId: seller.lastActiveThreadId
         };
       });
@@ -154,9 +161,11 @@ module.exports = {
         return;
       }
 
+      const sellerName = await getNameAsync(buyResult.sellerId);
+
       // Wyślij potwierdzenie
       await message.reply(
-        `🎉 Pomyślnie kupiłeś **${buyResult.itemEmoji} ${buyResult.itemName}** od **${buyResult.sellerName}**!\n` +
+        `🎉 Pomyślnie kupiłeś **${buyResult.itemEmoji} ${buyResult.itemName}** od **${sellerName}**!\n` +
         `💸 Cena: **${formatCurrency(buyResult.price)}** (została pobrana z Twojego portfela).\n` +
         `📦 Przedmiot trafił do Twojego ekwipunku (**!eq**).`
       );
@@ -164,7 +173,7 @@ module.exports = {
       // Powiadomienie dla sprzedawcy (wyślemy na ostatnią grupę, na której sprzedawca użył komendy)
       if (client.api && buyResult.sellerThreadId) {
         try {
-          const buyerName = message.author?.username || getName(userId);
+          const buyerName = message.author?.username || await getNameAsync(userId);
           client.api.sendMessage(
             `💰 **RYNEK ALARM!** Użytkownik **${buyerName}** kupił Twój wystawiony przedmiot **${buyResult.itemEmoji} ${buyResult.itemName}**!\n` +
             `Otrzymujesz: **+${formatCurrency(buyResult.payout)}** (cena ${formatCurrency(buyResult.price)} minus 10% podatku).`,
@@ -228,16 +237,11 @@ module.exports = {
     // ==========================================
     // 4. LISTOWANIE OFERT (!rynek)
     // ==========================================
-    const marketList = await withData(store => {
-      store.profiles.market = store.profiles.market || [];
-      return store.profiles.market.map((offer, i) => {
-        const itemInfo = Object.values(ARTEFAKTY_MAP).find(a => a.id === offer.itemId) || { name: offer.itemId, emoji: '📦' };
-        const sellerName = getName(offer.sellerId);
-        return `${i + 1}. **${itemInfo.emoji} ${itemInfo.name}** — Cena: **${formatCurrency(offer.price)}** (Wystawił: *${sellerName}*)`;
-      });
+    const marketRaw = await withData(store => {
+      return store.profiles.market || [];
     });
 
-    if (marketList.length === 0) {
+    if (marketRaw.length === 0) {
       await message.reply(
         `🏛️ **Globalny Rynek Artefaktów** 🏛️\n` +
         `Obecnie brak jakichkolwiek wystawionych ofert.\n\n` +
@@ -247,6 +251,21 @@ module.exports = {
       );
       return;
     }
+
+    // Pobierz nazwy sprzedawców asynchronicznie i równolegle
+    const sellerIds = [...new Set(marketRaw.map(offer => offer.sellerId))];
+    const sellerNames = {};
+    await Promise.all(
+      sellerIds.map(async id => {
+        sellerNames[id] = await getNameAsync(id);
+      })
+    );
+
+    const marketList = marketRaw.map((offer, i) => {
+      const itemInfo = Object.values(ARTEFAKTY_MAP).find(a => a.id === offer.itemId) || { name: offer.itemId, emoji: '📦' };
+      const sellerName = sellerNames[offer.sellerId] || `Gracz_${offer.sellerId.slice(-6)}`;
+      return `${i + 1}. **${itemInfo.emoji} ${itemInfo.name}** — Cena: **${formatCurrency(offer.price)}** (Wystawił: *${sellerName}*)`;
+    });
 
     const response = 
       `🏛️ **Globalny Rynek Artefaktów** 🏛️\n` +

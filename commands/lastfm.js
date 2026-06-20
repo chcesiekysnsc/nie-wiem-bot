@@ -1,8 +1,10 @@
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
-const { withData } = require('../utils/storage');
 const config = require('../config/config');
+const { withData } = require('../utils/storage');
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 function decodeHTML(str) {
   if (!str) return '';
@@ -336,39 +338,38 @@ module.exports = {
 
         const statusMsg = await message.reply(`📊 Pobieranie scrobbli dla ${activeProfiles.length} członków grupy...`);
 
-        // Pobieranie profili w sposób zrównoleglony z obsłużeniem błędów
+        // Pobieranie profili w sposób sekwencyjny z opóźnieniem w celu uniknięcia limitów zapytań (HTTP 429)
         const results = [];
-        await Promise.all(
-          activeProfiles.map(async ([pid, conn]) => {
-            // Sprawdzenie incognito: jeśli użytkownik włączył incognito i nie jest nadawcą wiadomości, pomijamy go w rankingu
-            if (conn.incognito === true && pid !== message.author.id) {
-              return;
-            }
+        for (const [pid, conn] of activeProfiles) {
+          // Sprawdzenie incognito: jeśli użytkownik włączył incognito i nie jest nadawcą wiadomości, pomijamy go w rankingu
+          if (conn.incognito === true && pid !== message.author.id) {
+            continue;
+          }
 
-            const name = await getName(pid);
-            try {
-              const html = await fetchLastFMPage(`https://www.last.fm/user/${conn.username}`);
-              const parsed = parseProfile(html);
-              const scrobblesNum = parseInt(parsed.scrobbles.replace(/[^\d]/g, ''), 10) || 0;
-              results.push({
-                pid,
-                name,
-                username: conn.username,
-                scrobbles: scrobblesNum,
-                scrobblesStr: parsed.scrobbles
-              });
-            } catch (e) {
-              // W razie błędu dodajemy z 0 scrobbli, by chociaż figurował w liście
-              results.push({
-                pid,
-                name,
-                username: conn.username,
-                scrobbles: 0,
-                scrobblesStr: '0'
-              });
-            }
-          })
-        );
+          const name = await getName(pid);
+          try {
+            const html = await fetchLastFMPage(`https://www.last.fm/user/${conn.username}`);
+            const parsed = parseProfile(html);
+            const scrobblesNum = parseInt(parsed.scrobbles.replace(/[^\d]/g, ''), 10) || 0;
+            results.push({
+              pid,
+              name,
+              username: conn.username,
+              scrobbles: scrobblesNum,
+              scrobblesStr: parsed.scrobbles
+            });
+          } catch (e) {
+            // W razie błędu dodajemy z 0 scrobbli, by chociaż figurował w liście
+            results.push({
+              pid,
+              name,
+              username: conn.username,
+              scrobbles: 0,
+              scrobblesStr: '0'
+            });
+          }
+          await sleep(350);
+        }
 
         // Sortowanie po scrobbles malejąco
         results.sort((a, b) => b.scrobbles - a.scrobbles);
@@ -699,6 +700,7 @@ module.exports = {
           } catch (e) {
             // Ignorujemy błędy pobierania dla pojedynczych osób z listy
           }
+          await sleep(350);
         }
 
         if (statusLines.length === 0) {
