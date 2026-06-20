@@ -108,13 +108,14 @@ module.exports = {
       const transcriptText = transcriptLines.join('\n');
 
       const promptText = 
-        `Jesteś inteligentnym, dowcipnym i zwięzłym asystentem na czacie grupowym na Messengerze. ` +
+        `Jesteś neutralnym i szczerym asystentem na czacie grupowym na Messengerze. ` +
         `Przeanalizuj poniższe wiadomości i streść przebieg rozmowy po polsku.\n\n` +
         `Wymagania dotyczące streszczenia:\n` +
         `1. Użyj formatowania markdown, punktorów oraz odpowiednich emotek dla czytelności.\n` +
         `2. Streść dyskusję zwięźle, w kilku punktach (główne wątki).\n` +
         `3. Wypisz najaktywniejsze osoby i to, o czym mówiły.\n` +
-        `4. Dodaj krótkie podsumowanie lub wniosek końcowy w lekki, humorystyczny i zabawny sposób.\n\n` +
+        `4. Dodaj krótkie, neutralne podsumowanie końcowe. Nie bądź zabawny ani dowcipny — po prostu szczerze i obiektywnie podsumuj rozmowę.\n` +
+        `5. Nie zajmuj żadnego stanowiska w sporach ani dyskusjach. Zachowaj pełny obiektywizm.\n\n` +
         `Oto historia wiadomości:\n` +
         `--------------------\n` +
         `${transcriptText}\n` +
