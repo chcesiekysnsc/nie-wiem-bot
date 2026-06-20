@@ -11,7 +11,7 @@ function getThreadHistoryPage(api, threadID, amount, timestamp) {
         console.warn(`[AI] getThreadHistory timed out for thread ${threadID}`);
         resolve([]);
       }
-    }, 15000);
+    }, 240000);
 
     api.getThreadHistory(threadID, amount, timestamp, (err, history) => {
       clearTimeout(timeout);
@@ -61,7 +61,7 @@ async function askGemini(apiKey, promptText) {
     },
     {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 30000
+      timeout: 240000
     }
   );
 
@@ -102,7 +102,7 @@ module.exports = {
 
     const firstArgNum = parseInt(args[0], 10);
     if (!isNaN(firstArgNum) && firstArgNum > 0) {
-      msgCount = Math.min(firstArgNum, 1000);
+      msgCount = Math.min(firstArgNum, 40000);
       question = args.slice(1).join(' ').trim();
     } else {
       question = args.join(' ').trim();
