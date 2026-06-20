@@ -143,26 +143,36 @@ module.exports = {
       return;
     }
 
-    // Sprawdzenie cooldownu dla osób innych niż twórca
+    // Sprawdzenie limitu użyć dla osób innych niż twórca (2 na 24h)
     if (message.author.id !== creatorId) {
       const now = Date.now();
-      const cooldownDuration = 5 * 60 * 1000;
+      const oneDayMs = 24 * 60 * 60 * 1000;
       const cooldownCheck = await withData(store => {
         if (!store.cooldowns.commands[message.author.id]) {
           store.cooldowns.commands[message.author.id] = {};
         }
         const userCooldowns = store.cooldowns.commands[message.author.id];
-        const lastUsed = userCooldowns['ai'] || 0;
-        if (now - lastUsed < cooldownDuration) {
-          return { active: true, remaining: cooldownDuration - (now - lastUsed) };
+        
+        if (!Array.isArray(userCooldowns['ai_usages'])) {
+          userCooldowns['ai_usages'] = [];
         }
-        userCooldowns['ai'] = now;
+
+        // Filtrujemy użycia z ostatnich 24h
+        userCooldowns['ai_usages'] = userCooldowns['ai_usages'].filter(ts => now - ts < oneDayMs);
+
+        if (userCooldowns['ai_usages'].length >= 2) {
+          const oldestUsage = userCooldowns['ai_usages'][0];
+          const remaining = oneDayMs - (now - oldestUsage);
+          return { active: true, remaining };
+        }
+
+        userCooldowns['ai_usages'].push(now);
         return { active: false };
       });
 
       if (cooldownCheck.active) {
         const remainingStr = msToReadable(cooldownCheck.remaining);
-        await message.reply(`⏱️ Musisz odczekać jeszcze **${remainingStr}** przed kolejnym użyciem komendy !ai.`);
+        await message.reply(`❌ Wykorzystałeś już limit **2 użyć** komendy !ai na dobę. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
         return;
       }
     }
@@ -252,7 +262,7 @@ module.exports = {
       let lastProgressSentTime = Date.now();
 
       while (keepFetching && totalFetched < fetchCount) {
-        const limitThisTurn = Math.min(500, fetchCount - totalFetched);
+        const limitThisTurn = Math.min(200, fetchCount - totalFetched);
         const batch = await getThreadHistoryPage(client.api, threadId, limitThisTurn, oldestTimestamp);
         
         if (!batch || batch.length === 0) {
