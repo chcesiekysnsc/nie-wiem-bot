@@ -36,11 +36,6 @@ function ensureSeededData() {
         }
       } catch (_) {}
 
-      // Jeśli data/appstate.json istnieje, i UID-y są takie same, NIE nadpisujemy go,
-      // ponieważ w data/appstate.json jest nowsza, działająca sesja zapisana przez bota.
-      if (fs.existsSync(appStatePath) && rootUID && dataUID && rootUID === dataUID) {
-        shouldOverwrite = false;
-      }
 
       // Jeśli UID-y się różnią, to bezwzględnie zmieniamy sesję i czyścimy stare bazy sesyjne
       if (rootUID && dataUID && rootUID !== dataUID) {
