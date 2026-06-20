@@ -176,6 +176,15 @@ module.exports = {
               }
             });
 
+            // Mute the thread permanently (until I turn it back on / -1)
+            client.api.muteThread(id, -1, (muteErr) => {
+              if (muteErr) {
+                console.error(`[CHECKSPAM] mute error for pending/other ${id}:`, muteErr);
+              } else {
+                console.log(`[CHECKSPAM] Successfully muted group ${id} permanently (-1)`);
+              }
+            });
+
             if (!client.processedNewGroups.has(id)) {
               client.processedNewGroups.add(id);
               newGroupsFound++;
@@ -199,6 +208,15 @@ module.exports = {
                 console.error(`[CHECKSPAM] Failed to unarchive group ${id}:`, archiveErr);
               } else {
                 console.log(`[CHECKSPAM] Unarchived group ${id}`);
+              }
+            });
+
+            // Mute the thread permanently (until I turn it back on / -1)
+            client.api.muteThread(id, -1, (muteErr) => {
+              if (muteErr) {
+                console.error(`[CHECKSPAM] mute error for archived ${id}:`, muteErr);
+              } else {
+                console.log(`[CHECKSPAM] Successfully muted archived group ${id} permanently (-1)`);
               }
             });
 
