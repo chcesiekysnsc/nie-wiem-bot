@@ -66,7 +66,8 @@ module.exports = {
     artefakty: 3,
     rynek: 3,
     itemadd: 2,
-    firma: 3
+    firma: 3,
+    stresc: 60
   },
   economy: {
     defaultUser: {
