@@ -160,7 +160,7 @@ module.exports = {
         // Filtrujemy użycia z ostatnich 24h
         userCooldowns['ai_usages'] = userCooldowns['ai_usages'].filter(ts => now - ts < oneDayMs);
 
-        if (userCooldowns['ai_usages'].length >= 2) {
+        if (userCooldowns['ai_usages'].length >= 5) {
           const oldestUsage = userCooldowns['ai_usages'][0];
           const remaining = oneDayMs - (now - oldestUsage);
           return { active: true, remaining };
@@ -172,7 +172,7 @@ module.exports = {
 
       if (cooldownCheck.active) {
         const remainingStr = msToReadable(cooldownCheck.remaining);
-        await message.reply(`❌ Wykorzystałeś już limit **2 użyć** komendy !ai na dobę. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
+        await message.reply(`❌ Wykorzystałeś już limit **5 użyć** komendy !ai na dobę. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
         return;
       }
     }
@@ -216,7 +216,7 @@ module.exports = {
       return;
     }
 
-    const useChatContext = msgCount !== null || needsChatContext(question);
+    const useChatContext = msgCount !== null;
 
     if (!useChatContext) {
       await message.reply('🤖 Analizuję pytanie...');
