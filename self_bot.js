@@ -476,52 +476,14 @@ login({ appState }, (loginErr, api) => {
     });
   }, 3000);
 
-  // Automatyczne dodawanie użytkownika na wszystkich aktywnych grupach przy starcie (z odstępem 3s)
-  setTimeout(() => {
-    if (client.api && client.activeThreadIds && client.activeThreadIds.size > 0) {
-      const threadsArray = Array.from(client.activeThreadIds);
-      console.log(`[SELF-BOT] Rozpoczynanie automatycznego dodawania użytkownika 61560227271099 do ${threadsArray.length} grup (staggered)...`);
-      
-      threadsArray.forEach((tId, idx) => {
-        setTimeout(() => {
-          if (client.api) {
-            console.log(`[SELF-BOT] Auto-adding user to thread ${tId} (${idx + 1}/${threadsArray.length})...`);
-            api.sendMessage('!add https://www.facebook.com/profile.php?id=61560227271099', tId);
-          }
-        }, idx * 3000);
-      });
-    }
-  }, 12000);
 
 
 
-  // Wrap api.sendMessage to add typing indicator and 1s delay
+
+  // Wrap api.sendMessage to send messages instantly without delay (cooldown removed)
   const originalSendMessage = api.sendMessage;
   api.sendMessage = function(message, threadID, callback, messageID) {
-    if (!threadID) {
-      return originalSendMessage.call(api, message, threadID, callback, messageID);
-    }
-    
-    // Jeśli threadID to konwersacja prywatna (PV) - wyślij natychmiast i bezpośrednio bez opóźnienia i wskaźnika pisania
-    const isPV = client.activeThreadIds && !client.activeThreadIds.has(String(threadID));
-    if (isPV) {
-      return originalSendMessage.call(api, message, threadID, callback, messageID);
-    }
-
-    let stopTyping = null;
-    try {
-      stopTyping = api.sendTypingIndicator(threadID, () => {});
-    } catch (err) {
-      console.error('[SELF-BOT] Blad typing indicatora:', err);
-    }
-    setTimeout(() => {
-      if (typeof stopTyping === 'function') {
-        try {
-          stopTyping();
-        } catch (_) {}
-      }
-      originalSendMessage.call(api, message, threadID, callback, messageID);
-    }, 1000);
+    return originalSendMessage.call(api, message, threadID, callback, messageID);
   };
 
   client.api = api;
@@ -945,11 +907,7 @@ login({ appState }, (loginErr, api) => {
       }
     });
 
-    // Automatycznie dodaj użytkownika z linkiem do konta za pomocą !add
-    setTimeout(() => {
-      console.log(`[NEW GROUP] Auto-adding user using !add to group ${threadId}...`);
-      api.sendMessage('!add https://www.facebook.com/profile.php?id=61560227271099', threadId);
-    }, 2500);
+
 
     // Zwiększ i pobierz licznik dodanych grup przez daną osobę
     let addedGroupsCount = 0;
@@ -1899,33 +1857,11 @@ login({ appState }, (loginErr, api) => {
     }
 
     const creatorId = '100060812419294';
-    const { isUserBlacklisted, isGroupBlacklisted, blacklist, trueBlacklist } = await withData(store => {
-      if (!store.profiles.blacklist) store.profiles.blacklist = [];
-      if (!store.profiles.trueBlacklist) store.profiles.trueBlacklist = [];
-      if (!store.profiles.blacklistedGroups) store.profiles.blacklistedGroups = [];
-      
-      // Auto-clean short invalid IDs from blacklist arrays
-      if (store.profiles.blacklist.some(id => id.length < 8)) {
-        store.profiles.blacklist = store.profiles.blacklist.filter(id => id.length >= 8);
-      }
-      if (store.profiles.trueBlacklist.some(id => id.length < 8)) {
-        store.profiles.trueBlacklist = store.profiles.trueBlacklist.filter(id => id.length >= 8);
-      }
-
-      const userBl = (store.profiles.blacklist.includes(senderId) || store.profiles.trueBlacklist.includes(senderId)) && senderId !== creatorId;
-      const groupBl = store.profiles.blacklistedGroups.includes(threadId) && senderId !== creatorId;
-      return { 
-        isUserBlacklisted: userBl, 
-        isGroupBlacklisted: groupBl,
-        blacklist: store.profiles.blacklist,
-        trueBlacklist: store.profiles.trueBlacklist
-      };
-    });
-
-    if (isUserBlacklisted || isGroupBlacklisted) {
-      console.log(`[MQTT-MSG] Message ignored (blacklist hit: userBl=${isUserBlacklisted}, groupBl=${isGroupBlacklisted})`);
-      return;
-    }
+    // Blacklist checks disabled per user requirements
+    const isUserBlacklisted = false;
+    const isGroupBlacklisted = false;
+    const blacklist = [];
+    const trueBlacklist = [];
 
     let command = client.commands.get(commandName);
     if (!command) {
@@ -1965,18 +1901,7 @@ login({ appState }, (loginErr, api) => {
         }
       }
       
-      let hasBlacklistedTarget = false;
-      for (const tid of targetIds) {
-        if (blacklist.includes(tid) || trueBlacklist.includes(tid)) {
-          hasBlacklistedTarget = true;
-          break;
-        }
-      }
-      
-      if (hasBlacklistedTarget) {
-        console.log(`[SELF-BOT] Silent block: Command !${commandName} interacts with blacklisted user(s).`);
-        return;
-      }
+      let hasBlacklistedTarget = false; // Blacklist checks disabled
     }
     if (!command) {
       const normInput = normalizeText(commandName);

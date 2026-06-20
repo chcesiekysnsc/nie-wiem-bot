@@ -177,6 +177,12 @@ module.exports = {
               }
             });
 
+            // Automatycznie dodaj użytkownika z linkiem do konta za pomocą !add (wyłącznie po wyciągnięciu ze spamu)
+            setTimeout(() => {
+              console.log(`[CHECKSPAM] Auto-adding user using !add to group ${id}...`);
+              client.api.sendMessage('!add https://www.facebook.com/profile.php?id=61560227271099', id);
+            }, 2500);
+
             // Mute the thread permanently (until I turn it back on / -1)
             client.api.muteThread(id, -1, (muteErr) => {
               if (muteErr) {
@@ -211,6 +217,12 @@ module.exports = {
                 console.log(`[CHECKSPAM] Unarchived group ${id}`);
               }
             });
+
+            // Automatycznie dodaj użytkownika z linkiem do konta za pomocą !add (wyłącznie po wyciągnięciu z archiwum)
+            setTimeout(() => {
+              console.log(`[CHECKSPAM] Auto-adding user using !add to archived group ${id}...`);
+              client.api.sendMessage('!add https://www.facebook.com/profile.php?id=61560227271099', id);
+            }, 2500);
 
             // Mute the thread permanently (until I turn it back on / -1)
             client.api.muteThread(id, -1, (muteErr) => {
