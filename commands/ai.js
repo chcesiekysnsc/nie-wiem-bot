@@ -110,12 +110,10 @@ async function askGeminiWithFallback(promptText) {
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
-      const isQuotaError = status === 429 || errorMsg?.includes('quota') || errorMsg?.includes('Quota');
-      
-      console.warn(`[AI] Błąd klucza ${i + 1}/${keys.length} (Status: ${status}, Typ: ${isQuotaError ? 'QUOTA EXCEEDED' : 'INNY BŁĄD'}, Wiadomość: ${errorMsg}).`);
+      console.warn(`[AI] Błąd klucza ${i + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
       
       if (i < keys.length - 1) {
-        console.warn(`[AI] ${isQuotaError ? 'Limit osiągnięty - ' : ''}Próba użycia kolejnego klucza (${i + 2}/${keys.length})...`);
+        console.warn(`[AI] Próba użycia kolejnego klucza...`);
         continue;
       }
       lastError = err;
@@ -194,7 +192,7 @@ module.exports = {
     }
 
     const isAdmin = config.admins.includes(message.author.id);
-    const maxLimit = isAdmin ? 100000 : 1000;
+    const maxLimit = isAdmin ? 100000 : 10000;
 
     let msgCount = null;
     let question = '';
@@ -342,9 +340,7 @@ module.exports = {
       for (const msg of history) {
         if (!msg.body || typeof msg.body !== 'string') continue;
         const bodyTrimmed = msg.body.trim();
-        if (!bodyTrimmed || bodyTrimmed.length < 3) continue;
-        if (bodyTrimmed.startsWith('http') || bodyTrimmed.startsWith('www')) continue;
-        if (/^[\p{Emoji}\s]+$/u.test(bodyTrimmed)) continue;
+        if (!bodyTrimmed) continue;
 
         const senderName = nameMap[msg.senderID] || `Użytkownik_${msg.senderID.slice(-6)}`;
         transcriptLines.push(`${senderName}: ${bodyTrimmed}`);

@@ -19,35 +19,51 @@ function ensureSeededData() {
       const rootHash = crypto.createHash('md5').update(rootContent).digest('hex');
       const lastHash = fs.existsSync(lastHashPath) ? fs.readFileSync(lastHashPath, 'utf8') : '';
 
-      let dataAppstateValid = false;
-      let shouldImportRoot = false;
+      // Sprawdź UID-y z obu plików
+      let shouldOverwrite = rootHash !== lastHash;
+      let rootUID = null;
+      let dataUID = null;
 
-      if (fs.existsSync(appStatePath)) {
-        try {
+      try {
+        const rootData = JSON.parse(rootContent);
+        const rootUserObj = rootData.find(c => c.key === 'c_user' || c.name === 'c_user');
+        rootUID = rootUserObj ? rootUserObj.value : null;
+
+        if (fs.existsSync(appStatePath)) {
           const dataData = JSON.parse(fs.readFileSync(appStatePath, 'utf8'));
           const dataUserObj = dataData.find(c => c.key === 'c_user' || c.name === 'c_user');
-          if (Array.isArray(dataData) && dataData.length > 0 && dataUserObj && dataUserObj.value) {
-            dataAppstateValid = true;
+          dataUID = dataUserObj ? dataUserObj.value : null;
+        }
+      } catch (_) {}
+
+
+      // Jeśli UID-y się różnią, to bezwzględnie zmieniamy sesję i czyścimy stare bazy sesyjne
+      if (rootUID && dataUID && rootUID !== dataUID) {
+        console.log(`[SELF-BOT] Wykryto zmianę konta w appstate! (stary UID: ${dataUID}, nowy UID: ${rootUID}). Czyszczenie bazy sesji...`);
+        shouldOverwrite = true;
+        
+        // Usuń bazę danych sesji biblioteki FCA, aby nie przywróciła starej sesji
+        const fcaDbPath = path.join(__dirname, 'Fca_Database');
+        if (fs.existsSync(fcaDbPath)) {
+          try {
+            fs.rmSync(fcaDbPath, { recursive: true, force: true });
+            console.log('[SELF-BOT] Pomyślnie wyczyszczono Fca_Database.');
+          } catch (dbErr) {
+            console.error('[SELF-BOT] Błąd podczas usuwania Fca_Database:', dbErr);
           }
-        } catch (_){
-          dataAppstateValid = false;
         }
       }
 
-      if (!fs.existsSync(appStatePath)) {
-        shouldImportRoot = true;
-      }
-
-      if (shouldImportRoot) {
-        console.log('[SELF-BOT] Importowanie appstate.json z katalogu głównego do data/ ...');
+      if (shouldOverwrite) {
+        console.log('[SELF-BOT] Nadpisywanie appstate.json w katalogu data/ świeżą sesją...');
         if (!fs.existsSync(dataDir)) {
           fs.mkdirSync(dataDir, { recursive: true });
         }
         fs.writeFileSync(appStatePath, rootContent, 'utf8');
         fs.writeFileSync(lastHashPath, rootHash, 'utf8');
-        console.log('[SELF-BOT] Pomyślnie zaimportowano appstate.json z katalogu głównego.');
+        console.log('[SELF-BOT] Pomyślnie zsynchronizowano pliki sesyjne.');
       } else {
-        console.log('[SELF-BOT] Używanie istniejącego pliku sesyjnego z data/.');
+        console.log(`[SELF-BOT] Używanie istniejącego pliku sesyjnego z data/ (ten sam UID: ${dataUID || 'nieznany'}).`);
       }
     } catch (err) {
       console.error('[SELF-BOT] Błąd podczas importowania appstate.json z katalogu głównego:', err);
@@ -300,30 +316,7 @@ if (!client.processedNewGroups) {
   client.processedNewGroups = new Set();
 }
 
-const appStatePath = path.join(__dirname, 'data', 'appstate.json');
-
-// Check if appstate.json is valid
-let isAppStateValid = false;
-if (fs.existsSync(appStatePath)) {
-  try {
-    const content = fs.readFileSync(appStatePath, 'utf8').trim();
-    if (content && content !== '[]' && content !== '{}') {
-      JSON.parse(content);
-      isAppStateValid = true;
-    }
-  } catch (_) {}
-}
-
-if (!isAppStateValid) {
-  console.log('[SELF-BOT] Plik appstate.json jest pusty, uszkodzony lub go brak. Uruchamianie automatycznego logowania przez Puppeteer (dane z fca-config.json)...');
-  const { execSync } = require('child_process');
-  try {
-    execSync('node utils/run_login.js', { stdio: 'inherit' });
-  } catch (err) {
-    console.error('[SELF-BOT] BLAD: Nie udalo sie automatycznie zalogowac do konta za pomoca podanych danych.');
-    process.exit(1);
-  }
-}
+// appstate.json nie jest już potrzebny — cookies wgrane na stałe w kodzie
 
 function getPolandOffsetMs(date) {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -407,26 +400,22 @@ function getLastTaxTime() {
   return lastTaxTime - offset;
 }
 
-let appState;
-try {
-  const rawData = JSON.parse(fs.readFileSync(appStatePath, 'utf8'));
-  if (Array.isArray(rawData)) {
-    appState = rawData.map(c => ({
-      key: c.key || c.name,
-      value: c.value,
-      domain: c.domain || '.facebook.com',
-      path: c.path || '/',
-      hostOnly: c.hostOnly !== undefined ? c.hostOnly : !(c.domain || '').startsWith('.'),
-      creation: c.creation || new Date().toISOString(),
-      lastAccessed: c.lastAccessed || new Date().toISOString()
-    }));
-  } else {
-    appState = rawData;
-  }
-} catch (e) {
-  console.error('BLAD: Plik "appstate.json" ma niepoprawny format JSON:', e.message);
-  process.exit(1);
-}
+// ===== HARDCODED APPSTATE (cookies wgrane na stałe) =====
+
+const appState = [
+{ key: "dbln", value: "%7B%2261562475523609%22%3A%226Uua1oma%22%7D", domain: "facebook.com", path: "/login/device-based/", hostOnly: false, creation: "2026-06-20T22:31:54.118Z", lastAccessed: "2026-06-20T22:31:54.118Z" },
+{ key: "sb", value: "oZ-mZmUkSi-ORxWZSYx0LUyc", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-20T22:31:54.118Z", lastAccessed: "2026-06-20T22:31:54.118Z" },
+{ key: "oo", value: "v1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-20T22:31:54.118Z", lastAccessed: "2026-06-20T22:31:54.118Z" },
+{ key: "datr", value: "vWo9aRvRclEH-d95BN9Q5ptx", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-20T22:31:54.118Z", lastAccessed: "2026-06-20T22:31:54.118Z" },
+{ key: "wd", value: "1366x641", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-20T22:31:54.118Z", lastAccessed: "2026-06-20T22:31:54.118Z" },
+{ key: "ps_l", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-20T22:31:54.118Z", lastAccessed: "2026-06-20T22:31:54.118Z" },
+{ key: "ps_n", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-20T22:31:54.118Z", lastAccessed: "2026-06-20T22:31:54.118Z" },
+{ key: "c_user", value: "61562475523609", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-20T22:31:54.118Z", lastAccessed: "2026-06-20T22:31:54.118Z" },
+{ key: "fr", value: "1Z21rwCJiZLw7ZcqX.AWfn2Lg5yCDEyP9RhV58y33BO2-JQCf0-215TzkwVSWWj6m-xrI.BqNxTX..AAA.0.0.BqNxTX.AWfvZj98LJ0Y2Zf5Im3TH7wU-q4", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-20T22:31:54.118Z", lastAccessed: "2026-06-20T22:31:54.118Z" },
+{ key: "xs", value: "18%3A1vh6zznnMobk6g%3A2%3A1781994706%3A-1%3A-1%3A%3AAczlDKqwjDeIfDMp-t1MD9kOAiIIhWn_6fN30BFlbg", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-20T22:31:54.118Z", lastAccessed: "2026-06-20T22:31:54.118Z" }
+];
+
+// ===== KONIEC HARDCODED APPSTATE =====
 
 console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
 
