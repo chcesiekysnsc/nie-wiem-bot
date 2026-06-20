@@ -99,8 +99,16 @@ module.exports = {
       const robberInv = ensureInventoryRecord(store.inventory, authorId);
       const victimLastActiveThreadId = victim.lastActiveThreadId || null;
 
-      if (robber.gangId && victim.gangId && robber.gangId === victim.gangId) {
-        return { error: '❌ Nie możesz okraść członka swojego własnego gangu!' };
+      if (robber.gangId && victim.gangId) {
+        if (robber.gangId === victim.gangId) {
+          return { error: '❌ Nie możesz okraść członka swojego własnego gangu!' };
+        }
+        const robberGang = store.profiles.gangs && store.profiles.gangs[robber.gangId];
+        if (robberGang && robberGang.alliances && robberGang.alliances.includes(victim.gangId)) {
+          const victimGang = store.profiles.gangs[victim.gangId];
+          const victimGangName = victimGang ? victimGang.name : 'sojuszniczego gangu';
+          return { error: `❌ Nie możesz okradać członków sojuszniczego gangu (**${victimGangName}**)!` };
+        }
       }
 
       if (robber.balance < 100000) {

@@ -15,6 +15,171 @@ module.exports = {
     const sub = String(args[0] || '').toLowerCase();
 
     // ==========================================
+    // 0. SOJUSZ
+    // ==========================================
+    if (sub === 'sojusz') {
+      const action = String(args[1] || '').toLowerCase();
+
+      const readResult = await withData(store => {
+        store.profiles.gangs = store.profiles.gangs || {};
+        const user = createUser(message.author.id, store.users);
+
+        if (!user.gangId || !store.profiles.gangs[user.gangId]) {
+          return { error: '❌ Nie należysz do żadnego gangu.' };
+        }
+
+        if (user.gangRole !== 'boss') {
+          return { error: '❌ Tylko Boss gangu może zarządzać dyplomacją i sojuszami.' };
+        }
+
+        const myGangId = user.gangId;
+        const myGang = store.profiles.gangs[myGangId];
+
+        let isBreak = false;
+        let queryParam = args.slice(1).join(' ').trim();
+        if (action === 'zerwij' || action === 'usun') {
+          isBreak = true;
+          queryParam = args.slice(2).join(' ').trim();
+          if (!queryParam) {
+            return { error: '❌ Podaj nazwę gangu lub oznacz gracza z gangu, z którym chcesz zerwać sojusz: **!gang sojusz zerwij <nazwa/oznaczenie>**' };
+          }
+        }
+
+        let targetGangId = null;
+        const mentioned = message.mentions.users.first();
+        if (mentioned) {
+          const tgtUser = store.users[mentioned.id];
+          if (tgtUser && tgtUser.gangId) targetGangId = tgtUser.gangId;
+        }
+        if (!targetGangId && /^\d{8,}$/.test(queryParam)) {
+          const tgtUser = store.users[queryParam];
+          if (tgtUser && tgtUser.gangId) targetGangId = tgtUser.gangId;
+        }
+        if (!targetGangId) {
+          const cleanParam = queryParam.toLowerCase();
+          if (store.profiles.gangs[cleanParam]) {
+            targetGangId = cleanParam;
+          } else {
+            const foundGang = Object.entries(store.profiles.gangs).find(
+              ([id, g]) => g.name.toLowerCase() === cleanParam
+            );
+            if (foundGang) targetGangId = foundGang[0];
+          }
+        }
+
+        if (!targetGangId || !store.profiles.gangs[targetGangId]) {
+          return { error: `❌ Nie odnaleziono gangu o nazwie/ID/graczu: **${queryParam}**.` };
+        }
+
+        if (targetGangId === myGangId) {
+          return { error: '❌ Nie możesz zawrzeć sojuszu z własnym gangiem.' };
+        }
+
+        const targetGang = store.profiles.gangs[targetGangId];
+
+        return {
+          isBreak,
+          myGangId,
+          targetGangId,
+          myGangName: myGang.name,
+          targetGangName: targetGang.name,
+          targetBossId: targetGang.bossId
+        };
+      });
+
+      if (readResult.error) {
+        await message.reply(readResult.error);
+        return;
+      }
+
+      const myBossName = await client.resolveUserName(message.author.id);
+      const targetBossName = await client.resolveUserName(readResult.targetBossId);
+
+      const writeResult = await withData(store => {
+        const myGang = store.profiles.gangs[readResult.myGangId];
+        const targetGang = store.profiles.gangs[readResult.targetGangId];
+
+        myGang.alliances = myGang.alliances || [];
+        myGang.allianceRequests = myGang.allianceRequests || [];
+        targetGang.alliances = targetGang.alliances || [];
+        targetGang.allianceRequests = targetGang.allianceRequests || [];
+
+        if (readResult.isBreak) {
+          if (!myGang.alliances.includes(readResult.targetGangId)) {
+            return { error: `❌ Twój gang nie posiada sojuszu z gangiem **${targetGang.name}**.` };
+          }
+          myGang.alliances = myGang.alliances.filter(id => id !== readResult.targetGangId);
+          targetGang.alliances = targetGang.alliances.filter(id => id !== readResult.myGangId);
+          return { action: 'broken' };
+        }
+
+        if (myGang.alliances.includes(readResult.targetGangId)) {
+          return { error: `❌ Twój gang jest już w sojuszu z gangiem **${targetGang.name}**!` };
+        }
+
+        if (myGang.allianceRequests.includes(readResult.targetGangId)) {
+          // Accept the alliance!
+          myGang.allianceRequests = myGang.allianceRequests.filter(id => id !== readResult.targetGangId);
+          targetGang.allianceRequests = targetGang.allianceRequests.filter(id => id !== readResult.myGangId);
+
+          myGang.alliances.push(readResult.targetGangId);
+          targetGang.alliances.push(readResult.myGangId);
+          return { action: 'accepted' };
+        }
+
+        if (targetGang.allianceRequests.includes(readResult.myGangId)) {
+          return { error: `⌛ Propozycja sojuszu została już wysłana. Oczekuj na odpowiedź Bossa gangu **${targetGang.name}**.` };
+        }
+
+        // Propose new alliance
+        targetGang.allianceRequests.push(readResult.myGangId);
+        return { action: 'proposed' };
+      });
+
+      if (writeResult.error) {
+        await message.reply(writeResult.error);
+        return;
+      }
+
+      const targetBoss = await withData(store => createUser(readResult.targetBossId, store.users));
+      const targetThreadId = targetBoss.lastActiveThreadId || message.threadID;
+
+      if (writeResult.action === 'broken') {
+        await message.reply(`💔 Zerwałeś sojusz z gangiem **${readResult.targetGangName}**!`);
+
+        // Notify target boss
+        const notifyBody = `💔 Boss gangu **${readResult.myGangName}** zerwał sojusz z Twoim gangiem **${readResult.targetGangName}**!`;
+        const notifyPayload = {
+          body: `${targetBossName}, ${notifyBody}`,
+          mentions: [{ tag: targetBossName, id: readResult.targetBossId }]
+        };
+        client.api.sendMessage(notifyPayload, targetThreadId);
+      } else if (writeResult.action === 'accepted') {
+        await message.reply(`🤝 Sojusz z gangiem **${readResult.targetGangName}** został zawarty!`);
+
+        // Notify target boss
+        const notifyBody = `🤝 Boss gangu **${readResult.myGangName}** (${myBossName}) zaakceptował Twoją propozycję sojuszu! Gangi **${readResult.myGangName}** oraz **${readResult.targetGangName}** są teraz oficjalnymi sojusznikami.`;
+        const notifyPayload = {
+          body: `${targetBossName}, ${notifyBody}`,
+          mentions: [{ tag: targetBossName, id: readResult.targetBossId }]
+        };
+        client.api.sendMessage(notifyPayload, targetThreadId);
+      } else if (writeResult.action === 'proposed') {
+        await message.reply(`⌛ Wysłano propozycję sojuszu do gangu **${readResult.targetGangName}**. Oczekiwanie na akceptację Bossa...`);
+
+        // Notify target boss
+        const notifyBody = `🔔 Boss gangu **${readResult.myGangName}** (${myBossName}) chce zawrzeć sojusz z Twoim gangiem **${readResult.targetGangName}**!\n\n💡 Aby zaakceptować propozycję, wpisz na czacie: **!gang sojusz ${readResult.myGangName}**`;
+        const notifyPayload = {
+          body: `${targetBossName}, ${notifyBody}`,
+          mentions: [{ tag: targetBossName, id: readResult.targetBossId }]
+        };
+        client.api.sendMessage(notifyPayload, targetThreadId);
+      }
+
+      return;
+    }
+
+    // ==========================================
     // 1. STWORZ
     // ==========================================
     if (sub === 'stworz') {
@@ -1101,6 +1266,10 @@ module.exports = {
 
         const defenderGang = store.profiles.gangs[targetGangId];
 
+        if (myGang.alliances && myGang.alliances.includes(targetGangId)) {
+          return { error: `❌ Masz sojusz z gangiem **${defenderGang.name}**. Nie możecie się atakować!` };
+        }
+
         // Check if either gang is currently in a war
         if (client.activeGangWars.has(myGangId)) {
           return { error: '❌ Twój gang już uczestniczy w wojnie!' };
@@ -1556,7 +1725,8 @@ module.exports = {
         tributePercent: gang.tributePercent || 0,
         deposits: gang.deposits || {},
         lastAttackTime: gang.lastAttackTime || 0,
-        shieldUntil: gang.shieldUntil || 0
+        shieldUntil: gang.shieldUntil || 0,
+        alliances: gang.alliances || []
       };
     });
 
@@ -1630,10 +1800,19 @@ module.exports = {
       statusStr += `⚔️ Gotowość do ataku: **Gotowy**\n`;
     }
 
+    const allianceNamesList = await withData(store => {
+      return (infoResult.alliances || []).map(allianceId => {
+        const ally = store.profiles.gangs[allianceId];
+        return ally ? ally.name : null;
+      }).filter(Boolean);
+    });
+    const alliancesStr = allianceNamesList.join(', ') || 'Brak';
+
     await message.reply(
       `👥 **GANG: ${infoResult.name.toUpperCase()}** 👥\n` +
       `👑 Boss: **${bossName}**\n` +
       `⭐ Zastępcy: **${deputyNames}**\n` +
+      `🤝 Sojusze: **${alliancesStr}**\n` +
       `💰 Sejf gangu: **${formatCurrency(infoResult.vault)}**\n` +
       `💸 Haracz gangu: **${infoResult.tributePercent}%**\n` +
       (statusStr ? statusStr + `\n` : '') +
