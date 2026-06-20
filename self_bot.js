@@ -19,51 +19,35 @@ function ensureSeededData() {
       const rootHash = crypto.createHash('md5').update(rootContent).digest('hex');
       const lastHash = fs.existsSync(lastHashPath) ? fs.readFileSync(lastHashPath, 'utf8') : '';
 
-      // Sprawdź UID-y z obu plików
-      let shouldOverwrite = rootHash !== lastHash;
-      let rootUID = null;
-      let dataUID = null;
+      let dataAppstateValid = false;
+      let shouldImportRoot = false;
 
-      try {
-        const rootData = JSON.parse(rootContent);
-        const rootUserObj = rootData.find(c => c.key === 'c_user' || c.name === 'c_user');
-        rootUID = rootUserObj ? rootUserObj.value : null;
-
-        if (fs.existsSync(appStatePath)) {
+      if (fs.existsSync(appStatePath)) {
+        try {
           const dataData = JSON.parse(fs.readFileSync(appStatePath, 'utf8'));
           const dataUserObj = dataData.find(c => c.key === 'c_user' || c.name === 'c_user');
-          dataUID = dataUserObj ? dataUserObj.value : null;
-        }
-      } catch (_) {}
-
-
-      // Jeśli UID-y się różnią, to bezwzględnie zmieniamy sesję i czyścimy stare bazy sesyjne
-      if (rootUID && dataUID && rootUID !== dataUID) {
-        console.log(`[SELF-BOT] Wykryto zmianę konta w appstate! (stary UID: ${dataUID}, nowy UID: ${rootUID}). Czyszczenie bazy sesji...`);
-        shouldOverwrite = true;
-        
-        // Usuń bazę danych sesji biblioteki FCA, aby nie przywróciła starej sesji
-        const fcaDbPath = path.join(__dirname, 'Fca_Database');
-        if (fs.existsSync(fcaDbPath)) {
-          try {
-            fs.rmSync(fcaDbPath, { recursive: true, force: true });
-            console.log('[SELF-BOT] Pomyślnie wyczyszczono Fca_Database.');
-          } catch (dbErr) {
-            console.error('[SELF-BOT] Błąd podczas usuwania Fca_Database:', dbErr);
+          if (Array.isArray(dataData) && dataData.length > 0 && dataUserObj && dataUserObj.value) {
+            dataAppstateValid = true;
           }
+        } catch (_){
+          dataAppstateValid = false;
         }
       }
 
-      if (shouldOverwrite) {
-        console.log('[SELF-BOT] Nadpisywanie appstate.json w katalogu data/ świeżą sesją...');
+      if (!dataAppstateValid) {
+        shouldImportRoot = true;
+      }
+
+      if (shouldImportRoot) {
+        console.log('[SELF-BOT] Importowanie appstate.json z katalogu głównego do data/ ...');
         if (!fs.existsSync(dataDir)) {
           fs.mkdirSync(dataDir, { recursive: true });
         }
         fs.writeFileSync(appStatePath, rootContent, 'utf8');
         fs.writeFileSync(lastHashPath, rootHash, 'utf8');
-        console.log('[SELF-BOT] Pomyślnie zsynchronizowano pliki sesyjne.');
+        console.log('[SELF-BOT] Pomyślnie zaimportowano appstate.json z katalogu głównego.');
       } else {
-        console.log(`[SELF-BOT] Używanie istniejącego pliku sesyjnego z data/ (ten sam UID: ${dataUID || 'nieznany'}).`);
+        console.log('[SELF-BOT] Używanie istniejącego pliku sesyjnego z data/.');
       }
     } catch (err) {
       console.error('[SELF-BOT] Błąd podczas importowania appstate.json z katalogu głównego:', err);
