@@ -34,7 +34,7 @@ function ensureSeededData() {
         }
       }
 
-      if (!dataAppstateValid) {
+      if (!fs.existsSync(appStatePath)) {
         shouldImportRoot = true;
       }
 
