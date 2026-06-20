@@ -157,13 +157,15 @@ module.exports = {
       } else if (writeResult.action === 'accepted') {
         await message.reply(`🤝 Sojusz z gangiem **${readResult.targetGangName}** został zawarty!`);
 
-        // Notify target boss
-        const notifyBody = `🤝 Boss gangu **${readResult.myGangName}** (${myBossName}) zaakceptował Twoją propozycję sojuszu! Gangi **${readResult.myGangName}** oraz **${readResult.targetGangName}** są teraz oficjalnymi sojusznikami.`;
-        const notifyPayload = {
-          body: `${targetBossName}, ${notifyBody}`,
-          mentions: [{ tag: targetBossName, id: readResult.targetBossId }]
-        };
-        client.api.sendMessage(notifyPayload, targetThreadId);
+        // Notify target boss only if they are on a different group
+        if (targetThreadId !== message.threadID) {
+          const notifyBody = `🤝 Boss gangu **${readResult.myGangName}** (${myBossName}) zaakceptował Twoją propozycję sojuszu! Gangi **${readResult.myGangName}** oraz **${readResult.targetGangName}** są teraz oficjalnymi sojusznikami.`;
+          const notifyPayload = {
+            body: `${targetBossName}, ${notifyBody}`,
+            mentions: [{ tag: targetBossName, id: readResult.targetBossId }]
+          };
+          client.api.sendMessage(notifyPayload, targetThreadId);
+        }
       } else if (writeResult.action === 'proposed') {
         await message.reply(`⌛ Wysłano propozycję sojuszu do gangu **${readResult.targetGangName}**. Oczekiwanie na akceptację Bossa...`);
 
