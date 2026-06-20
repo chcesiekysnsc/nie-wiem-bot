@@ -1,6 +1,9 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const config = require('../config/config');
+const { withData } = require('../utils/storage');
+const { msToReadable } = require('../utils/economy');
 
 function getThreadHistoryPage(api, threadID, amount, timestamp) {
   return new Promise((resolve) => {
@@ -78,9 +81,44 @@ module.exports = {
   aliases: ['pytanie', 'zapytaj'],
   async execute(client, message, args) {
     const creatorId = '100060812419294';
-    if (message.author.id !== creatorId) {
-      await message.reply('❌ Ta komenda jest dostępna tylko dla twórcy bota.');
+    let isAllowed = message.author.id === creatorId;
+
+    if (!isAllowed) {
+      try {
+        const profiles = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'profiles.json'), 'utf8'));
+        if (profiles.allowedAI && profiles.allowedAI.includes(message.author.id)) {
+          isAllowed = true;
+        }
+      } catch (_) {}
+    }
+
+    if (!isAllowed) {
+      await message.reply('❌ Ta komenda jest dostępna tylko dla twórcy bota oraz uprawnionych osób.');
       return;
+    }
+
+    // Sprawdzenie cooldownu dla osób innych niż twórca
+    if (message.author.id !== creatorId) {
+      const now = Date.now();
+      const cooldownDuration = 5 * 60 * 1000;
+      const cooldownCheck = await withData(store => {
+        if (!store.cooldowns.commands[message.author.id]) {
+          store.cooldowns.commands[message.author.id] = {};
+        }
+        const userCooldowns = store.cooldowns.commands[message.author.id];
+        const lastUsed = userCooldowns['ai'] || 0;
+        if (now - lastUsed < cooldownDuration) {
+          return { active: true, remaining: cooldownDuration - (now - lastUsed) };
+        }
+        userCooldowns['ai'] = now;
+        return { active: false };
+      });
+
+      if (cooldownCheck.active) {
+        const remainingStr = msToReadable(cooldownCheck.remaining);
+        await message.reply(`⏱️ Musisz odczekać jeszcze **${remainingStr}** przed kolejnym użyciem komendy !ai.`);
+        return;
+      }
     }
 
     const threadId = message.guild?.id || message.rawEvent?.threadID;
@@ -97,12 +135,15 @@ module.exports = {
       return;
     }
 
+    const isAdmin = config.admins.includes(message.author.id);
+    const maxLimit = isAdmin ? 40000 : 3000;
+
     let msgCount = null;
     let question = '';
 
     const firstArgNum = parseInt(args[0], 10);
     if (!isNaN(firstArgNum) && firstArgNum > 0) {
-      msgCount = Math.min(firstArgNum, 40000);
+      msgCount = Math.min(firstArgNum, maxLimit);
       question = args.slice(1).join(' ').trim();
     } else {
       question = args.join(' ').trim();
@@ -158,8 +199,44 @@ module.exports = {
     await message.reply(`🤖 Pobieram ${fetchCount} wiadomości i analizuję...`);
 
     try {
-      const history = await getThreadHistoryPage(client.api, threadId, fetchCount, null);
-      if (!history || history.length === 0) {
+      const history = [];
+      let oldestTimestamp = null;
+      let keepFetching = true;
+      let totalFetched = 0;
+      let lastProgressSentTime = Date.now();
+
+      while (keepFetching && totalFetched < fetchCount) {
+        const limitThisTurn = Math.min(500, fetchCount - totalFetched);
+        const batch = await getThreadHistoryPage(client.api, threadId, limitThisTurn, oldestTimestamp);
+        
+        if (!batch || batch.length === 0) {
+          break;
+        }
+
+        history.push(...batch);
+        totalFetched += batch.length;
+
+        let pageOldest = Infinity;
+        for (const msg of batch) {
+          const ts = Number(msg.timestamp);
+          if (ts < pageOldest) {
+            pageOldest = ts;
+          }
+        }
+
+        if (batch.length < limitThisTurn) {
+          keepFetching = false;
+        } else {
+          oldestTimestamp = pageOldest;
+        }
+
+        if (Date.now() - lastProgressSentTime >= 20000) {
+          await message.reply(`⏳ Pobrano i przeanalizowano już **${totalFetched}** z **${fetchCount}** wiadomości...`);
+          lastProgressSentTime = Date.now();
+        }
+      }
+
+      if (history.length === 0) {
         await message.reply('❌ Nie udało się pobrać historii wiadomości.');
         return;
       }
