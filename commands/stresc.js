@@ -120,9 +120,9 @@ module.exports = {
         `${transcriptText}\n` +
         `--------------------\n`;
 
-      // Wyślij zapytanie do API Gemini 1.5 Flash
+      // Wyślij zapytanie do API Gemini 2.5 Flash
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
           contents: [
             {
