@@ -41,15 +41,35 @@ function needsChatContext(question) {
   return chatKeywords.some(keyword => q.includes(keyword));
 }
 
-function getApiKey() {
-  let apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    try {
-      const aiConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'config_ai.json'), 'utf8'));
-      apiKey = aiConfig.GEMINI_API_KEY;
-    } catch (_) {}
+function getApiKeys() {
+  const keys = [];
+
+  if (process.env.GEMINI_API_KEY) {
+    if (process.env.GEMINI_API_KEY.includes(',')) {
+      keys.push(...process.env.GEMINI_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
+    } else {
+      keys.push(process.env.GEMINI_API_KEY.trim());
+    }
   }
-  return apiKey;
+
+  for (let i = 2; i <= 6; i++) {
+    const val = process.env[`GEMINI_API_KEY_${i}`];
+    if (val) {
+      keys.push(val.trim());
+    }
+  }
+
+  try {
+    const aiConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'config_ai.json'), 'utf8'));
+    if (Array.isArray(aiConfig.GEMINI_API_KEYS)) {
+      keys.push(...aiConfig.GEMINI_API_KEYS.map(k => k.trim()));
+    }
+    if (aiConfig.GEMINI_API_KEY) {
+      keys.push(aiConfig.GEMINI_API_KEY.trim());
+    }
+  } catch (_) {}
+
+  return [...new Set(keys)].filter(Boolean);
 }
 
 async function askGemini(apiKey, promptText) {
@@ -74,6 +94,32 @@ async function askGemini(apiKey, promptText) {
   }
 
   return replyText;
+}
+
+async function askGeminiWithFallback(promptText) {
+  const keys = getApiKeys();
+  if (keys.length === 0) {
+    throw new Error('Brak skonfigurowanych kluczy Gemini API!');
+  }
+
+  let lastError = null;
+  for (let i = 0; i < keys.length; i++) {
+    const apiKey = keys[i];
+    try {
+      return await askGemini(apiKey, promptText);
+    } catch (err) {
+      const status = err.response?.status;
+      const errorMsg = err.response?.data?.error?.message || err.message;
+      console.warn(`[AI] Błąd klucza ${i + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
+      
+      if (i < keys.length - 1) {
+        console.warn(`[AI] Próba użycia kolejnego klucza...`);
+        continue;
+      }
+      lastError = err;
+    }
+  }
+  throw lastError;
 }
 
 module.exports = {
@@ -154,8 +200,8 @@ module.exports = {
       return;
     }
 
-    const apiKey = getApiKey();
-    if (!apiKey) {
+    const apiKeys = getApiKeys();
+    if (apiKeys.length === 0) {
       await message.reply('❌ Brak skonfigurowanego klucza Gemini API!');
       return;
     }
@@ -170,7 +216,7 @@ module.exports = {
           `Jesteś pomocnym asystentem AI. Odpowiadaj po polsku, jasno i konkretnie.\n\n` +
           `PYTANIE: ${question}`;
 
-        const replyText = await askGemini(apiKey, promptText);
+        const replyText = await askGeminiWithFallback(promptText);
         await message.reply(`🤖 **Odpowiedź AI:**\n\n${replyText}`);
       } catch (err) {
         console.error('[AI] Błąd:', err);
@@ -304,7 +350,7 @@ module.exports = {
         `Rozmowa:\n` +
         `${transcriptLines.join('\n')}\n`;
 
-      const replyText = await askGemini(apiKey, promptText);
+      const replyText = await askGeminiWithFallback(promptText);
       await message.reply(`🤖 **Odpowiedź AI** (na podstawie ${transcriptLines.length} wiadomości):\n\n${replyText}`);
     } catch (err) {
       console.error('[AI] Błąd:', err);
