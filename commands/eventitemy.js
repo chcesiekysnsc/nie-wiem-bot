@@ -99,11 +99,8 @@ module.exports = {
         targetId = mentioned.id;
       } else if (args[2] && /^\d+$/.test(args[2])) {
         targetId = args[2];
-      }
-
-      if (!targetId) {
-        await message.reply(`❌ Wskaż osobę (oznaczenie lub ID). Użyj: **!eventitemy ${subCommand} <nr> <@osoba/ID>**`);
-        return;
+      } else {
+        targetId = message.author.id;
       }
 
       const { withData } = require('../utils/storage');
@@ -131,18 +128,13 @@ module.exports = {
       return;
     }
 
-    if (!config.admins.includes(message.author.id)) {
-      await message.reply('❌ Nie masz uprawnień do użycia tej komendy.');
-      return;
-    }
-
     const nr = Number(args[0]);
     if (!args[0]) {
       let msg = '🎁 **Lista permanentnych przedmiotów eventowych (sezonowych):**\n\n';
       for (const [key, item] of Object.entries(eventItems)) {
-        msg += `${key}. ${item.emoji} **${item.name}** - *Nagroda za: ${item.award}*\n`;
+        msg += `${key}. ${item.emoji} **${item.name}** - *Nagroda za: ${item.award}*\n   ↳ *Działanie:* ${item.desc}\n\n`;
       }
-      msg += '\n💡 Wpisz **!eventitemy <nr>** aby zobaczyć szczegółowy opis.';
+      msg += '💡 Wpisz **!eventitemy <nr>** aby zobaczyć szczegółowy opis.';
       await message.reply(msg);
       return;
     }
