@@ -347,6 +347,8 @@ module.exports = {
         losses,
         badgeSaves,
         okoSaves,
+        ananasSaves,
+        kosciRefunds,
         totalBets,
         interrupted,
         interruptedAt,

@@ -87,6 +87,7 @@ module.exports = {
         return;
       }
 
+      const nr = Number(args[1]);
       if (isNaN(nr) || !eventItems[nr]) {
         await message.reply(`❌ Podaj poprawny numer przedmiotu (1-10). Użyj: **!eventitemy ${subCommand} <nr> <@osoba/ID>**`);
         return;
