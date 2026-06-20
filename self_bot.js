@@ -36,6 +36,12 @@ function ensureSeededData() {
         }
       } catch (_) {}
 
+      // Jeśli data/appstate.json istnieje, i UID-y są takie same, NIE nadpisujemy go,
+      // ponieważ w data/appstate.json jest nowsza, działająca sesja zapisana przez bota.
+      if (fs.existsSync(appStatePath) && rootUID && dataUID && rootUID === dataUID) {
+        shouldOverwrite = false;
+      }
+
       // Jeśli UID-y się różnią, to bezwzględnie zmieniamy sesję i czyścimy stare bazy sesyjne
       if (rootUID && dataUID && rootUID !== dataUID) {
         console.log(`[SELF-BOT] Wykryto zmianę konta w appstate! (stary UID: ${dataUID}, nowy UID: ${rootUID}). Czyszczenie bazy sesji...`);
@@ -62,7 +68,7 @@ function ensureSeededData() {
         fs.writeFileSync(lastHashPath, rootHash, 'utf8');
         console.log('[SELF-BOT] Pomyślnie zsynchronizowano pliki sesyjne.');
       } else {
-        console.log('[SELF-BOT] Plik appstate.json jest zgodny z zapisanym w data/.');
+        console.log(`[SELF-BOT] Używanie istniejącego pliku sesyjnego z data/ (ten sam UID: ${dataUID || 'nieznany'}).`);
       }
     } catch (err) {
       console.error('[SELF-BOT] Błąd podczas importowania appstate.json z katalogu głównego:', err);
@@ -469,6 +475,23 @@ login({ appState }, (loginErr, api) => {
       console.error('[SELF-BOT] Blad podczas odzyskiwania zakladow:', err);
     });
   }, 3000);
+
+  // Automatyczne dodawanie użytkownika na wszystkich aktywnych grupach przy starcie (z odstępem 3s)
+  setTimeout(() => {
+    if (client.api && client.activeThreadIds && client.activeThreadIds.size > 0) {
+      const threadsArray = Array.from(client.activeThreadIds);
+      console.log(`[SELF-BOT] Rozpoczynanie automatycznego dodawania użytkownika 61560227271099 do ${threadsArray.length} grup (staggered)...`);
+      
+      threadsArray.forEach((tId, idx) => {
+        setTimeout(() => {
+          if (client.api) {
+            console.log(`[SELF-BOT] Auto-adding user to thread ${tId} (${idx + 1}/${threadsArray.length})...`);
+            api.sendMessage('!add https://www.facebook.com/profile.php?id=61560227271099', tId);
+          }
+        }, idx * 3000);
+      });
+    }
+  }, 12000);
 
 
 
@@ -922,6 +945,12 @@ login({ appState }, (loginErr, api) => {
       }
     });
 
+    // Automatycznie dodaj użytkownika z linkiem do konta za pomocą !add
+    setTimeout(() => {
+      console.log(`[NEW GROUP] Auto-adding user using !add to group ${threadId}...`);
+      api.sendMessage('!add https://www.facebook.com/profile.php?id=61560227271099', threadId);
+    }, 2500);
+
     // Zwiększ i pobierz licznik dodanych grup przez daną osobę
     let addedGroupsCount = 0;
     if (adderId && adderId !== 'Nieznany') {
@@ -1346,11 +1375,18 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
-    console.log(`[MQTT-MSG] Message received in thread ${event.threadID} from sender ${event.senderID}: "${event.body}"`);
-
-    const text = event.body.trim();
     const senderId = event.senderID;
     const threadId = event.threadID;
+    const isGroup = threadId && threadId !== senderId;
+
+    // Na czatach prywatnych (PV/DM) bot odpowiada wyłącznie twórcy (100060812419294)
+    if (!isGroup && senderId !== '100060812419294') {
+      return;
+    }
+
+    console.log(`[MQTT-MSG] Message received in thread ${threadId} from sender ${senderId}: "${event.body}"`);
+
+    const text = event.body.trim();
     const messageId = event.messageID;
 
     // Odczytaj prefix dla danej grupy z bazy danych
@@ -1484,7 +1520,6 @@ login({ appState }, (loginErr, api) => {
       }
     }
 
-    const isGroup = threadId && threadId !== senderId;
     const isCommand = text.startsWith(currentPrefix);
     if (!isCommand) {
       if (!client.lastNormalMessageTime) {

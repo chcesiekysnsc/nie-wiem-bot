@@ -83,6 +83,7 @@ module.exports = {
 
     let newGroupsFound = 0;
     let activeThreadsUpdated = false;
+    let newPvsApproved = 0;
     
     let foldersProcessedCount = 0;
     const foldersToProcess = ['INBOX', 'PENDING', 'OTHER', 'ARCHIVED'];
@@ -225,7 +226,18 @@ module.exports = {
               newGroupsFound++;
             }
           }
-        } else {
+        } else if (thread.threadID) {
+          if (tag === 'PENDING' || tag === 'OTHER') {
+            const welcomeMsg = "Cześć! Jestem botem kasynowym. Mój prefix to !. Napisz !help, aby zobaczyć listę komend.";
+            client.api.sendMessage(welcomeMsg, thread.threadID, (sendErr) => {
+              if (sendErr) {
+                console.error(`[CHECKSPAM] welcome error for PV ${thread.threadID}:`, sendErr);
+              } else {
+                console.log(`[CHECKSPAM] Pomyślnie zaakceptowano PV ${thread.threadID} i wysłano wiadomość powitalną.`);
+              }
+            });
+            newPvsApproved++;
+          }
           skippedPrivateCount++;
         }
       }
@@ -285,14 +297,20 @@ module.exports = {
         responseMsg += `\n`;
       }
 
-      if (foundGroups.length > 0) {
+      if (foundGroups.length > 0 || newPvsApproved > 0) {
+        let pvsText = '';
+        if (newPvsApproved > 0) {
+          pvsText = `\n✅ Zaakceptowano i aktywowano **${newPvsApproved}** nowych czatów prywatnych (PV/DM) z folderów Spam/Inne.`;
+        }
         const listText = foundGroups.map(g => `• **${g.name}** (ID: \`${g.id}\`, Osoby: **${g.memberCount}**) w folderze *${g.folder}*`).join('\n');
-        responseMsg += `✅ **Skanowanie zakończone!**\n\nZnaleziono następujące grupy:\n${listText}\n\n*(Pominięto ${skippedPrivateCount} czatów prywatnych)*`;
+        responseMsg += `✅ **Skanowanie zakończone!**\n\n` +
+                       (foundGroups.length > 0 ? `Znaleziono następujące grupy:\n${listText}\n\n` : '') +
+                       `*(Pominięto ${skippedPrivateCount} czatów prywatnych)*` + pvsText;
         if (shouldRestart) {
           responseMsg += `\n\n🔄 **Wykryto nowe/niezarejestrowane grupy!** Automatyczny restart bota za 4 sekundy w celu odświeżenia połączeń MQTT i aktywacji nasłuchiwania na nowych czatach (łącznie zarejestrowano na ${client.activeThreadIds.size} grupach)...`;
         }
       } else {
-        responseMsg += `✅ Skanowanie zakończone. Nie znaleziono żadnych grup w sprawdzanych folderach. (Pominięto ${skippedPrivateCount} czatów prywatnych)`;
+        responseMsg += `✅ Skanowanie zakończone. Nie znaleziono żadnych grup ani nowych PV w sprawdzanych folderach. (Pominięto ${skippedPrivateCount} czatów prywatnych)`;
         if (shouldRestart) {
           responseMsg += `\n\n🔄 Automatyczny restart bota za 4 sekundy w celu odświeżenia połączeń MQTT...`;
         }
