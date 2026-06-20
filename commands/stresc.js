@@ -75,11 +75,47 @@ module.exports = {
       // Utwórz mapę unikalnych autorów w historii
       const senderIds = [...new Set(history.map(msg => msg.senderID).filter(Boolean))];
       const nameMap = {};
+
+      // Najpierw wypełnij z cache
+      const unresolvedIds = [];
       for (const senderId of senderIds) {
         if (client.userNames && client.userNames.has(senderId)) {
           nameMap[senderId] = client.userNames.get(senderId);
         } else {
-          nameMap[senderId] = `Użytkownik_${senderId.slice(-6)}`;
+          unresolvedIds.push(senderId);
+        }
+      }
+
+      // Pobierz brakujące nazwy z API Facebooka
+      if (unresolvedIds.length > 0 && client.api && typeof client.api.getUserInfo === 'function') {
+        try {
+          const userInfoResult = await new Promise((resolve) => {
+            client.api.getUserInfo(unresolvedIds, (err, res) => {
+              if (err) {
+                console.error('[STRESC] getUserInfo error:', err);
+                return resolve({});
+              }
+              resolve(res || {});
+            });
+          });
+          for (const uid of unresolvedIds) {
+            if (userInfoResult[uid] && userInfoResult[uid].name) {
+              nameMap[uid] = userInfoResult[uid].name;
+              // Zapisz do cache na przyszłość
+              if (client.userNames) client.userNames.set(uid, userInfoResult[uid].name);
+            } else {
+              nameMap[uid] = `Użytkownik_${uid.slice(-6)}`;
+            }
+          }
+        } catch (e) {
+          console.error('[STRESC] getUserInfo exception:', e);
+          for (const uid of unresolvedIds) {
+            nameMap[uid] = `Użytkownik_${uid.slice(-6)}`;
+          }
+        }
+      } else {
+        for (const uid of unresolvedIds) {
+          nameMap[uid] = `Użytkownik_${uid.slice(-6)}`;
         }
       }
 
@@ -108,18 +144,17 @@ module.exports = {
       const transcriptText = transcriptLines.join('\n');
 
       const promptText = 
-        `Jesteś neutralnym i szczerym asystentem na czacie grupowym na Messengerze. ` +
-        `Przeanalizuj poniższe wiadomości i streść przebieg rozmowy po polsku.\n\n` +
-        `Wymagania dotyczące streszczenia:\n` +
-        `1. Użyj formatowania markdown, punktorów oraz odpowiednich emotek dla czytelności.\n` +
-        `2. Streść dyskusję zwięźle, w kilku punktach (główne wątki).\n` +
-        `3. Wypisz najaktywniejsze osoby i to, o czym mówiły.\n` +
-        `4. Dodaj krótkie, neutralne podsumowanie końcowe. Nie bądź zabawny ani dowcipny — po prostu szczerze i obiektywnie podsumuj rozmowę.\n` +
-        `5. Nie zajmuj żadnego stanowiska w sporach ani dyskusjach. Zachowaj pełny obiektywizm.\n\n` +
-        `Oto historia wiadomości:\n` +
-        `--------------------\n` +
-        `${transcriptText}\n` +
-        `--------------------\n`;
+        `Jesteś neutralnym i szczerym asystentem. ` +
+        `Streść poniższą rozmowę z Messengera po polsku.\n\n` +
+        `ZASADY:\n` +
+        `- Wypisz TYLKO główne wątki/tematy rozmowy w kilku krótkich punktach z emotkami.\n` +
+        `- Przy każdym wątku wymień kto brał w nim udział.\n` +
+        `- Bądź maksymalnie zwięzły — każdy punkt to 1-2 zdania, nie więcej.\n` +
+        `- Na końcu dodaj jedno zdanie neutralnego podsumowania.\n` +
+        `- Nie bądź zabawny, nie komentuj, nie zajmuj stanowiska. Tylko fakty.\n` +
+        `- Całe streszczenie powinno mieć MAKSYMALNIE 10-15 linijek.\n\n` +
+        `Rozmowa:\n` +
+        `${transcriptText}\n`;
 
       // Wyślij zapytanie do API Gemini 2.5 Flash
       const response = await axios.post(
