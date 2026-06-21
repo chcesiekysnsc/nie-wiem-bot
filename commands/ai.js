@@ -6,23 +6,23 @@ const { withData } = require('../utils/storage');
 const { msToReadable } = require('../utils/economy');
 
 function getThreadHistoryPage(api, threadID, amount, timestamp) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     let completed = false;
     const timeout = setTimeout(() => {
       if (!completed) {
         completed = true;
         console.warn(`[AI] getThreadHistory timed out for thread ${threadID}`);
-        resolve([]);
+        reject(new Error('getThreadHistory timeout'));
       }
-    }, 240000);
+    }, 120000);
 
     api.getThreadHistory(threadID, amount, timestamp, (err, history) => {
       clearTimeout(timeout);
       if (completed) return;
       completed = true;
       if (err) {
-        console.error('[AI] getThreadHistory error:', err);
-        return resolve([]);
+        console.error('[AI] getThreadHistory error:', err.message || err);
+        return reject(err);
       }
       resolve(history || []);
     });
@@ -254,131 +254,144 @@ module.exports = {
     const fetchCount = msgCount || 200;
     await message.reply(`🤖 Pobieram ${fetchCount} wiadomości i analizuję...`);
 
-    // Global timeout dla całej operacji (90 sekund)
-    const globalTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Operacja przekroczyła limit czasu (90s)')), 90000)
-    );
-
     try {
-      const result = await Promise.race([
-        (async () => {
-          const history = [];
-          let oldestTimestamp = null;
-          let keepFetching = true;
-          let totalFetched = 0;
-          let lastProgressSentTime = Date.now();
+      const history = [];
+      let oldestTimestamp = null;
+      let keepFetching = true;
+      let totalFetched = 0;
+      let lastProgressSentTime = Date.now();
+      const operationStartTime = Date.now();
+      const operationTimeout = 120000; // 2 minuty timeout dla całej operacji
 
-          while (keepFetching && totalFetched < fetchCount) {
-            const limitThisTurn = Math.min(200, fetchCount - totalFetched);
-            console.log(`[AI] Pobieranie strony ${Math.ceil(totalFetched / 200) + 1}... (łącznie: ${totalFetched}/${fetchCount})`);
-            const batch = await getThreadHistoryPage(client.api, threadId, limitThisTurn, oldestTimestamp);
+      while (keepFetching && totalFetched < fetchCount) {
+        // Sprawdzenie globalnego timeoutu
+        if (Date.now() - operationStartTime > operationTimeout) {
+          console.log(`[AI] Operacja przekroczyła limit czasu`);
+          break;
+        }
+
+        const limitThisTurn = Math.min(200, fetchCount - totalFetched);
+        console.log(`[AI] Pobieranie strony ${Math.ceil(totalFetched / 200) + 1}... (łącznie: ${totalFetched}/${fetchCount})`);
+        
+        let batch = [];
+        try {
+          batch = await getThreadHistoryPage(client.api, threadId, limitThisTurn, oldestTimestamp);
+        } catch (batchErr) {
+          console.error(`[AI] Błąd przy pobieraniu batcha: ${batchErr.message}`);
+          // Jeśli jest błąd, próbuj dalej z mniejszą ilością
+          if (totalFetched === 0) {
+            console.log('[AI] Błąd przy pierwszym pobieraniu, przerywam');
+            throw new Error('Nie udało się pobrać pierwszego batcha wiadomości.');
+          }
+          break;
+        }
+        
+        if (!batch || batch.length === 0) {
+          console.log(`[AI] Koniec historii (pobrano ${totalFetched} wiadomości)`);
+          break;
+        }
+
+        history.push(...batch);
+        totalFetched += batch.length;
+
+        let pageOldest = Infinity;
+        for (const msg of batch) {
+          const ts = Number(msg.timestamp);
+          if (ts < pageOldest) {
+            pageOldest = ts;
+          }
+        }
+
+        if (batch.length < limitThisTurn) {
+          keepFetching = false;
+        } else {
+          oldestTimestamp = pageOldest;
+        }
+
+        if (Date.now() - lastProgressSentTime >= 30000) {
+          await message.reply(`⏳ Pobrano **${totalFetched}** z **${fetchCount}** wiadomości...`);
+          lastProgressSentTime = Date.now();
+        }
+      }
+
+      if (history.length === 0) {
+        throw new Error('Nie udało się pobrać historii wiadomości.');
+      }
+
+      console.log(`[AI] Pobieranie ukończone (${history.length} wiadomości)`);
+      const senderIds = [...new Set(history.map(msg => msg.senderID).filter(Boolean))];
+      const nameMap = {};
+      const unresolvedIds = [];
+
+      for (const senderId of senderIds) {
+        if (client.userNames && client.userNames.has(senderId)) {
+          nameMap[senderId] = client.userNames.get(senderId);
+        } else {
+          unresolvedIds.push(senderId);
+        }
+      }
+
+      if (unresolvedIds.length > 0 && client.api && typeof client.api.getUserInfo === 'function') {
+        try {
+          const userInfoResult = await new Promise((resolve, reject) => {
+            const infoTimeout = setTimeout(() => {
+              reject(new Error('getUserInfo timeout'));
+            }, 60000);
             
-            if (!batch || batch.length === 0) {
-              console.log(`[AI] Koniec historii (pobrano ${totalFetched} wiadomości)`);
-              break;
-            }
-
-            history.push(...batch);
-            totalFetched += batch.length;
-
-            let pageOldest = Infinity;
-            for (const msg of batch) {
-              const ts = Number(msg.timestamp);
-              if (ts < pageOldest) {
-                pageOldest = ts;
-              }
-            }
-
-            if (batch.length < limitThisTurn) {
-              keepFetching = false;
+            client.api.getUserInfo(unresolvedIds, (err, res) => {
+              clearTimeout(infoTimeout);
+              if (err) return resolve({});
+              resolve(res || {});
+            });
+          });
+          for (const uid of unresolvedIds) {
+            if (userInfoResult[uid]?.name) {
+              nameMap[uid] = userInfoResult[uid].name;
+              if (client.userNames) client.userNames.set(uid, userInfoResult[uid].name);
             } else {
-              oldestTimestamp = pageOldest;
-            }
-
-            if (Date.now() - lastProgressSentTime >= 20000) {
-              await message.reply(`⏳ Pobrano i przeanalizowano już **${totalFetched}** z **${fetchCount}** wiadomości...`);
-              lastProgressSentTime = Date.now();
-            }
-          }
-
-          if (history.length === 0) {
-            throw new Error('Nie udało się pobrać historii wiadomości.');
-          }
-
-          console.log(`[AI] Pobieranie ukończone (${history.length} wiadomości)`);
-          const senderIds = [...new Set(history.map(msg => msg.senderID).filter(Boolean))];
-          const nameMap = {};
-          const unresolvedIds = [];
-
-          for (const senderId of senderIds) {
-            if (client.userNames && client.userNames.has(senderId)) {
-              nameMap[senderId] = client.userNames.get(senderId);
-            } else {
-              unresolvedIds.push(senderId);
-            }
-          }
-
-          if (unresolvedIds.length > 0 && client.api && typeof client.api.getUserInfo === 'function') {
-            try {
-              const userInfoResult = await new Promise((resolve) => {
-                client.api.getUserInfo(unresolvedIds, (err, res) => {
-                  if (err) return resolve({});
-                  resolve(res || {});
-                });
-              });
-              for (const uid of unresolvedIds) {
-                if (userInfoResult[uid]?.name) {
-                  nameMap[uid] = userInfoResult[uid].name;
-                  if (client.userNames) client.userNames.set(uid, userInfoResult[uid].name);
-                } else {
-                  nameMap[uid] = `Użytkownik_${uid.slice(-6)}`;
-                }
-              }
-            } catch (_) {
-              for (const uid of unresolvedIds) {
-                nameMap[uid] = `Użytkownik_${uid.slice(-6)}`;
-              }
-            }
-          } else {
-            for (const uid of unresolvedIds) {
               nameMap[uid] = `Użytkownik_${uid.slice(-6)}`;
             }
           }
-
-          const transcriptLines = [];
-          for (const msg of history) {
-            if (!msg.body || typeof msg.body !== 'string') continue;
-            const bodyTrimmed = msg.body.trim();
-            if (!bodyTrimmed) continue;
-
-            const senderName = nameMap[msg.senderID] || `Użytkownik_${msg.senderID.slice(-6)}`;
-            transcriptLines.push(`${senderName}: ${bodyTrimmed}`);
+        } catch (nameErr) {
+          console.warn(`[AI] Błąd przy pobieraniu nazw: ${nameErr.message}`);
+          for (const uid of unresolvedIds) {
+            nameMap[uid] = `Użytkownik_${uid.slice(-6)}`;
           }
+        }
+      } else {
+        for (const uid of unresolvedIds) {
+          nameMap[uid] = `Użytkownik_${uid.slice(-6)}`;
+        }
+      }
 
-          if (transcriptLines.length === 0) {
-            throw new Error('Nie znaleziono żadnych wiadomości tekstowych do analizy.');
-          }
+      const transcriptLines = [];
+      for (const msg of history) {
+        if (!msg.body || typeof msg.body !== 'string') continue;
+        const bodyTrimmed = msg.body.trim();
+        if (!bodyTrimmed) continue;
 
-          console.log(`[AI] Przygotowywanie promptu (${transcriptLines.length} wiadomości)...`);
-          const promptText =
-            `Jesteś inteligentnym asystentem analizującym rozmowę z Messengera. ` +
-            `Odpowiadaj po polsku, szczerze i konkretnie.\n\n` +
-            `PYTANIE UŻYTKOWNIKA: ${question}\n\n` +
-            `Przeanalizuj poniższą historię rozmowy (${transcriptLines.length} wiadomości) i odpowiedz na pytanie.\n` +
-            `Bądź szczery, konkretny i oparty na faktach z rozmowy. Używaj imion uczestników.\n\n` +
-            `Rozmowa:\n` +
-            `${transcriptLines.join('\n')}\n`;
+        const senderName = nameMap[msg.senderID] || `Użytkownik_${msg.senderID.slice(-6)}`;
+        transcriptLines.push(`${senderName}: ${bodyTrimmed}`);
+      }
 
-          console.log('[AI] Wysyłanie zapytania do Gemini...');
-          const replyText = await askGeminiWithFallback(promptText);
-          console.log('[AI] Odpowiedź otrzymana, wysyłam wiadomość...');
-          await message.reply(`🤖 **Odpowiedź AI** (na podstawie ${transcriptLines.length} wiadomości):\n\n${replyText}`);
-          return 'success';
-        })(),
-        globalTimeout
-      ]);
-      
-      return;
+      if (transcriptLines.length === 0) {
+        throw new Error('Nie znaleziono żadnych wiadomości tekstowych do analizy.');
+      }
+
+      console.log(`[AI] Przygotowywanie promptu (${transcriptLines.length} wiadomości)...`);
+      const promptText =
+        `Jesteś inteligentnym asystentem analizującym rozmowę z Messengera. ` +
+        `Odpowiadaj po polsku, szczerze i konkretnie.\n\n` +
+        `PYTANIE UŻYTKOWNIKA: ${question}\n\n` +
+        `Przeanalizuj poniższą historię rozmowy (${transcriptLines.length} wiadomości) i odpowiedz na pytanie.\n` +
+        `Bądź szczery, konkretny i oparty na faktach z rozmowy. Używaj imion uczestników.\n\n` +
+        `Rozmowa:\n` +
+        `${transcriptLines.join('\n')}\n`;
+
+      console.log('[AI] Wysyłanie zapytania do Gemini...');
+      const replyText = await askGeminiWithFallback(promptText);
+      console.log('[AI] Odpowiedź otrzymana, wysyłam wiadomość...');
+      await message.reply(`🤖 **Odpowiedź AI** (na podstawie ${transcriptLines.length} wiadomości):\n\n${replyText}`);
     } catch (err) {
       console.error('[AI] Błąd:', err.message);
       let errorMsg = '❌ Wystąpił błąd podczas analizy.';
@@ -387,7 +400,11 @@ module.exports = {
       } else if (err.message) {
         errorMsg += ` Szczegóły: ${err.message}`;
       }
-      await message.reply(errorMsg);
+      try {
+        await message.reply(errorMsg);
+      } catch (replyErr) {
+        console.error('[AI] Błąd przy wysyłaniu odpowiedzi o błędzie:', replyErr.message);
+      }
     }
   }
 };
