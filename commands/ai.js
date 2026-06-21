@@ -11,22 +11,48 @@ function getThreadHistoryPage(api, threadID, amount, timestamp) {
     const timeout = setTimeout(() => {
       if (!completed) {
         completed = true;
-        console.warn(`[AI] getThreadHistory timed out for thread ${threadID}`);
-        reject(new Error('getThreadHistory timeout'));
+        reject(new Error('getThreadHistory timeout (60s)'));
       }
-    }, 120000);
+    }, 60000);
 
-    api.getThreadHistory(threadID, amount, timestamp, (err, history) => {
+    try {
+      api.getThreadHistory(threadID, amount, timestamp, (err, history) => {
+        clearTimeout(timeout);
+        if (completed) return;
+        completed = true;
+        if (err) {
+          return reject(new Error(`FCA error: ${err.message || err}`));
+        }
+        resolve(history || []);
+      });
+    } catch (syncErr) {
       clearTimeout(timeout);
-      if (completed) return;
       completed = true;
-      if (err) {
-        console.error('[AI] getThreadHistory error:', err.message || err);
-        return reject(err);
-      }
-      resolve(history || []);
-    });
+      reject(syncErr);
+    }
   });
+}
+
+async function getThreadHistoryWithRetry(api, threadID, amount, timestamp, maxRetries = 3) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[AI] Pobieranie strony (próba ${attempt}/${maxRetries})...`);
+      const result = await getThreadHistoryPage(api, threadID, amount, timestamp);
+      return result;
+    } catch (err) {
+      lastError = err;
+      console.warn(`[AI] Próba ${attempt} nie powiodła się: ${err.message}`);
+      
+      if (attempt < maxRetries) {
+        // Exponential backoff: 1s, 2s, 4s
+        const waitTime = Math.pow(2, attempt - 1) * 1000;
+        console.log(`[AI] Czekanie ${waitTime}ms przed następną próbą...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+  throw lastError;
 }
 
 function needsChatContext(question) {
@@ -271,11 +297,10 @@ module.exports = {
         }
 
         const limitThisTurn = Math.min(200, fetchCount - totalFetched);
-        console.log(`[AI] Pobieranie strony ${Math.ceil(totalFetched / 200) + 1}... (łącznie: ${totalFetched}/${fetchCount})`);
         
         let batch = [];
         try {
-          batch = await getThreadHistoryPage(client.api, threadId, limitThisTurn, oldestTimestamp);
+          batch = await getThreadHistoryWithRetry(client.api, threadId, limitThisTurn, oldestTimestamp);
         } catch (batchErr) {
           console.error(`[AI] Błąd przy pobieraniu batcha: ${batchErr.message}`);
           // Jeśli jest błąd, próbuj dalej z mniejszą ilością
