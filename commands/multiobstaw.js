@@ -33,7 +33,31 @@ module.exports = {
     let totalStakeRaw = null;
     let formatType = ''; // 'triplets' or 'pairs'
 
-    if (args.length % 3 === 0 && args.length >= 3) {
+    const secretModes = ['min', 'mid', 'max'];
+    const secretMode = args[0]?.toLowerCase();
+    const isSecretUltimeczBet = args.length === 2 && secretModes.includes(secretMode);
+
+    if (isSecretUltimeczBet) {
+      if (!activeMulti.isUltimecz) {
+        await message.reply('❌ Ta opcja jest dostępna tylko dla ukrytej oferty **!ultimecz**.');
+        return;
+      }
+
+      formatType = 'pairs';
+      totalStakeRaw = args[1];
+      selections = activeMulti.matches.map((match, idx) => {
+        const oddsPairs = Object.entries(match.odds)
+          .map(([type, odds]) => ({ type, odds }))
+          .sort((a, b) => a.odds - b.odds);
+
+        let chosen;
+        if (secretMode === 'min') chosen = oddsPairs[0];
+        else if (secretMode === 'mid') chosen = oddsPairs[1];
+        else chosen = oddsPairs[2];
+
+        return { matchIdx: idx, type: chosen.type };
+      });
+    } else if (args.length % 3 === 0 && args.length >= 3) {
       formatType = 'triplets';
       const matchSet = new Set();
       for (let i = 0; i < args.length; i += 3) {
