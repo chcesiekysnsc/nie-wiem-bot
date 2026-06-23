@@ -45,12 +45,7 @@ module.exports = {
       matches.push(generateMatch());
     }
 
-    const isUltimeczOffer = client.ultimeczModeUsers?.has(userId) || false;
-    if (isUltimeczOffer) {
-      client.ultimeczModeUsers.delete(userId);
-    }
-
-    client.activeMultiMatches.set(userId, { matches, isUltimecz: isUltimeczOffer });
+    client.activeMultiMatches.set(userId, { matches });
 
     let response = `⚽ **NOWA OFERTA MULTI-MECZU** ⚽\n\n`;
     matches.forEach((match, idx) => {

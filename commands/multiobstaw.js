@@ -31,32 +31,38 @@ module.exports = {
     // 3. Parser argumentów
     let selections = [];
     let totalStakeRaw = null;
-    let formatType = ''; // 'triplets' or 'pairs'
+    let formatType = ''; // 'triplets', 'pairs', or 'auto'
 
-    const secretModes = ['min', 'mid', 'max'];
-    const secretMode = args[0]?.toLowerCase();
-    const isSecretUltimeczBet = args.length === 2 && secretModes.includes(secretMode);
-
-    if (isSecretUltimeczBet) {
-      if (!activeMulti.isUltimecz) {
-        await message.reply('❌ Ta opcja jest dostępna tylko dla ukrytej oferty **!ultimecz**.');
-        return;
-      }
-
-      formatType = 'pairs';
+    // Nowy format: min/mid/max <kwota>
+    if (args.length === 2 && ['min', 'mid', 'max'].includes(args[0].toLowerCase())) {
+      formatType = 'auto';
+      const autoType = args[0].toLowerCase();
       totalStakeRaw = args[1];
-      selections = activeMulti.matches.map((match, idx) => {
-        const oddsPairs = Object.entries(match.odds)
-          .map(([type, odds]) => ({ type, odds }))
-          .sort((a, b) => a.odds - b.odds);
 
-        let chosen;
-        if (secretMode === 'min') chosen = oddsPairs[0];
-        else if (secretMode === 'mid') chosen = oddsPairs[1];
-        else chosen = oddsPairs[2];
-
-        return { matchIdx: idx, type: chosen.type };
-      });
+      // Oblicz zakłady dla każdego meczu
+      for (let i = 0; i < activeMulti.matches.length; i++) {
+        const match = activeMulti.matches[i];
+        const odds = match.odds;
+        const oddsArray = [odds['1'], odds['x'], odds['2']];
+        
+        let selectedType;
+        if (autoType === 'min') {
+          // Najmniejszy kurs
+          const minOdds = Math.min(...oddsArray);
+          selectedType = Object.keys(odds).find(key => odds[key] === minOdds);
+        } else if (autoType === 'mid') {
+          // Średni kurs (mediana)
+          const sortedOdds = [...oddsArray].sort((a, b) => a - b);
+          const midOdds = sortedOdds[1];
+          selectedType = Object.keys(odds).find(key => odds[key] === midOdds);
+        } else {
+          // Największy kurs
+          const maxOdds = Math.max(...oddsArray);
+          selectedType = Object.keys(odds).find(key => odds[key] === maxOdds);
+        }
+        
+        selections.push({ matchIdx: i, type: selectedType });
+      }
     } else if (args.length % 3 === 0 && args.length >= 3) {
       formatType = 'triplets';
       const matchSet = new Set();
@@ -125,7 +131,7 @@ module.exports = {
       let totalStake = 0;
       let selectionsResolved = [];
 
-      if (formatType === 'pairs') {
+      if (formatType === 'auto' || formatType === 'pairs') {
         const resolved = resolveAmount(totalStakeRaw, user.balance);
         if (!resolved || resolved <= 0) {
           return { error: '❌ Podaj poprawną kwotę zakładu.' };
@@ -389,6 +395,27 @@ module.exports = {
               client.api.sendMessage(notifyMsg, adminGroupId);
             } catch (err) {
               console.error('[MULTIOBSTAWIENIE] Failed to send admin notification:', err);
+            }
+          }
+
+          // Powiadomienie na wszystkie aktywne grupy, jeśli kurs > 80 i wygrana > 10m
+          if (combinedOdds > 80 && payoutApplied > 10000000) {
+            try {
+              const userName = (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
+              const globalNotifyMsg = `🎰 **MEGA WYGRANA W MULTI-MECZU!** 🎰\n` +
+                                     `👤 Gracz: **${userName}**\n` +
+                                     `🏆 Trafiony łączny kurs: **${combinedOdds}**\n` +
+                                     `💰 Stawka: **${formatCurrency(totalStake)}**\n` +
+                                     `💸 Wygrana (bez podatku): **${formatCurrency(payoutApplied)}**`;
+              
+              const targets = Array.from(client.activeThreadIds);
+              if (targets.length > 0) {
+                for (const tId of targets) {
+                  client.api.sendMessage(globalNotifyMsg, tId);
+                }
+              }
+            } catch (err) {
+              console.error('[MULTIOBSTAWIENIE] Failed to send global notification:', err);
             }
           }
         } else {
