@@ -1821,13 +1821,6 @@ login({ appState }, (loginErr, api) => {
       args.shift();
     }
 
-    // Ukryta komenda do tworzenia specjalnej oferty multi-meczu
-    if (commandName === 'ultimecz') {
-      if (!client.ultimeczModeUsers) client.ultimeczModeUsers = new Set();
-      client.ultimeczModeUsers.add(senderId);
-      commandName = 'multimecz';
-    }
-
     if (!commandName) {
       return;
     }
