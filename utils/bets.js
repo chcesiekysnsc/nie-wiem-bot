@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const { withData, createUser } = require('./storage');
 const { formatCurrency, refreshBadges, ensureInventoryRecord, randomInt, recordGame } = require('./economy');
-const { generateMatch } = require('../commands/mecz');
 
 const BETS_FILE = path.join(__dirname, '..', 'data', 'active_bets.json');
 
@@ -504,20 +503,11 @@ async function resolveSingleMultiBet(api, userId, betData) {
   });
 }
 
-function generateMatches(count) {
-  const matches = [];
-  for (let i = 0; i < count; i++) {
-    matches.push(generateMatch());
-  }
-  return matches;
-}
-
 module.exports = {
   addActiveBet,
   removeActiveBet,
   resolvePendingBets,
   simulateFullMatch,
   simulateHalfResult,
-  rollHalfTimeEvent,
-  generateMatches
+  rollHalfTimeEvent
 };

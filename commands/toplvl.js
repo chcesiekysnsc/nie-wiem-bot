@@ -3,7 +3,7 @@ const { withData, createUser } = require('../utils/storage');
 
 module.exports = {
   name: 'toplvl',
-  aliases: ['topl', 'rankinglvl'],
+  aliases: ['topl'],
   async execute(client, message, args) {
     const threadId = message.guild?.id || message.rawEvent?.threadID;
 
@@ -12,6 +12,7 @@ module.exports = {
         return client.userNames.get(id);
       }
       
+      // Sprawdź w bazie danych
       let dbName = null;
       try {
         const { loadData } = require('../utils/storage');
@@ -23,7 +24,9 @@ module.exports = {
 
       if (dbName) {
         if (client.userNames) client.userNames.set(id, dbName);
-        if (client.resolvedUserNames) client.resolvedUserNames.add(id);
+        if (client.resolvedUserNames) {
+          client.resolvedUserNames.add(id);
+        }
         return dbName;
       }
 
@@ -38,6 +41,7 @@ module.exports = {
                   client.resolvedUserNames.add(id);
                 }
                 
+                // Zapisz asynchronicznie do bazy danych
                 withData(store => {
                   if (store.users[id]) {
                     store.users[id].name = name;
@@ -63,6 +67,7 @@ module.exports = {
       });
       if (unresolved.length === 0) return;
 
+      // Najpierw spróbujmy wczytać z bazy danych
       const toQueryApi = [];
       await withData(store => {
         for (const id of unresolved) {
@@ -119,31 +124,49 @@ module.exports = {
     }
 
     const { globalTop, groupMembers, showIds, myRank, totalPlayers } = await withData(store => {
+      // Upewnij się, że autor ma swój profil w bazie
       createUser(message.author.id, store.users);
 
       const users = Object.entries(store.users || {});
       const showIds = store.profiles.showIds || [];
 
+      // Oblicz XP wymagane dla każdego poziomu
+      const getRequiredXp = (level) => {
+        return Math.floor(100 * Math.pow(1.5, level - 1));
+      };
+
+      // Wszystkie konta posortowane globalnie po levelu
       const globalSorted = users
         .map(([id, u]) => {
-          return { id, level: u.level || 1, xp: u.xp || 0 };
+          const level = u.level || 1;
+          const xp = u.xp || 0;
+          const requiredXp = getRequiredXp(level);
+          const xpToNext = requiredXp - xp;
+          return { id, level, xp, xpToNext };
         })
         .sort((a, b) => b.level - a.level || b.xp - a.xp);
 
       const totalPlayers = globalSorted.length;
       const myRank = globalSorted.findIndex(u => u.id === message.author.id) + 1;
 
+      // Top 5 Globalnie (najwyższy poziom)
       const globalTop = globalSorted.slice(0, 5);
 
+      // Top 5 Grupy (najwyższy poziom na danej grupie)
       let groupMembers = [];
       if (participantIDs && participantIDs.length > 0) {
         groupMembers = participantIDs.map(id => {
           const u = store.users[id] || { level: 1, xp: 0 };
-          return { id, level: u.level || 1, xp: u.xp || 0 };
+          const level = u.level || 1;
+          const xp = u.xp || 0;
+          const requiredXp = getRequiredXp(level);
+          const xpToNext = requiredXp - xp;
+          return { id, level, xp, xpToNext };
         })
         .sort((a, b) => b.level - a.level || b.xp - a.xp)
         .slice(0, 5);
       } else {
+        // Fallback: Pokazujemy zarejestrowanych użytkowników
         groupMembers = globalSorted.slice(0, 5);
       }
 
@@ -159,7 +182,8 @@ module.exports = {
         if (showIds.includes(u.id)) {
           name = `${name} ${u.id}`;
         }
-        return `${medals[i]} ${name} — Poziom ${u.level} (${formatNumber(u.xp)} XP)`;
+        const xpText = u.xpToNext > 0 ? ` (${formatNumber(u.xpToNext)} XP do ${u.level + 1})` : '';
+        return `${medals[i]} ${name} — Level ${u.level}${xpText}`;
       })
     );
 
@@ -169,7 +193,8 @@ module.exports = {
         if (showIds.includes(u.id)) {
           name = `${name} ${u.id}`;
         }
-        return `${medals[i]} ${name} — Poziom ${u.level} (${formatNumber(u.xp)} XP)`;
+        const xpText = u.xpToNext > 0 ? ` (${formatNumber(u.xpToNext)} XP do ${u.level + 1})` : '';
+        return `${medals[i]} ${name} — Level ${u.level}${xpText}`;
       })
     );
 
