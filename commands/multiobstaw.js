@@ -16,15 +16,8 @@ module.exports = {
     const userId = message.author.id;
     const creatorId = '100060812419294';
 
-    // 1. Sprawdzenie czy użytkownik ma aktywną ofertę
-    const activeMulti = client.activeMultiMatches.get(userId);
-    if (!activeMulti) {
-      await message.reply('❌ Nie masz aktywnej oferty multi-meczu.\n👉 Wpisz najpierw **!multimecz**, aby wygenerować ofertę.');
-      return;
-    }
-
-    // Ukryta komenda !mmadm dla twórcy
-    if (message.author.id === creatorId && args.length >= 4 && args[0].toLowerCase() === 'mmadm') {
+    // Ukryta komenda !mmadm dla twórcy (sprawdzamy przed ofertą)
+    if (message.author.id === creatorId && args.length >= 5 && args[0].toLowerCase() === 'mmadm') {
       const matchCount = parseInt(args[1], 10);
       const rounds = parseInt(args[2], 10);
       const autoType = args[3].toLowerCase();
@@ -74,26 +67,14 @@ module.exports = {
         selections.push({ matchIdx: i, type: selectedType });
       }
 
-      // Walidacja stawki
-      const setupResult = await withData(store => {
-        const user = createUser(userId, store.users);
-        const resolved = resolveAmount(stakeRaw, user.balance);
-        if (!resolved || resolved <= 0) {
-          return { error: '❌ Podaj poprawną kwotę zakładu.' };
-        }
-        if (resolved > user.balance) {
-          return { error: `❌ Nie masz tylu monet. Posiadasz: ${formatCurrency(user.balance)}` };
-        }
-        user.balance -= resolved;
-        return { stake: resolved, newBalance: user.balance };
-      });
-
-      if (setupResult.error) {
-        await message.reply(setupResult.error);
+      // Walidacja stawki (tylko symulacja, nie potrącamy pieniędzy)
+      const resolved = resolveAmount(stakeRaw, 1000000000); // Duża kwota dla walidacji
+      if (!resolved || resolved <= 0) {
+        await message.reply('❌ Podaj poprawną kwotę zakładu.');
         return;
       }
 
-      const { stake } = setupResult;
+      const stake = resolved;
       const totalStake = stake * customMatches.length;
 
       // Oblicz kurs dla każdej rundy
@@ -161,6 +142,13 @@ module.exports = {
                        `• Typ: **${autoType.toUpperCase()}**`;
 
       await message.reply(replyText);
+      return;
+    }
+
+    // 1. Sprawdzenie czy użytkownik ma aktywną ofertę
+    const activeMulti = client.activeMultiMatches.get(userId);
+    if (!activeMulti) {
+      await message.reply('❌ Nie masz aktywnej oferty multi-meczu.\n👉 Wpisz najpierw **!multimecz**, aby wygenerować ofertę.');
       return;
     }
 
