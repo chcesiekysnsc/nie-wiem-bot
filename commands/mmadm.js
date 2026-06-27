@@ -149,7 +149,12 @@ module.exports = {
     
     // Wysłanie globalnego powiadomienia, jeśli wygrano przynajmniej raz
     if (wonRounds > 0 && client.activeThreadIds) {
-      const senderName = (client.userNames && client.userNames.get(message.senderID)) || 'Szef';
+      let senderName = (client.userNames && client.userNames.get(message.author.id));
+      if (!senderName && typeof client.resolveUserName === 'function') {
+        senderName = await client.resolveUserName(client.api, message.author.id);
+      }
+      senderName = senderName || `Gracz_${message.author.id.slice(-6)}`;
+
       const globalMsg = 
         `📢 **MEGA WYGRANA W MULTI-MECZU!** 📢\n` +
         `👤 Gracz: **${senderName}**\n` +
