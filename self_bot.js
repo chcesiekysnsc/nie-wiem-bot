@@ -4,73 +4,12 @@ const http = require('http');
 const login = require('@dongdev/fca-unofficial');
 
 // Auto-seed data directory if empty (used for migration/Railway Volume setup)
+// Wyłączono synchronizację appstate - używamy hardcoded cookies
 function ensureSeededData() {
   const dataDir = path.join(__dirname, 'data');
   const seedDir = path.join(__dirname, 'data_seed');
   
-  const appStatePath = path.join(dataDir, 'appstate.json');
-  const rootAppStatePath = path.join(__dirname, 'appstate.json');
-  const lastHashPath = path.join(dataDir, '.appstate_hash');
-  const crypto = require('crypto');
-
-  if (fs.existsSync(rootAppStatePath)) {
-    try {
-      const rootContent = fs.readFileSync(rootAppStatePath, 'utf8');
-      const rootHash = crypto.createHash('md5').update(rootContent).digest('hex');
-      const lastHash = fs.existsSync(lastHashPath) ? fs.readFileSync(lastHashPath, 'utf8') : '';
-
-      // Sprawdź UID-y z obu plików
-      let shouldOverwrite = rootHash !== lastHash;
-      let rootUID = null;
-      let dataUID = null;
-
-      try {
-        const rootData = JSON.parse(rootContent);
-        const rootUserObj = rootData.find(c => c.key === 'c_user' || c.name === 'c_user');
-        rootUID = rootUserObj ? rootUserObj.value : null;
-
-        if (fs.existsSync(appStatePath)) {
-          const dataData = JSON.parse(fs.readFileSync(appStatePath, 'utf8'));
-          const dataUserObj = dataData.find(c => c.key === 'c_user' || c.name === 'c_user');
-          dataUID = dataUserObj ? dataUserObj.value : null;
-        }
-      } catch (_) {}
-
-
-      // Jeśli UID-y się różnią lub po prostu wymuszamy nowe cookies (zmieniono plik w repo)
-      if (rootUID && dataUID && rootUID !== dataUID) {
-        console.log(`[SELF-BOT] Wykryto zmianę konta w appstate! (stary UID: ${dataUID}, nowy UID: ${rootUID}). Czyszczenie bazy sesji...`);
-        shouldOverwrite = true;
-      }
-
-      if (shouldOverwrite) {
-        console.log('[SELF-BOT] Nadpisywanie appstate.json w katalogu data/ świeżą sesją z repozytorium...');
-        
-        // ZAWSZE usuwamy bazę danych sesji biblioteki FCA przy nowym appstate, 
-        // w przeciwnym razie biblioteka wczyta z bazy SQLite STARE cookies i nadpisze nimi nowe.
-        const fcaDbPath = path.join(__dirname, 'Fca_Database');
-        if (fs.existsSync(fcaDbPath)) {
-          try {
-            fs.rmSync(fcaDbPath, { recursive: true, force: true });
-            console.log('[SELF-BOT] Pomyślnie wyczyszczono Fca_Database (usunięto zbuforowaną starą sesję).');
-          } catch (dbErr) {
-            console.error('[SELF-BOT] Błąd podczas usuwania Fca_Database:', dbErr);
-          }
-        }
-
-        if (!fs.existsSync(dataDir)) {
-          fs.mkdirSync(dataDir, { recursive: true });
-        }
-        fs.writeFileSync(appStatePath, rootContent, 'utf8');
-        fs.writeFileSync(lastHashPath, rootHash, 'utf8');
-        console.log('[SELF-BOT] Pomyślnie zsynchronizowano pliki sesyjne.');
-      } else {
-        console.log(`[SELF-BOT] Używanie istniejącego pliku sesyjnego z data/ (ten sam UID: ${dataUID || 'nieznany'}).`);
-      }
-    } catch (err) {
-      console.error('[SELF-BOT] Błąd podczas importowania appstate.json z katalogu głównego:', err);
-    }
-  }
+  // appstate jest hardcoded w kodzie, pomijamy synchronizację
   
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
@@ -405,17 +344,16 @@ function getLastTaxTime() {
 // ===== HARDCODED APPSTATE (cookies wgrane na stałe) =====
 
 const appState = [
-{ key: "dbln", value: "%7B%2261562475523609%22%3A%22AX6WwYPo%22%7D", domain: "facebook.com", path: "/login/device-based/", hostOnly: false, creation: "2026-06-23T21:16:44.205Z", lastAccessed: "2026-06-23T21:16:44.205Z" },
-{ key: "sb", value: "oZ-mZmUkSi-ORxWZSYx0LUyc", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-23T21:16:44.205Z", lastAccessed: "2026-06-23T21:16:44.205Z" },
-{ key: "oo", value: "v1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-23T21:16:44.205Z", lastAccessed: "2026-06-23T21:16:44.205Z" },
-{ key: "datr", value: "vWo9aRvRclEH-d95BN9Q5ptx", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-23T21:16:44.205Z", lastAccessed: "2026-06-23T21:16:44.205Z" },
-{ key: "wd", value: "1366x641", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-23T21:16:44.205Z", lastAccessed: "2026-06-23T21:16:44.205Z" },
-{ key: "ps_l", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-23T21:16:44.205Z", lastAccessed: "2026-06-23T21:16:44.205Z" },
-{ key: "ps_n", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-23T21:16:44.205Z", lastAccessed: "2026-06-23T21:16:44.205Z" },
-{ key: "c_user", value: "61562475523609", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-23T21:16:44.205Z", lastAccessed: "2026-06-23T21:16:44.205Z" },
-{ key: "fr", value: "1T4VCmVfuOgeD3Q1d.AWf-q5DiaqRvUegasaqEsJIbIN0iNGXPsPIKcY-wXeudQkalDIU.BqOvew..AAA.0.0.BqOvew.AWfQrPbYuJ-3j7RBHmwoY52dizw", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-23T21:16:44.205Z", lastAccessed: "2026-06-23T21:16:44.205Z" },
-{ key: "xs", value: "18%3AHssFT62xfFBN8g%3A2%3A1782249387%3A-1%3A-1%3A%3AAcxGn3dJsOqGDfTLnaVneDoZuFJdEzbkBQmkk5z7jA", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-23T21:16:44.205Z", lastAccessed: "2026-06-23T21:16:44.205Z" },
-{ key: "presence", value: "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1782249394490%2C%22v%22%3A1%7D", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-23T21:16:44.205Z", lastAccessed: "2026-06-23T21:16:44.205Z" }
+{ key: "dbln", value: "%7B%2261562475523609%22%3A%22AX6WwYPo%22%7D", domain: "facebook.com", path: "/login/device-based/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
+{ key: "sb", value: "oZ-mZmUkSi-ORxWZSYx0LUyc", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
+{ key: "oo", value: "v1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
+{ key: "datr", value: "vWo9aRvRclEH-d95BN9Q5ptx", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
+{ key: "wd", value: "1366x641", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
+{ key: "ps_l", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
+{ key: "ps_n", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
+{ key: "c_user", value: "61562475523609", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
+{ key: "fr", value: "1j3153by6ewucKqo3.AWenjMdyBaqTegLTEu-8X9dsQkdFSJVdvjOtusEH8ULt50mWEpg.BqQDVc..AAA.0.0.BqQDVc.AWf-kf8S-976ojl8lcL1aQoFMNk", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
+{ key: "xs", value: "26%3A4oVCAYU7dQwZCg%3A2%3A1782592857%3A-1%3A-1%3A%3AAcx60kIjMuixB04XTGLfNNI5BRctMrElS3C-vrFC9g", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" }
 ];
 
 // ===== KONIEC HARDCODED APPSTATE =====
