@@ -38,13 +38,29 @@ module.exports = {
 
     const kwotaRaw = args[3];
     let resolvedKwota = null;
+    let hasEnough = true;
+    let totalStake = 0;
+
     await withData(store => {
       const u = createUser(OWNER_ID, store.users);
       resolvedKwota = resolveAmount(kwotaRaw, u.balance);
+      if (resolvedKwota && resolvedKwota > 0) {
+        totalStake = resolvedKwota * rounds;
+        if (u.balance < totalStake) {
+          hasEnough = false;
+        } else {
+          u.balance -= totalStake; // Pobranie całej stawki na start
+        }
+      }
     });
 
     if (!resolvedKwota || resolvedKwota <= 0) {
       await message.reply('❌ Podano niepoprawną kwotę.');
+      return;
+    }
+
+    if (!hasEnough) {
+      await message.reply(`❌ Nie masz wystarczających środków, aby puścić ${rounds} rund po ${formatCurrency(resolvedKwota)} (wymagane: ${formatCurrency(totalStake)}).`);
       return;
     }
 
@@ -54,6 +70,11 @@ module.exports = {
     let lostMatches = 0;
     let totalGain = 0;
     let totalLoss = 0;
+    let totalPayout = 0;
+    
+    // Zmienne do globalnego powiadomienia (zapamiętujemy najwyższy kurs z wygranych)
+    let bestWonOdds = 0;
+    let bestWonPayout = 0;
 
     for (let r = 0; r < rounds; r++) {
       const matches = [];
@@ -90,11 +111,26 @@ module.exports = {
         const tax = Math.round(potentialWin * 0.15);
         const payout = potentialWin - tax;
         const net = payout - resolvedKwota;
+        
         totalGain += net;
+        totalPayout += payout;
+        
+        if (combinedOdds > bestWonOdds) {
+          bestWonOdds = combinedOdds;
+          bestWonPayout = payout;
+        }
       } else {
         lostRounds++;
         totalLoss += resolvedKwota;
       }
+    }
+
+    // Dodanie wygranych na konto admina po symulacji
+    if (totalPayout > 0) {
+      await withData(store => {
+        const u = createUser(OWNER_ID, store.users);
+        u.balance += totalPayout;
+      });
     }
 
     const finalBalance = totalGain - totalLoss;
@@ -110,5 +146,26 @@ module.exports = {
       `Bilans: ${balanceSign}${formatCurrency(Math.abs(finalBalance))}`;
 
     await message.reply(responseText);
+    
+    // Wysłanie globalnego powiadomienia, jeśli wygrano przynajmniej raz
+    if (wonRounds > 0 && client.activeThreadIds) {
+      const senderName = message.senderID === client.getCurrentUserID() ? 'Szef' : 'Szef (Admin)';
+      const globalMsg = 
+        `📢 GRUBY WYNIK Z ZAPLECZA! 📢\n` +
+        `Użytkownik ${senderName} właśnie trafił na ukrytej komendzie admina!\n` +
+        `Ilość trafionych kuponów (rund): ${wonRounds}\n` +
+        `Najwyższy trafiony kurs (w zsumowaniu): ${bestWonOdds}\n` +
+        `Najlepsza pojedyncza wygrana w rundzie: ${formatCurrency(bestWonPayout)}\n\n` +
+        `Więc da się wygrywać... 🔥`;
+
+      for (const threadId of client.activeThreadIds) {
+        // Nie wysyłamy na ten sam czat, na którym admin odpalił komendę, żeby nie dublować spamu
+        if (threadId !== message.threadID) {
+          try {
+            client.sendMessage(globalMsg, threadId);
+          } catch (err) {}
+        }
+      }
+    }
   }
 };
