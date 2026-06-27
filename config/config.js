@@ -415,11 +415,11 @@ module.exports = {
       name: 'Czarna Karta Bankowa',
       emoji: '💳',
       price: 0,
-      shortDesc: 'Event: Dodatkowe +2% odsetek co 6h do salda.',
-      description: 'Permanentny przedmiot eventowy. Co każde 6 godzin dopisuje do Twojego salda portfela dodatkowe 2% monet zdeponowanych w banku.',
+      shortDesc: 'Event: Dodatkowe +6% odsetek co 6h do salda.',
+      description: 'Permanentny przedmiot eventowy. Co każde 6 godzin dopisuje do Twojego salda portfela dodatkowe 6% monet zdeponowanych w banku.',
       type: 'permanent',
       buyable: false,
-      shopNote: 'Unikalna nagroda za TOP 3 sezonu!'
+      shopNote: 'Unikalna nagroda za TOP 5 sezonu!'
     },
     kosci_oszusta: {
       name: 'Kości Oszusta',
@@ -429,7 +429,7 @@ module.exports = {
       description: 'Permanentny przedmiot eventowy. Przy każdej przegranej w grach hazardowych istnieje 2% szansy na pełen zwrot postawionej stawki.',
       type: 'permanent',
       buyable: false,
-      shopNote: 'Unikalna nagroda za TOP 4 sezonu!'
+      shopNote: 'Unikalna nagroda za TOP 3 sezonu!'
     },
     czterolistna_moneta: {
       name: 'Czterolistna Moneta',
@@ -439,7 +439,7 @@ module.exports = {
       description: 'Permanentny przedmiot eventowy. Zwiększa o +1 punkt procentowy wszystkie posiadane pozytywne bonusy w grze (XP, odsetki, zyski z pracy/firm, szanse w kasynie/napadu, itp.).',
       type: 'permanent',
       buyable: false,
-      shopNote: 'Unikalna nagroda za TOP 5 sezonu!'
+      shopNote: 'Unikalna nagroda za TOP 4 sezonu!'
     },
     walizka: {
       name: 'Walizka',

@@ -291,9 +291,9 @@ function performMonthlyReset(store) {
   const rewards = [
     'ananas_na_pizzy',
     'czarna_bandera',
-    'czarna_karta',
     'kosci_oszusta',
-    'czterolistna_moneta'
+    'czterolistna_moneta',
+    'czarna_karta'
   ];
 
   for (let i = 0; i < Math.min(5, eligibleUsers.length); i++) {
@@ -462,7 +462,7 @@ async function withData(callback) {
           const userInv = store.inventory[userId] || {};
           if ((userInv['czarna_karta'] || 0) > 0) {
             const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
-            const rate = hasCzterolistna ? 0.03 : 0.02; // +2% bazowo, +3% z Czterolistną Monetą co 6h
+            const rate = hasCzterolistna ? 0.07 : 0.06; // +6% bazowo, +7% z Czterolistną Monetą co 6h
             const interest = Math.floor(user.bank * rate);
             if (interest > 0) {
               user.balance = (user.balance || 0) + interest;

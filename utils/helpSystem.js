@@ -831,6 +831,19 @@ const helpCommands = [
     requirements: "Oznaczenie osoby.",
     aliases: ["fem", "boy"],
     additionalInfo: []
+  },
+  {
+    id: 64,
+    name: "toplvl",
+    category: "SOCIAL_GANGS",
+    shortDescription: "ranking top 5 graczy wg poziomu (lvl)",
+    description: "Pokazuje ranking 5 graczy z najwyższym poziomem (lvl).",
+    usage: "!toplvl",
+    examples: ["!toplvl"],
+    cooldown: "8 sekund",
+    requirements: "Brak.",
+    aliases: ["rankinglvl", "toppoziom"],
+    additionalInfo: []
   }
 ];
 

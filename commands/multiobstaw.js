@@ -2,9 +2,27 @@ const config = require('../config/config');
 const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, randomInt } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
+function getAutoSelection(match, autoType) {
+  const odds = match.odds;
+  const oddsArray = [odds['1'], odds['x'], odds['2']];
+  
+  if (autoType === 'min') {
+    const minOdds = Math.min(...oddsArray);
+    return Object.keys(odds).find(key => odds[key] === minOdds);
+  } else if (autoType === 'mid') {
+    const sortedOdds = [...oddsArray].sort((a, b) => a - b);
+    const midOdds = sortedOdds[1];
+    return Object.keys(odds).find(key => odds[key] === midOdds);
+  } else {
+    const maxOdds = Math.max(...oddsArray);
+    return Object.keys(odds).find(key => odds[key] === maxOdds);
+  }
+}
+
 module.exports = {
   name: 'multiobstaw',
   aliases: ['mo', 'mm'],
+  getAutoSelection,
   async execute(client, message, args) {
     if (!client.activeMultiMatches) {
       client.activeMultiMatches = new Map();
@@ -42,25 +60,7 @@ module.exports = {
       // Oblicz zakłady dla każdego meczu
       for (let i = 0; i < activeMulti.matches.length; i++) {
         const match = activeMulti.matches[i];
-        const odds = match.odds;
-        const oddsArray = [odds['1'], odds['x'], odds['2']];
-        
-        let selectedType;
-        if (autoType === 'min') {
-          // Najmniejszy kurs
-          const minOdds = Math.min(...oddsArray);
-          selectedType = Object.keys(odds).find(key => odds[key] === minOdds);
-        } else if (autoType === 'mid') {
-          // Średni kurs (mediana)
-          const sortedOdds = [...oddsArray].sort((a, b) => a - b);
-          const midOdds = sortedOdds[1];
-          selectedType = Object.keys(odds).find(key => odds[key] === midOdds);
-        } else {
-          // Największy kurs
-          const maxOdds = Math.max(...oddsArray);
-          selectedType = Object.keys(odds).find(key => odds[key] === maxOdds);
-        }
-        
+        const selectedType = getAutoSelection(match, autoType);
         selections.push({ matchIdx: i, type: selectedType });
       }
     } else if (args.length % 3 === 0 && args.length >= 3) {
@@ -398,8 +398,8 @@ module.exports = {
             }
           }
 
-          // Powiadomienie na wszystkie aktywne grupy, jeśli kurs > 80 i wygrana > 10m
-          if (combinedOdds > 80 && payoutApplied > 10000000) {
+          // Powiadomienie na wszystkie aktywne grupy, jeśli kurs > 80 i wygrana >= 8mln
+          if (combinedOdds > 80 && payoutApplied >= 8000000) {
             try {
               const userName = (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
               const globalNotifyMsg = `🎰 **MEGA WYGRANA W MULTI-MECZU!** 🎰\n` +

@@ -51,24 +51,24 @@ const eventItems = {
     award: 'TOP 2 sezonu 2'
   },
   8: {
-    id: 'czarna_karta',
-    name: 'Czarna Karta Bankowa',
-    emoji: '💳',
-    desc: 'Co każde 6 godzin dopisuje do salda portfela dodatkowe 2% monet zdeponowanych w banku.',
-    award: 'TOP 3 sezonu 2'
-  },
-  9: {
     id: 'kosci_oszusta',
     name: 'Kości Oszusta',
     emoji: '🎲',
     desc: 'Przy każdej przegranej w grach hazardowych istnieje 2% szansy na pełen zwrot postawionej stawki.',
-    award: 'TOP 4 sezonu 2'
+    award: 'TOP 3 sezonu 2'
   },
-  10: {
+  9: {
     id: 'czterolistna_moneta',
     name: 'Czterolistna Moneta',
     emoji: '🍀',
     desc: 'Wzmacnia o +1 punkt procentowy wszystkie posiadane pozytywne bonusy w grze (XP, odsetki, zyski z pracy/firm, szanse w kasynie/napadu, itp.).',
+    award: 'TOP 4 sezonu 2'
+  },
+  10: {
+    id: 'czarna_karta',
+    name: 'Czarna Karta Bankowa',
+    emoji: '💳',
+    desc: 'Co każde 6 godzin dopisuje do salda portfela dodatkowe 6% monet zdeponowanych w banku.',
     award: 'TOP 5 sezonu 2'
   }
 };
