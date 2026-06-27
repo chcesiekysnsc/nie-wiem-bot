@@ -462,7 +462,7 @@ async function withData(callback) {
           const userInv = store.inventory[userId] || {};
           if ((userInv['czarna_karta'] || 0) > 0) {
             const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
-            const rate = hasCzterolistna ? 0.07 : 0.06; // +6% bazowo, +7% z Czterolistną Monetą co 6h
+            const rate = hasCzterolistna ? 0.11 : 0.10; // +10% bazowo, +11% z Czterolistną Monetą co 6h
             const interest = Math.floor(user.bank * rate);
             if (interest > 0) {
               user.balance = (user.balance || 0) + interest;

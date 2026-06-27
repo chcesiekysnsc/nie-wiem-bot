@@ -68,7 +68,7 @@ const eventItems = {
     id: 'czarna_karta',
     name: 'Czarna Karta Bankowa',
     emoji: '💳',
-    desc: 'Co każde 6 godzin dopisuje do salda portfela dodatkowe 6% monet zdeponowanych w banku.',
+    desc: 'Co każde 6 godzin dopisuje do salda portfela dodatkowe 10% monet zdeponowanych w banku.',
     award: 'TOP 5 sezonu 2'
   }
 };

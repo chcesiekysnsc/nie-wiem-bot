@@ -415,8 +415,8 @@ module.exports = {
       name: 'Czarna Karta Bankowa',
       emoji: '💳',
       price: 0,
-      shortDesc: 'Event: Dodatkowe +6% odsetek co 6h do salda.',
-      description: 'Permanentny przedmiot eventowy. Co każde 6 godzin dopisuje do Twojego salda portfela dodatkowe 6% monet zdeponowanych w banku.',
+      shortDesc: 'Event: Dodatkowe +10% odsetek co 6h do salda.',
+      description: 'Permanentny przedmiot eventowy. Co każde 6 godzin dopisuje do Twojego salda portfela dodatkowe 10% monet zdeponowanych w banku.',
       type: 'permanent',
       buyable: false,
       shopNote: 'Unikalna nagroda za TOP 5 sezonu!'
