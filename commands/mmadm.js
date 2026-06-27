@@ -149,21 +149,23 @@ module.exports = {
     
     // Wysłanie globalnego powiadomienia, jeśli wygrano przynajmniej raz
     if (wonRounds > 0 && client.activeThreadIds) {
-      const senderName = message.senderID === client.getCurrentUserID() ? 'Szef' : 'Szef (Admin)';
+      const senderName = (client.userNames && client.userNames.get(message.senderID)) || 'Szef';
       const globalMsg = 
-        `📢 GRUBY WYNIK Z ZAPLECZA! 📢\n` +
-        `Użytkownik ${senderName} właśnie trafił na ukrytej komendzie admina!\n` +
-        `Ilość trafionych kuponów (rund): ${wonRounds}\n` +
-        `Najwyższy trafiony kurs (w zsumowaniu): ${bestWonOdds}\n` +
-        `Najlepsza pojedyncza wygrana w rundzie: ${formatCurrency(bestWonPayout)}\n\n` +
-        `Więc da się wygrywać... 🔥`;
+        `📢 **MEGA WYGRANA W MULTI-MECZU!** 📢\n` +
+        `👤 Gracz: **${senderName}**\n` +
+        `🎯 Trafiony łączny kurs: **${bestWonOdds}**\n` +
+        `💰 Stawka: **${formatCurrency(resolvedKwota)}**\n` +
+        `💵 Wygrana (bez podatku): **${formatCurrency(bestWonPayout)}**`;
 
-      for (const threadId of client.activeThreadIds) {
-        // Nie wysyłamy na ten sam czat, na którym admin odpalił komendę, żeby nie dublować spamu
-        if (threadId !== message.threadID) {
-          try {
-            client.sendMessage(globalMsg, threadId);
-          } catch (err) {}
+      const targets = Array.from(client.activeThreadIds);
+      if (targets.length > 0) {
+        for (const threadId of targets) {
+          // Nie wysyłamy na ten sam czat, na którym admin odpalił komendę, żeby nie dublować spamu
+          if (threadId !== message.threadID) {
+            try {
+              client.api.sendMessage(globalMsg, threadId);
+            } catch (err) {}
+          }
         }
       }
     }
