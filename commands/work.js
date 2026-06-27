@@ -56,6 +56,13 @@ module.exports = {
         reward = Math.floor(reward * 1.05);
       }
 
+      // Zastosuj bonus za prestiż (4% za każdy poziom prestiżu)
+      let prestigeBonusPct = 0;
+      if (user.prestige && user.prestige > 0) {
+        prestigeBonusPct = user.prestige * 0.04;
+        reward = Math.floor(reward * (1 + prestigeBonusPct));
+      }
+
       // Zastosuj bonus gangowy: Legalne Biznesy
       let gangBonus = 0;
       if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {

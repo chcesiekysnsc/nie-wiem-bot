@@ -129,11 +129,32 @@ module.exports = {
     }
 
     const nr = Number(args[0]);
-    if (!args[0]) {
-      let msg = '🎁 **Lista permanentnych przedmiotów eventowych (sezonowych):**\n\n';
-      for (const [key, item] of Object.entries(eventItems)) {
-        msg += `${key}. ${item.emoji} **${item.name}** - *Nagroda za: ${item.award}*\n   ↳ *Działanie:* ${item.desc}\n\n`;
+    const isSeasonFilter = subCommand.startsWith('s') && !isNaN(parseInt(subCommand.slice(1), 10));
+
+    if (!args[0] || isSeasonFilter) {
+      let filterSeason = null;
+      if (isSeasonFilter) {
+        filterSeason = parseInt(subCommand.slice(1), 10);
       }
+
+      let msg = filterSeason ? `🎁 **Lista przedmiotów z sezonu ${filterSeason}:**\n\n` : '🎁 **Lista permanentnych przedmiotów eventowych (sezonowych):**\n\n';
+      let count = 0;
+
+      for (const [key, item] of Object.entries(eventItems)) {
+        if (filterSeason) {
+          const regex = new RegExp(`sezonu?\\s*${filterSeason}\\b`, 'i');
+          if (!regex.test(item.award)) {
+            continue;
+          }
+        }
+        msg += `${key}. ${item.emoji} **${item.name}** - *Nagroda za: ${item.award}*\n   ↳ *Działanie:* ${item.desc}\n\n`;
+        count++;
+      }
+
+      if (count === 0 && filterSeason) {
+        msg += `Brak przedmiotów przypisanych do sezonu ${filterSeason}.\n\n`;
+      }
+
       msg += '💡 Wpisz **!eventitemy <nr>** aby zobaczyć szczegółowy opis.';
       await message.reply(msg);
       return;
