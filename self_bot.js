@@ -37,25 +37,27 @@ function ensureSeededData() {
       } catch (_) {}
 
 
-      // Jeśli UID-y się różnią, to bezwzględnie zmieniamy sesję i czyścimy stare bazy sesyjne
+      // Jeśli UID-y się różnią lub po prostu wymuszamy nowe cookies (zmieniono plik w repo)
       if (rootUID && dataUID && rootUID !== dataUID) {
         console.log(`[SELF-BOT] Wykryto zmianę konta w appstate! (stary UID: ${dataUID}, nowy UID: ${rootUID}). Czyszczenie bazy sesji...`);
         shouldOverwrite = true;
+      }
+
+      if (shouldOverwrite) {
+        console.log('[SELF-BOT] Nadpisywanie appstate.json w katalogu data/ świeżą sesją z repozytorium...');
         
-        // Usuń bazę danych sesji biblioteki FCA, aby nie przywróciła starej sesji
+        // ZAWSZE usuwamy bazę danych sesji biblioteki FCA przy nowym appstate, 
+        // w przeciwnym razie biblioteka wczyta z bazy SQLite STARE cookies i nadpisze nimi nowe.
         const fcaDbPath = path.join(__dirname, 'Fca_Database');
         if (fs.existsSync(fcaDbPath)) {
           try {
             fs.rmSync(fcaDbPath, { recursive: true, force: true });
-            console.log('[SELF-BOT] Pomyślnie wyczyszczono Fca_Database.');
+            console.log('[SELF-BOT] Pomyślnie wyczyszczono Fca_Database (usunięto zbuforowaną starą sesję).');
           } catch (dbErr) {
             console.error('[SELF-BOT] Błąd podczas usuwania Fca_Database:', dbErr);
           }
         }
-      }
 
-      if (shouldOverwrite) {
-        console.log('[SELF-BOT] Nadpisywanie appstate.json w katalogu data/ świeżą sesją...');
         if (!fs.existsSync(dataDir)) {
           fs.mkdirSync(dataDir, { recursive: true });
         }
