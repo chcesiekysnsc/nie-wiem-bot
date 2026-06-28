@@ -4,103 +4,115 @@ const { withData } = require('../utils/storage');
 
 module.exports = {
   name: 'grp',
-  aliases: ['groups', 'listgrp'],
+  aliases: ['groupinfo'],
   async execute(client, message, args) {
-    if (!config.admins.includes(message.author.id)) {
-      await message.reply('❌ Brak uprawnień do tej komendy.');
+    const threadId = message.threadID || message.rawEvent?.threadID;
+    
+    if (!threadId) {
+      await message.reply('❌ Nie można określić ID tej grupy.');
       return;
     }
 
-    const threadIds = Array.from(client.activeThreadIds || []).sort();
-
-    if (threadIds.length === 0) {
-      await message.reply('ℹ️ Bot nie ma zapisanego żadnego wątku w historii.');
+    if (!client.api || typeof client.api.getThreadInfo !== 'function') {
+      await message.reply('❌ Brak dostępu do API Messengera.');
       return;
     }
 
-    await message.reply('⏳ Pobieranie informacji o grupach, w których bot jest obecny...');
+    await message.reply('⏳ Pobieranie informacji o grupie...');
 
-    const botID = typeof client.api.getCurrentUserID === 'function' ? client.api.getCurrentUserID() : null;
+    try {
+      const info = await new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(null), 5000);
+        client.api.getThreadInfo(threadId, (err, ret) => {
+          clearTimeout(timer);
+          if (err) resolve(null);
+          else resolve(ret);
+        });
+      });
 
-    const threadDataPromises = threadIds.map(async (threadId) => {
-      if (!client.api || typeof client.api.getThreadInfo !== 'function') {
-        return null;
+      if (!info) {
+        await message.reply('❌ Nie udało się pobrać informacji o grupie.');
+        return;
       }
 
-      try {
-        const info = await new Promise((resolve) => {
-          const timer = setTimeout(() => resolve(null), 3000);
-          client.api.getThreadInfo(threadId, (err, ret) => {
-            clearTimeout(timer);
-            if (err) resolve(null);
-            else resolve(ret);
-          });
-        });
+      const participantIDs = info.participantIDs || [];
+      const adminIDs = info.adminIDs || [];
+      const botID = typeof client.api.getCurrentUserID === 'function' ? client.api.getCurrentUserID() : null;
 
-        if (!info) return null;
-
-        // Sprawdzamy czy to jest grupa oraz czy bot w niej uczestniczy
-        const isGroup = info.isGroup === true;
-        const participantIDs = info.participantIDs || [];
-        const isBotPresent = botID ? participantIDs.includes(botID) : true;
-
-        if (!isGroup || !isBotPresent) {
-          return null;
+      // Pobieranie danych z bazy
+      const groupData = await withData(store => {
+        const blacklisted = store.profiles.blacklistedGroups || [];
+        const isBanned = blacklisted.includes(threadId);
+        
+        const defaultUser = config.economy.defaultUser || { balance: 5000, bank: 10000 };
+        let totalMoney = 0;
+        let maleCount = 0;
+        let femaleCount = 0;
+        
+        for (const pId of participantIDs) {
+          const u = store.users[pId] || defaultUser;
+          totalMoney += (u.balance || 0) + (u.bank || 0);
+          
+          const profile = store.profiles[pId];
+          if (profile && profile.gender) {
+            if (profile.gender.toLowerCase() === 'male') maleCount++;
+            else if (profile.gender.toLowerCase() === 'female') femaleCount++;
+          }
         }
 
-        // Obliczanie łącznych funduszy w grupie na podstawie profilów w bazie danych
-        const { totalMoney, isBanned } = await withData(store => {
-          const blacklisted = store.profiles.blacklistedGroups || [];
-          const isBanned = blacklisted.includes(threadId);
-
-          const defaultUser = config.economy.defaultUser || { balance: 5000, bank: 10000 };
-          let total = 0;
-          for (const pId of participantIDs) {
-            const u = store.users[pId] || defaultUser;
-            total += (u.balance || 0) + (u.bank || 0);
-          }
-          return { totalMoney: total, isBanned };
-        });
+        // Statystyki grupy
+        const groupStats = store.groupStats?.[threadId] || {};
+        const visibleMsgs = groupStats.visibleMessages || 0;
+        const processedMsgs = groupStats.processedMessages || 0;
+        const commandsExecuted = groupStats.commandsExecuted || 0;
+        const mentionsCount = groupStats.mentionsCount || 0;
+        const firstUse = groupStats.firstUse ? new Date(groupStats.firstUse).toLocaleString('pl-PL') : 'Nieznane';
 
         return {
-          id: threadId,
-          name: info.threadName || info.name || `Grupa [${threadId}]`,
           totalMoney,
-          isBanned
+          isBanned,
+          maleCount,
+          femaleCount,
+          visibleMsgs,
+          processedMsgs,
+          commandsExecuted,
+          mentionsCount,
+          firstUse
         };
-      } catch (err) {
-        console.error(`[grp] Błąd pobierania info dla wątku ${threadId}:`, err.message);
-        return null;
+      });
+
+      const groupName = info.threadName || info.name || 'Grupa';
+      const memberCount = participantIDs.length;
+      const adminCount = adminIDs.length;
+
+      let response = `👨‍👩‍👧‍👦 **Informacje o grupie ${groupName}:**\n\n`;
+      response += `🆔 ID: **${threadId}**\n`;
+      response += `👥 Członkowie: **${memberCount}**\n`;
+      response += `👮🏻‍♂️ Administratorzy: **${adminCount}**\n`;
+      response += `👨🏻 Mężczyźni: **${groupData.maleCount}**\n`;
+      response += `👩🏼 Kobiety: **${groupData.femaleCount}**\n`;
+      response += `💰 Łączne środki: **${formatCurrency(groupData.totalMoney)}**\n`;
+      response += `🗂 Widoczne wiadomości: **${groupData.visibleMsgs.toLocaleString()}**\n`;
+      response += `🗃 Przetworzone wiadomości: **${groupData.processedMsgs.toLocaleString()}**\n`;
+      response += `🤖 Wykonane komendy: **${groupData.commandsExecuted.toLocaleString()}**\n`;
+      response += `🐒 Liczba oznaczeń: **${groupData.mentionsCount.toLocaleString()}**\n`;
+      
+      const approvalStatus = info.approvalMode === 1 ? '✅ włączone' : '❌ wyłączone';
+      response += `🧐 Zatwierdzanie członków: **${approvalStatus}**\n`;
+      
+      const restoreStatus = info.isGroup ? '✅ włączone' : '❌ wyłączone';
+      response += `👀 Przywracanie wiadomości: **${restoreStatus}**\n`;
+      
+      response += `🤓 Pierwsze użycie bota: **${groupData.firstUse}**\n`;
+
+      if (info.imageSrc) {
+        response += `\n🖼️ Zdjęcie profilowe: [Link](${info.imageSrc})`;
       }
-    });
 
-    const resolvedThreads = (await Promise.all(threadDataPromises)).filter(Boolean);
-
-    if (resolvedThreads.length === 0) {
-      await message.reply('ℹ️ Bot nie jest obecnie obecny w żadnej grupie.');
-      return;
+      await message.reply(response);
+    } catch (err) {
+      console.error('[grp] Błąd:', err);
+      await message.reply('❌ Wystąpił błąd podczas pobierania informacji o grupie.');
     }
-
-    // Dynamicznie aktualizujemy activeThreadIds w pamięci i w pliku, by zachować tylko te obecne grupy
-    const currentActiveThreads = resolvedThreads.map(t => t.id);
-    client.activeThreadIds = new Set(currentActiveThreads);
-    try {
-      const path = require('path');
-      const fs = require('fs');
-      const activeThreadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
-      fs.writeFileSync(activeThreadsPath, JSON.stringify(currentActiveThreads, null, 2), 'utf8');
-    } catch (e) {
-      console.error('[grp] Błąd zapisu active_threads.json:', e);
-    }
-
-    let response = '📊 **LISTA GRUP (w których bot jest obecny)**:\n\n';
-    resolvedThreads.forEach((data, index) => {
-      const banIndicator = data.isBanned ? ' 🚫 [ZABLOKOWANA]' : '';
-      response += `**${index + 1}.** ${data.name}\n`;
-      response += `   • ID: **${data.id}**${banIndicator}\n`;
-      response += `   • Łącznie pieniędzy: **${formatCurrency(data.totalMoney)}**\n\n`;
-    });
-
-    await message.reply(response);
   }
 };

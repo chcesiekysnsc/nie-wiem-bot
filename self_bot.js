@@ -468,16 +468,16 @@ function getLastTaxTime() {
 // ===== HARDCODED APPSTATE (cookies wgrane na stałe) =====
 
 const appState = [
-{ key: "dbln", value: "%7B%2261562475523609%22%3A%22AX6WwYPo%22%7D", domain: "facebook.com", path: "/login/device-based/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
-{ key: "sb", value: "oZ-mZmUkSi-ORxWZSYx0LUyc", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
-{ key: "oo", value: "v1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
-{ key: "datr", value: "vWo9aRvRclEH-d95BN9Q5ptx", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
-{ key: "wd", value: "1366x641", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
-{ key: "ps_l", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
-{ key: "ps_n", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
-{ key: "c_user", value: "61560227271099", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
-{ key: "fr", value: "0guAVYg2apIU4QRPX.AWfU2j5cNyKCUa4Q8-FKlsBRNHRW0_YVY_JHpV5WB6i1HxGfpwg.BqQaem..AAA.0.0.BqQaem.AWfq2yf13Wo3wrPMyypiagrDmW8", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
-{ key: "xs", value: "42%3AlxbYyDHFxLneMQ%3A2%3A1782687652%3A-1%3A-1%3A%3AAcwAjeWVDGugjQq0pFzAv7AaMirf3c6nZEugiGwxSg", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" }
+{ key: "dbln", value: "%7B%2261562475523609%22%3A%22AX6WwYPo%22%7D", domain: "facebook.com", path: "/login/device-based/", hostOnly: false, creation: "2026-06-28T23:24:57.328Z", lastAccessed: "2026-06-28T23:24:57.328Z" },
+{ key: "sb", value: "oZ-mZmUkSi-ORxWZSYx0LUyc", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:24:57.328Z", lastAccessed: "2026-06-28T23:24:57.328Z" },
+{ key: "oo", value: "v1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:24:57.328Z", lastAccessed: "2026-06-28T23:24:57.328Z" },
+{ key: "datr", value: "vWo9aRvRclEH-d95BN9Q5ptx", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:24:57.328Z", lastAccessed: "2026-06-28T23:24:57.328Z" },
+{ key: "wd", value: "1366x641", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:24:57.328Z", lastAccessed: "2026-06-28T23:24:57.328Z" },
+{ key: "ps_l", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:24:57.328Z", lastAccessed: "2026-06-28T23:24:57.328Z" },
+{ key: "ps_n", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:24:57.328Z", lastAccessed: "2026-06-28T23:24:57.328Z" },
+{ key: "c_user", value: "61560227271099", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:24:57.328Z", lastAccessed: "2026-06-28T23:24:57.328Z" },
+{ key: "fr", value: "03QKMTxgSDpnEKGm5.AWcZd2Ua1A3vlo6ytaJZwGxknrYbTAdKS3kIGmYxUigZg0c0bcA.BqQa1F..AAA.0.0.BqQa1F.AWd-62C2IQRltOMukL2FGyY7zWo", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:24:57.328Z", lastAccessed: "2026-06-28T23:24:57.328Z" },
+{ key: "xs", value: "42%3AMCC2JW_pCat8sw%3A2%3A1782689091%3A-1%3A-1%3A%3AAczbprdWwvZuJkJ773tJE7cFToqplgwWd0UPXJtMnA", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:24:57.328Z", lastAccessed: "2026-06-28T23:24:57.328Z" }
 ];
 
 // ===== KONIEC HARDCODED APPSTATE =====
@@ -1571,7 +1571,48 @@ login({ appState }, (loginErr, api) => {
           if (isGroup) {
             u.groupMessages = u.groupMessages || {};
             u.groupMessages[threadId] = (u.groupMessages[threadId] || 0) + 1;
+
+            // Aktualizacja statystyk grupy
+            if (!store.groupStats) store.groupStats = {};
+            if (!store.groupStats[threadId]) {
+              store.groupStats[threadId] = {
+                visibleMessages: 0,
+                processedMessages: 0,
+                commandsExecuted: 0,
+                mentionsCount: 0,
+                firstUse: Date.now(),
+                lastUpdated: Date.now()
+              };
+            }
+            store.groupStats[threadId].visibleMessages++;
+            store.groupStats[threadId].processedMessages++;
+            store.groupStats[threadId].lastUpdated = Date.now();
+
+            // Liczenie oznaczeń
+            const mentionMatches = text.match(/@/g);
+            if (mentionMatches) {
+              store.groupStats[threadId].mentionsCount += mentionMatches.length;
+            }
           }
+        });
+      }
+    } else {
+      // Aktualizacja statystyk dla komend
+      if (isGroup) {
+        await withData(store => {
+          if (!store.groupStats) store.groupStats = {};
+          if (!store.groupStats[threadId]) {
+            store.groupStats[threadId] = {
+              visibleMessages: 0,
+              processedMessages: 0,
+              commandsExecuted: 0,
+              mentionsCount: 0,
+              firstUse: Date.now(),
+              lastUpdated: Date.now()
+            };
+          }
+          store.groupStats[threadId].commandsExecuted++;
+          store.groupStats[threadId].lastUpdated = Date.now();
         });
       }
     }
