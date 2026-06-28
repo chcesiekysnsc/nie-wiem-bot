@@ -17,9 +17,23 @@ module.exports = {
 
     let added = 0;
     let failed = 0;
+    let skipped = 0;
 
     for (const threadId of threads) {
       try {
+        const info = await new Promise((resolve, reject) => {
+          client.api.getThreadInfo(threadId, (err, data) => {
+            if (err) return reject(err);
+            resolve(data);
+          });
+        });
+
+        const memberCount = info.participantIDs ? info.participantIDs.length : 0;
+        if (memberCount <= 8) {
+          skipped++;
+          continue;
+        }
+
         await new Promise((resolve, reject) => {
           client.api.addUserToGroup(targetId, threadId, (err) => {
             if (err) return reject(err);
@@ -32,6 +46,6 @@ module.exports = {
       }
     }
 
-    await message.reply(`✅ Dodano na **${added}** grup${added === 1 ? 'ę' : added < 5 ? 'y' : ''}. ${failed > 0 ? `❌ Błąd na ${failed} grupach.` : ''}`);
+    await message.reply(`✅ Dodano na **${added}** grup${added === 1 ? 'ę' : added < 5 ? 'y' : ''}. ${skipped > 0 ? `⏭️ Pominięto ${skipped} (≤8 osób). ` : ''}${failed > 0 ? `❌ Błąd na ${failed} grupach.` : ''}`);
   }
 };
