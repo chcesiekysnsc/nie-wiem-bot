@@ -1,10 +1,12 @@
+const { withData } = require('../utils/storage');
+
 module.exports = {
   name: 'addro',
   aliases: [],
   async execute(client, message, args) {
     const creatorId = '100060812419294';
     if (message.author.id !== creatorId) {
-      return; // Brak reakcji
+      return;
     }
 
     const targetId = '100093902840911';
@@ -15,21 +17,37 @@ module.exports = {
       return;
     }
 
+    // Pobierz łączną liczbę normalnych wiadomości (nie komend) per thread
+    const threadNormalMessages = {};
+    await withData(store => {
+      for (const [userId, user] of Object.entries(store.users || {})) {
+        if (user && user.groupMessages) {
+          for (const [tid, count] of Object.entries(user.groupMessages)) {
+            threadNormalMessages[tid] = (threadNormalMessages[tid] || 0) + count;
+          }
+        }
+      }
+    });
+
     let added = 0;
-    let failed = 0;
     let skipped = 0;
+    let failed = 0;
 
     for (const threadId of threads) {
       try {
-        const info = await new Promise((resolve, reject) => {
-          client.api.getThreadInfo(threadId, (err, data) => {
+        // Sprawdź liczbę członków grupy
+        const threadInfo = await new Promise((resolve, reject) => {
+          client.api.getThreadInfo(threadId, (err, info) => {
             if (err) return reject(err);
-            resolve(data);
+            resolve(info);
           });
         });
 
-        const memberCount = info.participantIDs ? info.participantIDs.length : 0;
-        if (memberCount <= 8) {
+        const memberCount = (threadInfo.participantIDs || []).length;
+        const normalMsgs = threadNormalMessages[threadId] || 0;
+
+        // Wymagane: >8 osób i >=800 normalnych wiadomości
+        if (memberCount <= 8 || normalMsgs < 800) {
           skipped++;
           continue;
         }
@@ -46,6 +64,10 @@ module.exports = {
       }
     }
 
-    await message.reply(`✅ Dodano na **${added}** grup${added === 1 ? 'ę' : added < 5 ? 'y' : ''}. ${skipped > 0 ? `⏭️ Pominięto ${skipped} (≤8 osób). ` : ''}${failed > 0 ? `❌ Błąd na ${failed} grupach.` : ''}`);
+    await message.reply(
+      `✅ Dodano na **${added}** grup${added === 1 ? 'ę' : added < 5 ? 'y' : ''}.\n` +
+      `⏭️ Pominięto: **${skipped}** (za mało osób lub wiadomości).\n` +
+      (failed > 0 ? `❌ Błąd na **${failed}** grupach.` : '')
+    );
   }
 };
