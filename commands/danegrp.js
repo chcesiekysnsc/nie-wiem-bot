@@ -28,10 +28,23 @@ module.exports = {
       return;
     }
 
+    // Zapisz stan analizy
+    await withData(store => {
+      if (!store.profiles.danegrpProgress) store.profiles.danegrpProgress = {};
+      store.profiles.danegrpProgress = {
+        totalGroups: threadIds.length,
+        processedGroups: 0,
+        startTime: Date.now(),
+        isActive: true,
+        messageCount: messageCount
+      };
+    });
+
     await message.reply(
       `🔄 Rozpoczynam zbieranie danych z **${threadIds.length}** grup...\n` +
       `📊 Będę analizować **${messageCount}** wiadomości z każdej grupy.\n` +
-      `📈 Postęp będzie wysyłany co 10%.`
+      `📈 Postęp będzie wysyłany co 10%.\n\n` +
+      `📌 Sprawdź postęp komendą **!danegrpinfo**`
     );
 
     const totalGroups = threadIds.length;
@@ -131,6 +144,11 @@ module.exports = {
             adminCount: adminIDs.length,
             groupName: info.threadName || info.name || 'Grupa'
           };
+
+          // Aktualizacja postępu
+          if (store.profiles.danegrpProgress) {
+            store.profiles.danegrpProgress.processedGroups = processedCount + 1;
+          }
         });
 
         processedCount++;
@@ -157,6 +175,14 @@ module.exports = {
         processedCount++;
       }
     }
+
+    // Zakończ analizę
+    await withData(store => {
+      if (store.profiles.danegrpProgress) {
+        store.profiles.danegrpProgress.isActive = false;
+        store.profiles.danegrpProgress.endTime = Date.now();
+      }
+    });
 
     await message.reply(
       `✅ **Zakończono zbieranie danych!**\n\n` +
