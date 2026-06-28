@@ -850,13 +850,13 @@ const helpCommands = [
     name: "pozyczka miedzy graczami",
     category: "ECONOMY_GAMBLING",
     shortDescription: "pozyczka bezpośrednio od innego gracza",
-    description: "Inicjuje prozycję pożyczki bezpośrednio od innego gracza lub pozwala ją zaakceptować/odrzucić. Wymagane >100 wiadomości i >100 komend u obu graczy. Maksymalna kwota pożyczki to 40% salda pożyczkodawcy.",
+    description: "Inicjuje prozycję pożyczki bezpośrednio od innego gracza lub pozwala ją zaakceptować/odrzucić. Maksymalna kwota pożyczki to 40% salda pożyczkodawcy.",
     usage: "!pozyczka @osoba <kwota> <dni_na_splate> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni_pobiera> | !pozyczka acc/dec @lender",
     examples: ["!pozyczka @Kowalski 10000 10 2000 20 2", "!pozyczka acc @Nowak"],
     cooldown: "Brak.",
-    requirements: "Wiek konta >100 wiadomości i >100 komend.",
+    requirements: "Odpowiedni wiek konta.",
     aliases: [],
-    additionalInfo: ["Raty pobierane są automatycznie o 00:00 czasu polskiego. Każda spłata raty dolicza dodatkowo 5% odsetek.", "Spóźnienie w spłacie nakłada 20% (lub podaną) kary i uruchamia automatyczne zajmowanie zysków na rzecz pożyczkodawcy."]
+    additionalInfo: ["Raty pobierane są automatycznie o 00:00 czasu polskiego. Każda spłata raty dolicza dodatkowo 5% odsetek.", "Spóźnienie w spłacie nakłada karę i uruchamia automatyczne zajmowanie zysków na rzecz pożyczkodawcy."]
   }
 ];
 
