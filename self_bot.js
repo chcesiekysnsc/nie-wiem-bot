@@ -1562,17 +1562,24 @@ login({ appState }, (loginErr, api) => {
       }
       const lastTime = client.lastNormalMessageTime.get(senderId) || 0;
       const now = Date.now();
-      if (now - lastTime >= 2000) {
+      const shouldUpdateUser = (now - lastTime >= 2000);
+      if (shouldUpdateUser) {
         client.lastNormalMessageTime.set(senderId, now);
-        await withData(store => {
-          const u = createUser(senderId, store.users);
-          u.messageCount = (u.messageCount || 0) + 1;
-          u.lastActiveTime = Date.now(); // Zapisz czas ostatniej aktywności
-          if (isGroup) {
-            u.groupMessages = u.groupMessages || {};
-            u.groupMessages[threadId] = (u.groupMessages[threadId] || 0) + 1;
+      }
 
-            // Aktualizacja statystyk grupy
+      if (isGroup || shouldUpdateUser) {
+        await withData(store => {
+          if (shouldUpdateUser) {
+            const u = createUser(senderId, store.users);
+            u.messageCount = (u.messageCount || 0) + 1;
+            u.lastActiveTime = Date.now();
+            if (isGroup) {
+              u.groupMessages = u.groupMessages || {};
+              u.groupMessages[threadId] = (u.groupMessages[threadId] || 0) + 1;
+            }
+          }
+
+          if (isGroup) {
             if (!store.groupStats) store.groupStats = {};
             if (!store.groupStats[threadId]) {
               store.groupStats[threadId] = {
@@ -1588,7 +1595,6 @@ login({ appState }, (loginErr, api) => {
             store.groupStats[threadId].processedMessages++;
             store.groupStats[threadId].lastUpdated = Date.now();
 
-            // Liczenie oznaczeń
             const mentionMatches = text.match(/@/g);
             if (mentionMatches) {
               store.groupStats[threadId].mentionsCount += mentionMatches.length;
@@ -1612,6 +1618,8 @@ login({ appState }, (loginErr, api) => {
             };
           }
           store.groupStats[threadId].commandsExecuted++;
+          store.groupStats[threadId].visibleMessages++;
+          store.groupStats[threadId].processedMessages++;
           store.groupStats[threadId].lastUpdated = Date.now();
         });
       }

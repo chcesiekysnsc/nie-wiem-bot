@@ -9,7 +9,8 @@ const DATA_FILES = {
   profiles: path.join(DATA_DIR, 'profiles.json'),
   inventory: path.join(DATA_DIR, 'inventory.json'),
   cooldowns: path.join(DATA_DIR, 'cooldowns.json'),
-  logs: path.join(DATA_DIR, 'logs.json')
+  logs: path.join(DATA_DIR, 'logs.json'),
+  groupStats: path.join(DATA_DIR, 'groupStats.json')
 };
 
 const FILE_DEFAULTS = {
@@ -21,7 +22,8 @@ const FILE_DEFAULTS = {
     spam: {},
     cooldownNotifications: {}
   },
-  logs: []
+  logs: [],
+  groupStats: {}
 };
 
 let writeQueue = Promise.resolve();
@@ -395,7 +397,8 @@ async function withData(callback) {
       profiles: loadData('profiles'),
       inventory: loadData('inventory'),
       cooldowns: loadData('cooldowns'),
-      logs: loadData('logs')
+      logs: loadData('logs'),
+      groupStats: loadData('groupStats')
     };
 
     // Synchronizacja dynamicznych adminów z config.admins
@@ -612,6 +615,7 @@ async function withData(callback) {
     saveData('inventory', store.inventory);
     saveData('cooldowns', store.cooldowns);
     saveData('logs', store.logs);
+    saveData('groupStats', store.groupStats);
 
     return result;
   };
