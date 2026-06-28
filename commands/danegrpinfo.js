@@ -35,8 +35,9 @@ module.exports = {
       const elapsedSeconds = Math.floor((elapsed % 60000) / 1000);
       response += `⏱️ Czas trwania: **${elapsedMinutes}m ${elapsedSeconds}s**\n`;
       
-      if (processedGroups > 0) {
-        const avgTimePerGroup = elapsed / processedGroups;
+      if (processedGroups > 1) {
+        // Ignoruj pierwszą grupę przy szacowaniu (może być anomalia)
+        const avgTimePerGroup = elapsed / (processedGroups - 1);
         const remainingGroups = totalGroups - processedGroups;
         const estimatedRemaining = Math.floor(avgTimePerGroup * remainingGroups);
         const estMinutes = Math.floor(estimatedRemaining / 60000);

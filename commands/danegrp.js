@@ -50,129 +50,140 @@ module.exports = {
     const totalGroups = threadIds.length;
     let processedCount = 0;
     const progressInterval = Math.max(1, Math.floor(totalGroups * 0.10)); // Co 10%
+    const batchSize = 5; // Przetwarzaj 5 grup naraz
 
-    // Przetwarzanie grup pojedynczo (nie równolegle)
-    for (const tId of threadIds) {
-      try {
-        if (!client.api || typeof client.api.getThreadInfo !== 'function') {
-          processedCount++;
-          continue;
-        }
-
-        const info = await new Promise((resolve) => {
-          const timer = setTimeout(() => resolve(null), 3000);
-          client.api.getThreadInfo(tId, (err, ret) => {
-            clearTimeout(timer);
-            if (err) resolve(null);
-            else resolve(ret);
-          });
-        });
-
-        if (!info) {
-          processedCount++;
-          continue;
-        }
-
-        const participantIDs = info.participantIDs || [];
-        const adminIDs = info.adminIDs || [];
-
-        // Pobieranie historii wiadomości do analizy
-        let actualMessageCount = 0;
-        let commandCount = 0;
-        let mentionCount = 0;
-        let firstTimestamp = null;
-
+    // Przetwarzanie grup w batchach (równolegle)
+    for (let i = 0; i < threadIds.length; i += batchSize) {
+      const batch = threadIds.slice(i, i + batchSize);
+      
+      const batchPromises = batch.map(async (tId) => {
         try {
-          const history = await new Promise((resolve) => {
-            const timer = setTimeout(() => resolve([]), 10000); // 10s timeout
-            client.api.getThreadHistory(tId, messageCount, Date.now(), (err, ret) => {
+          if (!client.api || typeof client.api.getThreadInfo !== 'function') {
+            return { success: false };
+          }
+
+          const info = await new Promise((resolve) => {
+            const timer = setTimeout(() => resolve(null), 1500); // 1.5s timeout
+            client.api.getThreadInfo(tId, (err, ret) => {
               clearTimeout(timer);
-              if (err) resolve([]);
-              else resolve(ret || []);
+              if (err) resolve(null);
+              else resolve(ret);
             });
           });
 
-          if (history && history.length > 0) {
-            actualMessageCount = history.length;
-            
-            // Analiza wiadomości
-            for (const msg of history) {
-              if (msg.timestamp && (!firstTimestamp || msg.timestamp < firstTimestamp)) {
-                firstTimestamp = msg.timestamp;
-              }
+          if (!info) {
+            return { success: false };
+          }
 
-              if (msg.body && typeof msg.body === 'string') {
-                const body = msg.body.trim();
-                
-                // Sprawdzanie czy to komenda
-                if (body.startsWith('!') || body.startsWith(config.prefix || '!')) {
-                  commandCount++;
+          const participantIDs = info.participantIDs || [];
+          const adminIDs = info.adminIDs || [];
+
+          // Pobieranie historii wiadomości do analizy
+          let actualMessageCount = 0;
+          let commandCount = 0;
+          let mentionCount = 0;
+          let firstTimestamp = null;
+
+          try {
+            const history = await new Promise((resolve) => {
+              const timer = setTimeout(() => resolve([]), 3000); // 3s timeout
+              client.api.getThreadHistory(tId, messageCount, Date.now(), (err, ret) => {
+                clearTimeout(timer);
+                if (err) resolve([]);
+                else resolve(ret || []);
+              });
+            });
+
+            if (history && history.length > 0) {
+              actualMessageCount = history.length;
+              
+              // Analiza wiadomości
+              for (const msg of history) {
+                if (msg.timestamp && (!firstTimestamp || msg.timestamp < firstTimestamp)) {
+                  firstTimestamp = msg.timestamp;
                 }
 
-                // Sprawdzanie oznaczeń (@)
-                const mentionMatches = body.match(/@/g);
-                if (mentionMatches) {
-                  mentionCount += mentionMatches.length;
+                if (msg.body && typeof msg.body === 'string') {
+                  const body = msg.body.trim();
+                  
+                  // Sprawdzanie czy to komenda
+                  if (body.startsWith('!') || body.startsWith(config.prefix || '!')) {
+                    commandCount++;
+                  }
+
+                  // Sprawdzanie oznaczeń (@)
+                  const mentionMatches = body.match(/@/g);
+                  if (mentionMatches) {
+                    mentionCount += mentionMatches.length;
+                  }
                 }
               }
             }
+          } catch (histErr) {
+            console.error(`[danegrp] Błąd pobierania historii dla ${tId}:`, histErr.message);
           }
-        } catch (histErr) {
-          console.error(`[danegrp] Błąd pobierania historii dla ${tId}:`, histErr.message);
+
+          // Zapisanie danych do bazy
+          await withData(store => {
+            if (!store.groupStats) store.groupStats = {};
+            
+            const existingStats = store.groupStats[tId] || {
+              visibleMessages: 0,
+              processedMessages: 0,
+              commandsExecuted: 0,
+              mentionsCount: 0,
+              firstUse: Date.now()
+            };
+
+            store.groupStats[tId] = {
+              visibleMessages: existingStats.visibleMessages + actualMessageCount,
+              processedMessages: existingStats.processedMessages + actualMessageCount,
+              commandsExecuted: existingStats.commandsExecuted + commandCount,
+              mentionsCount: existingStats.mentionsCount + mentionCount,
+              firstUse: existingStats.firstUse || firstTimestamp || Date.now(),
+              lastUpdated: Date.now(),
+              memberCount: participantIDs.length,
+              adminCount: adminIDs.length,
+              groupName: info.threadName || info.name || 'Grupa'
+            };
+          });
+
+          return { success: true, actualMessageCount };
+
+        } catch (err) {
+          console.error(`[danegrp] Błąd przetwarzania grupy ${tId}:`, err.message);
+          return { success: false };
         }
+      });
 
-        // Zapisanie danych do bazy
+      const batchResults = await Promise.all(batchPromises);
+      
+      // Aktualizacja postępu
+      for (const result of batchResults) {
+        processedCount++;
+        
+        // Aktualizacja w bazie
         await withData(store => {
-          if (!store.groupStats) store.groupStats = {};
-          
-          const existingStats = store.groupStats[tId] || {
-            visibleMessages: 0,
-            processedMessages: 0,
-            commandsExecuted: 0,
-            mentionsCount: 0,
-            firstUse: Date.now()
-          };
-
-          store.groupStats[tId] = {
-            visibleMessages: existingStats.visibleMessages + actualMessageCount,
-            processedMessages: existingStats.processedMessages + actualMessageCount,
-            commandsExecuted: existingStats.commandsExecuted + commandCount,
-            mentionsCount: existingStats.mentionsCount + mentionCount,
-            firstUse: existingStats.firstUse || firstTimestamp || Date.now(),
-            lastUpdated: Date.now(),
-            memberCount: participantIDs.length,
-            adminCount: adminIDs.length,
-            groupName: info.threadName || info.name || 'Grupa'
-          };
-
-          // Aktualizacja postępu
           if (store.profiles.danegrpProgress) {
-            store.profiles.danegrpProgress.processedGroups = processedCount + 1;
+            store.profiles.danegrpProgress.processedGroups = processedCount;
           }
         });
+      }
 
-        processedCount++;
-
-        // Wysyłanie postępu co 10%
-        if (processedCount % progressInterval === 0 || processedCount === totalGroups) {
-          const progress = Math.round((processedCount / totalGroups) * 100);
-          try {
-            client.api.sendMessage(
-              `📊 Postęp zbierania danych: **${progress}%** (${processedCount}/${totalGroups} grup)\n` +
-              `📝 Przeanalizowano **${actualMessageCount}** wiadomości z ostatniej grupy.`,
-              threadId
-            );
-          } catch (sendErr) {
-            console.error('[danegrp] Błąd wysyłania postępu:', sendErr);
-          }
+      // Wysyłanie postępu co 10%
+      if (processedCount % progressInterval === 0 || processedCount === totalGroups) {
+        const progress = Math.round((processedCount / totalGroups) * 100);
+        const lastResult = batchResults.filter(r => r.success).pop();
+        const lastMsgCount = lastResult ? lastResult.actualMessageCount : 0;
+        try {
+          client.api.sendMessage(
+            `📊 Postęp zbierania danych: **${progress}%** (${processedCount}/${totalGroups} grup)\n` +
+            `📝 Przeanalizowano **${lastMsgCount}** wiadomości z ostatniej grupy.`,
+            threadId
+          );
+        } catch (sendErr) {
+          console.error('[danegrp] Błąd wysyłania postępu:', sendErr);
         }
-
-        // Mała przerwa żeby nie przeciążyć API
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-      } catch (err) {
-        console.error(`[danegrp] Błąd przetwarzania grupy ${tId}:`, err.message);
-        processedCount++;
       }
     }
 
