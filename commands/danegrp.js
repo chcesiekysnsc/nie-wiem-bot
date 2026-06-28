@@ -18,6 +18,9 @@ module.exports = {
       return;
     }
 
+    // Pobierz liczbę wiadomości do analizy z argumentów
+    const messageCount = parseInt(args[0]) || 100;
+    
     const threadIds = Array.from(client.activeThreadIds || []);
     
     if (threadIds.length === 0) {
@@ -25,16 +28,21 @@ module.exports = {
       return;
     }
 
-    await message.reply(`🔄 Rozpoczynam zbieranie danych z **${threadIds.length}** grup...`);
+    await message.reply(
+      `🔄 Rozpoczynam zbieranie danych z **${threadIds.length}** grup...\n` +
+      `📊 Będę analizować **${messageCount}** wiadomości z każdej grupy.\n` +
+      `📈 Postęp będzie wysyłany co 10%.`
+    );
 
     const totalGroups = threadIds.length;
     let processedCount = 0;
-    const lastProgressUpdate = 0;
-    const progressInterval = Math.max(1, Math.floor(totalGroups * 0.05)); // Co 5%
+    const progressInterval = Math.max(1, Math.floor(totalGroups * 0.10)); // Co 10%
 
+    // Przetwarzanie grup pojedynczo (nie równolegle)
     for (const tId of threadIds) {
       try {
         if (!client.api || typeof client.api.getThreadInfo !== 'function') {
+          processedCount++;
           continue;
         }
 
@@ -47,21 +55,24 @@ module.exports = {
           });
         });
 
-        if (!info) continue;
+        if (!info) {
+          processedCount++;
+          continue;
+        }
 
         const participantIDs = info.participantIDs || [];
         const adminIDs = info.adminIDs || [];
 
         // Pobieranie historii wiadomości do analizy
-        let messageCount = 0;
+        let actualMessageCount = 0;
         let commandCount = 0;
         let mentionCount = 0;
         let firstTimestamp = null;
 
         try {
           const history = await new Promise((resolve) => {
-            const timer = setTimeout(() => resolve([]), 5000);
-            client.api.getThreadHistory(tId, 100, Date.now(), (err, ret) => {
+            const timer = setTimeout(() => resolve([]), 10000); // 10s timeout
+            client.api.getThreadHistory(tId, messageCount, Date.now(), (err, ret) => {
               clearTimeout(timer);
               if (err) resolve([]);
               else resolve(ret || []);
@@ -69,7 +80,7 @@ module.exports = {
           });
 
           if (history && history.length > 0) {
-            messageCount = history.length;
+            actualMessageCount = history.length;
             
             // Analiza wiadomości
             for (const msg of history) {
@@ -101,12 +112,20 @@ module.exports = {
         await withData(store => {
           if (!store.groupStats) store.groupStats = {};
           
+          const existingStats = store.groupStats[tId] || {
+            visibleMessages: 0,
+            processedMessages: 0,
+            commandsExecuted: 0,
+            mentionsCount: 0,
+            firstUse: Date.now()
+          };
+
           store.groupStats[tId] = {
-            visibleMessages: messageCount,
-            processedMessages: messageCount, // Na razie takie same
-            commandsExecuted: commandCount,
-            mentionsCount: mentionCount,
-            firstUse: firstTimestamp || Date.now(),
+            visibleMessages: existingStats.visibleMessages + actualMessageCount,
+            processedMessages: existingStats.processedMessages + actualMessageCount,
+            commandsExecuted: existingStats.commandsExecuted + commandCount,
+            mentionsCount: existingStats.mentionsCount + mentionCount,
+            firstUse: existingStats.firstUse || firstTimestamp || Date.now(),
             lastUpdated: Date.now(),
             memberCount: participantIDs.length,
             adminCount: adminIDs.length,
@@ -116,12 +135,13 @@ module.exports = {
 
         processedCount++;
 
-        // Wysyłanie postępu co 5%
+        // Wysyłanie postępu co 10%
         if (processedCount % progressInterval === 0 || processedCount === totalGroups) {
           const progress = Math.round((processedCount / totalGroups) * 100);
           try {
             client.api.sendMessage(
-              `📊 Postęp zbierania danych: **${progress}%** (${processedCount}/${totalGroups} grup)`,
+              `📊 Postęp zbierania danych: **${progress}%** (${processedCount}/${totalGroups} grup)\n` +
+              `📝 Przeanalizowano **${actualMessageCount}** wiadomości z ostatniej grupy.`,
               threadId
             );
           } catch (sendErr) {
@@ -130,7 +150,7 @@ module.exports = {
         }
 
         // Mała przerwa żeby nie przeciążyć API
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 500));
 
       } catch (err) {
         console.error(`[danegrp] Błąd przetwarzania grupy ${tId}:`, err.message);
@@ -141,6 +161,7 @@ module.exports = {
     await message.reply(
       `✅ **Zakończono zbieranie danych!**\n\n` +
       `📊 Przetworzono **${processedCount}/${totalGroups}** grup.\n` +
+      `📝 Analizowano **${messageCount}** wiadomości z każdej grupy.\n` +
       `💾 Dane zostały zapisane w bazie.\n\n` +
       `📌 Od teraz bot będzie automatycznie aktualizował statystyki przy każdej wiadomości.`
     );
