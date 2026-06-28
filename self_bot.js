@@ -344,16 +344,17 @@ function getLastTaxTime() {
 // ===== HARDCODED APPSTATE (cookies wgrane na stałe) =====
 
 const appState = [
-{ key: "dbln", value: "%7B%2261562475523609%22%3A%22AX6WwYPo%22%7D", domain: "facebook.com", path: "/login/device-based/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
-{ key: "sb", value: "oZ-mZmUkSi-ORxWZSYx0LUyc", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
-{ key: "oo", value: "v1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
-{ key: "datr", value: "vWo9aRvRclEH-d95BN9Q5ptx", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
-{ key: "wd", value: "1366x641", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
-{ key: "ps_l", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
-{ key: "ps_n", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
-{ key: "c_user", value: "61562475523609", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
-{ key: "fr", value: "1j3153by6ewucKqo3.AWenjMdyBaqTegLTEu-8X9dsQkdFSJVdvjOtusEH8ULt50mWEpg.BqQDVc..AAA.0.0.BqQDVc.AWf-kf8S-976ojl8lcL1aQoFMNk", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" },
-{ key: "xs", value: "26%3A4oVCAYU7dQwZCg%3A2%3A1782592857%3A-1%3A-1%3A%3AAcx60kIjMuixB04XTGLfNNI5BRctMrElS3C-vrFC9g", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-27T20:41:02.621Z", lastAccessed: "2026-06-27T20:41:02.621Z" }
+{ key: "dbln", value: "%7B%2261562475523609%22%3A%22AX6WwYPo%22%7D", domain: "facebook.com", path: "/login/device-based/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
+{ key: "sb", value: "oZ-mZmUkSi-ORxWZSYx0LUyc", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
+{ key: "oo", value: "v1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
+{ key: "datr", value: "vWo9aRvRclEH-d95BN9Q5ptx", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
+{ key: "wd", value: "1366x641", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
+{ key: "ps_l", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
+{ key: "ps_n", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
+{ key: "c_user", value: "61562475523609", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
+{ key: "fr", value: "1aUURFzYs3TAWesCB.AWe4smLSIje_6pcxNLjjyo5GrIrPbocsAOcE1tP6TZg5UujPG10.BqQRiE..AAA.0.0.BqQRiE.AWdf6WKg-yr0pm3840btDHJAeDc", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
+{ key: "xs", value: "33%3AMs3SRb3e2lvz1w%3A2%3A1782651009%3A-1%3A-1%3A%3AAcwjWKhMZMQZkOjPC8TkzPex6hNG2AAQJfq0eOuWew", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
+{ key: "presence", value: "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1782651016459%2C%22v%22%3A1%7D", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" }
 ];
 
 // ===== KONIEC HARDCODED APPSTATE =====
