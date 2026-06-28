@@ -303,6 +303,130 @@ function getMsUntilNextTaxTime() {
   return Math.max(0, nextTaxTimeUTC - now.getTime());
 }
 
+function getPolandDateString(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find(p => p.type === 'year').value;
+  const month = parts.find(p => p.type === 'month').value;
+  const day = parts.find(p => p.type === 'day').value;
+  return `${year}-${month}-${day}`;
+}
+
+async function processPlayerLoansMidnight(api, client) {
+  console.log('[LOANS] Running player loans midnight collection...');
+  try {
+    const result = await withData(store => {
+      if (!store.profiles.playerLoans || !Array.isArray(store.profiles.playerLoans)) {
+        return null;
+      }
+
+      const currentDateStr = getPolandDateString();
+      const announcements = [];
+      const loansToKeep = [];
+
+      for (const loan of store.profiles.playerLoans) {
+        if (loan.amount <= 0) {
+          continue;
+        }
+
+        if (loan.nextCollectionDate <= currentDateStr) {
+          const borrower = createUser(loan.borrowerId, store.users);
+          const lender = createUser(loan.lenderId, store.users);
+          const borrowerName = borrower.name || `Użytkownik_${loan.borrowerId.slice(-6)}`;
+          const lenderName = lender.name || `Użytkownik_${loan.lenderId.slice(-6)}`;
+
+          // Rata + 5% odsetek
+          const totalToDeduct = Math.floor(loan.installment * 1.05);
+
+          if (borrower.balance >= totalToDeduct) {
+            // Pełna spłata raty
+            borrower.balance -= totalToDeduct;
+            lender.balance = (lender.balance || 0) + totalToDeduct;
+            loan.amount = Math.max(0, loan.amount - loan.installment);
+
+            if (loan.amount > 0) {
+              const nextDate = new Date();
+              const offset = getPolandOffsetMs(nextDate);
+              const polTime = new Date(nextDate.getTime() + offset);
+              polTime.setUTCDate(polTime.getUTCDate() + loan.frequencyDays);
+              loan.nextCollectionDate = getPolandDateString(polTime);
+              loansToKeep.push(loan);
+
+              announcements.push({
+                threadId: borrower.lastActiveThreadId || lender.lastActiveThreadId || '',
+                msg: `💰 **POŻYCZKA - RATA POBRANA**\n` +
+                     `Pobrano ratę w wysokości **${totalToDeduct.toLocaleString()} v** (w tym 5% odsetek) od **${borrowerName}** dla **${lenderName}**.\n` +
+                     `📉 Pozostało do spłaty: **${loan.amount.toLocaleString()} v**.\n` +
+                     `📆 Następna rata: **${loan.nextCollectionDate}**.`
+              });
+            } else {
+              announcements.push({
+                threadId: borrower.lastActiveThreadId || lender.lastActiveThreadId || '',
+                msg: `🎉 **POŻYCZKA SPŁACONA!**\n` +
+                     `Pożyczka gracza **${borrowerName}** wobec **${lenderName}** została w pełni spłacona!`
+              });
+            }
+          } else {
+            // Brak środków — kara
+            const available = Math.max(0, borrower.balance);
+            borrower.balance = 0;
+            lender.balance = (lender.balance || 0) + available;
+
+            const principalReduction = Math.floor(available / 1.05);
+            loan.amount = Math.max(0, loan.amount - principalReduction);
+
+            const penaltyPercent = loan.penaltyRate || 0.20;
+            const penaltyAmount = Math.floor(loan.amount * penaltyPercent);
+            loan.amount += penaltyAmount;
+            loan.status = 'defaulted';
+
+            const nextDate = new Date();
+            const offset = getPolandOffsetMs(nextDate);
+            const polTime = new Date(nextDate.getTime() + offset);
+            polTime.setUTCDate(polTime.getUTCDate() + loan.frequencyDays);
+            loan.nextCollectionDate = getPolandDateString(polTime);
+            loansToKeep.push(loan);
+
+            announcements.push({
+              threadId: borrower.lastActiveThreadId || lender.lastActiveThreadId || '',
+              msg: `🚨 **POŻYCZKA - KARA ZA BRAK ŚRODKÓW** 🚨\n` +
+                   `Gracz **${borrowerName}** nie posiadał wystarczających środków na spłatę raty (**${totalToDeduct.toLocaleString()} v**) wobec **${lenderName}**.\n` +
+                   `💸 Zabrano dostępne środki: **${available.toLocaleString()} v**.\n` +
+                   `⚠️ Dług powiększony o **${Math.round(penaltyPercent * 100)}%** kary (+${penaltyAmount.toLocaleString()} v). Nowy dług: **${loan.amount.toLocaleString()} v**.\n` +
+                   `🔒 Wszystkie przyszłe zyski gracza będą automatycznie zajmowane na poczet spłaty!`
+            });
+          }
+        } else {
+          loansToKeep.push(loan);
+        }
+      }
+
+      store.profiles.playerLoans = loansToKeep;
+      return announcements;
+    });
+
+    if (result && result.length > 0 && api) {
+      for (const ann of result) {
+        if (ann.threadId) {
+          api.sendMessage(ann.msg, ann.threadId);
+        } else {
+          const targets = Array.from(client.activeThreadIds);
+          if (targets.length > 0) {
+            api.sendMessage(ann.msg, targets[0]);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[LOANS] Error in midnight loan check:', err);
+  }
+}
+
 function getMsUntilNextMonthlyReset() {
   const now = new Date();
   const offset = getPolandOffsetMs(now);
@@ -344,17 +468,16 @@ function getLastTaxTime() {
 // ===== HARDCODED APPSTATE (cookies wgrane na stałe) =====
 
 const appState = [
-{ key: "dbln", value: "%7B%2261562475523609%22%3A%22AX6WwYPo%22%7D", domain: "facebook.com", path: "/login/device-based/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
-{ key: "sb", value: "oZ-mZmUkSi-ORxWZSYx0LUyc", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
-{ key: "oo", value: "v1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
-{ key: "datr", value: "vWo9aRvRclEH-d95BN9Q5ptx", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
-{ key: "wd", value: "1366x641", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
-{ key: "ps_l", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
-{ key: "ps_n", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
-{ key: "c_user", value: "61562475523609", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
-{ key: "fr", value: "1aUURFzYs3TAWesCB.AWe4smLSIje_6pcxNLjjyo5GrIrPbocsAOcE1tP6TZg5UujPG10.BqQRiE..AAA.0.0.BqQRiE.AWdf6WKg-yr0pm3840btDHJAeDc", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
-{ key: "xs", value: "33%3AMs3SRb3e2lvz1w%3A2%3A1782651009%3A-1%3A-1%3A%3AAcwjWKhMZMQZkOjPC8TkzPex6hNG2AAQJfq0eOuWew", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" },
-{ key: "presence", value: "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1782651016459%2C%22v%22%3A1%7D", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T12:50:17.528Z", lastAccessed: "2026-06-28T12:50:17.528Z" }
+{ key: "dbln", value: "%7B%2261562475523609%22%3A%22AX6WwYPo%22%7D", domain: "facebook.com", path: "/login/device-based/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
+{ key: "sb", value: "oZ-mZmUkSi-ORxWZSYx0LUyc", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
+{ key: "oo", value: "v1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
+{ key: "datr", value: "vWo9aRvRclEH-d95BN9Q5ptx", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
+{ key: "wd", value: "1366x641", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
+{ key: "ps_l", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
+{ key: "ps_n", value: "1", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
+{ key: "c_user", value: "61560227271099", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
+{ key: "fr", value: "0guAVYg2apIU4QRPX.AWfU2j5cNyKCUa4Q8-FKlsBRNHRW0_YVY_JHpV5WB6i1HxGfpwg.BqQaem..AAA.0.0.BqQaem.AWfq2yf13Wo3wrPMyypiagrDmW8", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" },
+{ key: "xs", value: "42%3AlxbYyDHFxLneMQ%3A2%3A1782687652%3A-1%3A-1%3A%3AAcwAjeWVDGugjQq0pFzAv7AaMirf3c6nZEugiGwxSg", domain: "facebook.com", path: "/", hostOnly: false, creation: "2026-06-28T23:01:00.125Z", lastAccessed: "2026-06-28T23:01:00.125Z" }
 ];
 
 // ===== KONIEC HARDCODED APPSTATE =====
@@ -390,9 +513,46 @@ login({ appState }, (loginErr, api) => {
 
 
 
+  async function sendPendingLoanNotifications(api) {
+    try {
+      const notifications = await withData(store => {
+        if (!store.profiles.pendingLoanNotifications || store.profiles.pendingLoanNotifications.length === 0) {
+          return null;
+        }
+        const list = [...store.profiles.pendingLoanNotifications];
+        store.profiles.pendingLoanNotifications = [];
+        return list;
+      });
+
+      if (notifications && notifications.length > 0) {
+        for (const n of notifications) {
+          const borrower = await client.resolveUserName(api, n.borrowerId);
+          const msg = `🚨 **KOMORNIK:** Z powodu zaległości w spłacie pożyczki, zyski gracza **${borrower}** w wysokości **${n.amount.toLocaleString()} v** zostały automatycznie zajęte i przekazane pożyczkodawcy!`;
+          const destThread = n.threadId || client.lastThreadId;
+          if (destThread) {
+            originalSendMessage.call(api, msg, destThread);
+          } else {
+            const targets = Array.from(client.activeThreadIds);
+            if (targets.length > 0) {
+              originalSendMessage.call(api, msg, targets[0]);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[LOANS] Błąd podczas wysyłania powiadomień komorniczych:', err);
+    }
+  }
+
   // Wrap api.sendMessage to send messages instantly without delay (cooldown removed)
   const originalSendMessage = api.sendMessage;
   api.sendMessage = function(message, threadID, callback, messageID) {
+    if (client.api && !client.sendingLoanNotifications) {
+      client.sendingLoanNotifications = true;
+      sendPendingLoanNotifications(client.api).finally(() => {
+        client.sendingLoanNotifications = false;
+      });
+    }
     return originalSendMessage.call(api, message, threadID, callback, messageID);
   };
 
@@ -519,6 +679,13 @@ login({ appState }, (loginErr, api) => {
           } else if (client.lastThreadId) {
             client.api.sendMessage(announceMsg, client.lastThreadId);
           }
+        }
+
+        // Sprawdź i pobierz raty pożyczek między graczami (raz na dobę o północy)
+        const currentDateStr = getPolandDateString();
+        if (client.lastLoanCheckDate !== currentDateStr) {
+          client.lastLoanCheckDate = currentDateStr;
+          await processPlayerLoansMidnight(client.api, client);
         }
       } catch (err) {
         console.error('[TAX] Błąd podczas poboru podatków:', err);

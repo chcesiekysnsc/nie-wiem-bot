@@ -496,7 +496,74 @@ async function withData(callback) {
       }
     }
 
+    // Snapshot sald PRZED wywołaniem callbacku (dla windykacji pożyczek)
+    const balancesBefore = {};
+    if (store.profiles.playerLoans && Array.isArray(store.profiles.playerLoans)) {
+      const defaultedBorrowers = new Set(
+        store.profiles.playerLoans
+          .filter(l => l.status === 'defaulted' && l.amount > 0)
+          .map(l => l.borrowerId)
+      );
+      for (const uid of defaultedBorrowers) {
+        if (store.users[uid]) {
+          balancesBefore[uid] = store.users[uid].balance || 0;
+        }
+      }
+    }
+
     const result = await callback(store);
+
+    // Windykacja zysków — jeśli pożyczkobiorca ze statusem 'defaulted' zarobił pieniądze,
+    // automatycznie przelewamy zysk na konto pożyczkodawcy
+    if (store.profiles.playerLoans && Array.isArray(store.profiles.playerLoans)) {
+      for (const uid of Object.keys(balancesBefore)) {
+        const user = store.users[uid];
+        if (!user) continue;
+        const balAfter = user.balance || 0;
+        const balBefore = balancesBefore[uid];
+        if (balAfter > balBefore) {
+          let gained = balAfter - balBefore;
+          let totalGarnished = 0;
+          const loansToRemove = [];
+
+          for (const loan of store.profiles.playerLoans) {
+            if (loan.borrowerId !== uid || loan.status !== 'defaulted' || loan.amount <= 0) continue;
+            if (gained <= 0) break;
+
+            const toPay = Math.min(gained, loan.amount);
+            loan.amount -= toPay;
+            gained -= toPay;
+            totalGarnished += toPay;
+
+            const lender = store.users[loan.lenderId];
+            if (lender) {
+              lender.balance = (lender.balance || 0) + toPay;
+            }
+
+            if (loan.amount <= 0) {
+              loansToRemove.push(loan.id);
+            }
+          }
+
+          if (totalGarnished > 0) {
+            user.balance -= totalGarnished;
+            // Zapisz powiadomienie do kolejki (zostanie wysłane przez self_bot.js)
+            store.profiles.pendingLoanNotifications = store.profiles.pendingLoanNotifications || [];
+            store.profiles.pendingLoanNotifications.push({
+              borrowerId: uid,
+              amount: totalGarnished,
+              threadId: user.lastActiveThreadId || ''
+            });
+          }
+
+          if (loansToRemove.length > 0) {
+            store.profiles.playerLoans = store.profiles.playerLoans.filter(
+              l => !loansToRemove.includes(l.id)
+            );
+          }
+        }
+      }
+    }
 
     // Blacklista za ujemny stan konta przez 7 dni
     if (!store.profiles.blacklist) {
