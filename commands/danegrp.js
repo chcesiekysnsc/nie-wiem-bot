@@ -36,7 +36,8 @@ module.exports = {
         processedGroups: 0,
         startTime: Date.now(),
         isActive: true,
-        messageCount: messageCount
+        messageCount: messageCount,
+        totalMessagesAnalyzed: 0
       };
     });
 
@@ -166,6 +167,10 @@ module.exports = {
         await withData(store => {
           if (store.profiles.danegrpProgress) {
             store.profiles.danegrpProgress.processedGroups = processedCount;
+            if (result.success && result.actualMessageCount) {
+              store.profiles.danegrpProgress.totalMessagesAnalyzed = 
+                (store.profiles.danegrpProgress.totalMessagesAnalyzed || 0) + result.actualMessageCount;
+            }
           }
         });
       }

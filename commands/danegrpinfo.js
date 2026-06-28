@@ -20,7 +20,7 @@ module.exports = {
       return;
     }
 
-    const { totalGroups, processedGroups, startTime, isActive, messageCount, endTime } = progress;
+    const { totalGroups, processedGroups, startTime, isActive, messageCount, endTime, totalMessagesAnalyzed } = progress;
     
     const progressPercent = totalGroups > 0 ? Math.round((processedGroups / totalGroups) * 100) : 0;
     
@@ -28,6 +28,7 @@ module.exports = {
     response += `🔄 Status: **${isActive ? '⏳ Aktywna' : '✅ Zakończona'}**\n`;
     response += `📈 Postęp: **${progressPercent}%** (${processedGroups}/${totalGroups} grup)\n`;
     response += `📝 Analizowano **${messageCount}** wiadomości z każdej grupy\n`;
+    response += `📊 Łącznie przeanalizowano: **${(totalMessagesAnalyzed || 0).toLocaleString()}** wiadomości\n`;
     
     if (isActive) {
       const elapsed = Date.now() - startTime;
