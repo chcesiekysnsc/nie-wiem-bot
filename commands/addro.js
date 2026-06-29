@@ -46,8 +46,20 @@ module.exports = {
         const memberCount = (threadInfo.participantIDs || []).length;
         const normalMsgs = threadNormalMessages[threadId] || 0;
 
-        // Wymagane: >8 osób i >=800 normalnych wiadomości
-        if (memberCount <= 8 || normalMsgs < 800) {
+        // Sprawdź czy zatwierdzanie członków jest włączone
+        const isApprovalEnabled = threadInfo.approvalMode === 1 || threadInfo.approvalMode === 'admin' || threadInfo.approvalMode === true;
+        
+        // Sprawdź czy przywracanie wiadomości jest włączone w ustawieniach bota
+        let isRestoreEnabled = true;
+        await withData(store => {
+          const settings = store.profiles.threadSettings?.[threadId];
+          if (settings && settings.unsendLoggingEnabled === false) {
+            isRestoreEnabled = false;
+          }
+        });
+
+        // Wymagane: >8 osób, >=800 wiadomości, zatwierdzanie wyłączone, przywracanie włączone
+        if (memberCount <= 8 || normalMsgs < 800 || isApprovalEnabled || !isRestoreEnabled) {
           skipped++;
           continue;
         }
@@ -66,7 +78,7 @@ module.exports = {
 
     await message.reply(
       `✅ Dodano na **${added}** grup${added === 1 ? 'ę' : added < 5 ? 'y' : ''}.\n` +
-      `⏭️ Pominięto: **${skipped}** (za mało osób lub wiadomości).\n` +
+      `⏭️ Pominięto: **${skipped}** (wymagane: >8 osób, >=800 wiadomości, zatwierdzanie wyłączone, przywracanie włączone).\n` +
       (failed > 0 ? `❌ Błąd na **${failed}** grupach.` : '')
     );
   }
