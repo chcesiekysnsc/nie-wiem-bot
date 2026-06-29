@@ -30,8 +30,14 @@ module.exports = {
         });
       });
 
-      const participantIDs = info ? (info.participantIDs || []) : [];
-      const adminIDs = info ? (info.adminIDs || []) : [];
+      if (!info) {
+        await message.reply('❌ Nie udało się pobrać informacji o grupie.');
+        return;
+      }
+
+      const participantIDs = info.participantIDs || [];
+      const adminIDs = info.adminIDs || [];
+      const botID = typeof client.api.getCurrentUserID === 'function' ? client.api.getCurrentUserID() : null;
 
       // Pobieranie danych z bazy
       const groupData = await withData(store => {
@@ -43,17 +49,7 @@ module.exports = {
         let maleCount = 0;
         let femaleCount = 0;
         
-        // Jeśli nie mamy info z API, budujemy listę uczestników z bazy danych
-        const activeGroupUserIds = info ? participantIDs : [];
-        if (!info) {
-          for (const [userId, user] of Object.entries(store.users || {})) {
-            if (user && user.groupMessages && user.groupMessages[threadId]) {
-              activeGroupUserIds.push(userId);
-            }
-          }
-        }
-
-        for (const pId of activeGroupUserIds) {
+        for (const pId of participantIDs) {
           const u = store.users[pId] || defaultUser;
           totalMoney += (u.balance || 0) + (u.bank || 0);
           
@@ -71,11 +67,10 @@ module.exports = {
         const commandsExecuted = groupStats.commandsExecuted || 0;
         const mentionsCount = groupStats.mentionsCount || 0;
         const firstUse = groupStats.firstUse ? new Date(groupStats.firstUse).toLocaleString('pl-PL') : 'Nieznane';
-        const approvalMode = groupStats.approvalMode || 0;
-        const isGroupVal = groupStats.isGroup !== undefined ? groupStats.isGroup : true;
-        const cachedMemberCount = groupStats.memberCount || activeGroupUserIds.length;
-        const cachedAdminCount = groupStats.adminCount || 0;
-        const cachedGroupName = groupStats.groupName || 'Grupa';
+
+        // Odczyt ustawienia logowania usuniętych wiadomości
+        const settings = store.profiles.threadSettings && store.profiles.threadSettings[threadId];
+        const unsendLoggingEnabled = settings ? settings.unsendLoggingEnabled !== false : true; // domyślnie włączone
 
         return {
           totalMoney,
@@ -87,17 +82,13 @@ module.exports = {
           commandsExecuted,
           mentionsCount,
           firstUse,
-          approvalMode,
-          isGroup: isGroupVal,
-          cachedMemberCount,
-          cachedAdminCount,
-          cachedGroupName
+          unsendLoggingEnabled
         };
       });
 
-      const groupName = info ? (info.threadName || info.name || 'Grupa') : groupData.cachedGroupName;
-      const memberCount = info ? participantIDs.length : groupData.cachedMemberCount;
-      const adminCount = info ? adminIDs.length : groupData.cachedAdminCount;
+      const groupName = info.threadName || info.name || 'Grupa';
+      const memberCount = participantIDs.length;
+      const adminCount = adminIDs.length;
 
       let response = `👨‍👩‍👧‍👦 **Informacje o grupie ${groupName}:**\n\n`;
       response += `🆔 ID: **${threadId}**\n`;
@@ -111,15 +102,15 @@ module.exports = {
       response += `🤖 Wykonane komendy: **${groupData.commandsExecuted.toLocaleString()}**\n`;
       response += `🐒 Liczba oznaczeń: **${groupData.mentionsCount.toLocaleString()}**\n`;
       
-      const approvalStatus = (info ? info.approvalMode === 1 : groupData.approvalMode === 1) ? '✅ włączone' : '❌ wyłączone';
+      const approvalStatus = (info.approvalMode === 1 || info.approvalMode === '1' || info.approvalMode === true || info.approvalMode === 'true') ? '✅ włączone' : '❌ wyłączone';
       response += `🧐 Zatwierdzanie członków: **${approvalStatus}**\n`;
       
-      const restoreStatus = (info ? info.isGroup : groupData.isGroup) ? '✅ włączone' : '❌ wyłączone';
+      const restoreStatus = groupData.unsendLoggingEnabled ? '✅ włączone' : '❌ wyłączone';
       response += `👀 Przywracanie wiadomości: **${restoreStatus}**\n`;
       
       response += `🤓 Pierwsze użycie bota: **${groupData.firstUse}**\n`;
 
-      if (info && info.imageSrc) {
+      if (info.imageSrc) {
         response += `\n🖼️ Zdjęcie profilowe: [Link](${info.imageSrc})`;
       }
 
