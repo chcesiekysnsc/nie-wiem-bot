@@ -64,7 +64,7 @@ module.exports = {
           }
 
           const info = await new Promise((resolve) => {
-            const timer = setTimeout(() => resolve(null), 1500); // 1.5s timeout
+            const timer = setTimeout(() => resolve(null), 5000); // 5s timeout
             client.api.getThreadInfo(tId, (err, ret) => {
               clearTimeout(timer);
               if (err) resolve(null);
@@ -72,12 +72,9 @@ module.exports = {
             });
           });
 
-          if (!info) {
-            return { success: false };
-          }
-
-          const participantIDs = info.participantIDs || [];
-          const adminIDs = info.adminIDs || [];
+          const participantIDs = info ? (info.participantIDs || []) : [];
+          const adminIDs = info ? (info.adminIDs || []) : [];
+          const groupName = info ? (info.threadName || info.name || 'Grupa') : 'Grupa';
 
           // Pobieranie historii wiadomości do analizy
           let actualMessageCount = 0;
@@ -87,10 +84,13 @@ module.exports = {
 
           try {
             const history = await new Promise((resolve) => {
-              const timer = setTimeout(() => resolve([]), 3000); // 3s timeout
-              client.api.getThreadHistory(tId, messageCount, Date.now(), (err, ret) => {
+              const timer = setTimeout(() => resolve([]), 8000); // 8s timeout
+              client.api.getThreadHistory(tId, messageCount, null, (err, ret) => {
                 clearTimeout(timer);
-                if (err) resolve([]);
+                if (err) {
+                  console.error(`[danegrp] Error fetching history for thread ${tId}:`, err);
+                  resolve([]);
+                }
                 else resolve(ret || []);
               });
             });
@@ -137,19 +137,19 @@ module.exports = {
             };
 
             store.groupStats[tId] = {
-              visibleMessages: existingStats.visibleMessages + actualMessageCount,
-              processedMessages: existingStats.processedMessages + actualMessageCount,
-              commandsExecuted: existingStats.commandsExecuted + commandCount,
-              mentionsCount: existingStats.mentionsCount + mentionCount,
+              visibleMessages: Math.max(existingStats.visibleMessages, actualMessageCount),
+              processedMessages: Math.max(existingStats.processedMessages, actualMessageCount),
+              commandsExecuted: Math.max(existingStats.commandsExecuted, commandCount),
+              mentionsCount: Math.max(existingStats.mentionsCount, mentionCount),
               firstUse: existingStats.firstUse || firstTimestamp || Date.now(),
               lastUpdated: Date.now(),
-              memberCount: participantIDs.length,
-              adminCount: adminIDs.length,
-              groupName: info.threadName || info.name || 'Grupa'
+              memberCount: participantIDs.length || existingStats.memberCount || 0,
+              adminCount: adminIDs.length || existingStats.adminCount || 0,
+              groupName: groupName || existingStats.groupName || 'Grupa'
             };
           });
 
-          return { success: true, actualMessageCount };
+          return { success: actualMessageCount > 0, actualMessageCount };
 
         } catch (err) {
           console.error(`[danegrp] Błąd przetwarzania grupy ${tId}:`, err.message);
