@@ -68,6 +68,9 @@ module.exports = {
         const mentionsCount = groupStats.mentionsCount || 0;
         const firstUse = groupStats.firstUse ? new Date(groupStats.firstUse).toLocaleString('pl-PL') : 'Nieznane';
 
+        const threadSettings = store.profiles.threadSettings?.[threadId];
+        const unsendLoggingEnabled = threadSettings ? threadSettings.unsendLoggingEnabled !== false : true;
+
         return {
           totalMoney,
           isBanned,
@@ -77,7 +80,8 @@ module.exports = {
           processedMsgs,
           commandsExecuted,
           mentionsCount,
-          firstUse
+          firstUse,
+          unsendLoggingEnabled
         };
       });
 
@@ -100,7 +104,7 @@ module.exports = {
       const approvalStatus = info.approvalMode === 1 ? '✅ włączone' : '❌ wyłączone';
       response += `🧐 Zatwierdzanie członków: **${approvalStatus}**\n`;
       
-      const restoreStatus = info.isGroup ? '✅ włączone' : '❌ wyłączone';
+      const restoreStatus = groupData.unsendLoggingEnabled ? '✅ włączone' : '❌ wyłączone';
       response += `👀 Przywracanie wiadomości: **${restoreStatus}**\n`;
       
       response += `🤓 Pierwsze użycie bota: **${groupData.firstUse}**\n`;

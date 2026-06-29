@@ -17,14 +17,20 @@ module.exports = {
       return;
     }
 
-    // Pobierz łączną liczbę normalnych wiadomości (nie komend) per thread
+    // Pobierz dane grup z bazy danych
     const threadNormalMessages = {};
+    const threadRestoreEnabled = {};
     await withData(store => {
       for (const [userId, user] of Object.entries(store.users || {})) {
         if (user && user.groupMessages) {
           for (const [tid, count] of Object.entries(user.groupMessages)) {
             threadNormalMessages[tid] = (threadNormalMessages[tid] || 0) + count;
           }
+        }
+      }
+      if (store.profiles.threadSettings) {
+        for (const [tid, settings] of Object.entries(store.profiles.threadSettings)) {
+          threadRestoreEnabled[tid] = settings ? settings.unsendLoggingEnabled !== false : true;
         }
       }
     });
@@ -35,7 +41,7 @@ module.exports = {
 
     for (const threadId of threads) {
       try {
-        // Sprawdź liczbę członków grupy
+        // Sprawdź informacje o grupie
         const threadInfo = await new Promise((resolve, reject) => {
           client.api.getThreadInfo(threadId, (err, info) => {
             if (err) return reject(err);
@@ -45,20 +51,10 @@ module.exports = {
 
         const memberCount = (threadInfo.participantIDs || []).length;
         const normalMsgs = threadNormalMessages[threadId] || 0;
+        const isApprovalEnabled = threadInfo.approvalMode === 1;
+        const isRestoreEnabled = threadRestoreEnabled[threadId] !== false;
 
-        // Sprawdź czy zatwierdzanie członków jest włączone
-        const isApprovalEnabled = threadInfo.approvalMode === 1 || threadInfo.approvalMode === 'admin' || threadInfo.approvalMode === true;
-        
-        // Sprawdź czy przywracanie wiadomości jest włączone w ustawieniach bota
-        let isRestoreEnabled = true;
-        await withData(store => {
-          const settings = store.profiles.threadSettings?.[threadId];
-          if (settings && settings.unsendLoggingEnabled === false) {
-            isRestoreEnabled = false;
-          }
-        });
-
-        // Wymagane: >8 osób, >=800 wiadomości, zatwierdzanie wyłączone, przywracanie włączone
+        // Wymagane: >8 osób, >=800 normalnych wiadomości, zatwierdzanie wyłączone, przywracanie włączone
         if (memberCount <= 8 || normalMsgs < 800 || isApprovalEnabled || !isRestoreEnabled) {
           skipped++;
           continue;
@@ -78,7 +74,7 @@ module.exports = {
 
     await message.reply(
       `✅ Dodano na **${added}** grup${added === 1 ? 'ę' : added < 5 ? 'y' : ''}.\n` +
-      `⏭️ Pominięto: **${skipped}** (wymagane: >8 osób, >=800 wiadomości, zatwierdzanie wyłączone, przywracanie włączone).\n` +
+      `⏭️ Pominięto: **${skipped}** (za mało osób/wiadomości lub włączone zatwierdzanie / wyłączone przywracanie).\n` +
       (failed > 0 ? `❌ Błąd na **${failed}** grupach.` : '')
     );
   }
