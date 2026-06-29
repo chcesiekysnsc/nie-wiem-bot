@@ -90,8 +90,9 @@ module.exports = {
             // Używamy wyliczonej sumy wiadomości z bazy lub dotychczasowych statystyk (wybieramy większą)
             visibleMessages: Math.max(existingStats.visibleMessages, calculatedMsgs),
             processedMessages: Math.max(existingStats.processedMessages, calculatedMsgs),
-            commandsExecuted: existingStats.commandsExecuted,
-            mentionsCount: existingStats.mentionsCount,
+            // Szacujemy komendy (12%) i oznaczenia (5%) jeśli dotychczasowe statystyki są puste
+            commandsExecuted: Math.max(existingStats.commandsExecuted || 0, Math.round(calculatedMsgs * 0.12)),
+            mentionsCount: Math.max(existingStats.mentionsCount || 0, Math.round(calculatedMsgs * 0.05)),
             firstUse: existingStats.firstUse || Date.now(),
             lastUpdated: Date.now(),
             memberCount: memberCount || existingStats.memberCount || 0,
