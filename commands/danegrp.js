@@ -49,6 +49,9 @@ module.exports = {
         let memberCount = 0;
         let adminCount = 0;
         let groupName = 'Grupa';
+        let approvalMode = 0;
+        let isGroupVal = true;
+        let infoFetched = false;
 
         // Próba pobrania aktualnych danych o członkach i nazwie grupy z API Messengera
         try {
@@ -66,6 +69,9 @@ module.exports = {
               memberCount = (info.participantIDs || []).length;
               adminCount = (info.adminIDs || []).length;
               groupName = info.threadName || info.name || 'Grupa';
+              approvalMode = info.approvalMode || 0;
+              isGroupVal = info.isGroup !== undefined ? info.isGroup : true;
+              infoFetched = true;
             }
           }
         } catch (err) {
@@ -97,7 +103,9 @@ module.exports = {
             lastUpdated: Date.now(),
             memberCount: memberCount || existingStats.memberCount || 0,
             adminCount: adminCount || existingStats.adminCount || 0,
-            groupName: groupName || existingStats.groupName || 'Grupa'
+            groupName: groupName || existingStats.groupName || 'Grupa',
+            approvalMode: infoFetched ? approvalMode : (existingStats.approvalMode || 0),
+            isGroup: infoFetched ? isGroupVal : (existingStats.isGroup !== undefined ? existingStats.isGroup : true)
           };
         });
 

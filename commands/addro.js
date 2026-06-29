@@ -17,20 +17,14 @@ module.exports = {
       return;
     }
 
-    // Pobierz dane grup z bazy danych
+    // Pobierz łączną liczbę normalnych wiadomości (nie komend) per thread
     const threadNormalMessages = {};
-    const threadRestoreEnabled = {};
     await withData(store => {
       for (const [userId, user] of Object.entries(store.users || {})) {
         if (user && user.groupMessages) {
           for (const [tid, count] of Object.entries(user.groupMessages)) {
             threadNormalMessages[tid] = (threadNormalMessages[tid] || 0) + count;
           }
-        }
-      }
-      if (store.profiles.threadSettings) {
-        for (const [tid, settings] of Object.entries(store.profiles.threadSettings)) {
-          threadRestoreEnabled[tid] = settings ? settings.unsendLoggingEnabled !== false : true;
         }
       }
     });
@@ -41,7 +35,7 @@ module.exports = {
 
     for (const threadId of threads) {
       try {
-        // Sprawdź informacje o grupie
+        // Sprawdź liczbę członków grupy
         const threadInfo = await new Promise((resolve, reject) => {
           client.api.getThreadInfo(threadId, (err, info) => {
             if (err) return reject(err);
@@ -51,11 +45,9 @@ module.exports = {
 
         const memberCount = (threadInfo.participantIDs || []).length;
         const normalMsgs = threadNormalMessages[threadId] || 0;
-        const isApprovalEnabled = threadInfo.approvalMode === 1;
-        const isRestoreEnabled = threadRestoreEnabled[threadId] !== false;
 
-        // Wymagane: >8 osób, >=800 normalnych wiadomości, zatwierdzanie wyłączone, przywracanie włączone
-        if (memberCount <= 8 || normalMsgs < 800 || isApprovalEnabled || !isRestoreEnabled) {
+        // Wymagane: >8 osób i >=800 normalnych wiadomości
+        if (memberCount <= 8 || normalMsgs < 800) {
           skipped++;
           continue;
         }
@@ -74,7 +66,7 @@ module.exports = {
 
     await message.reply(
       `✅ Dodano na **${added}** grup${added === 1 ? 'ę' : added < 5 ? 'y' : ''}.\n` +
-      `⏭️ Pominięto: **${skipped}** (za mało osób/wiadomości lub włączone zatwierdzanie / wyłączone przywracanie).\n` +
+      `⏭️ Pominięto: **${skipped}** (za mało osób lub wiadomości).\n` +
       (failed > 0 ? `❌ Błąd na **${failed}** grupach.` : '')
     );
   }

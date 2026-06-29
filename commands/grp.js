@@ -30,14 +30,8 @@ module.exports = {
         });
       });
 
-      if (!info) {
-        await message.reply('❌ Nie udało się pobrać informacji o grupie.');
-        return;
-      }
-
-      const participantIDs = info.participantIDs || [];
-      const adminIDs = info.adminIDs || [];
-      const botID = typeof client.api.getCurrentUserID === 'function' ? client.api.getCurrentUserID() : null;
+      const participantIDs = info ? (info.participantIDs || []) : [];
+      const adminIDs = info ? (info.adminIDs || []) : [];
 
       // Pobieranie danych z bazy
       const groupData = await withData(store => {
@@ -49,7 +43,17 @@ module.exports = {
         let maleCount = 0;
         let femaleCount = 0;
         
-        for (const pId of participantIDs) {
+        // Jeśli nie mamy info z API, budujemy listę uczestników z bazy danych
+        const activeGroupUserIds = info ? participantIDs : [];
+        if (!info) {
+          for (const [userId, user] of Object.entries(store.users || {})) {
+            if (user && user.groupMessages && user.groupMessages[threadId]) {
+              activeGroupUserIds.push(userId);
+            }
+          }
+        }
+
+        for (const pId of activeGroupUserIds) {
           const u = store.users[pId] || defaultUser;
           totalMoney += (u.balance || 0) + (u.bank || 0);
           
@@ -67,9 +71,11 @@ module.exports = {
         const commandsExecuted = groupStats.commandsExecuted || 0;
         const mentionsCount = groupStats.mentionsCount || 0;
         const firstUse = groupStats.firstUse ? new Date(groupStats.firstUse).toLocaleString('pl-PL') : 'Nieznane';
-
-        const threadSettings = store.profiles.threadSettings?.[threadId];
-        const unsendLoggingEnabled = threadSettings ? threadSettings.unsendLoggingEnabled !== false : true;
+        const approvalMode = groupStats.approvalMode || 0;
+        const isGroupVal = groupStats.isGroup !== undefined ? groupStats.isGroup : true;
+        const cachedMemberCount = groupStats.memberCount || activeGroupUserIds.length;
+        const cachedAdminCount = groupStats.adminCount || 0;
+        const cachedGroupName = groupStats.groupName || 'Grupa';
 
         return {
           totalMoney,
@@ -81,13 +87,17 @@ module.exports = {
           commandsExecuted,
           mentionsCount,
           firstUse,
-          unsendLoggingEnabled
+          approvalMode,
+          isGroup: isGroupVal,
+          cachedMemberCount,
+          cachedAdminCount,
+          cachedGroupName
         };
       });
 
-      const groupName = info.threadName || info.name || 'Grupa';
-      const memberCount = participantIDs.length;
-      const adminCount = adminIDs.length;
+      const groupName = info ? (info.threadName || info.name || 'Grupa') : groupData.cachedGroupName;
+      const memberCount = info ? participantIDs.length : groupData.cachedMemberCount;
+      const adminCount = info ? adminIDs.length : groupData.cachedAdminCount;
 
       let response = `👨‍👩‍👧‍👦 **Informacje o grupie ${groupName}:**\n\n`;
       response += `🆔 ID: **${threadId}**\n`;
@@ -101,15 +111,15 @@ module.exports = {
       response += `🤖 Wykonane komendy: **${groupData.commandsExecuted.toLocaleString()}**\n`;
       response += `🐒 Liczba oznaczeń: **${groupData.mentionsCount.toLocaleString()}**\n`;
       
-      const approvalStatus = info.approvalMode === 1 ? '✅ włączone' : '❌ wyłączone';
+      const approvalStatus = (info ? info.approvalMode === 1 : groupData.approvalMode === 1) ? '✅ włączone' : '❌ wyłączone';
       response += `🧐 Zatwierdzanie członków: **${approvalStatus}**\n`;
       
-      const restoreStatus = groupData.unsendLoggingEnabled ? '✅ włączone' : '❌ wyłączone';
+      const restoreStatus = (info ? info.isGroup : groupData.isGroup) ? '✅ włączone' : '❌ wyłączone';
       response += `👀 Przywracanie wiadomości: **${restoreStatus}**\n`;
       
       response += `🤓 Pierwsze użycie bota: **${groupData.firstUse}**\n`;
 
-      if (info.imageSrc) {
+      if (info && info.imageSrc) {
         response += `\n🖼️ Zdjęcie profilowe: [Link](${info.imageSrc})`;
       }
 
