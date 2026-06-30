@@ -152,8 +152,15 @@ module.exports = {
           lastChunkIndex = chunkIndex;
         }
 
-        // Pobieramy dalej, dopóki Messenger zwraca wiadomości
-        oldestTimestamp = pageOldest;
+        // Dodajemy opóźnienie 800ms, aby uniknąć blokady Rate Limit ze strony Facebooka
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        // Pobieramy dalej, dopóki Messenger zwraca wiadomości (cofając się o 1 ms wstecz, aby uniknąć nakładania się)
+        if (pageOldest !== Infinity && !isNaN(pageOldest)) {
+          oldestTimestamp = pageOldest - 1;
+        } else {
+          break;
+        }
       }
 
       // Zapisujemy odzyskane dane do bazy danych, dodając nowe niewliczone wiadomości
