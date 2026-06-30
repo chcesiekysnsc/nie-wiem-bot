@@ -9,7 +9,7 @@ function getThreadHistoryPage(api, threadID, amount, timestamp) {
       if (!completed) {
         completed = true;
         console.warn(`[AKTUALIZUJ] getThreadHistory timed out for thread ${threadID}`);
-        resolve([]);
+        resolve(null);
       }
     }, 12000);
 
@@ -19,7 +19,7 @@ function getThreadHistoryPage(api, threadID, amount, timestamp) {
       completed = true;
       if (err) {
         console.error('[AKTUALIZUJ] getThreadHistory error:', err);
-        return resolve([]);
+        return resolve(null);
       }
       resolve(history || []);
     });
@@ -57,17 +57,36 @@ module.exports = {
     let keepFetching = true;
     let totalFetched = 0;
     let lastChunkIndex = 0;
+    let fetchErrorOccurred = false;
 
-    // Statystyki grupy
+    // Statystyki grupy do odzyskania
     let groupVisibleMessages = 0;
     let groupCommandsExecuted = 0;
     let groupMentionsCount = 0;
     let groupFirstTimestamp = null;
 
+    let seenMessageIds = [];
+    let isFirstSeenInitialization = false;
+
+    await withData(store => {
+      if (store.groupStats && store.groupStats[threadId]) {
+        const stats = store.groupStats[threadId];
+        if (stats.seenMessageIds) {
+          seenMessageIds = [...stats.seenMessageIds];
+        } else if ((stats.visibleMessages || 0) > 0) {
+          isFirstSeenInitialization = true;
+        }
+      }
+    });
+
     try {
       while (keepFetching && totalFetched < 100000) {
         const history = await getThreadHistoryPage(client.api, threadId, 500, oldestTimestamp);
-        if (!history || history.length === 0) {
+        if (history === null) {
+          fetchErrorOccurred = true;
+          break;
+        }
+        if (history.length === 0) {
           break;
         }
 
@@ -79,8 +98,22 @@ module.exports = {
           if (ts < pageOldest) {
             pageOldest = ts;
           }
+
+          const msgId = msg.messageID;
+          if (msgId && seenMessageIds.includes(msgId)) {
+            continue;
+          }
+          if (msgId) {
+            seenMessageIds.push(msgId);
+          }
+
           if (ts && (!groupFirstTimestamp || ts < groupFirstTimestamp)) {
             groupFirstTimestamp = ts;
+          }
+
+          // Jeśli to pierwsza inicjalizacja bazy widzianych ID, pomijamy doliczanie (zapobiega to zduplikowaniu liczników)
+          if (isFirstSeenInitialization) {
+            continue;
           }
 
           groupVisibleMessages++;
@@ -139,20 +172,19 @@ module.exports = {
         }
       }
 
-      // Zapisujemy odzyskane dane do bazy danych stosując Math.max
+      // Zapisujemy odzyskane dane do bazy danych, dodając nowe niewliczone wiadomości
       await withData(async (store) => {
         for (const [senderID, stats] of Object.entries(tempStats)) {
           const user = createUser(senderID, store.users);
           
-          // Podmień wartości tylko jeśli odzyskane są większe od obecnych
-          user.messageCount = Math.max(user.messageCount || 0, stats.messageCount);
+          user.messageCount = (user.messageCount || 0) + stats.messageCount;
           user.groupMessages = user.groupMessages || {};
-          user.groupMessages[threadId] = Math.max(user.groupMessages[threadId] || 0, stats.messageCount);
-          user.commandsUsed = Math.max(user.commandsUsed || 0, stats.commandsUsed);
+          user.groupMessages[threadId] = (user.groupMessages[threadId] || 0) + stats.messageCount;
+          user.commandsUsed = (user.commandsUsed || 0) + stats.commandsUsed;
           
           user.commandCounts = user.commandCounts || {};
           for (const [cmd, count] of Object.entries(stats.commandCounts)) {
-            user.commandCounts[cmd] = Math.max(user.commandCounts[cmd] || 0, count);
+            user.commandCounts[cmd] = (user.commandCounts[cmd] || 0) + count;
           }
         }
 
@@ -166,16 +198,22 @@ module.exports = {
           firstUse: Date.now()
         };
 
+        // Zatrzymujemy maksymalnie 2000 ostatnich widzianych wiadomości
+        if (seenMessageIds.length > 2000) {
+          seenMessageIds = seenMessageIds.slice(-2000);
+        }
+
         store.groupStats[threadId] = {
-          visibleMessages: Math.max(existingStats.visibleMessages || 0, groupVisibleMessages),
-          processedMessages: Math.max(existingStats.processedMessages || 0, groupVisibleMessages),
-          commandsExecuted: Math.max(existingStats.commandsExecuted || 0, groupCommandsExecuted),
-          mentionsCount: Math.max(existingStats.mentionsCount || 0, groupMentionsCount),
+          visibleMessages: (existingStats.visibleMessages || 0) + groupVisibleMessages,
+          processedMessages: (existingStats.processedMessages || 0) + groupVisibleMessages,
+          commandsExecuted: (existingStats.commandsExecuted || 0) + groupCommandsExecuted,
+          mentionsCount: (existingStats.mentionsCount || 0) + groupMentionsCount,
           firstUse: existingStats.firstUse || groupFirstTimestamp || Date.now(),
           lastUpdated: Date.now(),
           memberCount: existingStats.memberCount || 0,
           adminCount: existingStats.adminCount || 0,
-          groupName: existingStats.groupName || 'Grupa'
+          groupName: existingStats.groupName || 'Grupa',
+          seenMessageIds: seenMessageIds
         };
       });
 
@@ -275,10 +313,18 @@ module.exports = {
         for (const u of updatedUsers) {
           summaryText += `• **${u.name}** — Wiadomości: **${u.msgs}**, Komendy: **${u.cmds}**\n`;
         }
+
+        if (fetchErrorOccurred) {
+          summaryText += `\n⚠️ *Uwaga: Proces został przerwany przedwcześnie z powodu limitów API Facebooka (Rate Limit).*`;
+        }
         
         await message.reply(summaryText);
       } else {
-        await message.reply('✅ Proces zakończony. Nie odnaleziono żadnych nowych statystyk do odzyskania.');
+        if (fetchErrorOccurred) {
+          await message.reply('❌ Nie udało się pobrać historii wiadomości. Prawdopodobnie przekroczono limity zapytań Facebooka (Rate Limit). Spróbuj ponownie za kilka minut.');
+        } else {
+          await message.reply('✅ Proces zakończony. Nie odnaleziono żadnych nowych statystyk do odzyskania.');
+        }
       }
 
     } catch (err) {

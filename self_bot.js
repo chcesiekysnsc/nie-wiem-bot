@@ -1671,13 +1671,21 @@ login({ appState }, (loginErr, api) => {
                 lastUpdated: Date.now()
               };
             }
-            store.groupStats[threadId].visibleMessages++;
-            store.groupStats[threadId].processedMessages++;
-            store.groupStats[threadId].lastUpdated = Date.now();
+            const stats = store.groupStats[threadId];
+            stats.seenMessageIds = stats.seenMessageIds || [];
+            if (messageId && !stats.seenMessageIds.includes(messageId)) {
+              stats.seenMessageIds.push(messageId);
+              if (stats.seenMessageIds.length > 2000) {
+                stats.seenMessageIds.shift();
+              }
+            }
+            stats.visibleMessages++;
+            stats.processedMessages++;
+            stats.lastUpdated = Date.now();
 
             const mentionMatches = text.match(/@/g);
             if (mentionMatches) {
-              store.groupStats[threadId].mentionsCount += mentionMatches.length;
+              stats.mentionsCount += mentionMatches.length;
             }
           }
         });
@@ -1697,10 +1705,18 @@ login({ appState }, (loginErr, api) => {
               lastUpdated: Date.now()
             };
           }
-          store.groupStats[threadId].commandsExecuted++;
-          store.groupStats[threadId].visibleMessages++;
-          store.groupStats[threadId].processedMessages++;
-          store.groupStats[threadId].lastUpdated = Date.now();
+          const stats = store.groupStats[threadId];
+          stats.seenMessageIds = stats.seenMessageIds || [];
+          if (messageId && !stats.seenMessageIds.includes(messageId)) {
+            stats.seenMessageIds.push(messageId);
+            if (stats.seenMessageIds.length > 2000) {
+              stats.seenMessageIds.shift();
+            }
+          }
+          stats.commandsExecuted++;
+          stats.visibleMessages++;
+          stats.processedMessages++;
+          stats.lastUpdated = Date.now();
         });
       }
     }
