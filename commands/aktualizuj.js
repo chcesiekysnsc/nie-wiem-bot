@@ -318,30 +318,28 @@ module.exports = {
         updatedUsers.push({ name, msgs: stats.messageCount, cmds: stats.commandsUsed });
       }
 
+      let summaryText = `✅ **ODZYSKIWANIE STATYSTYK ZAKOŃCZONE!**\n`;
+      summaryText += `Przeanalizowano łącznie **${totalFetched}** wiadomości z tego czatu.\n`;
+
       if (updatedUsers.length > 0) {
-        let summaryText = `✅ **ODZYSKIWANIE STATYSTYK ZAKOŃCZONE!**\n`;
-        summaryText += `Przeanalizowano łącznie **${totalFetched}** wiadomości z tego czatu.\n\n`;
-        summaryText += `📊 **Odzyskane dane graczy (najwyższe znalezione wartości):**\n`;
+        const newMsgs = updatedUsers.reduce((s, u) => s + u.msgs, 0);
+        summaryText += `📥 Nowe (niewliczone wcześniej) wiadomości: **${newMsgs}**\n\n`;
+        summaryText += `📊 **Odzyskane dane graczy:**\n`;
         
-        // Sortujemy graczy wg liczby komend
         updatedUsers.sort((a, b) => b.cmds - a.cmds);
         
         for (const u of updatedUsers) {
           summaryText += `• **${u.name}** — Wiadomości: **${u.msgs}**, Komendy: **${u.cmds}**\n`;
         }
-
-        if (fetchErrorOccurred) {
-          summaryText += `\n⚠️ *Uwaga: Proces został przerwany przedwcześnie z powodu limitów API Facebooka (Rate Limit).*`;
-        }
-        
-        await message.reply(summaryText);
       } else {
-        if (fetchErrorOccurred) {
-          await message.reply('❌ Nie udało się pobrać historii wiadomości. Prawdopodobnie przekroczono limity zapytań Facebooka (Rate Limit). Spróbuj ponownie za kilka minut.');
-        } else {
-          await message.reply('✅ Proces zakończony. Nie odnaleziono żadnych nowych statystyk do odzyskania.');
-        }
+        summaryText += `\n📭 Wszystkie wiadomości z historii były już wcześniej wliczone. Brak nowych danych do dodania.`;
       }
+
+      if (fetchErrorOccurred) {
+        summaryText += `\n\n⚠️ *Uwaga: Proces został przerwany przedwcześnie z powodu limitów API Facebooka (Rate Limit).*`;
+      }
+      
+      await message.reply(summaryText);
 
     } catch (err) {
       console.error('[AKTUALIZUJ] Blad podczas odzyskiwania:', err);
