@@ -58,6 +58,12 @@ module.exports = {
     let totalFetched = 0;
     let lastChunkIndex = 0;
 
+    // Statystyki grupy
+    let groupVisibleMessages = 0;
+    let groupCommandsExecuted = 0;
+    let groupMentionsCount = 0;
+    let groupFirstTimestamp = null;
+
     try {
       while (keepFetching && totalFetched < 100000) {
         const history = await getThreadHistoryPage(client.api, threadId, 500, oldestTimestamp);
@@ -73,13 +79,26 @@ module.exports = {
           if (ts < pageOldest) {
             pageOldest = ts;
           }
+          if (ts && (!groupFirstTimestamp || ts < groupFirstTimestamp)) {
+            groupFirstTimestamp = ts;
+          }
+
+          groupVisibleMessages++;
+
+          const body = msg.body ? String(msg.body).trim() : '';
+
+          // Liczenie oznaczeń w historii
+          if (body) {
+            const mentionMatches = body.match(/@/g);
+            if (mentionMatches) {
+              groupMentionsCount += mentionMatches.length;
+            }
+          }
 
           const senderID = msg.senderID ? String(msg.senderID) : null;
           if (!senderID || senderID === botId) {
             continue;
           }
-
-          const body = msg.body ? String(msg.body).trim() : '';
           
           // Inicjalizacja statystyk dla użytkownika
           if (!tempStats[senderID]) {
@@ -100,6 +119,7 @@ module.exports = {
             if (cmdName && client.commands.has(cmdName)) {
               tempStats[senderID].commandsUsed++;
               tempStats[senderID].commandCounts[cmdName] = (tempStats[senderID].commandCounts[cmdName] || 0) + 1;
+              groupCommandsExecuted++;
             }
           }
         }
@@ -135,6 +155,28 @@ module.exports = {
             user.commandCounts[cmd] = Math.max(user.commandCounts[cmd] || 0, count);
           }
         }
+
+        // Aktualizacja statystyk grupy
+        if (!store.groupStats) store.groupStats = {};
+        const existingStats = store.groupStats[threadId] || {
+          visibleMessages: 0,
+          processedMessages: 0,
+          commandsExecuted: 0,
+          mentionsCount: 0,
+          firstUse: Date.now()
+        };
+
+        store.groupStats[threadId] = {
+          visibleMessages: Math.max(existingStats.visibleMessages || 0, groupVisibleMessages),
+          processedMessages: Math.max(existingStats.processedMessages || 0, groupVisibleMessages),
+          commandsExecuted: Math.max(existingStats.commandsExecuted || 0, groupCommandsExecuted),
+          mentionsCount: Math.max(existingStats.mentionsCount || 0, groupMentionsCount),
+          firstUse: existingStats.firstUse || groupFirstTimestamp || Date.now(),
+          lastUpdated: Date.now(),
+          memberCount: existingStats.memberCount || 0,
+          adminCount: existingStats.adminCount || 0,
+          groupName: existingStats.groupName || 'Grupa'
+        };
       });
 
       // 1. Batch preload from thread info
@@ -149,13 +191,24 @@ module.exports = {
               }
             });
           });
-          if (threadInfo && threadInfo.userInfo) {
-            for (const user of threadInfo.userInfo) {
-              if (user && user.id && user.name) {
-                client.userNames.set(user.id, user.name);
-                client.resolvedUserNames.add(user.id);
+          if (threadInfo) {
+            if (threadInfo.userInfo) {
+              for (const user of threadInfo.userInfo) {
+                if (user && user.id && user.name) {
+                  client.userNames.set(user.id, user.name);
+                  client.resolvedUserNames.add(user.id);
+                }
               }
             }
+            // Zapisujemy dodatkowe dane grupy z getThreadInfo
+            await withData(store => {
+              if (!store.groupStats) store.groupStats = {};
+              if (store.groupStats[threadId]) {
+                store.groupStats[threadId].memberCount = (threadInfo.participantIDs || []).length;
+                store.groupStats[threadId].adminCount = (threadInfo.adminIDs || []).length;
+                store.groupStats[threadId].groupName = threadInfo.threadName || threadInfo.name || 'Grupa';
+              }
+            });
           }
         } catch (err) {
           console.error('[AKTUALIZUJ] Error during thread preloading:', err);
