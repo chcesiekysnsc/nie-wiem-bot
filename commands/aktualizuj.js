@@ -74,7 +74,7 @@ module.exports = {
 
     try {
       while (keepFetching && totalFetched < 100000) {
-        const history = await getThreadHistoryPage(client.api, threadId, 250, oldestTimestamp);
+        const history = await getThreadHistoryPage(client.api, threadId, 500, oldestTimestamp);
         if (history === null) {
           fetchErrorOccurred = true;
           break;
@@ -88,9 +88,7 @@ module.exports = {
 
         for (const msg of history) {
           const ts = Number(msg.timestamp);
-          const isValidTs = ts && !isNaN(ts) && ts > 1000000000000;
-
-          if (isValidTs && ts < pageOldest) {
+          if (ts < pageOldest) {
             pageOldest = ts;
           }
 
@@ -102,7 +100,7 @@ module.exports = {
             seenMessageIds.push(msgId);
           }
 
-          if (isValidTs && (!groupFirstTimestamp || ts < groupFirstTimestamp)) {
+          if (ts && (!groupFirstTimestamp || ts < groupFirstTimestamp)) {
             groupFirstTimestamp = ts;
           }
 
@@ -154,8 +152,8 @@ module.exports = {
           lastChunkIndex = chunkIndex;
         }
 
-        // Dodajemy opóźnienie 400ms, aby uniknąć blokady Rate Limit ze strony Facebooka
-        await new Promise(resolve => setTimeout(resolve, 400));
+        // Dodajemy opóźnienie 800ms, aby uniknąć blokady Rate Limit ze strony Facebooka
+        await new Promise(resolve => setTimeout(resolve, 800));
 
         // Pobieramy dalej, dopóki Messenger zwraca wiadomości (cofając się o 1 ms wstecz, aby uniknąć nakładania się)
         if (pageOldest !== Infinity && !isNaN(pageOldest)) {
