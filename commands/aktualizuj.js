@@ -64,18 +64,11 @@ module.exports = {
     let groupCommandsExecuted = 0;
     let groupMentionsCount = 0;
     let groupFirstTimestamp = null;
-
     let seenMessageIds = [];
-    let isFirstSeenInitialization = false;
 
     await withData(store => {
-      if (store.groupStats && store.groupStats[threadId]) {
-        const stats = store.groupStats[threadId];
-        if (stats.seenMessageIds) {
-          seenMessageIds = [...stats.seenMessageIds];
-        } else if ((stats.visibleMessages || 0) > 0) {
-          isFirstSeenInitialization = true;
-        }
+      if (store.groupStats && store.groupStats[threadId] && store.groupStats[threadId].seenMessageIds) {
+        seenMessageIds = [...store.groupStats[threadId].seenMessageIds];
       }
     });
 
@@ -109,11 +102,6 @@ module.exports = {
 
           if (ts && (!groupFirstTimestamp || ts < groupFirstTimestamp)) {
             groupFirstTimestamp = ts;
-          }
-
-          // Jeśli to pierwsza inicjalizacja bazy widzianych ID, pomijamy doliczanie (zapobiega to zduplikowaniu liczników)
-          if (isFirstSeenInitialization) {
-            continue;
           }
 
           groupVisibleMessages++;
@@ -164,27 +152,40 @@ module.exports = {
           lastChunkIndex = chunkIndex;
         }
 
-        // Jeśli pobrano mniej niż 500, oznacza to osiągnięcie początku czatu
-        if (history.length < 500) {
-          keepFetching = false;
-        } else {
-          oldestTimestamp = pageOldest;
-        }
+        // Pobieramy dalej, dopóki Messenger zwraca wiadomości
+        oldestTimestamp = pageOldest;
       }
 
       // Zapisujemy odzyskane dane do bazy danych, dodając nowe niewliczone wiadomości
       await withData(async (store) => {
+        // Jeśli seenMessageIds jest puste, oznacza to pierwszy bieg (migrację)
+        const isMigration = !store.groupStats?.[threadId]?.seenMessageIds;
+
         for (const [senderID, stats] of Object.entries(tempStats)) {
           const user = createUser(senderID, store.users);
           
-          user.messageCount = (user.messageCount || 0) + stats.messageCount;
-          user.groupMessages = user.groupMessages || {};
-          user.groupMessages[threadId] = (user.groupMessages[threadId] || 0) + stats.messageCount;
-          user.commandsUsed = (user.commandsUsed || 0) + stats.commandsUsed;
-          
-          user.commandCounts = user.commandCounts || {};
-          for (const [cmd, count] of Object.entries(stats.commandCounts)) {
-            user.commandCounts[cmd] = (user.commandCounts[cmd] || 0) + count;
+          if (isMigration) {
+            // Pierwszy bieg: używamy Math.max, żeby nie zduplikować liczników gracza
+            user.messageCount = Math.max(user.messageCount || 0, stats.messageCount);
+            user.groupMessages = user.groupMessages || {};
+            user.groupMessages[threadId] = Math.max(user.groupMessages[threadId] || 0, stats.messageCount);
+            user.commandsUsed = Math.max(user.commandsUsed || 0, stats.commandsUsed);
+            
+            user.commandCounts = user.commandCounts || {};
+            for (const [cmd, count] of Object.entries(stats.commandCounts)) {
+              user.commandCounts[cmd] = Math.max(user.commandCounts[cmd] || 0, count);
+            }
+          } else {
+            // Kolejne biegi: dodajemy tylko nowe, niewliczone wcześniej wiadomości
+            user.messageCount = (user.messageCount || 0) + stats.messageCount;
+            user.groupMessages = user.groupMessages || {};
+            user.groupMessages[threadId] = (user.groupMessages[threadId] || 0) + stats.messageCount;
+            user.commandsUsed = (user.commandsUsed || 0) + stats.commandsUsed;
+            
+            user.commandCounts = user.commandCounts || {};
+            for (const [cmd, count] of Object.entries(stats.commandCounts)) {
+              user.commandCounts[cmd] = (user.commandCounts[cmd] || 0) + count;
+            }
           }
         }
 
@@ -203,18 +204,33 @@ module.exports = {
           seenMessageIds = seenMessageIds.slice(-2000);
         }
 
-        store.groupStats[threadId] = {
-          visibleMessages: (existingStats.visibleMessages || 0) + groupVisibleMessages,
-          processedMessages: (existingStats.processedMessages || 0) + groupVisibleMessages,
-          commandsExecuted: (existingStats.commandsExecuted || 0) + groupCommandsExecuted,
-          mentionsCount: (existingStats.mentionsCount || 0) + groupMentionsCount,
-          firstUse: existingStats.firstUse || groupFirstTimestamp || Date.now(),
-          lastUpdated: Date.now(),
-          memberCount: existingStats.memberCount || 0,
-          adminCount: existingStats.adminCount || 0,
-          groupName: existingStats.groupName || 'Grupa',
-          seenMessageIds: seenMessageIds
-        };
+        if (isMigration) {
+          store.groupStats[threadId] = {
+            visibleMessages: Math.max(existingStats.visibleMessages || 0, groupVisibleMessages),
+            processedMessages: Math.max(existingStats.processedMessages || 0, groupVisibleMessages),
+            commandsExecuted: Math.max(existingStats.commandsExecuted || 0, groupCommandsExecuted),
+            mentionsCount: Math.max(existingStats.mentionsCount || 0, groupMentionsCount),
+            firstUse: existingStats.firstUse || groupFirstTimestamp || Date.now(),
+            lastUpdated: Date.now(),
+            memberCount: existingStats.memberCount || 0,
+            adminCount: existingStats.adminCount || 0,
+            groupName: existingStats.groupName || 'Grupa',
+            seenMessageIds: seenMessageIds
+          };
+        } else {
+          store.groupStats[threadId] = {
+            visibleMessages: (existingStats.visibleMessages || 0) + groupVisibleMessages,
+            processedMessages: (existingStats.processedMessages || 0) + groupVisibleMessages,
+            commandsExecuted: (existingStats.commandsExecuted || 0) + groupCommandsExecuted,
+            mentionsCount: (existingStats.mentionsCount || 0) + groupMentionsCount,
+            firstUse: existingStats.firstUse || groupFirstTimestamp || Date.now(),
+            lastUpdated: Date.now(),
+            memberCount: existingStats.memberCount || 0,
+            adminCount: existingStats.adminCount || 0,
+            groupName: existingStats.groupName || 'Grupa',
+            seenMessageIds: seenMessageIds
+          };
+        }
       });
 
       // 1. Batch preload from thread info
