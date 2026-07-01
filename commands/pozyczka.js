@@ -104,8 +104,26 @@ module.exports = {
     const isPlayerProposal = !!targetBorrowerId && !['acc', 'akceptuj', 'dec', 'odrzuc', 'odrzuć', 'gracz', 'splac', 'repay', 'splata', 'spłac', 'oddaj'].includes(action);
 
     if (action === 'gracz' && String(args[1] || '').trim().toLowerCase() === 'splac') {
-      let targetLenderId = getUserIdFromArg(args[2], message.rawEvent);
-      let rawAmount = targetLenderId ? args[3] : args[2];
+      let targetLenderId = null;
+      let rawAmount = null;
+
+      const mentionedId = Object.keys(message.rawEvent.mentions || {})[0];
+      if (mentionedId) {
+        targetLenderId = mentionedId;
+        const mentionText = message.rawEvent.mentions[mentionedId];
+        const startIndex = message.content.indexOf(mentionText);
+        if (startIndex !== -1) {
+          rawAmount = message.content.slice(startIndex + mentionText.length).trim();
+        }
+      } else {
+        const possibleId = getUserIdFromArg(args[2], message.rawEvent);
+        if (possibleId) {
+          targetLenderId = possibleId;
+          rawAmount = args[3];
+        } else {
+          rawAmount = args[2];
+        }
+      }
 
       const amountToRepay = resolveAmount(rawAmount, 0);
       if (!amountToRepay || amountToRepay <= 0) {
@@ -318,14 +336,29 @@ module.exports = {
       );
       return;
     } else if (isPlayerProposal) {
+      let proposalArgs = [];
+      const mentionedId = Object.keys(message.rawEvent.mentions || {})[0];
+      if (mentionedId) {
+        const mentionText = message.rawEvent.mentions[mentionedId];
+        const startIndex = message.content.indexOf(mentionText);
+        if (startIndex !== -1) {
+          const remainingText = message.content.slice(startIndex + mentionText.length).trim();
+          proposalArgs = remainingText ? remainingText.split(/\s+/) : [];
+        } else {
+          proposalArgs = args.slice(1);
+        }
+      } else {
+        proposalArgs = args.slice(1);
+      }
+
       const targetId = targetBorrowerId;
-      const kwota = resolveAmount(args[1], 0);
-      const ilosc_rat = parseInt(args[2]);
-      const ile_bot_pobiera_rat = parseInt(args[3]);
-      const kwota_raty = resolveAmount(args[4], 0);
-      const oprocentowanie_spoznienia = parseFloat(args[5]);
-      const co_ile_dni = parseInt(args[6]);
-      const ile_do_splaty = resolveAmount(args[7], 0);
+      const kwota = resolveAmount(proposalArgs[0], 0);
+      const ilosc_rat = parseInt(proposalArgs[1]);
+      const ile_bot_pobiera_rat = parseInt(proposalArgs[2]);
+      const kwota_raty = resolveAmount(proposalArgs[3], 0);
+      const oprocentowanie_spoznienia = parseFloat(proposalArgs[4]);
+      const co_ile_dni = parseInt(proposalArgs[5]);
+      const ile_do_splaty = resolveAmount(proposalArgs[6], 0);
 
       if (!targetId || !kwota || isNaN(ilosc_rat) || isNaN(ile_bot_pobiera_rat) || !kwota_raty || isNaN(oprocentowanie_spoznienia) || isNaN(co_ile_dni) || !ile_do_splaty) {
         await message.reply(
