@@ -321,16 +321,17 @@ module.exports = {
       const targetId = targetBorrowerId;
       const kwota = resolveAmount(args[1], 0);
       const ilosc_rat = parseInt(args[2]);
-      const kwota_raty = resolveAmount(args[3], 0);
-      const oprocentowanie_spoznienia = parseFloat(args[4]);
-      const co_ile_dni = parseInt(args[5]);
-      const ile_do_splaty = resolveAmount(args[6], 0);
+      const ile_bot_pobiera_rat = parseInt(args[3]);
+      const kwota_raty = resolveAmount(args[4], 0);
+      const oprocentowanie_spoznienia = parseFloat(args[5]);
+      const co_ile_dni = parseInt(args[6]);
+      const ile_do_splaty = resolveAmount(args[7], 0);
 
-      if (!targetId || !kwota || isNaN(ilosc_rat) || !kwota_raty || isNaN(oprocentowanie_spoznienia) || isNaN(co_ile_dni) || !ile_do_splaty) {
+      if (!targetId || !kwota || isNaN(ilosc_rat) || isNaN(ile_bot_pobiera_rat) || !kwota_raty || isNaN(oprocentowanie_spoznienia) || isNaN(co_ile_dni) || !ile_do_splaty) {
         await message.reply(
           `❌ **Użycie pożyczki między graczami:**\n` +
-          `👉 Propozycja: **!pozyczka @osoba <kwota> <ilosc_rat> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni_pobiera> <ile_do_splaty>**\n` +
-          `ℹ️ *Przykład: !pozyczka @Kowalski 10000 5 2500 20 2 12500*`
+          `👉 Propozycja: **!pozyczka @osoba <kwota> <ilosc_rat> <ile_bot_pobiera_rat> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni_pobiera> <ile_do_splaty>**\n` +
+          `ℹ️ *Przykład: !pozyczka @Kowalski 10000 5 5 2500 20 2 12500*`
         );
         return;
       }
@@ -342,6 +343,11 @@ module.exports = {
 
       if (co_ile_dni < 1) {
         await message.reply(`❌ Częstotliwość pobierania rat musi wynosić minimum 1 dzień.`);
+        return;
+      }
+
+      if (ile_bot_pobiera_rat < 0 || ile_bot_pobiera_rat > ilosc_rat) {
+        await message.reply(`❌ Ilość rat pobieranych przez bota nie może być ujemna ani większa niż łączna ilość rat (${ilosc_rat}).`);
         return;
       }
 
@@ -387,7 +393,7 @@ module.exports = {
         amount: kwota,
         totalRepay: ile_do_splaty,
         totalInstallments: ilosc_rat,
-        autoCollectCount: ilosc_rat,
+        autoCollectCount: ile_bot_pobiera_rat,
         installmentAmount: kwota_raty,
         penaltyRate: oprocentowanie_spoznienia / 100,
         frequencyDays: co_ile_dni,
@@ -404,7 +410,7 @@ module.exports = {
         `✉️ **Zaproponowano pożyczkę dla @${borrowerNameStr}!**\n` +
         `💵 Kwota pożyczona: **${formatCurrency(kwota)}**\n` +
         `💰 Do spłaty łącznie: **${formatCurrency(ile_do_splaty)}**\n` +
-        `📊 Ilość rat: **${ilosc_rat}** (wszystkie pobierane automatycznie przez bota)\n` +
+        `📊 Ilość rat: **${ilosc_rat}** (w tym bot pobierze automatycznie: **${ile_bot_pobiera_rat}**)\n` +
         `💸 Rata: **${formatCurrency(kwota_raty)}** (co **${co_ile_dni} dni**)\n` +
         `📈 Oprocentowanie spóźnienia: **${oprocentowanie_spoznienia}%**\n\n` +
         `👉 Aby zaakceptować pożyczkę, pożyczkobiorca musi wpisać: **!pozyczka acc @${message.author.username || 'pozyczkodawca'}** lub **!pozyczka acc ${message.author.id}** (oferta ważna 5 minut).`
