@@ -171,14 +171,19 @@ const helpCommands = [
     id: 13,
     name: "pozyczka",
     category: "ECONOMY_GAMBLING",
-    shortDescription: "pozyczka z banku wirtualnego",
-    description: "Pozwala pożyczyć pieniądze z banku wirtualnego po przekroczeniu 100 użytych komend (limit 500k). Oprocentowanie rośnie co 6h o 4% (dla kwot <=200k), 8% (>200k), 12% (>300k) lub 20% (>400k). Spłata następuje automatycznie po 48h (ściągane z portfela, nawet na minus). Pieniądze z pożyczki mają 48h blokadę transferu i ochrony przed kradzieżą.",
-    usage: "!pozyczka <kwota> | !pozyczka splac <kwota|all> | !pozyczka",
-    examples: ["!pozyczka 100000","!pozyczka splac all","!pozyczka"],
-    cooldown: "Do momentu spłaty poprzedniej pożyczki.",
-    requirements: "Ponad 100 użytych komend i maksymalnie 500k długu.",
+    shortDescription: "pożyczki z banku lub między graczami",
+    description: "Pozwala wziąć pożyczkę z banku wirtualnego (limit 500k) lub zaproponować pożyczkę innemu graczowi na własnych warunkach (podział na raty, automatyczne ściąganie rat przez bota, oprocentowanie kary). W przypadku braku spłaty raty o północy, dług rośnie o % kary, a zyski dłużnika są automatycznie zajmowane na poczet spłaty.",
+    usage: "!pozyczka <kwota> | !pozyczka splac <kwota|all> | !pozyczka @osoba <kwota> <ilosc_rat> <ile_bot_pobiera_rat> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni> <ile_do_splaty> | !pozyczka acc/dec @lender | !pozyczka gracz splac <kwota>",
+    examples: ["!pozyczka 100000","!pozyczka splac all","!pozyczka @Kowalski 10000 5 5 2500 20 2 12500","!pozyczka acc @Kowalski","!pozyczka gracz splac 2500"],
+    cooldown: "Brak / Do momentu spłaty.",
+    requirements: "Konta muszą mieć ponad 100 komend i 100 wiadomości.",
     aliases: ["kredyt","loan"],
-    additionalInfo: ["Pożyczka odblokowuje się dopiero po przekroczeniu 100 użytych komend.","Po 48h kwota jest automatycznie pobierana z portfela.","Zablokowane środki nie mogą być przelane ani skradzione komendą !rob."]
+    additionalInfo: [
+      "Pożyczka z banku automatycznie spłaca się po 48h.",
+      "Pożyczki między graczami: Kwota pożyczki (kwota początkowa) może wynosić maksymalnie 40% salda pożyczkodawcy.",
+      "Bot automatycznie pobiera raty o 00:00 czasu polskiego. Jeśli dłużnik nie ma środków, jego konto jest zerowane, status zmienia się na defaulted (windykacja zysków), a pozostały dług powiększa się o oprocentowanie spóźnienia.",
+      "Przedwczesna spłata: Można spłacić pożyczkę u innego gracza komendą !pozyczka gracz splac <kwota>. Minimalna kwota wplaty to 1 rata. Jeśli chcesz wpłacić więcej niż jedną ratę, musi to być co najmniej równowartość 2 rat."
+    ]
   },
   {
     id: 14,

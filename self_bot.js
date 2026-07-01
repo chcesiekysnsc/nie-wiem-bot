@@ -334,20 +334,35 @@ async function processPlayerLoansMidnight(api, client) {
           continue;
         }
 
+        // Jeśli bot pobrał już wszystkie raty automatyczne, pomijamy automatyczne pobieranie o północy
+        const maxAutoCollect = typeof loan.autoCollectCount === 'number' ? loan.autoCollectCount : 999;
+        const autoCollected = typeof loan.autoCollectedCount === 'number' ? loan.autoCollectedCount : 0;
+        
+        if (autoCollected >= maxAutoCollect) {
+          loansToKeep.push(loan);
+          continue;
+        }
+
         if (loan.nextCollectionDate <= currentDateStr) {
           const borrower = createUser(loan.borrowerId, store.users);
           const lender = createUser(loan.lenderId, store.users);
           const borrowerName = borrower.name || `Użytkownik_${loan.borrowerId.slice(-6)}`;
           const lenderName = lender.name || `Użytkownik_${loan.lenderId.slice(-6)}`;
 
-          // Rata + 5% odsetek
-          const totalToDeduct = Math.floor(loan.installment * 1.05);
+          // Rata z konfiguracji
+          const installmentVal = loan.installmentAmount || loan.installment || 0;
+          const totalToDeduct = Math.min(installmentVal, loan.amount);
 
           if (borrower.balance >= totalToDeduct) {
             // Pełna spłata raty
             borrower.balance -= totalToDeduct;
             lender.balance = (lender.balance || 0) + totalToDeduct;
-            loan.amount = Math.max(0, loan.amount - loan.installment);
+            loan.amount = Math.max(0, loan.amount - totalToDeduct);
+            
+            loan.autoCollectedCount = autoCollected + 1;
+            if (typeof loan.remainingInstallments === 'number') {
+              loan.remainingInstallments = Math.max(0, loan.remainingInstallments - 1);
+            }
 
             if (loan.amount > 0) {
               const nextDate = new Date();
@@ -360,7 +375,7 @@ async function processPlayerLoansMidnight(api, client) {
               announcements.push({
                 threadId: borrower.lastActiveThreadId || lender.lastActiveThreadId || '',
                 msg: `💰 **POŻYCZKA - RATA POBRANA**\n` +
-                     `Pobrano ratę w wysokości **${totalToDeduct.toLocaleString()} v** (w tym 5% odsetek) od **${borrowerName}** dla **${lenderName}**.\n` +
+                     `Pobrano ratę w wysokości **${totalToDeduct.toLocaleString()} v** od **${borrowerName}** dla **${lenderName}**.\n` +
                      `📉 Pozostało do spłaty: **${loan.amount.toLocaleString()} v**.\n` +
                      `📆 Następna rata: **${loan.nextCollectionDate}**.`
               });
@@ -377,13 +392,17 @@ async function processPlayerLoansMidnight(api, client) {
             borrower.balance = 0;
             lender.balance = (lender.balance || 0) + available;
 
-            const principalReduction = Math.floor(available / 1.05);
-            loan.amount = Math.max(0, loan.amount - principalReduction);
+            loan.amount = Math.max(0, loan.amount - available);
 
-            const penaltyPercent = loan.penaltyRate || 0.20;
+            const penaltyPercent = typeof loan.penaltyRate === 'number' ? loan.penaltyRate : 0.20;
             const penaltyAmount = Math.floor(loan.amount * penaltyPercent);
             loan.amount += penaltyAmount;
             loan.status = 'defaulted';
+
+            loan.autoCollectedCount = autoCollected + 1;
+            if (typeof loan.remainingInstallments === 'number') {
+              loan.remainingInstallments = Math.max(0, loan.remainingInstallments - 1);
+            }
 
             const nextDate = new Date();
             const offset = getPolandOffsetMs(nextDate);
