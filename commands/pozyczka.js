@@ -37,6 +37,21 @@ function getPolandDateString(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function getUserIdFromArg(arg, rawEvent) {
+  if (!arg) return null;
+  const value = String(arg).trim();
+  if (value.startsWith('@') && rawEvent && rawEvent.mentions) {
+    const cleanName = value.slice(1).toLowerCase();
+    for (const [id, name] of Object.entries(rawEvent.mentions)) {
+      if (name.toLowerCase().includes(cleanName)) {
+        return id;
+      }
+    }
+  }
+  const match = value.match(/^\d{14,16}$/);
+  return match ? match[0] : null;
+}
+
 const LOAN_UNLOCK_COMMANDS = 100;
 
 function getLoanUnlockState(commandsUsed) {
@@ -83,23 +98,14 @@ module.exports = {
     // Sprawdź czy to akcja pożyczki między graczami
     const isPlayerAcc = ['acc', 'akceptuj'].includes(action);
     const isPlayerDec = ['dec', 'odrzuc', 'odrzuć'].includes(action);
-    const mentioned = message.mentions.users.first();
-    const isPlayerProposal = !!mentioned || (/^\d{8,18}$/.test(args[0]) && Number(args[0]) > 500000);
+    
+    // Wyciągamy ID dłużnika z pierwszego argumentu (jeśli to propozycja)
+    const targetBorrowerId = getUserIdFromArg(args[0], message.rawEvent);
+    const isPlayerProposal = !!targetBorrowerId && !['acc', 'akceptuj', 'dec', 'odrzuc', 'odrzuć', 'gracz', 'splac', 'repay', 'splata', 'spłac', 'oddaj'].includes(action);
 
     if (action === 'gracz' && String(args[1] || '').trim().toLowerCase() === 'splac') {
-      let targetLenderId = null;
-      let rawAmount = null;
-
-      const mention = message.mentions.users.first();
-      if (mention) {
-        targetLenderId = mention.id;
-        rawAmount = args[2];
-      } else if (args[2] && /^\d{8,18}$/.test(args[2]) && Number(args[2]) > 500000) {
-        targetLenderId = args[2];
-        rawAmount = args[3];
-      } else {
-        rawAmount = args[2];
-      }
+      let targetLenderId = getUserIdFromArg(args[2], message.rawEvent);
+      let rawAmount = targetLenderId ? args[3] : args[2];
 
       const amountToRepay = resolveAmount(rawAmount, 0);
       if (!amountToRepay || amountToRepay <= 0) {
@@ -202,8 +208,7 @@ module.exports = {
     }
 
     if (isPlayerAcc || isPlayerDec) {
-      const lenderMentioned = message.mentions.users.first();
-      const lenderId = lenderMentioned ? lenderMentioned.id : args[1];
+      const lenderId = getUserIdFromArg(args[1], message.rawEvent) || args[1];
 
       if (!lenderId) {
         await message.reply(`❌ Użyj: **!pozyczka acc/dec @pozyczkodawca** lub **!pozyczka acc/dec <id_pozyczkodawcy>**`);
@@ -313,20 +318,19 @@ module.exports = {
       );
       return;
     } else if (isPlayerProposal) {
-      const targetId = mentioned ? mentioned.id : args[0];
+      const targetId = targetBorrowerId;
       const kwota = resolveAmount(args[1], 0);
       const ilosc_rat = parseInt(args[2]);
-      const ile_bot_pobiera_rat = parseInt(args[3]);
-      const kwota_raty = resolveAmount(args[4], 0);
-      const oprocentowanie_spoznienia = parseFloat(args[5]);
-      const co_ile_dni = parseInt(args[6]);
-      const ile_do_splaty = resolveAmount(args[7], 0);
+      const kwota_raty = resolveAmount(args[3], 0);
+      const oprocentowanie_spoznienia = parseFloat(args[4]);
+      const co_ile_dni = parseInt(args[5]);
+      const ile_do_splaty = resolveAmount(args[6], 0);
 
-      if (!targetId || !kwota || isNaN(ilosc_rat) || isNaN(ile_bot_pobiera_rat) || !kwota_raty || isNaN(oprocentowanie_spoznienia) || isNaN(co_ile_dni) || !ile_do_splaty) {
+      if (!targetId || !kwota || isNaN(ilosc_rat) || !kwota_raty || isNaN(oprocentowanie_spoznienia) || isNaN(co_ile_dni) || !ile_do_splaty) {
         await message.reply(
           `❌ **Użycie pożyczki między graczami:**\n` +
-          `👉 Propozycja: **!pozyczka @osoba <kwota> <ilosc_rat> <ile_bot_pobiera_rat> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni_pobiera> <ile_do_splaty>**\n` +
-          `ℹ️ *Przykład: !pozyczka @Kowalski 10000 5 5 2500 20 2 12500*`
+          `👉 Propozycja: **!pozyczka @osoba <kwota> <ilosc_rat> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni_pobiera> <ile_do_splaty>**\n` +
+          `ℹ️ *Przykład: !pozyczka @Kowalski 10000 5 2500 20 2 12500*`
         );
         return;
       }
@@ -338,11 +342,6 @@ module.exports = {
 
       if (co_ile_dni < 1) {
         await message.reply(`❌ Częstotliwość pobierania rat musi wynosić minimum 1 dzień.`);
-        return;
-      }
-
-      if (ile_bot_pobiera_rat < 0 || ile_bot_pobiera_rat > ilosc_rat) {
-        await message.reply(`❌ Ilość rat pobieranych przez bota nie może być ujemna ani większa niż łączna ilość rat (${ilosc_rat}).`);
         return;
       }
 
@@ -388,19 +387,24 @@ module.exports = {
         amount: kwota,
         totalRepay: ile_do_splaty,
         totalInstallments: ilosc_rat,
-        autoCollectCount: ile_bot_pobiera_rat,
+        autoCollectCount: ilosc_rat,
         installmentAmount: kwota_raty,
         penaltyRate: oprocentowanie_spoznienia / 100,
         frequencyDays: co_ile_dni,
         expiresAt: Date.now() + 5 * 60 * 1000
       });
 
-      const borrowerName = mentioned ? (mentioned.username || `Użytkownik_${targetId.slice(-6)}`) : `Użytkownik_${targetId.slice(-6)}`;
+      let borrowerNameStr = `Gracz_${targetId.slice(-6)}`;
+      const resolvedUser = client.getUser(targetId);
+      if (resolvedUser && resolvedUser.username) {
+        borrowerNameStr = resolvedUser.username;
+      }
+
       await message.reply(
-        `✉️ **Zaproponowano pożyczkę dla ${borrowerName}!**\n` +
+        `✉️ **Zaproponowano pożyczkę dla @${borrowerNameStr}!**\n` +
         `💵 Kwota pożyczona: **${formatCurrency(kwota)}**\n` +
         `💰 Do spłaty łącznie: **${formatCurrency(ile_do_splaty)}**\n` +
-        `📊 Ilość rat: **${ilosc_rat}** (w tym bot pobierze automatycznie: **${ile_bot_pobiera_rat}**)\n` +
+        `📊 Ilość rat: **${ilosc_rat}** (wszystkie pobierane automatycznie przez bota)\n` +
         `💸 Rata: **${formatCurrency(kwota_raty)}** (co **${co_ile_dni} dni**)\n` +
         `📈 Oprocentowanie spóźnienia: **${oprocentowanie_spoznienia}%**\n\n` +
         `👉 Aby zaakceptować pożyczkę, pożyczkobiorca musi wpisać: **!pozyczka acc @${message.author.username || 'pozyczkodawca'}** lub **!pozyczka acc ${message.author.id}** (oferta ważna 5 minut).`

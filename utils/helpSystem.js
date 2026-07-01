@@ -173,8 +173,8 @@ const helpCommands = [
     category: "ECONOMY_GAMBLING",
     shortDescription: "pożyczki z banku lub między graczami",
     description: "Pozwala wziąć pożyczkę z banku wirtualnego (limit 500k) lub zaproponować pożyczkę innemu graczowi na własnych warunkach (podział na raty, automatyczne ściąganie rat przez bota, oprocentowanie kary). W przypadku braku spłaty raty o północy, dług rośnie o % kary, a zyski dłużnika są automatycznie zajmowane na poczet spłaty.",
-    usage: "!pozyczka <kwota> | !pozyczka splac <kwota|all> | !pozyczka @osoba <kwota> <ilosc_rat> <ile_bot_pobiera_rat> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni> <ile_do_splaty> | !pozyczka acc/dec @lender | !pozyczka gracz splac <kwota>",
-    examples: ["!pozyczka 100000","!pozyczka splac all","!pozyczka @Kowalski 10000 5 5 2500 20 2 12500","!pozyczka acc @Kowalski","!pozyczka gracz splac 2500"],
+    usage: "!pozyczka <kwota> | !pozyczka splac <kwota|all> | !pozyczka @osoba <kwota> <ilosc_rat> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni> <ile_do_splaty> | !pozyczka acc/dec @lender | !pozyczka gracz splac <kwota>",
+    examples: ["!pozyczka 100000","!pozyczka splac all","!pozyczka @Kowalski 10000 5 2500 20 2 12500","!pozyczka acc @Kowalski","!pozyczka gracz splac 2500"],
     cooldown: "Brak / Do momentu spłaty.",
     requirements: "Konta muszą mieć ponad 100 komend i 100 wiadomości.",
     aliases: ["kredyt","loan"],
@@ -856,13 +856,13 @@ const helpCommands = [
     category: "ECONOMY_GAMBLING",
     shortDescription: "pozyczka bezpośrednio od innego gracza",
     description: "Pozwala zaproponować i wziąć pożyczkę od innego gracza na ustalonych warunkach (liczba rat, raty automatycznie ściągane przez bota o północy, kwota raty, procent kary za brak środków, częstotliwość pobierania oraz łączna kwota do spłaty).",
-    usage: "!pozyczka @osoba <kwota> <ilosc_rat> <ile_bot_pobiera_rat> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni> <ile_do_splaty> | !pozyczka acc/dec @lender | !pozyczka gracz splac <kwota>",
-    examples: ["!pozyczka @Kowalski 10000 5 5 2500 20 2 12500", "!pozyczka acc @Nowak", "!pozyczka gracz splac 2500"],
+    usage: "!pozyczka @osoba <kwota> <ilosc_rat> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni> <ile_do_splaty> | !pozyczka acc/dec @lender | !pozyczka gracz splac <kwota>",
+    examples: ["!pozyczka @Kowalski 10000 5 2500 20 2 12500", "!pozyczka acc @Nowak", "!pozyczka gracz splac 2500"],
     cooldown: "Brak.",
     requirements: "Odpowiedni wiek konta (>100 komend i >100 wiadomości).",
     aliases: [],
     additionalInfo: [
-      "Raty pobierane są automatycznie o 00:00 czasu polskiego do momentu osiągnięcia wybranej liczby pobrań przez bota.",
+      "Raty pobierane są automatycznie o 00:00 czasu polskiego za pomocą bota.",
       "Brak środków o 00:00 zeruje konto dłużnika, dodaje zdefiniowaną karę % do długu oraz włącza windykację komorniczą ze wszystkich zysków dłużnika.",
       "Przedwczesna spłata: komendą !pozyczka gracz splac <kwota>. Minimalna wpłata to 1 rata, a przy większej wpłacie musi to być minimum równowartość 2 rat."
     ]
