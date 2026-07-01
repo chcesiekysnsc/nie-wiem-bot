@@ -855,13 +855,17 @@ const helpCommands = [
     name: "pozyczka miedzy graczami",
     category: "ECONOMY_GAMBLING",
     shortDescription: "pozyczka bezpośrednio od innego gracza",
-    description: "Inicjuje prozycję pożyczki bezpośrednio od innego gracza lub pozwala ją zaakceptować/odrzucić. Maksymalna kwota pożyczki to 40% salda pożyczkodawcy.",
-    usage: "!pozyczka @osoba <kwota> <dni_na_splate> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni_pobiera> | !pozyczka acc/dec @lender",
-    examples: ["!pozyczka @Kowalski 10000 10 2000 20 2", "!pozyczka acc @Nowak"],
+    description: "Pozwala zaproponować i wziąć pożyczkę od innego gracza na ustalonych warunkach (liczba rat, raty automatycznie ściągane przez bota o północy, kwota raty, procent kary za brak środków, częstotliwość pobierania oraz łączna kwota do spłaty).",
+    usage: "!pozyczka @osoba <kwota> <ilosc_rat> <ile_bot_pobiera_rat> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni> <ile_do_splaty> | !pozyczka acc/dec @lender | !pozyczka gracz splac <kwota>",
+    examples: ["!pozyczka @Kowalski 10000 5 5 2500 20 2 12500", "!pozyczka acc @Nowak", "!pozyczka gracz splac 2500"],
     cooldown: "Brak.",
-    requirements: "Odpowiedni wiek konta.",
+    requirements: "Odpowiedni wiek konta (>100 komend i >100 wiadomości).",
     aliases: [],
-    additionalInfo: ["Raty pobierane są automatycznie o 00:00 czasu polskiego. Każda spłata raty dolicza dodatkowo 5% odsetek.", "Spóźnienie w spłacie nakłada karę i uruchamia automatyczne zajmowanie zysków na rzecz pożyczkodawcy."]
+    additionalInfo: [
+      "Raty pobierane są automatycznie o 00:00 czasu polskiego do momentu osiągnięcia wybranej liczby pobrań przez bota.",
+      "Brak środków o 00:00 zeruje konto dłużnika, dodaje zdefiniowaną karę % do długu oraz włącza windykację komorniczą ze wszystkich zysków dłużnika.",
+      "Przedwczesna spłata: komendą !pozyczka gracz splac <kwota>. Minimalna wpłata to 1 rata, a przy większej wpłacie musi to być minimum równowartość 2 rat."
+    ]
   }
 ];
 
