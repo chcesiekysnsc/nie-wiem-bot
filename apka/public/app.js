@@ -1,532 +1,323 @@
-// Global state variables
-let availableDrives = [];
-let scanResults = null;
-let selectedItems = [];
-let scanEventSource = null;
-let moveEventSource = null;
+let token = localStorage.getItem('panelToken') || null;
 
-// Initialize on DOM load
-document.addEventListener('DOMContentLoaded', () => {
-  setupNavigation();
-  loadDrives();
-  setupScanOptions();
-  setupEventListeners();
-  initCircularProgress();
+const $ = sel => document.querySelector(sel);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = n => Number(n || 0).toLocaleString('pl-PL');
+
+function toast(msg, isError) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.className = isError ? 'error-toast' : 'ok-toast';
+  setTimeout(() => { el.className = 'hidden'; }, 3500);
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {})
+    }
+  });
+  if (res.status === 401) {
+    logout(false);
+    throw new Error('Sesja wygasła. Zaloguj się ponownie.');
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Błąd ${res.status}`);
+  return data;
+}
+
+function showLogin() {
+  $('#login-view').classList.remove('hidden');
+  $('#panel-view').classList.add('hidden');
+}
+
+function showPanel() {
+  $('#login-view').classList.add('hidden');
+  $('#panel-view').classList.remove('hidden');
+  loadPlayers();
+  refreshStatusBadge();
+}
+
+function logout(callApi = true) {
+  if (callApi && token) api('/api/logout', { method: 'POST' }).catch(() => {});
+  token = null;
+  localStorage.removeItem('panelToken');
+  showLogin();
+}
+
+$('#login-btn').addEventListener('click', async () => {
+  $('#login-error').textContent = '';
+  try {
+    const data = await api('/api/login', {
+      method: 'POST',
+      body: JSON.stringify({ login: $('#login-user').value, password: $('#login-pass').value })
+    });
+    token = data.token;
+    localStorage.setItem('panelToken', token);
+    showPanel();
+  } catch (err) {
+    $('#login-error').textContent = err.message;
+  }
+});
+$('#login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') $('#login-btn').click(); });
+$('#logout-btn').addEventListener('click', () => logout(true));
+
+// ===== ZAKŁADKI =====
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab').forEach(t => t.classList.add('hidden'));
+    $(`#tab-${btn.dataset.tab}`).classList.remove('hidden');
+    if (btn.dataset.tab === 'players') loadPlayers();
+    if (btn.dataset.tab === 'bans') loadBans();
+    if (btn.dataset.tab === 'logs') { loadLogs(); loadActivity(); }
+    if (btn.dataset.tab === 'gangs') loadGangs();
+    if (btn.dataset.tab === 'live') loadLive();
+  });
 });
 
-// 1. Navigation handling
-function setupNavigation() {
-  const navItems = document.querySelectorAll('.nav-item');
-  const sections = document.querySelectorAll('.content-section');
+// ===== GRACZE =====
+let searchTimer = null;
+$('#player-search').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(loadPlayers, 300);
+});
 
-  navItems.forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      const targetId = item.getAttribute('data-target');
-
-      navItems.forEach(nav => nav.classList.remove('active'));
-      item.classList.add('active');
-
-      sections.forEach(section => {
-        section.classList.remove('active');
-        if (section.id === targetId) {
-          section.classList.add('active');
-        }
-      });
-    });
-  });
-}
-
-// 2. Fetch drives
-async function loadDrives() {
-  const container = document.getElementById('drives-container');
-  const selectDest = document.getElementById('select-dest-drive');
-  
+async function loadPlayers() {
   try {
-    const res = await fetch('/api/drives');
-    if (!res.ok) throw new Error('Błąd pobierania dysków');
-    
-    availableDrives = await res.json();
-    container.innerHTML = '';
-    selectDest.innerHTML = '';
-
-    availableDrives.forEach(drive => {
-      const isSystemDrive = drive.letter.toUpperCase() === 'C:';
-      const usedSpace = drive.size - drive.free;
-      const usagePercent = drive.size > 0 ? Math.round((usedSpace / drive.size) * 100) : 0;
-
-      const card = document.createElement('div');
-      card.className = `card drive-card`;
-      card.innerHTML = `
-        <div class="drive-info-row">
-          <div class="drive-letter-badge">${drive.letter}</div>
-          <div class="drive-details">
-            <div class="drive-name">${drive.name}</div>
-            <div class="drive-usage-text">${isSystemDrive ? 'Dysk Systemowy' : 'Dysk Docelowy'}</div>
-          </div>
-        </div>
-        <div class="drive-progress-container">
-          <div class="drive-progress-fill" style="width: ${usagePercent}%"></div>
-        </div>
-        <div class="drive-space-row">
-          <div class="drive-free">Wolne: ${formatBytes(drive.free)}</div>
-          <div class="drive-used">Zajęte: ${formatBytes(usedSpace)} / ${formatBytes(drive.size)}</div>
-        </div>
-      `;
-      container.appendChild(card);
-
-      if (!isSystemDrive) {
-        const option = document.createElement('option');
-        option.value = drive.letter;
-        option.textContent = `${drive.letter} (${drive.name}) - Wolne: ${formatBytes(drive.free)}`;
-        selectDest.appendChild(option);
-      }
-    });
-
-    if (selectDest.options.length === 0 && availableDrives.length > 0) {
-      const option = document.createElement('option');
-      option.value = availableDrives[0].letter;
-      option.textContent = `${availableDrives[0].letter} (Zalecany inny dysk niż systemowy)`;
-      selectDest.appendChild(option);
-    }
-  } catch (err) {
-    container.innerHTML = `<div class="alert alert-warning">Błąd pobierania informacji o dyskach: ${err.message}</div>`;
-  }
+    const search = encodeURIComponent($('#player-search').value.trim());
+    const data = await api(`/api/players?search=${search}&limit=200`);
+    $('#player-count').textContent = `Znaleziono: ${data.total}`;
+    const tbody = $('#players-table tbody');
+    tbody.innerHTML = data.players.map(p => `
+      <tr>
+        <td>${esc(p.name)}</td>
+        <td class="muted">${esc(p.id)}</td>
+        <td>${fmt(p.balance)}</td>
+        <td>${fmt(p.bank)}</td>
+        <td>${p.level}</td>
+        <td>${esc(p.gang || '—')}</td>
+        <td>${fmt(p.commandsUsed)}</td>
+        <td>${fmt(p.itemCount)}</td>
+        <td>${p.trueBlacklisted ? '<span class="badge offline">TrueBL</span>' : ''}${p.blacklisted ? '<span class="badge offline">BL</span>' : ''}${p.isMultiAccount ? '<span class="badge warn">Multi</span>' : ''}</td>
+        <td><button class="small" onclick="openPlayer('${esc(p.id)}')">Edytuj</button></td>
+      </tr>`).join('');
+  } catch (err) { toast(err.message, true); }
 }
 
-// 3. Scan scope options layout toggle
-function setupScanOptions() {
-  const scanRadios = document.querySelectorAll('input[name="scan-type"]');
-  const customPathContainer = document.getElementById('custom-path-container');
-
-  scanRadios.forEach(radio => {
-    radio.addEventListener('change', () => {
-      if (radio.value === 'custom') {
-        customPathContainer.style.display = 'block';
-      } else {
-        customPathContainer.style.display = 'none';
-      }
-    });
-  });
-}
-
-// 4. Setup Event Listeners
-function setupEventListeners() {
-  const btnStartScan = document.getElementById('btn-start-scan');
-  const btnStartMigration = document.getElementById('btn-start-migration');
-
-  btnStartScan.addEventListener('click', startScan);
-  btnStartMigration.addEventListener('click', startMigration);
-}
-
-// 5. Scan trigger
-async function startScan() {
-  let scanPath = '';
-  const selectedType = document.querySelector('input[name="scan-type"]:checked').value;
-
-  if (selectedType === 'custom') {
-    scanPath = document.getElementById('input-scan-path').value.trim();
-    if (!scanPath) {
-      alert('Wpisz ścieżkę do skanowania.');
-      return;
-    }
-  } else {
-    scanPath = selectedType;
-  }
-
-  // Visual transitions
-  document.getElementById('nav-scan').click();
-  document.getElementById('scan-progress-overlay').style.display = 'flex';
-  document.getElementById('scan-results-container').style.display = 'none';
-  document.getElementById('scan-empty-state').style.display = 'none';
-
+window.openPlayer = async function (id) {
   try {
-    const res = await fetch('/api/scan', {
+    const data = await api(`/api/players/${encodeURIComponent(id)}`);
+    const items = Object.entries(data.inventory);
+    $('#modal').innerHTML = `
+      <h3>✏️ ${esc(data.name)} <span class="muted">(${esc(id)})</span></h3>
+      <label>Saldo <input type="number" id="edit-balance" value="${data.user.balance || 0}"></label>
+      <label>Bank <input type="number" id="edit-bank" value="${data.user.bank || 0}"></label>
+      <label>Poziom <input type="number" id="edit-level" value="${data.user.level || 1}"></label>
+      <h4>Ekwipunek</h4>
+      <div id="edit-items">
+        ${items.length ? items.map(([itemId, qty]) => `
+          <label class="item-row">${esc(itemId)} <input type="number" min="0" data-item="${esc(itemId)}" value="${qty}"></label>`).join('') : '<p class="muted">Brak przedmiotów</p>'}
+      </div>
+      <label class="item-row">➕ Dodaj item (ID) <input type="text" id="new-item-id" placeholder="np. czarna_karta"> <input type="number" id="new-item-qty" min="1" value="1"></label>
+      <div class="modal-actions">
+        <button onclick="savePlayer('${esc(id)}')">Zapisz</button>
+        <button class="secondary" onclick="closeModal()">Anuluj</button>
+      </div>`;
+    $('#modal-overlay').classList.remove('hidden');
+  } catch (err) { toast(err.message, true); }
+};
+
+window.savePlayer = async function (id) {
+  try {
+    const items = {};
+    document.querySelectorAll('#edit-items input[data-item]').forEach(inp => {
+      items[inp.dataset.item] = parseInt(inp.value, 10) || 0;
+    });
+    const newItemId = $('#new-item-id').value.trim();
+    if (newItemId) items[newItemId] = parseInt($('#new-item-qty').value, 10) || 1;
+    await api(`/api/players/${encodeURIComponent(id)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: scanPath })
-    });
-
-    if (!res.ok) throw new Error(await res.text());
-
-    if (scanEventSource) scanEventSource.close();
-    scanEventSource = new EventSource('/api/scan/progress');
-
-    scanEventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.active) {
-        document.getElementById('scan-progress-bar').style.width = `${data.progress}%`;
-        document.getElementById('scan-progress-text').textContent = `${data.progress}%`;
-        document.getElementById('scan-progress-subtitle').textContent = data.currentDir;
-      }
-
-      if (!data.active && data.progress === 100) {
-        scanEventSource.close();
-        document.getElementById('scan-progress-overlay').style.display = 'none';
-        
-        if (data.results) {
-          scanResults = data.results;
-          renderScanTree(data.results);
-        } else {
-          document.getElementById('scan-empty-state').style.display = 'flex';
-        }
-      }
-
-      if (data.error) {
-        scanEventSource.close();
-        document.getElementById('scan-progress-overlay').style.display = 'none';
-        alert(`Błąd skanowania: ${data.error}`);
-        document.getElementById('scan-empty-state').style.display = 'flex';
-      }
-    };
-  } catch (err) {
-    document.getElementById('scan-progress-overlay').style.display = 'none';
-    document.getElementById('scan-empty-state').style.display = 'flex';
-    alert(`Błąd podczas skanowania: ${err.message}`);
-  }
-}
-
-// 6. Tree View Rendering
-function renderScanTree(rootNode) {
-  const container = document.getElementById('tree-container');
-  container.innerHTML = '';
-
-  if (!rootNode) {
-    document.getElementById('scan-empty-state').style.display = 'flex';
-    return;
-  }
-
-  document.getElementById('scan-results-container').style.display = 'block';
-
-  // Start recursion
-  renderTreeNode(rootNode, container, 0);
-
-  // Bind first level of checkbox events
-  bindCheckboxEvents(container);
-  calculateSelectedSummary();
-}
-
-function renderTreeNode(node, container, depth = 0) {
-  const itemRow = document.createElement('div');
-  itemRow.className = `tree-node depth-${depth}`;
-  if (node.protected) itemRow.classList.add('node-protected');
-  itemRow.setAttribute('data-path', node.path);
-  itemRow.setAttribute('data-size', node.size);
-  itemRow.setAttribute('data-type', node.type);
-
-  // Styling indentation based on folder tree depth
-  itemRow.style.paddingLeft = `${depth * 20 + 12}px`;
-
-  const arrow = node.type === 'dir' && node.hasChildren
-    ? `<span class="tree-expand-arrow">▶</span>`
-    : `<span class="tree-expand-arrow-placeholder"></span>`;
-
-  const checkbox = `<input type="checkbox" class="tree-checkbox" ${node.protected ? 'disabled' : ''}>`;
-
-  const icon = node.protected 
-    ? '🔒' 
-    : (node.type === 'dir' ? '📁' : '📄');
-
-  itemRow.innerHTML = `
-    <div class="tree-node-left">
-      ${arrow}
-      ${checkbox}
-      <span class="tree-icon">${icon}</span>
-      <span class="tree-label" title="${node.path}">${node.name}</span>
-    </div>
-    <span class="tree-size">${formatBytes(node.size)}</span>
-  `;
-
-  container.appendChild(itemRow);
-
-  // Sibling children wrapper
-  if (node.type === 'dir') {
-    const childrenContainer = document.createElement('div');
-    childrenContainer.className = 'tree-children-container';
-    childrenContainer.style.display = 'none';
-    container.appendChild(childrenContainer);
-
-    // If sub-children are pre-loaded (from backend buildTree up to depth 2)
-    if (node.children && node.children.length > 0) {
-      node.children.forEach(child => {
-        renderTreeNode(child, childrenContainer, depth + 1);
-      });
-
-      const arrowEl = itemRow.querySelector('.tree-expand-arrow');
-      if (arrowEl) {
-        arrowEl.addEventListener('click', () => {
-          const isExpanded = itemRow.classList.toggle('expanded');
-          childrenContainer.style.display = isExpanded ? 'block' : 'none';
-          arrowEl.textContent = isExpanded ? '▼' : '▶';
-        });
-      }
-    } else if (node.hasChildren) {
-      // Lazy load subdirectories when user clicks to expand
-      const arrowEl = itemRow.querySelector('.tree-expand-arrow');
-      if (arrowEl) {
-        let loaded = false;
-        arrowEl.addEventListener('click', async () => {
-          const isExpanded = itemRow.classList.toggle('expanded');
-          arrowEl.textContent = isExpanded ? '▼' : '▶';
-
-          if (isExpanded) {
-            childrenContainer.style.display = 'block';
-            if (!loaded) {
-              childrenContainer.innerHTML = `<div class="tree-loading" style="padding-left: ${(depth + 1) * 20 + 24}px; font-size: 12px; color: var(--text-muted);">Ładowanie folderów...</div>`;
-              try {
-                const res = await fetch(`/api/scan/subdir?path=${encodeURIComponent(node.path)}`);
-                if (!res.ok) throw new Error();
-                const children = await res.json();
-                
-                childrenContainer.innerHTML = '';
-                children.forEach(child => {
-                  renderTreeNode(child, childrenContainer, depth + 1);
-                });
-                
-                loaded = true;
-                bindCheckboxEvents(childrenContainer);
-                
-                // Inherit parent checkbox state for newly loaded children
-                const parentCb = itemRow.querySelector('.tree-checkbox');
-                if (parentCb && parentCb.checked) {
-                  childrenContainer.querySelectorAll('.tree-checkbox:not([disabled])').forEach(ccb => ccb.checked = true);
-                }
-              } catch (e) {
-                childrenContainer.innerHTML = `<div class="tree-error" style="padding-left: ${(depth + 1) * 20 + 24}px; font-size: 12px; color: var(--color-danger);">Nie można załadować zawartości.</div>`;
-              }
-            }
-          } else {
-            childrenContainer.style.display = 'none';
-          }
-        });
-      }
-    }
-  }
-}
-
-// 7. Cascading checkboxes selection
-function bindCheckboxEvents(container) {
-  const checkboxes = container.querySelectorAll('.tree-checkbox');
-  checkboxes.forEach(cb => {
-    if (cb.dataset.bound) return;
-    cb.dataset.bound = 'true';
-
-    cb.addEventListener('change', (e) => {
-      const isChecked = cb.checked;
-      const nodeRow = cb.closest('.tree-node');
-      const siblingContainer = nodeRow.nextElementSibling;
-
-      // 1. Cascade down (check all descendants)
-      if (siblingContainer && siblingContainer.classList.contains('tree-children-container')) {
-        siblingContainer.querySelectorAll('.tree-checkbox:not([disabled])').forEach(ccb => {
-          ccb.checked = isChecked;
-          ccb.indeterminate = false;
-        });
-      }
-
-      // 2. Cascade up (propagate changes to parent categories)
-      updateParentCheckboxes(nodeRow);
-
-      // 3. Update summary
-      calculateSelectedSummary();
-    });
-  });
-}
-
-function updateParentCheckboxes(nodeRow) {
-  const parentContainer = nodeRow.parentElement;
-  if (!parentContainer || !parentContainer.classList.contains('tree-children-container')) return;
-
-  const parentNodeRow = parentContainer.previousElementSibling;
-  if (!parentNodeRow || !parentNodeRow.classList.contains('tree-node')) return;
-
-  const parentCb = parentNodeRow.querySelector('.tree-checkbox');
-  if (!parentCb) return;
-
-  const siblingCbs = parentContainer.querySelectorAll('.tree-node > .tree-node-left > .tree-checkbox');
-  const allChecked = Array.from(siblingCbs).every(scb => scb.checked || scb.disabled);
-  const someChecked = Array.from(siblingCbs).some(scb => scb.checked || scb.indeterminate);
-
-  parentCb.checked = allChecked;
-  parentCb.indeterminate = someChecked && !allChecked;
-
-  // Recurse parents
-  updateParentCheckboxes(parentNodeRow);
-}
-
-// 8. Summarizing selected files sizes
-function calculateSelectedSummary() {
-  selectedItems = [];
-  let totalSize = 0;
-
-  // We only collect the HIGHEST level checked nodes to prevent folder duplication inside move array
-  const allNodes = document.querySelectorAll('.tree-node');
-  allNodes.forEach(nodeEl => {
-    const cb = nodeEl.querySelector('.tree-checkbox');
-    if (cb && cb.checked && !cb.disabled) {
-      if (!isAncestorChecked(nodeEl)) {
-        const path = nodeEl.getAttribute('data-path');
-        const size = parseInt(nodeEl.getAttribute('data-size')) || 0;
-        const name = nodeEl.querySelector('.tree-label').textContent;
-
-        selectedItems.push({ name, path, size });
-        totalSize += size;
-      }
-    }
-  });
-
-  document.getElementById('lbl-selected-count').textContent = selectedItems.length;
-  document.getElementById('lbl-selected-size').textContent = formatBytes(totalSize);
-
-  const btn = document.getElementById('btn-start-migration');
-  if (selectedItems.length === 0) {
-    btn.disabled = true;
-    btn.style.opacity = 0.5;
-  } else {
-    btn.disabled = false;
-    btn.style.opacity = 1;
-  }
-}
-
-function isAncestorChecked(nodeEl) {
-  let parentContainer = nodeEl.parentElement;
-  while (parentContainer && parentContainer.classList.contains('tree-children-container')) {
-    const parentNodeRow = parentContainer.previousElementSibling;
-    if (parentNodeRow && parentNodeRow.classList.contains('tree-node')) {
-      const parentCb = parentNodeRow.querySelector('.tree-checkbox');
-      if (parentCb && parentCb.checked) {
-        return true;
-      }
-      parentContainer = parentNodeRow.parentElement;
-    } else {
-      break;
-    }
-  }
-  return false;
-}
-
-// 9. Migration trigger
-async function startMigration() {
-  if (selectedItems.length === 0) {
-    alert('Wybierz katalogi lub pliki do przeniesienia.');
-    return;
-  }
-
-  const destDrive = document.getElementById('select-dest-drive').value;
-  const destFolder = document.getElementById('input-dest-folder').value.trim();
-  const safeMode = document.getElementById('chk-safe-mode').checked;
-
-  if (!destDrive) {
-    alert('Podłącz i wybierz dysk docelowy.');
-    return;
-  }
-  if (!destFolder) {
-    alert('Wpisz nazwę folderu docelowego.');
-    return;
-  }
-
-  const confirmation = confirm(`Czy na pewno chcesz przenieść te ${selectedItems.length} elementy na dysk docelowy ${destDrive}\\${destFolder}?\n` +
-    (safeMode ? 'Zostanie użyty Bezpieczny Tryb (kopiowanie, weryfikacja bajtowa, usunięcie źródła).' : 'Tryb bezpośredni przeniesie pliki od razu.'));
-
-  if (!confirmation) return;
-
-  document.getElementById('nav-migrate').click();
-  document.getElementById('migration-active-card').style.display = 'block';
-  document.getElementById('migration-empty-state').style.display = 'none';
-
-  const destinationPath = `${destDrive}\\${destFolder}`;
-
-  try {
-    const res = await fetch('/api/move', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        items: selectedItems,
-        destination: destinationPath,
-        safeMode: safeMode
+        balance: $('#edit-balance').value,
+        bank: $('#edit-bank').value,
+        level: $('#edit-level').value,
+        items
       })
     });
+    closeModal();
+    toast('Zapisano zmiany gracza.');
+    loadPlayers();
+  } catch (err) { toast(err.message, true); }
+};
 
-    if (!res.ok) throw new Error(await res.text());
+window.closeModal = function () { $('#modal-overlay').classList.add('hidden'); };
+$('#modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') closeModal(); });
 
-    if (moveEventSource) moveEventSource.close();
-    moveEventSource = new EventSource('/api/move/progress');
-
-    const consoleLog = document.getElementById('migrate-console-log');
-    consoleLog.innerHTML = '';
-
-    moveEventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.active || data.progress === 100) {
-        setCircularProgress(data.progress);
-        document.getElementById('migrate-progress-percent').textContent = `${data.progress}%`;
-        document.getElementById('migrate-current-file').textContent = data.currentFile || 'Analizowanie folderów...';
-        document.getElementById('migrate-speed').textContent = data.speed > 0 ? `${(data.speed / (1024 * 1024)).toFixed(2)} MB/s` : '0 MB/s';
-        document.getElementById('migrate-eta').textContent = data.eta || 'Obliczanie...';
-        
-        consoleLog.innerHTML = '';
-        data.logs.forEach(log => {
-          const div = document.createElement('div');
-          div.textContent = log;
-          if (log.includes('[BŁĄD]')) {
-            div.style.color = 'var(--color-danger)';
-          } else if (log.includes('[Sukces]')) {
-            div.style.color = 'var(--color-success)';
-          } else if (log.includes('Uwaga')) {
-            div.style.color = 'var(--color-warning)';
-          }
-          consoleLog.appendChild(div);
-        });
-        consoleLog.scrollTop = consoleLog.scrollHeight;
-      }
-
-      if (!data.active && data.progress === 100) {
-        moveEventSource.close();
-        document.getElementById('migrate-status-title').textContent = 'Migracja zakończona!';
-        document.getElementById('migrate-current-file').textContent = 'Wybrane elementy zostały bezpiecznie przeniesione.';
-        loadDrives();
-      }
-
-      if (data.error) {
-        moveEventSource.close();
-        document.getElementById('migrate-status-title').textContent = 'Migracja przerwana';
-        document.getElementById('migrate-current-file').style.color = 'var(--color-danger)';
-        document.getElementById('migrate-current-file').textContent = `Błąd: ${data.error}`;
-      }
-    };
-
-  } catch (err) {
-    alert(`Błąd migracji: ${err.message}`);
-  }
+// ===== BANY =====
+async function loadBans() {
+  try {
+    const data = await api('/api/bans');
+    const render = (list, type) => list.length
+      ? list.map(e => `<li>${esc(e.name || e.id)} <span class="muted">${e.name ? esc(e.id) : ''}</span> <button class="small danger" onclick="removeBan('${type}','${esc(e.id)}')">Zdejmij</button></li>`).join('')
+      : '<li class="muted">Pusto</li>';
+    $('#ban-blacklist').innerHTML = render(data.blacklist, 'blacklist');
+    $('#ban-trueblacklist').innerHTML = render(data.trueBlacklist, 'trueBlacklist');
+    $('#ban-multiaccounts').innerHTML = render(data.multiAccounts, 'multiAccount');
+    $('#ban-groups').innerHTML = render(data.blacklistedGroups, 'group');
+  } catch (err) { toast(err.message, true); }
 }
 
-// 10. Circle progress setup
-let progressCircle = null;
-let circumference = 0;
+window.removeBan = async function (type, id) {
+  try {
+    await api('/api/bans/remove', { method: 'POST', body: JSON.stringify({ type, id }) });
+    toast('Blokada zdjęta.');
+    loadBans();
+  } catch (err) { toast(err.message, true); }
+};
 
-function initCircularProgress() {
-  progressCircle = document.getElementById('migrate-circle-progress');
-  if (!progressCircle) return;
-  const radius = progressCircle.r.baseVal.value;
-  circumference = radius * 2 * Math.PI;
-  progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
-  progressCircle.style.strokeDashoffset = circumference;
+// ===== LOGI =====
+$('#log-filter-btn').addEventListener('click', loadLogs);
+
+async function loadLogs() {
+  try {
+    const params = new URLSearchParams({
+      user: $('#log-user').value.trim(),
+      command: $('#log-command').value.trim(),
+      from: $('#log-from').value,
+      to: $('#log-to').value,
+      limit: 300
+    });
+    const data = await api(`/api/logs?${params}`);
+    $('#log-count').textContent = `Wpisów: ${data.total}`;
+    $('#logs-table tbody').innerHTML = data.logs.length ? data.logs.map(l => `
+      <tr>
+        <td>${esc(new Date(l.timestamp).toLocaleString('pl-PL'))}</td>
+        <td>${esc(l.userName || l.userId || '—')}</td>
+        <td><code>!${esc(l.command || l.type || '')}</code></td>
+        <td class="muted">${esc(l.args || '')}</td>
+        <td class="muted">${esc(l.threadId || '')}</td>
+      </tr>`).join('') : '<tr><td colspan="5" class="muted">Brak wpisów (logi zbierane są od momentu aktualizacji bota)</td></tr>';
+  } catch (err) { toast(err.message, true); }
 }
 
-function setCircularProgress(percent) {
-  if (!progressCircle) return;
-  const offset = circumference - (percent / 100) * circumference;
-  progressCircle.style.strokeDashoffset = offset;
+async function loadActivity() {
+  try {
+    const data = await api('/api/logs/activity?days=14');
+    const max = Math.max(1, ...data.activity.map(a => a.count));
+    $('#activity-chart').innerHTML = data.activity.map(a => `
+      <div class="bar-col" title="${a.day}: ${a.count}">
+        <div class="bar" style="height:${Math.round((a.count / max) * 100)}%"></div>
+        <span class="bar-label">${a.day.slice(5)}</span>
+        <span class="bar-value">${a.count}</span>
+      </div>`).join('');
+  } catch (err) { toast(err.message, true); }
 }
 
-// Byte formatter
-function formatBytes(bytes, decimals = 2) {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+// ===== GANGI =====
+async function loadGangs() {
+  try {
+    const data = await api('/api/gangs');
+    $('#gangs-list').innerHTML = data.gangs.length ? data.gangs.map(g => `
+      <div class="card">
+        <h3>🔫 ${esc(g.name)} <span class="muted">(${esc(g.id)})</span></h3>
+        <p>👑 Szef: <b>${esc(g.boss.name)}</b> | Zastępcy: ${g.deputies.map(d => esc(d.name)).join(', ') || '—'}</p>
+        <p>🏚️ Dziupla: ${g.levelDziupla} | 💼 Biznesy: ${g.levelBiznesy} | 🛠️ Fach: ${g.levelFach} | 🤝 Sojusze: ${g.alliances.map(esc).join(', ') || '—'}</p>
+        <div class="gang-edit">
+          <label>Sejf <input type="number" id="gang-vault-${esc(g.id)}" value="${g.vault}"></label>
+          <label>Haracz % <input type="number" min="0" max="100" id="gang-tribute-${esc(g.id)}" value="${g.tributePercent}"></label>
+          <button class="small" onclick="saveGang('${esc(g.id)}')">Zapisz</button>
+          <button class="small danger" onclick="deleteGang('${esc(g.id)}','${esc(g.name)}')">Usuń gang</button>
+        </div>
+        <details>
+          <summary>Członkowie (${g.members.length})</summary>
+          <ul>${g.members.map(m => `<li>${esc(m.name)} <span class="muted">${esc(m.id)}</span> ${m.id !== g.boss.id ? `<button class="small danger" onclick="kickMember('${esc(g.id)}','${esc(m.id)}')">Wyrzuć</button>` : '<span class="badge warn">Szef</span>'}</li>`).join('')}</ul>
+        </details>
+      </div>`).join('') : '<p class="muted">Brak gangów.</p>';
+  } catch (err) { toast(err.message, true); }
 }
+
+window.saveGang = async function (id) {
+  try {
+    await api(`/api/gangs/${encodeURIComponent(id)}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        vault: document.getElementById(`gang-vault-${id}`).value,
+        tributePercent: document.getElementById(`gang-tribute-${id}`).value
+      })
+    });
+    toast('Zapisano gang.');
+    loadGangs();
+  } catch (err) { toast(err.message, true); }
+};
+
+window.kickMember = async function (gangId, memberId) {
+  if (!confirm('Wyrzucić tego członka z gangu?')) return;
+  try {
+    await api(`/api/gangs/${encodeURIComponent(gangId)}`, { method: 'POST', body: JSON.stringify({ removeMember: memberId }) });
+    toast('Wyrzucono członka.');
+    loadGangs();
+  } catch (err) { toast(err.message, true); }
+};
+
+window.deleteGang = async function (gangId, name) {
+  if (!confirm(`Na pewno usunąć gang ${name}? Tej operacji nie można cofnąć.`)) return;
+  try {
+    await api(`/api/gangs/${encodeURIComponent(gangId)}`, { method: 'POST', body: JSON.stringify({ deleteGang: true }) });
+    toast('Gang usunięty.');
+    loadGangs();
+  } catch (err) { toast(err.message, true); }
+};
+
+// ===== LIVE =====
+async function loadLive() {
+  try {
+    const data = await api('/api/status');
+    const bs = data.botStatus || {};
+    $('#live-status').innerHTML = `
+      <h3>📡 Status bota</h3>
+      <p>Status: ${data.online ? '<span class="badge online">ONLINE</span>' : '<span class="badge offline">OFFLINE</span>'}</p>
+      <p>Zalogowany jako: <b>${esc(bs.botId || '—')}</b> | Aktywne grupy: <b>${bs.activeThreads != null ? bs.activeThreads : '—'}</b></p>
+      <p>Ostatni sygnał życia: <b>${bs.lastHeartbeat ? new Date(bs.lastHeartbeat).toLocaleString('pl-PL') : 'brak (bot wymaga aktualizacji lub nie działa)'}</b></p>
+      <p>Gracze: <b>${fmt(data.counts.users)}</b> | Gangi: <b>${fmt(data.counts.gangs)}</b> | Wpisy logów: <b>${fmt(data.counts.logs)}</b> | Zablokowani: <b>${fmt(data.counts.blacklisted)}</b></p>
+      <p class="muted">Oczekujące ogłoszenia: ${data.pendingBroadcasts}</p>`;
+    refreshStatusBadge(data);
+  } catch (err) { toast(err.message, true); }
+}
+
+async function refreshStatusBadge(data) {
+  try {
+    if (!data) data = await api('/api/status');
+    const badge = $('#bot-status-badge');
+    badge.textContent = data.online ? 'Bot: ONLINE' : 'Bot: OFFLINE';
+    badge.className = `badge ${data.online ? 'online' : 'offline'}`;
+  } catch (_) {}
+}
+
+$('#broadcast-btn').addEventListener('click', async () => {
+  const message = $('#broadcast-msg').value.trim();
+  if (!message) return toast('Wpisz treść ogłoszenia.', true);
+  if (!confirm('Wysłać ogłoszenie na wszystkie aktywne grupy?')) return;
+  try {
+    await api('/api/broadcast', { method: 'POST', body: JSON.stringify({ message }) });
+    $('#broadcast-msg').value = '';
+    toast('Ogłoszenie dodane do kolejki — bot wyśle je w ciągu kilkunastu sekund.');
+    loadLive();
+  } catch (err) { toast(err.message, true); }
+});
+
+$('#restart-btn').addEventListener('click', async () => {
+  if (!confirm('Na pewno zrestartować bota?')) return;
+  try {
+    await api('/api/restart', { method: 'POST' });
+    toast('Żądanie restartu wysłane — bot zrestartuje się w ciągu kilkunastu sekund.');
+  } catch (err) { toast(err.message, true); }
+});
+
+setInterval(() => { if (token && !$('#panel-view').classList.contains('hidden')) refreshStatusBadge(); }, 30000);
+
+if (token) showPanel(); else showLogin();
