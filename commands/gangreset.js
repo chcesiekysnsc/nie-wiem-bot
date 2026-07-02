@@ -15,9 +15,10 @@ module.exports = {
       for (const gangId of Object.keys(store.profiles.gangs)) {
         store.profiles.gangs[gangId].lastHeistTime = 0;
         store.profiles.gangs[gangId].lastAttackTime = 0;
+        store.profiles.gangs[gangId].lastSupportTime = 0;
       }
     });
 
-    await message.reply('✅ Pomyślnie zresetowano cooldowny skoków i ataków dla wszystkich gangów!');
+    await message.reply('✅ Pomyślnie zresetowano cooldowny skoków, ataków i wsparcia dla wszystkich gangów!');
   }
 };

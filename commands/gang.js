@@ -990,12 +990,7 @@ module.exports = {
         }
       }
 
-      // Ustaw czas ostatniego wsparcia dla sojuszniczego gangu
-      await withData(store => {
-        if (store.profiles.gangs[supportResult.targetGangId]) {
-          store.profiles.gangs[supportResult.targetGangId].lastSupportTime = Date.now();
-        }
-      });
+      // Nie ustawiamy lastSupportTime tutaj - tylko gdy ktoś faktycznie dołączy do skoku
 
       // Wyślij powiadomienie do grupy sojuszniczego gangu
       try {
@@ -1070,12 +1065,22 @@ module.exports = {
           }
 
           activeHeist.participants.add(message.author.id);
-          return { success: true, count: activeHeist.participants.size, gangName: heistGangName, isAlly: heistGangId !== user.gangId };
+          return { success: true, count: activeHeist.participants.size, gangName: heistGangName, isAlly: heistGangId !== user.gangId, userGangId: user.gangId, heistGangId: heistGangId };
         });
 
         if (getJoinRes.error) {
           await message.reply(getJoinRes.error);
           return;
+        }
+
+        // Jeśli dołączasz jako wsparcie sojuszniczego gangu, ustaw lastSupportTime
+        if (getJoinRes.isAlly) {
+          await withData(store => {
+            if (store.profiles.gangs[getJoinRes.userGangId]) {
+              store.profiles.gangs[getJoinRes.userGangId].lastSupportTime = Date.now();
+              console.log(`[GANG SKOK] Ustawiono lastSupportTime dla gangu ${getJoinRes.userGangId} (dołączył jako wsparcie)`);
+            }
+          });
         }
 
         const allyText = getJoinRes.isAlly ? ` (wsparcie dla gangu **${getJoinRes.gangName}**)` : '';
