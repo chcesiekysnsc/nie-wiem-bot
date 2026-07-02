@@ -29,8 +29,8 @@ module.exports = {
 
     const chosenNumber = Math.floor(Number(rawNum));
     const isCreator = message.author.id === '100060812419294';
-    if (isNaN(chosenNumber) || chosenNumber < (isCreator ? 1 : 5) || chosenNumber > 90) {
-      await message.reply('❌ Wybierz liczbę od **5 do 90** (np. **!bet 1000 50**).');
+    if (isNaN(chosenNumber) || chosenNumber < (isCreator ? 1 : 1) || chosenNumber > 90) {
+      await message.reply('❌ Wybierz liczbę od **1 do 90** (np. **!bet 1000 50**).');
       return;
     }
 
