@@ -959,6 +959,7 @@ module.exports = {
 
         return {
           success: true,
+          myGangId: user.gangId,
           myGangName: myGang.name,
           targetGangName: targetGang.name,
           targetGangId: targetGangId,
@@ -985,12 +986,7 @@ module.exports = {
         heist.supportedGangs = heist.supportedGangs || [];
         if (!heist.supportedGangs.includes(supportResult.targetGangId)) {
           heist.supportedGangs.push(supportResult.targetGangId);
-          await message.reply(`🔧 DEBUG: Dodano gang ${supportResult.targetGangId} do supportedGangs skoku gangu ${supportResult.myGangId}`);
-        } else {
-          await message.reply(`🔧 DEBUG: Gang ${supportResult.targetGangId} już jest w supportedGangs`);
         }
-      } else {
-        await message.reply(`🔧 DEBUG: Nie znaleziono skoku dla gangu ${supportResult.myGangId}`);
       }
 
       // Nie ustawiamy lastSupportTime tutaj - tylko gdy ktoś faktycznie dołączy do skoku
@@ -998,24 +994,22 @@ module.exports = {
       // Wyślij powiadomienie do grupy sojuszniczego gangu
       try {
         // Pobierz nazwy członków sojuszniczego gangu do oznaczenia
-        const memberTags = await Promise.all(
-          supportResult.targetMembers.map(async memberId => {
-            try {
-              const member = await client.resolveUserName(memberId);
-              return `@${member}`;
-            } catch {
-              return null;
-            }
-          })
-        );
+        const validMentions = [];
+        for (const memberId of supportResult.targetMembers) {
+          try {
+            const memberName = await client.resolveUserName(memberId);
+            validMentions.push({ tag: `@${memberName}`, id: memberId });
+          } catch {}
+        }
 
-        const validMentions = memberTags.filter(tag => tag !== null);
-        
+        const mentionLine = validMentions.map(m => m.tag).join(' ');
+
         const notifyMsg = `🤝 **WSPIERANIE SKOKU GANGU** 🤝\n\n` +
           `Gang **${supportResult.myGangName}** prosi o wsparcie w skoku!\n` +
           `📊 Obecnie zapisanych uczestników: **${supportResult.participantsCount}**\n\n` +
-          `👥 Członkowie gangu **${supportResult.targetGangName}** mogą dołączyć do skoku wpisem:\n` +
-          `**!gang skok dolacz** (lub **!gang skok d**)\n\n` +
+          `👥 Członkowie gangu **${supportResult.targetGangName}** mogą wesprzeć skok wpisem:\n` +
+          `**!gang wesprzyj**\n\n` +
+          (mentionLine ? `${mentionLine}\n\n` : '') +
           `⚠️ *Wymagane minimum 100 komend. Więcej uczestników = większy łup!*`;
 
         client.api.sendMessage({
@@ -1027,6 +1021,71 @@ module.exports = {
         console.error('[GANG WSPIERANIE] Błąd wysyłania powiadomienia:', err);
         await message.reply(`⚠️ Wysłano prośbę o wsparcie, ale wystąpił błąd podczas wysyłania powiadomienia do gangu **${supportResult.targetGangName}**.`);
       }
+      return;
+    }
+
+    // ==========================================
+    // 9b. WESPRZYJ (dołączenie do skoku sojusznika)
+    // ==========================================
+    if (sub === 'wesprzyj') {
+      const joinRes = await withData(store => {
+        store.profiles.gangs = store.profiles.gangs || {};
+        const user = createUser(message.author.id, store.users);
+
+        if (user.jailUntil && user.jailUntil > Date.now()) {
+          return { error: '❌ Jesteś w więzieniu i nie możesz brać udziału w skokach!' };
+        }
+
+        if (!user.gangId || !store.profiles.gangs[user.gangId]) {
+          return { error: '❌ Nie należysz do żadnego gangu.' };
+        }
+
+        if (user.commandsUsed < 100) {
+          return { error: '❌ Musisz mieć użyte minimum 100 komend, aby wesprzeć skok gangu.' };
+        }
+
+        const myGang = store.profiles.gangs[user.gangId];
+        const alliances = myGang.alliances || [];
+
+        let activeHeist = null;
+        let heistGangName = null;
+        for (const allianceGangId of alliances) {
+          const allianceHeist = client.gangHeists.get(allianceGangId);
+          if (allianceHeist && allianceHeist.supportedGangs && allianceHeist.supportedGangs.includes(user.gangId)) {
+            activeHeist = allianceHeist;
+            heistGangName = store.profiles.gangs[allianceGangId].name;
+            break;
+          }
+        }
+
+        if (!activeHeist) {
+          return { error: '❌ Żaden sojuszniczy gang nie prosi obecnie o wsparcie w skoku.' };
+        }
+
+        return { userGangId: user.gangId, activeHeist, heistGangName };
+      });
+
+      if (joinRes.error) {
+        await message.reply(joinRes.error);
+        return;
+      }
+
+      const { activeHeist, heistGangName, userGangId } = joinRes;
+
+      if (activeHeist.participants.has(message.author.id)) {
+        await message.reply('❌ Już bierzesz udział w tym skoku.');
+        return;
+      }
+
+      activeHeist.participants.add(message.author.id);
+
+      await withData(store => {
+        if (store.profiles.gangs[userGangId]) {
+          store.profiles.gangs[userGangId].lastSupportTime = Date.now();
+        }
+      });
+
+      await message.reply(`🚗 Dołączyłeś do skoku jako wsparcie dla gangu **${heistGangName}**! Obecnie zapisanych graczy: **${activeHeist.participants.size}**.`);
       return;
     }
 
@@ -1055,59 +1114,20 @@ module.exports = {
           }
 
           // Sprawdź czy własny gang ma aktywny skok
-          let activeHeist = client.gangHeists.get(user.gangId);
-          let heistGangId = user.gangId;
-          let heistGangName = store.profiles.gangs[user.gangId].name;
-          let debugInfo = [];
-
-          // Jeśli nie, sprawdź czy któryś sojuszniczy gang ma aktywny skok z wsparciem
-          if (!activeHeist) {
-            const myGang = store.profiles.gangs[user.gangId];
-            const alliances = myGang.alliances || [];
-            
-            debugInfo.push(`Twój gang ${user.gangId} nie ma skoku. Sprawdzam sojusze: ${alliances.join(', ')}`);
-            
-            for (const allianceGangId of alliances) {
-              const allianceHeist = client.gangHeists.get(allianceGangId);
-              debugInfo.push(`Sprawdzam gang sojuszniczy ${allianceGangId}, ma skok: ${!!allianceHeist}`);
-              if (allianceHeist) {
-                debugInfo.push(`Skok ma supportedGangs: ${allianceHeist.supportedGangs ? allianceHeist.supportedGangs.join(', ') : 'brak'}`);
-                debugInfo.push(`Czy mój gang ${user.gangId} jest w supportedGangs: ${allianceHeist.supportedGangs?.includes(user.gangId)}`);
-              }
-              if (allianceHeist && allianceHeist.supportedGangs && allianceHeist.supportedGangs.includes(user.gangId)) {
-                activeHeist = allianceHeist;
-                heistGangId = allianceGangId;
-                heistGangName = store.profiles.gangs[allianceGangId].name;
-                debugInfo.push(`Znaleziono skok sojuszniczy gangu ${allianceGangId}`);
-                break;
-              }
-            }
-          }
+          const activeHeist = client.gangHeists.get(user.gangId);
 
           return {
             activeHeist,
-            heistGangId,
-            heistGangName,
-            debugInfo,
-            error: !activeHeist ? '❌ Twój gang ani żaden sojuszniczy gang nie prowadzi obecnie przygotowań do skoku z wsparciem. Boss lub Zastępca musi wpisać **!gang skok**.' : null
+            error: !activeHeist ? '❌ Twój gang nie prowadzi obecnie przygotowań do skoku. Boss lub Zastępca musi wpisać **!gang skok**. Jeśli chcesz wesprzeć skok sojuszniczego gangu, wpisz **!gang wesprzyj**.' : null
           };
         });
 
         if (getJoinRes.error) {
           await message.reply(getJoinRes.error);
-          if (getJoinRes.debugInfo && getJoinRes.debugInfo.length > 0) {
-            await message.reply(`🔧 DEBUG INFO:\n${getJoinRes.debugInfo.join('\n')}`);
-          }
           return;
         }
 
-        if (getJoinRes.debugInfo && getJoinRes.debugInfo.length > 0) {
-          await message.reply(`🔧 DEBUG INFO:\n${getJoinRes.debugInfo.join('\n')}`);
-        }
-
         const activeHeist = getJoinRes.activeHeist;
-        const heistGangId = getJoinRes.heistGangId;
-        const heistGangName = getJoinRes.heistGangName;
 
         if (activeHeist.participants.has(message.author.id)) {
           await message.reply('❌ Już bierzesz udział w tym skoku.');
@@ -1116,17 +1136,7 @@ module.exports = {
 
         activeHeist.participants.add(message.author.id);
 
-        // Jeśli dołączasz jako wsparcie sojuszniczego gangu, ustaw lastSupportTime
-        if (heistGangId !== user.gangId) {
-          await withData(store => {
-            if (store.profiles.gangs[user.gangId]) {
-              store.profiles.gangs[user.gangId].lastSupportTime = Date.now();
-            }
-          });
-        }
-
-        const allyText = heistGangId !== user.gangId ? ` (wsparcie dla gangu **${heistGangName}**)` : '';
-        await message.reply(`🚗 Dołączyłeś do przygotowań${allyText}! Obecnie zapisanych graczy: **${activeHeist.participants.size}**.`);
+        await message.reply(`🚗 Dołączyłeś do przygotowań! Obecnie zapisanych graczy: **${activeHeist.participants.size}**.`);
         return;
       }
 
@@ -1886,7 +1896,7 @@ module.exports = {
     let targetParam = null;
     if (sub === 'info') {
       targetParam = args.slice(1).join(' ').trim() || null;
-    } else if (!['stworz', 'zapros', 'dolacz', 'akceptuj', 'awans', 'wyrzuc', 'opusc', 'wplac', 'wyplac', 'ulepsz', 'skok', 'haracz', 'atak', 'wojna', 'wsparcie'].includes(sub)) {
+    } else if (!['stworz', 'zapros', 'dolacz', 'akceptuj', 'awans', 'wyrzuc', 'opusc', 'wplac', 'wyplac', 'ulepsz', 'skok', 'haracz', 'atak', 'wojna', 'wsparcie', 'wesprzyj'].includes(sub)) {
       targetParam = args.join(' ').trim() || null;
     }
 
