@@ -2493,32 +2493,27 @@ login({ appState }, (loginErr, api) => {
   });
 });
 
-// Serwer HTTP dla sprawdzenia poprawnosci działania (Railway Health Check) i pobierania kopii
+// Serwer HTTP: panel administratora (apka/), health check (Railway) i pobieranie kopii
 const PORT = process.env.PORT || 8080;
-http.createServer((req, res) => {
-  try {
-    const parsed = new URL(req.url, 'http://localhost');
-    if (parsed.pathname === '/backup') {
-      const key = parsed.searchParams.get('key');
-      if (global.backupKey && key === global.backupKey && global.latestBackup) {
-        res.writeHead(200, {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="backup_database.json"'
-        });
-        res.end(global.latestBackup);
-        return;
-      } else {
-        res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('Forbidden: Błędny lub przestarzały klucz kopii zapasowej.');
-        return;
-      }
-    }
-  } catch (err) {
-    console.error('[HTTP-SERVER] Error handling request:', err);
-  }
+const panelApp = require('./apka/server.js');
 
-  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-  res.end('Messenger casino self-bot is running.');
-}).listen(PORT, '0.0.0.0', () => {
-  console.log(`[SELF-BOT] Dummy health check server listening on port ${PORT}`);
+panelApp.get('/backup', (req, res) => {
+  const key = req.query.key;
+  if (global.backupKey && key === global.backupKey && global.latestBackup) {
+    res.set({
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="backup_database.json"'
+    });
+    res.send(global.latestBackup);
+  } else {
+    res.status(403).type('text/plain').send('Forbidden: Błędny lub przestarzały klucz kopii zapasowej.');
+  }
+});
+
+panelApp.get('/health', (req, res) => {
+  res.type('text/plain').send('Messenger casino self-bot is running.');
+});
+
+panelApp.listen(PORT, '0.0.0.0', () => {
+  console.log(`[SELF-BOT] Serwer HTTP (panel administratora + health check) nasłuchuje na porcie ${PORT}`);
 });
