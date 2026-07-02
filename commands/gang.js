@@ -985,7 +985,12 @@ module.exports = {
         heist.supportedGangs = heist.supportedGangs || [];
         if (!heist.supportedGangs.includes(supportResult.targetGangId)) {
           heist.supportedGangs.push(supportResult.targetGangId);
+          await message.reply(`🔧 DEBUG: Dodano gang ${supportResult.targetGangId} do supportedGangs skoku gangu ${supportResult.myGangId}`);
+        } else {
+          await message.reply(`🔧 DEBUG: Gang ${supportResult.targetGangId} już jest w supportedGangs`);
         }
+      } else {
+        await message.reply(`🔧 DEBUG: Nie znaleziono skoku dla gangu ${supportResult.myGangId}`);
       }
 
       // Nie ustawiamy lastSupportTime tutaj - tylko gdy ktoś faktycznie dołączy do skoku
@@ -1053,51 +1058,75 @@ module.exports = {
           let activeHeist = client.gangHeists.get(user.gangId);
           let heistGangId = user.gangId;
           let heistGangName = store.profiles.gangs[user.gangId].name;
+          let debugInfo = [];
 
           // Jeśli nie, sprawdź czy któryś sojuszniczy gang ma aktywny skok z wsparciem
           if (!activeHeist) {
             const myGang = store.profiles.gangs[user.gangId];
             const alliances = myGang.alliances || [];
             
+            debugInfo.push(`Twój gang ${user.gangId} nie ma skoku. Sprawdzam sojusze: ${alliances.join(', ')}`);
+            
             for (const allianceGangId of alliances) {
               const allianceHeist = client.gangHeists.get(allianceGangId);
+              debugInfo.push(`Sprawdzam gang sojuszniczy ${allianceGangId}, ma skok: ${!!allianceHeist}`);
+              if (allianceHeist) {
+                debugInfo.push(`Skok ma supportedGangs: ${allianceHeist.supportedGangs ? allianceHeist.supportedGangs.join(', ') : 'brak'}`);
+                debugInfo.push(`Czy mój gang ${user.gangId} jest w supportedGangs: ${allianceHeist.supportedGangs?.includes(user.gangId)}`);
+              }
               if (allianceHeist && allianceHeist.supportedGangs && allianceHeist.supportedGangs.includes(user.gangId)) {
                 activeHeist = allianceHeist;
                 heistGangId = allianceGangId;
                 heistGangName = store.profiles.gangs[allianceGangId].name;
+                debugInfo.push(`Znaleziono skok sojuszniczy gangu ${allianceGangId}`);
                 break;
               }
             }
           }
 
-          if (!activeHeist) {
-            return { error: '❌ Twój gang ani żaden sojuszniczy gang nie prowadzi obecnie przygotowań do skoku z wsparciem. Boss lub Zastępca musi wpisać **!gang skok**.' };
-          }
-
-          if (activeHeist.participants.has(message.author.id)) {
-            return { error: '❌ Już bierzesz udział w tym skoku.' };
-          }
-
-          activeHeist.participants.add(message.author.id);
-          return { success: true, count: activeHeist.participants.size, gangName: heistGangName, isAlly: heistGangId !== user.gangId, userGangId: user.gangId, heistGangId: heistGangId };
+          return {
+            activeHeist,
+            heistGangId,
+            heistGangName,
+            debugInfo,
+            error: !activeHeist ? '❌ Twój gang ani żaden sojuszniczy gang nie prowadzi obecnie przygotowań do skoku z wsparciem. Boss lub Zastępca musi wpisać **!gang skok**.' : null
+          };
         });
 
         if (getJoinRes.error) {
           await message.reply(getJoinRes.error);
+          if (getJoinRes.debugInfo && getJoinRes.debugInfo.length > 0) {
+            await message.reply(`🔧 DEBUG INFO:\n${getJoinRes.debugInfo.join('\n')}`);
+          }
           return;
         }
 
+        if (getJoinRes.debugInfo && getJoinRes.debugInfo.length > 0) {
+          await message.reply(`🔧 DEBUG INFO:\n${getJoinRes.debugInfo.join('\n')}`);
+        }
+
+        const activeHeist = getJoinRes.activeHeist;
+        const heistGangId = getJoinRes.heistGangId;
+        const heistGangName = getJoinRes.heistGangName;
+
+        if (activeHeist.participants.has(message.author.id)) {
+          await message.reply('❌ Już bierzesz udział w tym skoku.');
+          return;
+        }
+
+        activeHeist.participants.add(message.author.id);
+
         // Jeśli dołączasz jako wsparcie sojuszniczego gangu, ustaw lastSupportTime
-        if (getJoinRes.isAlly) {
+        if (heistGangId !== user.gangId) {
           await withData(store => {
-            if (store.profiles.gangs[getJoinRes.userGangId]) {
-              store.profiles.gangs[getJoinRes.userGangId].lastSupportTime = Date.now();
+            if (store.profiles.gangs[user.gangId]) {
+              store.profiles.gangs[user.gangId].lastSupportTime = Date.now();
             }
           });
         }
 
-        const allyText = getJoinRes.isAlly ? ` (wsparcie dla gangu **${getJoinRes.gangName}**)` : '';
-        await message.reply(`🚗 Dołączyłeś do przygotowań${allyText}! Obecnie zapisanych graczy: **${getJoinRes.count}**.`);
+        const allyText = heistGangId !== user.gangId ? ` (wsparcie dla gangu **${heistGangName}**)` : '';
+        await message.reply(`🚗 Dołączyłeś do przygotowań${allyText}! Obecnie zapisanych graczy: **${activeHeist.participants.size}**.`);
         return;
       }
 
