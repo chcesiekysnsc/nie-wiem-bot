@@ -1,6 +1,19 @@
 const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
+function notifySupportThreads(client, heist, msg) {
+  if (!client.api || !heist || !Array.isArray(heist.supportThreads)) return;
+  for (const threadId of heist.supportThreads) {
+    if (threadId && threadId !== heist.originThreadId) {
+      try {
+        client.api.sendMessage(msg, threadId);
+      } catch (err) {
+        console.error('[GANG SKOK] Błąd powiadomienia grupy wsparcia:', err);
+      }
+    }
+  }
+}
+
 module.exports = {
   name: 'gang',
   aliases: ['gangi'],
@@ -987,6 +1000,10 @@ module.exports = {
         if (!heist.supportedGangs.includes(supportResult.targetGangId)) {
           heist.supportedGangs.push(supportResult.targetGangId);
         }
+        heist.supportThreads = heist.supportThreads || [];
+        if (supportResult.bestThread && !heist.supportThreads.includes(supportResult.bestThread)) {
+          heist.supportThreads.push(supportResult.bestThread);
+        }
       }
 
       // Nie ustawiamy lastSupportTime tutaj - tylko gdy ktoś faktycznie dołączy do skoku
@@ -1193,7 +1210,9 @@ module.exports = {
       client.gangHeists.set(startResult.gangId, {
         initiatorId: message.author.id,
         participants: new Set([message.author.id]),
-        endTime: Date.now() + 120000
+        endTime: Date.now() + 120000,
+        originThreadId: message.guild?.id || message.rawEvent?.threadID || null,
+        supportThreads: []
       });
 
       const memberTags = [];
@@ -1218,7 +1237,7 @@ module.exports = {
           `🚗 Wszyscy członkowie gangu mają **2 minuty**, aby dołączyć do akcji!\n` +
           `Członkowie: ${tagsString}\n\n` +
           `Wpisz: **!gang skok dolacz** (lub **!gang skok d**), aby wziąć udział.\n\n` +
-          `⚠️ *Wymagane minimum 2 osoby (każdy min. 100 komend). Szansa na powodzenie: 50%. Wielkość łupu zależy od liczby uczestników (stacja paliw: 50k-150k, jubiler: 150k-300k, posiadłość: 300k-500k, bank: 500k-800k).*`,
+          `⚠️ *Wymagane minimum 2 osoby (każdy min. 100 komend). Szansa na powodzenie: 50%. Wielkość łupu zależy od liczby uczestników (2-4: stacja paliw 50k-150k, 5-8: jubiler 150k-300k, 9-12: posiadłość 300k-500k, 13+: bank 500k-800k).*`,
         mentions: memberTags
       };
 
@@ -1271,19 +1290,19 @@ module.exports = {
           let maxReward = 400000;
           let heistType = 'Napad';
 
-          if (count >= 2 && count <= 3) {
+          if (count >= 2 && count <= 4) {
             heistType = 'Napad na stację paliw';
             minReward = 50000;
             maxReward = 150000;
-          } else if (count >= 4 && count <= 6) {
+          } else if (count >= 5 && count <= 8) {
             heistType = 'Napad na jubilera';
             minReward = 150000;
             maxReward = 300000;
-          } else if (count >= 7 && count <= 10) {
+          } else if (count >= 9 && count <= 12) {
             heistType = 'Napad na posiadłość';
             minReward = 300000;
             maxReward = 500000;
-          } else if (count >= 11) {
+          } else if (count >= 13) {
             heistType = 'Napad na bank';
             minReward = 500000;
             maxReward = 800000;
@@ -1369,14 +1388,18 @@ module.exports = {
             bonusText = `\n\n✨ **Bonusy z przedmiotów:**\n` + bonusPlayers.join('\n');
           }
 
-          await message.reply(`💰 **SKOK GANGU ZAKOŃCZONY SUKCESEM!** 💰\n` +
+          const successMsg = `💰 **SKOK GANGU ZAKOŃCZONY SUKCESEM!** 💰\n` +
             `Ekipa w składzie: **${names}** przeprowadziła pomyślnie: **${heistOutcome.heistType}**!\n\n` +
             `💵 Całkowity łup: **${formatCurrency(heistOutcome.totalReward)}**\n` +
-            `💸 Każdy z uczestników otrzymuje: **+${formatCurrency(finalRewardPerPerson)}**${tributeText}${bonusText}`);
+            `💸 Każdy z uczestników otrzymuje: **+${formatCurrency(finalRewardPerPerson)}**${tributeText}${bonusText}`;
+          await message.reply(successMsg);
+          notifySupportThreads(client, heist, successMsg);
         } else {
-          await message.reply(`🚨 **SKOK ZAKOŃCZYŁ SIĘ WPADKĄ!** 🚨\n` +
+          const failMsg = `🚨 **SKOK ZAKOŃCZYŁ SIĘ WPADKĄ!** 🚨\n` +
             `Ekipa w składzie: **${names}** została osaczona przez policję.\n\n` +
-            `💥 Akcja spaliła na panewce. Nikt nic nie zarobił, a krupier nałożył 1h cooldownu na kolejne skoki.`);
+            `💥 Akcja spaliła na panewce. Nikt nic nie zarobił, a krupier nałożył 1h cooldownu na kolejne skoki.`;
+          await message.reply(failMsg);
+          notifySupportThreads(client, heist, failMsg);
         }
       }, 120000).unref();
 
