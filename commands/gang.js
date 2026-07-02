@@ -985,6 +985,8 @@ module.exports = {
         heist.supportedGangs = heist.supportedGangs || [];
         if (!heist.supportedGangs.includes(supportResult.targetGangId)) {
           heist.supportedGangs.push(supportResult.targetGangId);
+          console.log(`[GANG WSPIERANIE] Dodano wsparcie: ${supportResult.myGangId} <- ${supportResult.targetGangId}`);
+          console.log(`[GANG WSPIERANIE] supportedGangs:`, heist.supportedGangs);
         }
       }
 
@@ -1053,6 +1055,7 @@ module.exports = {
                 activeHeist = allianceHeist;
                 heistGangId = allianceGangId;
                 heistGangName = store.profiles.gangs[allianceGangId].name;
+                console.log(`[GANG SKOK] Użytkownik ${user.gangId} dołącza do skoku sojuszniczego gangu ${allianceGangId}`);
                 break;
               }
             }
