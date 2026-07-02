@@ -985,8 +985,6 @@ module.exports = {
         heist.supportedGangs = heist.supportedGangs || [];
         if (!heist.supportedGangs.includes(supportResult.targetGangId)) {
           heist.supportedGangs.push(supportResult.targetGangId);
-          console.log(`[GANG WSPIERANIE] Dodano wsparcie: ${supportResult.myGangId} <- ${supportResult.targetGangId}`);
-          console.log(`[GANG WSPIERANIE] supportedGangs:`, heist.supportedGangs);
         }
       }
 
@@ -1061,20 +1059,12 @@ module.exports = {
             const myGang = store.profiles.gangs[user.gangId];
             const alliances = myGang.alliances || [];
             
-            console.log(`[GANG SKOK] Sprawdzam sojusze dla gangu ${user.gangId}:`, alliances);
-            
             for (const allianceGangId of alliances) {
               const allianceHeist = client.gangHeists.get(allianceGangId);
-              console.log(`[GANG SKOK] Sprawdzam gang ${allianceGangId}, ma skok:`, !!allianceHeist);
-              if (allianceHeist) {
-                console.log(`[GANG SKOK] Skok ma supportedGangs:`, allianceHeist.supportedGangs);
-                console.log(`[GANG SKOK] Czy mój gang jest w supportedGangs:`, allianceHeist.supportedGangs?.includes(user.gangId));
-              }
               if (allianceHeist && allianceHeist.supportedGangs && allianceHeist.supportedGangs.includes(user.gangId)) {
                 activeHeist = allianceHeist;
                 heistGangId = allianceGangId;
                 heistGangName = store.profiles.gangs[allianceGangId].name;
-                console.log(`[GANG SKOK] Użytkownik ${user.gangId} dołącza do skoku sojuszniczego gangu ${allianceGangId}`);
                 break;
               }
             }
@@ -1102,7 +1092,6 @@ module.exports = {
           await withData(store => {
             if (store.profiles.gangs[getJoinRes.userGangId]) {
               store.profiles.gangs[getJoinRes.userGangId].lastSupportTime = Date.now();
-              console.log(`[GANG SKOK] Ustawiono lastSupportTime dla gangu ${getJoinRes.userGangId} (dołączył jako wsparcie)`);
             }
           });
         }
