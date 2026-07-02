@@ -1135,7 +1135,7 @@ module.exports = {
           await message.reply(`💰 **SKOK GANGU ZAKOŃCZONY SUKCESEM!** 💰\n` +
             `Ekipa w składzie: **${names}** przeprowadziła pomyślnie: **${heistOutcome.heistType}**!\n\n` +
             `💵 Całkowity łup: **${formatCurrency(heistOutcome.totalReward)}**\n` +
-            `💸 Każdy z uczestników otrzymuje: **+${formatCurrency(finalRewardPerPerson)}** (brutto: ${formatCurrency(heistOutcome.rewardPerPerson)})${tributeText}${bonusText}`);
+            `💸 Każdy z uczestników otrzymuje: **+${formatCurrency(finalRewardPerPerson)}**${tributeText}${bonusText}`);
         } else {
           await message.reply(`🚨 **SKOK ZAKOŃCZYŁ SIĘ WPADKĄ!** 🚨\n` +
             `Ekipa w składzie: **${names}** została osaczona przez policję.\n\n` +
