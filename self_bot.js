@@ -55,7 +55,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 const config = require('./config/config');
-const { ensureDataFiles, withData, createUser } = require('./utils/storage');
+const { ensureDataFiles, withData, createUser, appendLog } = require('./utils/storage');
 const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
@@ -616,6 +616,36 @@ login({ appState }, (loginErr, api) => {
       console.error('[SELF-BOT] Blad podczas odzyskiwania zakladow:', err);
     });
   }, 3000);
+
+  // Pętla panelu administratora: heartbeat statusu + obsługa ogłoszeń i restartu z panelu (apka/)
+  setInterval(() => {
+    withData(store => {
+      store.profiles.botStatus = {
+        loggedIn: !!client.api,
+        botId: botId || null,
+        activeThreads: client.activeThreadIds.size,
+        lastHeartbeat: Date.now()
+      };
+      const broadcasts = Array.isArray(store.profiles.pendingAdminBroadcasts) ? store.profiles.pendingAdminBroadcasts : [];
+      store.profiles.pendingAdminBroadcasts = [];
+      const restart = store.profiles.pendingAdminRestart === true;
+      store.profiles.pendingAdminRestart = false;
+      return { broadcasts, restart };
+    }).then(({ broadcasts, restart }) => {
+      for (const b of broadcasts) {
+        const msg = `📢 **OGŁOSZENIE ADMINISTRACJI:**\n\n${b.message}`;
+        for (const t of Array.from(client.activeThreadIds)) {
+          try { api.sendMessage(msg, t); } catch (err) {
+            console.error('[ADMIN-PANEL] Błąd wysyłania ogłoszenia:', err);
+          }
+        }
+      }
+      if (restart) {
+        console.log('[ADMIN-PANEL] Restart zażądany z panelu — zamykanie procesu...');
+        setTimeout(() => process.exit(0), 1000);
+      }
+    }).catch(err => console.error('[ADMIN-PANEL] Błąd pętli panelu:', err));
+  }, 10000);
 
 
 
@@ -2443,6 +2473,17 @@ login({ appState }, (loginErr, api) => {
       }
 
       await command.execute(client, messageContext, args);
+
+      withData(store => {
+        appendLog(store.logs, {
+          type: 'command',
+          userId: senderId,
+          userName: client.userNames.get(senderId) || null,
+          command: command.name,
+          args: args.slice(0, 5).join(' '),
+          threadId
+        });
+      }).catch(() => null);
     } catch (cmdErr) {
       console.error(`[SELF-BOT] Blad komendy: ${commandName}`, cmdErr);
       await messageContext.reply({

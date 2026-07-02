@@ -1,7 +1,7 @@
 {
-  "name": "disk-migrator",
+  "name": "admin-panel",
   "version": "1.0.0",
-  "description": "Asystent Czyszczenia i Migracji Dysku dla Windows",
+  "description": "Panel webowy administratora bota Messenger",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

@@ -3,271 +3,111 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Asystent Czyszczenia i Analizy Dysku C</title>
+  <title>Panel Administratora Bota</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="app-container">
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="logo-icon">▲</div>
-        <div class="brand-text">
-          <h2>DiskTree</h2>
-          <span>Analizator Dysku C</span>
-        </div>
+  <div id="login-view" class="hidden">
+    <div class="login-box">
+      <h1>🎰 Panel Administratora</h1>
+      <p class="muted">Zaloguj się, aby zarządzać botem</p>
+      <input type="text" id="login-user" placeholder="Login" autocomplete="username">
+      <input type="password" id="login-pass" placeholder="Hasło" autocomplete="current-password">
+      <button id="login-btn">Zaloguj</button>
+      <p id="login-error" class="error"></p>
+    </div>
+  </div>
+
+  <div id="panel-view" class="hidden">
+    <header>
+      <h1>🎰 Panel Administratora</h1>
+      <div class="header-right">
+        <span id="bot-status-badge" class="badge offline">Bot: ?</span>
+        <button id="logout-btn" class="secondary">Wyloguj</button>
       </div>
-      <nav class="nav-menu">
-        <a href="#" class="nav-item active" data-target="section-dashboard" id="nav-dashboard">
-          <span class="icon">📊</span> Pulpit
-        </a>
-        <a href="#" class="nav-item" data-target="section-scan" id="nav-scan">
-          <span class="icon">📁</span> Analiza Dysku
-        </a>
-        <a href="#" class="nav-item" data-target="section-rules" id="nav-rules">
-          <span class="icon">🔒</span> Ochrona Systemu
-        </a>
-        <a href="#" class="nav-item" data-target="section-migrate" id="nav-migrate">
-          <span class="icon">🚚</span> Przenoszenie
-        </a>
-      </nav>
-      <div class="sidebar-footer">
-        <p>Status serwera: <span class="status-indicator online">Połączony</span></p>
-      </div>
-    </aside>
+    </header>
 
-    <!-- Main Content Area -->
-    <main class="main-content">
-      <!-- SECTION 1: DASHBOARD -->
-      <section id="section-dashboard" class="content-section active">
-        <header class="section-header">
-          <h1>Analiza Przestrzeni C:</h1>
-          <p>Sprawdź zajętość dysków i znajdź foldery, które zajmują najwięcej miejsca na C:.</p>
-        </header>
+    <nav>
+      <button class="tab-btn active" data-tab="players">👤 Gracze</button>
+      <button class="tab-btn" data-tab="bans">🚫 Bany</button>
+      <button class="tab-btn" data-tab="logs">📜 Logi</button>
+      <button class="tab-btn" data-tab="gangs">🔫 Gangi</button>
+      <button class="tab-btn" data-tab="live">📡 Live</button>
+    </nav>
 
-        <!-- Drive Cards -->
-        <div class="drives-grid" id="drives-container">
-          <div class="loading-spinner">Ładowanie dysków...</div>
+    <main>
+      <section id="tab-players" class="tab">
+        <div class="toolbar">
+          <input type="text" id="player-search" placeholder="Szukaj po nazwie, ID lub gangu...">
+          <span id="player-count" class="muted"></span>
         </div>
-
-        <!-- Scanning Configuration Card -->
-        <div class="card scan-setup-card">
-          <div class="card-header">
-            <h3>Wybierz zakres skanowania</h3>
-            <p>Możesz przeanalizować cały dysk C: (ogólnie), Twój folder użytkownika lub wpisać własną ścieżkę.</p>
-          </div>
-          
-          <div class="scan-options-group">
-            <label class="scan-option-radio">
-              <input type="radio" name="scan-type" value="C:\\" checked>
-              <div class="scan-option-card">
-                <span class="option-icon">💽</span>
-                <div class="option-text">
-                  <strong>Cały dysk C: (Ogólnie)</strong>
-                  <small>Wyszukuje największe pliki i foldery na całym dysku C:</small>
-                </div>
-              </div>
-            </label>
-
-            <label class="scan-option-radio">
-              <input type="radio" name="scan-type" value="C:\\Users\\dupek">
-              <div class="scan-option-card">
-                <span class="option-icon">👤</span>
-                <div class="option-text">
-                  <strong>Folder Użytkownika (dupek)</strong>
-                  <small>Pulpit, Pobrane, Dokumenty, Zdjęcia, Filmy, Gry</small>
-                </div>
-              </div>
-            </label>
-
-            <label class="scan-option-radio">
-              <input type="radio" name="scan-type" value="custom">
-              <div class="scan-option-card">
-                <span class="option-icon">⚙️</span>
-                <div class="option-text">
-                  <strong>Własny folder</strong>
-                  <small>Wpisz dowolną ścieżkę do przeanalizowania poniżej</small>
-                </div>
-              </div>
-            </label>
-          </div>
-
-          <div class="input-group custom-path-group" id="custom-path-container" style="display: none; margin-top: 16px;">
-            <label for="input-scan-path">Ścieżka do skanowania:</label>
-            <input type="text" id="input-scan-path" class="form-control" value="C:\\Users\\dupek" placeholder="np. C:\\Games">
-          </div>
-
-          <div class="card-actions" style="margin-top: 24px;">
-            <button class="btn btn-primary btn-large" id="btn-start-scan">Rozpocznij Analizę Przestrzeni 🔍</button>
-          </div>
+        <div class="table-wrap">
+          <table id="players-table">
+            <thead>
+              <tr><th>Nazwa</th><th>ID</th><th>Saldo</th><th>Bank</th><th>Poziom</th><th>Gang</th><th>Komendy</th><th>Itemy</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
       </section>
 
-      <!-- SECTION 2: SCAN RESULTS (TREE VIEW) -->
-      <section id="section-scan" class="content-section">
-        <header class="section-header">
-          <h1>Struktura Zajętości Miejsca</h1>
-          <p>Rozwiń foldery za pomocą strzałek, aby sprawdzić, co dokładnie zajmuje miejsce. Zaznacz elementy, które chcesz przenieść.</p>
-        </header>
-
-        <!-- Scan Progress Overlay -->
-        <div class="card progress-card" id="scan-progress-overlay" style="display: none;">
-          <div class="spinner-large"></div>
-          <h3 id="scan-progress-title">Analizowanie struktury plików...</h3>
-          <p id="scan-progress-subtitle">Skanowanie katalogu...</p>
-          <div class="progress-bar-container">
-            <div class="progress-bar-fill" id="scan-progress-bar" style="width: 0%;"></div>
-          </div>
-          <span class="progress-percent" id="scan-progress-text">0%</span>
-        </div>
-
-        <!-- Main Tree View UI -->
-        <div id="scan-results-container" style="display: none;">
-          <div class="alert alert-warning">
-            <div class="alert-icon">🔒</div>
-            <div class="alert-body">
-              <h4>Foldery Systemowe i Chronione są zablokowane</h4>
-              <p>Wszystkie foldery krytyczne dla Windowsa (oznaczone ikoną kłódki 🔒) są zablokowane i bezpieczne – nie możesz ich przenieść ani usunąć.</p>
-            </div>
-          </div>
-
-          <!-- Tree view wrapper -->
-          <div class="card tree-card-view">
-            <div class="tree-header-row">
-              <span class="tree-col-name">Nazwa pliku lub folderu</span>
-              <span class="tree-col-size">Rozmiar na dysku</span>
-            </div>
-            <div class="tree-container" id="tree-container">
-              <!-- Dynamically populated directory tree -->
-            </div>
-          </div>
-
-          <!-- Migration Config Card -->
-          <div class="card migration-config-card">
-            <div class="card-header">
-              <h3>Ustawienia Bezpiecznego Przenoszenia</h3>
-              <p>Zaznaczone elementy zostaną przeniesione na wybrany dysk docelowy.</p>
-            </div>
-            <div class="config-inputs-row">
-              <div class="input-group">
-                <label for="select-dest-drive">Dysk docelowy:</label>
-                <select id="select-dest-drive" class="form-control">
-                  <!-- Populated dynamically -->
-                </select>
-              </div>
-              <div class="input-group">
-                <label for="input-dest-folder">Katalog docelowy:</label>
-                <input type="text" id="input-dest-folder" class="form-control" value="Zapas_Dysk_C" placeholder="Nazwa folderu">
-              </div>
-            </div>
-            <div class="settings-toggles">
-              <label class="toggle-switch">
-                <input type="checkbox" id="chk-safe-mode" checked>
-                <span class="slider"></span>
-                <span class="toggle-label">
-                  <strong>Tryb bezpieczny (Zalecany)</strong>
-                  <small>Najpierw kopiuje pliki, weryfikuje ich rozmiar co do bajta, a potem kasuje oryginały z C:</small>
-                </span>
-              </label>
-            </div>
-
-            <!-- Summary footer -->
-            <div class="summary-footer-bar">
-              <div class="summary-stats">
-                <div>Wybrane foldery i pliki: <strong id="lbl-selected-count">0</strong></div>
-                <div>Rozmiar do przeniesienia: <strong id="lbl-selected-size">0 MB</strong></div>
-              </div>
-              <button class="btn btn-success btn-large" id="btn-start-migration">Rozpocznij Przenoszenie 🚚</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- No scan run yet -->
-        <div class="card empty-state" id="scan-empty-state">
-          <span class="empty-icon">📂</span>
-          <h3>Brak wyników analizy</h3>
-          <p>Przejdź do zakładki Pulpit i kliknij "Rozpocznij Analizę Przestrzeni".</p>
+      <section id="tab-bans" class="tab hidden">
+        <div class="ban-columns">
+          <div class="card"><h3>Blacklista</h3><ul id="ban-blacklist"></ul></div>
+          <div class="card"><h3>Pełna blacklista (trueBlacklist)</h3><ul id="ban-trueblacklist"></ul></div>
+          <div class="card"><h3>Multikonta</h3><ul id="ban-multiaccounts"></ul></div>
+          <div class="card"><h3>Zablokowane grupy</h3><ul id="ban-groups"></ul></div>
         </div>
       </section>
 
-      <!-- SECTION 3: SYSTEM PROTECTION -->
-      <section id="section-rules" class="content-section">
-        <header class="section-header">
-          <h1>Zabezpieczenia i Ochrona Systemu</h1>
-          <p>Lista krytycznych ścieżek, których przenoszenie jest całkowicie zablokowane dla ochrony Twojego komputera.</p>
-        </header>
-
+      <section id="tab-logs" class="tab hidden">
         <div class="card">
-          <div class="card-header">
-            <h3>Blokada plików systemowych</h3>
-            <p>Następujące lokalizacje są chronione przed usunięciem lub przeniesieniem przez naszą aplikację:</p>
-          </div>
-          <div class="exclusions-list">
-            <div class="exclusion-item">🔒 Cały główny katalog C:\ (nie można przenieść samego dysku)</div>
-            <div class="exclusion-item">🔒 System operacyjny: C:\Windows</div>
-            <div class="exclusion-item">🔒 Pliki programów: C:\Program Files oraz C:\Program Files (x86) (podkatalogi Microsoft)</div>
-            <div class="exclusion-item">🔒 Dane aplikacji systemowych: C:\ProgramData</div>
-            <div class="exclusion-item">🔒 Dane użytkowników i przeglądarek: C:\Users\&lt;Nazwa&gt;\AppData\Local oraz Roaming</div>
-            <div class="exclusion-item">🔒 Pliki pamięci wirtualnej: pagefile.sys, hiberfil.sys, swapfile.sys</div>
-          </div>
+          <h3>Aktywność dzienna (komendy)</h3>
+          <div id="activity-chart" class="chart"></div>
+        </div>
+        <div class="toolbar">
+          <input type="text" id="log-user" placeholder="Gracz (nazwa/ID)">
+          <input type="text" id="log-command" placeholder="Komenda">
+          <input type="date" id="log-from">
+          <input type="date" id="log-to">
+          <button id="log-filter-btn">Filtruj</button>
+          <span id="log-count" class="muted"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="logs-table">
+            <thead><tr><th>Czas</th><th>Gracz</th><th>Komenda</th><th>Argumenty</th><th>Grupa</th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </section>
 
-      <!-- SECTION 4: MIGRATION PROGRESS -->
-      <section id="section-migrate" class="content-section">
-        <header class="section-header">
-          <h1>Postęp Przenoszenia Plików</h1>
-          <p>Nie wyłączaj programu ani nie odłączaj dysku podczas trwania migracji.</p>
-        </header>
+      <section id="tab-gangs" class="tab hidden">
+        <div id="gangs-list"></div>
+      </section>
 
-        <!-- Active Migration UI -->
-        <div class="card migration-status-card" id="migration-active-card" style="display: none;">
-          <div class="migration-main-info">
-            <div class="progress-ring-container">
-              <svg class="progress-ring" width="160" height="160">
-                <circle class="progress-ring__background" stroke="#251b4e" stroke-width="8" fill="transparent" r="70" cx="80" cy="80" />
-                <circle class="progress-ring__circle" id="migrate-circle-progress" stroke="#8b5cf6" stroke-width="8" fill="transparent" r="70" cx="80" cy="80" />
-              </svg>
-              <div class="progress-ring-text" id="migrate-progress-percent">0%</div>
-            </div>
-            <div class="migration-stats-text">
-              <h3 id="migrate-status-title">Przenoszenie elementów...</h3>
-              <p class="current-file-label">Aktualnie przetwarzany plik:</p>
-              <p class="current-file-name" id="migrate-current-file">Inicjalizacja...</p>
-              <div class="stats-row">
-                <div class="stat-box">
-                  <span class="stat-val" id="migrate-speed">0 MB/s</span>
-                  <span class="stat-lbl">Prędkość transferu</span>
-                </div>
-                <div class="stat-box">
-                  <span class="stat-val" id="migrate-eta">Obliczanie...</span>
-                  <span class="stat-lbl">Szacowany czas</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Console logs -->
-          <div class="console-log-header">
-            <span>Logi z weryfikacji operacji w czasie rzeczywistym</span>
-            <span class="console-dot-green"></span>
-          </div>
-          <div class="console-log" id="migrate-console-log">
-            <!-- Logs appear here -->
-          </div>
+      <section id="tab-live" class="tab hidden">
+        <div class="card" id="live-status"></div>
+        <div class="card">
+          <h3>📢 Ogłoszenie (broadcast)</h3>
+          <p class="muted">Wiadomość zostanie wysłana przez bota na wszystkie aktywne grupy.</p>
+          <textarea id="broadcast-msg" rows="3" placeholder="Treść ogłoszenia..."></textarea>
+          <button id="broadcast-btn">Wyślij ogłoszenie</button>
         </div>
-
-        <div class="card empty-state" id="migration-empty-state">
-          <span class="empty-icon">🚚</span>
-          <h3>Brak aktywnych zadań</h3>
-          <p>Rozwiń drzewo w zakładce "Analiza Dysku", zaznacz foldery/pliki i rozpocznij przenoszenie.</p>
+        <div class="card">
+          <h3>🔄 Restart bota</h3>
+          <p class="muted">Bot zakończy proces — hosting (np. Railway) uruchomi go ponownie automatycznie.</p>
+          <button id="restart-btn" class="danger">Restartuj bota</button>
         </div>
       </section>
     </main>
   </div>
+
+  <div id="modal-overlay" class="hidden">
+    <div id="modal" class="card"></div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+
   <script src="app.js"></script>
 </body>
 </html>
