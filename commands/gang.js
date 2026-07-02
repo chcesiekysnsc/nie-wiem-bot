@@ -994,6 +994,20 @@ module.exports = {
 
       // Wyślij powiadomienie do grupy sojuszniczego gangu
       try {
+        // Pobierz nazwy członków sojuszniczego gangu do oznaczenia
+        const memberTags = await Promise.all(
+          supportResult.targetMembers.map(async memberId => {
+            try {
+              const member = await client.resolveUserName(memberId);
+              return `@${member}`;
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        const validMentions = memberTags.filter(tag => tag !== null);
+        
         const notifyMsg = `🤝 **WSPIERANIE SKOKU GANGU** 🤝\n\n` +
           `Gang **${supportResult.myGangName}** prosi o wsparcie w skoku!\n` +
           `📊 Obecnie zapisanych uczestników: **${supportResult.participantsCount}**\n\n` +
@@ -1001,8 +1015,11 @@ module.exports = {
           `**!gang skok dolacz** (lub **!gang skok d**)\n\n` +
           `⚠️ *Wymagane minimum 100 komend. Więcej uczestników = większy łup!*`;
 
-        client.api.sendMessage(notifyMsg, supportResult.bestThread);
-        await message.reply(`✅ Wysłano prośbę o wsparcie do gangu **${supportResult.targetGangName}**! Powiadomienie wysłano na grupę z **${supportResult.maxMemberCount}** członkami tego gangu.`);
+        client.api.sendMessage({
+          body: notifyMsg,
+          mentions: validMentions
+        }, supportResult.bestThread);
+        await message.reply(`✅ Wysłano prośbę o wsparcie do gangu **${supportResult.targetGangName}**! Powiadomienie wysłano na grupę z **${supportResult.maxMemberCount}** członkami tego gangu (oznaczono ${validMentions.length} osób).`);
       } catch (err) {
         console.error('[GANG WSPIERANIE] Błąd wysyłania powiadomienia:', err);
         await message.reply(`⚠️ Wysłano prośbę o wsparcie, ale wystąpił błąd podczas wysyłania powiadomienia do gangu **${supportResult.targetGangName}**.`);
@@ -1044,8 +1061,15 @@ module.exports = {
             const myGang = store.profiles.gangs[user.gangId];
             const alliances = myGang.alliances || [];
             
+            console.log(`[GANG SKOK] Sprawdzam sojusze dla gangu ${user.gangId}:`, alliances);
+            
             for (const allianceGangId of alliances) {
               const allianceHeist = client.gangHeists.get(allianceGangId);
+              console.log(`[GANG SKOK] Sprawdzam gang ${allianceGangId}, ma skok:`, !!allianceHeist);
+              if (allianceHeist) {
+                console.log(`[GANG SKOK] Skok ma supportedGangs:`, allianceHeist.supportedGangs);
+                console.log(`[GANG SKOK] Czy mój gang jest w supportedGangs:`, allianceHeist.supportedGangs?.includes(user.gangId));
+              }
               if (allianceHeist && allianceHeist.supportedGangs && allianceHeist.supportedGangs.includes(user.gangId)) {
                 activeHeist = allianceHeist;
                 heistGangId = allianceGangId;
