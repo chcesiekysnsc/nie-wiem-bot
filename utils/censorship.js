@@ -15,13 +15,14 @@ async function intelligentCensor(text, context = 'tekst użytkownika') {
     const promptText = 
       `Jesteś ekspertem od cenzury. Twoim zadaniem jest inteligentne maskowanie obraźliwych lub nieodpowiednich słów w tekście, zachowując jego czytelność.\n\n` +
       `ZASADY CENZURY:\n` +
-      `1. Dla słów o długości 1-3 litery: zamaskuj dokładnie 1 literę (np. "chuj" → "ch*", "kur" → "k*r")\n` +
-      `2. Dla słów o długości 4 litery: zamaskuj dokładnie 2 litery (np. "debil" → "de**", "kurwa" → "ku**a")\n` +
-      `3. Dla słów o długości 5-7 liter: zamaskuj dokładnie 3 litery (np. "idiota" → "id***ta", "spierdalaj" → "spi***alaj")\n` +
+      `1. Dla słów o długości 1-3 litery: zamaskuj dokładnie 1 literę (np. "chuj" → "c*h*j", "kur" → "k*u*r")\n` +
+      `2. Dla słów o długości 4 litery: zamaskuj dokładnie 2 litery (np. "debil" → "d*e**l", "kurwa" → "k*u*r*w*a")\n` +
+      `3. Dla słów o długości 5-7 liter: zamaskuj dokładnie 3 litery (np. "idiota" → "i*d*i**o*t*a", "spierdalaj" → "s*p*i*e*r*d*a*l*a*j")\n` +
       `4. Dla słów dłuższych niż 7 liter: użyj własnego rozsądku, zachowując czytelność\n` +
       `5. Dla różnych słów użyj różnych schematów cenzury (nie używaj jednego sztywnego wzoru)\n` +
       `6. Zachowaj pierwszą literę i część charakterystycznych liter, aby słowo było rozpoznawalne\n` +
-      `7. Ukryj wystarczającą liczbę liter, aby przekleństwo nie było zapisane w pełnej postaci\n\n` +
+      `7. Ukryj wystarczającą liczbę liter, aby przekleństwo nie było zapisane w pełnej postaci\n` +
+      `8. WAŻNE: Gwiazdki NIE MOGĄ być obok siebie - między każdą gwiazdką musi być co najmniej jedna litera (np. "ch**" jest ZŁE, "c*h*j" jest DOBRE)\n\n` +
       `PRZYKŁADY:\n` +
       `- "spierdalaj" → "spi*r**al*j" lub "sp**rd*l*aj"\n` +
       `- "kurwa" → "ku**a" lub "k*r*a"\n` +
