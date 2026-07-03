@@ -1,6 +1,6 @@
 const config = require('../config/config');
 const { withData } = require('../utils/storage');
-const { askGeminiWithFallback } = require('./ai');
+const { intelligentCensor } = require('../utils/censorship');
 
 module.exports = {
   name: 'nick',
@@ -58,17 +58,7 @@ module.exports = {
     // Filtruj pseudonim za pomocą AI jeśli nie jest pusty
     if (nickname) {
       try {
-        const promptText = 
-          `Przeanalizuj poniższy tekst jako proponowany pseudonim użytkownika pod kątem słów lub fraz, które mogą skutkować zablokowaniem/banem konta na Facebooku (np. wulgaryzmy, groźby, mowa nienawiści, wyzwiska, treści NSFW, przemoc, nielegalne rzeczy).\n` +
-          `Jeśli tekst nie zawiera niczego takiego, zwróć dokładnie ten sam oryginalny tekst.\n` +
-          `Jeśli tekst zawiera takie słowa, zwróć ten sam tekst, ale zastąp te konkretne bannable słowa dwoma lub trzema gwiazdkami (np. ** lub ***). Zachowaj pozostałą część zdania.\n` +
-          `Zwróć TYLKO przetworzony tekst (samą treść pseudonimu) i absolutnie nic więcej. Nie dodawaj żadnych dopisków ani komentarzy.\n\n` +
-          `Tekst do analizy: ${nickname}`;
-        
-        const aiResponse = await askGeminiWithFallback(promptText);
-        if (aiResponse && aiResponse.trim()) {
-          nickname = aiResponse.trim();
-        }
+        nickname = await intelligentCensor(nickname, 'pseudonim użytkownika');
       } catch (err) {
         console.error('[NICK AI CHECK ERROR] Fallback to raw nickname:', err.message);
       }

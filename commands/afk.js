@@ -1,5 +1,5 @@
 const { withData } = require('../utils/storage');
-const { askGeminiWithFallback } = require('./ai');
+const { intelligentCensor } = require('../utils/censorship');
 
 module.exports = {
   name: 'afk',
@@ -25,17 +25,7 @@ module.exports = {
           // Filtruj powód za pomocą AI jeśli podano
           if (args.length > 1) {
             try {
-              const promptText = 
-                `Przeanalizuj poniższy tekst wpisany przez użytkownika jako powód nieobecności (AFK) pod kątem słów lub fraz, które mogą skutkować zablokowaniem/banem konta na Facebooku (np. wulgaryzmy, groźby, mowa nienawiści, wyzwiska, treści NSFW, przemoc, nielegalne rzeczy).\n` +
-                `Jeśli tekst nie zawiera niczego takiego, zwróć dokładnie ten sam oryginalny tekst.\n` +
-                `Jeśli tekst zawiera takie słowa, zwróć ten sam tekst, ale zastąp te konkretne bannable słowa dwoma lub trzema gwiazdkami (np. ** lub ***). Zachowaj pozostałą część zdania.\n` +
-                `Zwróć TYLKO przetworzony tekst (samą treść powodu) i absolutnie nic więcej. Nie dodawaj żadnych dopisków ani komentarzy.\n\n` +
-                `Tekst do analizy: ${rawReason}`;
-              
-              const aiResponse = await askGeminiWithFallback(promptText);
-              if (aiResponse && aiResponse.trim()) {
-                filteredReason = aiResponse.trim();
-              }
+              filteredReason = await intelligentCensor(rawReason, 'powód AFK');
             } catch (err) {
               console.error('[AFK AI CHECK ERROR] Fallback to raw reason:', err.message);
             }
@@ -78,17 +68,7 @@ module.exports = {
     // 2. Jeśli podano powód, filtrujemy go za pomocą AI
     if (args.length > 0) {
       try {
-        const promptText = 
-          `Przeanalizuj poniższy tekst wpisany przez użytkownika jako powód nieobecności (AFK) pod kątem słów lub fraz, które mogą skutkować zablokowaniem/banem konta na Facebooku (np. wulgaryzmy, groźby, mowa nienawiści, wyzwiska, treści NSFW, przemoc, nielegalne rzeczy).\n` +
-          `Jeśli tekst nie zawiera niczego takiego, zwróć dokładnie ten sam oryginalny tekst.\n` +
-          `Jeśli tekst zawiera takie słowa, zwróć ten sam tekst, ale zastąp te konkretne bannable słowa dwoma lub trzema gwiazdkami (np. ** lub ***). Zachowaj pozostałą część zdania.\n` +
-          `Zwróć TYLKO przetworzony tekst (samą treść powodu) i absolutnie nic więcej. Nie dodawaj żadnych dopisków ani komentarzy.\n\n` +
-          `Tekst do analizy: ${rawReason}`;
-        
-        const aiResponse = await askGeminiWithFallback(promptText);
-        if (aiResponse && aiResponse.trim()) {
-          filteredReason = aiResponse.trim();
-        }
+        filteredReason = await intelligentCensor(rawReason, 'powód AFK');
       } catch (err) {
         console.error('[AFK AI CHECK ERROR] Fallback to raw reason:', err.message);
       }

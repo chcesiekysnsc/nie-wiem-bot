@@ -4,6 +4,7 @@ const path = require('path');
 const config = require('../config/config');
 const { withData } = require('../utils/storage');
 const { msToReadable } = require('../utils/economy');
+const { intelligentCensor } = require('../utils/censorship');
 
 function getThreadHistoryPage(api, threadID, amount, timestamp) {
   return new Promise((resolve) => {

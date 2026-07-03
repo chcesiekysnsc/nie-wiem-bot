@@ -1636,24 +1636,18 @@ login({ appState }, (loginErr, api) => {
     }
 
     // --- SYSTEM AFK ---
-    // 1. Wyłączenie AFK jeśli gracz napisał cokolwiek (poza ponownym ustawieniem AFK)
+    // AFK nie jest już automatycznie wyłączane - tylko przez !afk off
     let wasAfk = false;
     let afkInfo = null;
     await withData(store => {
       if (store.profiles.afk && store.profiles.afk[senderId]) {
         afkInfo = store.profiles.afk[senderId];
-        // Usuń AFK tylko jeśli był włączony (enabled: true)
-        if (afkInfo.enabled !== false) {
-          delete store.profiles.afk[senderId];
-          wasAfk = true;
-        }
+        // Nie usuwamy AFK automatycznie - tylko przez komendę !afk off
+        wasAfk = true;
       }
     });
 
-    if (wasAfk && text !== `${currentPrefix}afk` && !text.startsWith(`${currentPrefix}afk `)) {
-      const senderName = await client.resolveUserName(api, senderId);
-      api.sendMessage(`👋 Witaj z powrotem **${senderName}**! Twój status AFK został wyłączony.`, threadId, () => {}, messageId);
-    }
+    // Usunięto automatyczne wyłączanie AFK - status pozostaje aktywny
 
     // 2. Powiadomienie jeśli ktoś oznaczył osobę oznaczoną jako AFK
     if (event.mentions && Object.keys(event.mentions).length > 0) {
