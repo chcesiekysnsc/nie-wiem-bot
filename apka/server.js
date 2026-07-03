@@ -363,8 +363,13 @@ app.get('/api/settings', (req, res) => {
     meczTax: profiles.meczTaxRate || 15
   };
   
-  // Pobierz WSZYSTKIE prefixy grup — załaduj z active_threads.json
-  const groupPrefixes = profiles.groupPrefixes || {};
+  // Pobierz WSZYSTKIE prefixy grup z threadSettings (to samo źródło co bot i komenda !prefix)
+  const threadSettings = profiles.threadSettings || {};
+  const groupPrefixes = {};
+  for (const [tid, ts] of Object.entries(threadSettings)) {
+    if (ts.prefix) groupPrefixes[tid] = ts.prefix;
+  }
+  
   let groups = [];
   try {
     const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
@@ -415,9 +420,13 @@ app.post('/api/settings', async (req, res) => {
         if (taxForms.meczTax !== undefined) store.profiles.meczTaxRate = parseFloat(taxForms.meczTax);
       }
       
-      // Zapisz prefixy grup
+      // Zapisz prefixy grup do threadSettings (to samo źródło co bot i komenda !prefix)
       if (groupPrefixes && typeof groupPrefixes === 'object') {
-        store.profiles.groupPrefixes = groupPrefixes;
+        store.profiles.threadSettings = store.profiles.threadSettings || {};
+        for (const [groupId, prefix] of Object.entries(groupPrefixes)) {
+          store.profiles.threadSettings[groupId] = store.profiles.threadSettings[groupId] || {};
+          store.profiles.threadSettings[groupId].prefix = prefix;
+        }
       }
     });
     res.json({ ok: true });
@@ -453,6 +462,32 @@ app.post('/api/events', async (req, res) => {
       store.profiles.events = store.profiles.events.filter(e => e.endTime > Date.now());
       store.profiles.events.push(event);
     });
+    
+    // Wyślij powiadomienie o starcie eventu na wszystkie aktywne grupy
+    try {
+      const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
+      if (fs.existsSync(threadsPath)) {
+        const threadIds = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
+        const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy' };
+        const durationStr = parseInt(durationMinutes) >= 60 
+          ? `${Math.floor(parseInt(durationMinutes) / 60)}h ${parseInt(durationMinutes) % 60}min`
+          : `${parseInt(durationMinutes)} min`;
+        const notifyMsg = `🎉 **NOWY EVENT AKTYWNY!** 🎉\n\n` +
+          `📋 Typ: **${typeNames[type] || type}**\n` +
+          `🔥 Mnożnik: **x${parseFloat(multiplier)}**\n` +
+          `⏱️ Czas trwania: **${durationStr}**\n` +
+          (description ? `📝 ${description}\n` : '') +
+          `\n💪 Korzystajcie z bonusów!`;
+        
+        if (Array.isArray(threadIds) && global.botApi) {
+          for (const tId of threadIds) {
+            global.botApi.sendMessage(notifyMsg, tId);
+          }
+        }
+      }
+    } catch (notifyErr) {
+      console.error('[EVENTS] Failed to broadcast event start:', notifyErr);
+    }
     res.json({ ok: true, event });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -2,9 +2,10 @@ module.exports = {
   name: 'losuj',
   aliases: ['random', 'wylosuj'],
   async execute(client, message) {
-    const threadId = message.threadID;
+    const threadId = message.threadID || message.rawEvent?.threadID;
+    const isGroup = message.isGroup !== undefined ? message.isGroup : (message.rawEvent?.isGroup || (threadId && threadId !== message.author?.id));
 
-    if (!threadId || message.isGroup === false) {
+    if (!threadId || isGroup === false) {
       await message.reply('❌ Ta komenda działa tylko na grupach!');
       return;
     }
@@ -43,7 +44,7 @@ module.exports = {
       }
 
       const winnerId = eligible[Math.floor(Math.random() * eligible.length)];
-      const winnerName = await client.resolveUserName(winnerId);
+      const winnerName = await client.resolveUserName(client.api, winnerId);
 
       // Wyślij wiadomość z oznaczeniem wylosowanej osoby
       const msg = `🎲 **Losowanie na grupie!**\n\n🎯 Wylosowana osoba to: **${winnerName}**!`;

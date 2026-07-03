@@ -196,7 +196,7 @@ async function loadSettings() {
       const name = group.name ? group.name : `Grupa bez nazwy`;
       return `
         <label>
-          <span class="prefix-group-name" style="font-weight:600; color:#fff;">${esc(name)}</span>
+          <span class="prefix-group-name" style="font-weight:600; color:#fff;">${esc(name)} (Aktualny: <code style="color:#00e676; font-size:13px;">${esc(currentPrefix || '!')}</code>)</span>
           <span class="muted" style="font-size:11px; margin-bottom:4px;">ID: ${esc(group.id)}</span>
           <input type="text" data-prefix-group="${esc(group.id)}" value="${esc(currentPrefix)}" placeholder="!">
         </label>

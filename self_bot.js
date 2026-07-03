@@ -599,6 +599,7 @@ login({ appState }, (loginErr, api) => {
   }
 
   client.api = api;
+  global.botApi = api;
 
   console.log('[SELF-BOT] Zalogowano pomyslnie! Rozpoczynanie nasluchiwania wiadomosci...');
   
@@ -664,12 +665,38 @@ login({ appState }, (loginErr, api) => {
         activeThreads: client.activeThreadIds.size,
         lastHeartbeat: Date.now()
       };
+      
+      // Sprawdź czy jakieś eventy wygasły
+      const now = Date.now();
+      const events = store.profiles.events || [];
+      const expiredEvents = events.filter(e => e.endTime <= now);
+      
+      if (expiredEvents.length > 0) {
+        store.profiles.events = events.filter(e => e.endTime > now);
+      }
+      
       const broadcasts = Array.isArray(store.profiles.pendingAdminBroadcasts) ? store.profiles.pendingAdminBroadcasts : [];
       store.profiles.pendingAdminBroadcasts = [];
       const restart = store.profiles.pendingAdminRestart === true;
       store.profiles.pendingAdminRestart = false;
-      return { broadcasts, restart };
-    }).then(({ broadcasts, restart }) => {
+      return { broadcasts, restart, expiredEvents };
+    }).then(({ broadcasts, restart, expiredEvents }) => {
+      // Wyślij powiadomienia o zakończeniu eventów
+      for (const e of expiredEvents) {
+        const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy' };
+        const msg = `ℹ️ **EVENT ZAKOŃCZONY!** ℹ️\n\n` +
+          `Modyfikator **${typeNames[e.type] || e.type} x${e.multiplier}** dobiegł końca.\n` +
+          `Wskaźniki gry wróciły do normy. Dziękujemy za udział!`;
+        
+        for (const t of Array.from(client.activeThreadIds)) {
+          try {
+            api.sendMessage(msg, t);
+          } catch (err) {
+            console.error('[EVENTS] Błąd wysyłania powiadomienia o zakończeniu eventu:', err);
+          }
+        }
+      }
+
       for (const b of broadcasts) {
         const msg = `📢 **OGŁOSZENIE ADMINISTRACJI:**\n\n${b.message}`;
         for (const t of Array.from(client.activeThreadIds)) {
@@ -2304,6 +2331,8 @@ login({ appState }, (loginErr, api) => {
       prefix: currentPrefix,
       author: senderUser,
       content: text,
+      threadID: threadId,
+      isGroup: isGroup,
       guild: {
         id: threadId
       },
