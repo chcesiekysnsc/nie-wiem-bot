@@ -2,25 +2,25 @@ const { checkCooldown } = require('../utils/cooldowns');
 const { fetchRedditImage } = require('../utils/reddit');
 
 module.exports = {
-  name: 'kotek',
-  aliases: ['kitten', 'kitty', 'cat'],
+  name: 'kot',
+  aliases: ['kotek', 'kitten', 'kitty', 'cat'],
   async execute(client, message, args) {
     const senderId = message.author.id;
     const creatorId = '100060812419294';
     const isOwner = senderId === creatorId;
 
     if (!isOwner) {
-      const cooldownState = await checkCooldown('kotek', senderId);
+      const cooldownState = await checkCooldown('kot', senderId);
       if (cooldownState.active) {
         await message.reply({ embeds: [cooldownState.embed] }).catch(() => null);
         return;
       }
     }
 
-    await message.reply('🐱 Szukam zdjęcia małego kotka...').catch(() => null);
+    await message.reply('🐱 Szukam zdjęcia kota...').catch(() => null);
 
     try {
-      const imageUrl = await fetchRedditImage('kitten');
+      const imageUrl = await fetchRedditImage('cats');
 
       if (!imageUrl) {
         await message.reply('❌ Nie udało się pobrać obrazka, spróbuj ponownie później.').catch(() => null);
@@ -28,12 +28,12 @@ module.exports = {
       }
 
       await message.reply({
-        body: '',
+        body: '🐱',
         attachment: imageUrl
       }).catch(() => null);
 
     } catch (err) {
-      console.error('[KOTEK] Error:', err);
+      console.error('[KOT] Error:', err);
       await message.reply('❌ Nie udało się pobrać obrazka, spróbuj ponownie później.').catch(() => null);
     }
   }

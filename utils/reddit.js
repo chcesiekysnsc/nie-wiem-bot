@@ -1,25 +1,17 @@
 const axios = require('axios');
 
 /**
- * Fetches a random image from Reddit
- * @param {string} type - 'rabbit' or 'kitten'
+ * Fetches a random image from a Reddit subreddit
+ * @param {string} subreddit - Subreddit name
  * @returns {Promise<string|null>} - Direct image URL or null
  */
-async function fetchRedditImage(type) {
-  const subreddits = type === 'rabbit' 
-    ? ['rabbits', 'Bunnies', 'aww']
-    : ['IllegallySmolCats', 'cats', 'aww'];
-  
+async function fetchRedditImage(subreddit) {
   const maxAttempts = 10;
-  
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      // Pick random subreddit
-      const subreddit = subreddits[Math.floor(Math.random() * subreddits.length)];
-      
-      // Use random.json for a truly random post
       const response = await axios.get(
-        `https://www.reddit.com/r/${subreddit}/random.json`,
+        `https://www.reddit.com/r/${subreddit}/top.json?limit=100&t=day`,
         {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -33,44 +25,29 @@ async function fetchRedditImage(type) {
         continue;
       }
 
-      // random.json returns an array with 1 element on success
-      const data = Array.isArray(response.data) ? response.data[0] : response.data;
-      const post = data?.data?.children?.[0]?.data;
-      
-      if (!post || !post.url) {
+      const posts = response.data?.data?.children || [];
+
+      if (posts.length === 0) {
         continue;
       }
 
-      // Skip stickied, NSFW, removed, text posts, video posts
-      if (post.stickied || post.over_18 || post.spoiler || 
-          post.removed_by_category || post.banned_by ||
-          post.is_self || post.is_video) {
-        continue;
+      // Shuffle and pick a random post
+      const shuffled = [...posts].sort(() => Math.random() - 0.5);
+
+      for (const post of shuffled) {
+        const data = post.data;
+
+        if (!data || data.stickied || data.over_18 || data.spoiler || data.is_self || data.is_video) {
+          continue;
+        }
+
+        const url = data.url_overridden_by_dest || data.url || '';
+        const lower = url.toLowerCase();
+
+        if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png')) {
+          return url;
+        }
       }
-
-      const url = (post.url || '').toLowerCase();
-      const domain = (post.domain || '').toLowerCase();
-
-      // Accept direct image URLs from Reddit or Imgur
-      const isDirectImage = domain.includes('i.redd.it') || 
-                            domain.includes('preview.redd.it') ||
-                            url.endsWith('.jpg') || 
-                            url.endsWith('.jpeg') || 
-                            url.endsWith('.png') || 
-                            url.endsWith('.webp');
-
-      if (!isDirectImage) {
-        continue;
-      }
-
-      // Clean preview URL: remove query params
-      let imageUrl = post.url;
-      const qIndex = imageUrl.indexOf('?');
-      if (qIndex > 0) {
-        imageUrl = imageUrl.substring(0, qIndex);
-      }
-
-      return imageUrl;
     } catch (err) {
       console.error(`[REDDIT] Attempt ${attempt + 1}/${maxAttempts} failed:`, err.message);
       continue;

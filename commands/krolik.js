@@ -3,7 +3,7 @@ const { fetchRedditImage } = require('../utils/reddit');
 
 module.exports = {
   name: 'krolik',
-  aliases: ['rabbit', 'bunny'],
+  aliases: ['rabbit', 'bunny', 'królik'],
   async execute(client, message, args) {
     const senderId = message.author.id;
     const creatorId = '100060812419294';
@@ -20,7 +20,7 @@ module.exports = {
     await message.reply('🐰 Szukam zdjęcia królika...').catch(() => null);
 
     try {
-      const imageUrl = await fetchRedditImage('rabbit');
+      const imageUrl = await fetchRedditImage('rabbits');
 
       if (!imageUrl) {
         await message.reply('❌ Nie udało się pobrać obrazka, spróbuj ponownie później.').catch(() => null);
@@ -28,7 +28,7 @@ module.exports = {
       }
 
       await message.reply({
-        body: '',
+        body: '🐰',
         attachment: imageUrl
       }).catch(() => null);
 
