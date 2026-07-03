@@ -27,10 +27,18 @@ module.exports = {
         return;
       }
 
-      await message.reply({
-        body: '🐱',
-        attachment: imageUrl
-      }).catch(() => null);
+      const threadId = message.guild?.id || message.rawEvent?.threadID;
+      if (client.api && threadId) {
+        await client.api.sendMessage({
+          body: '🐱',
+          attachment: imageUrl
+        }, threadId);
+      } else {
+        await message.reply({
+          body: '🐱',
+          attachment: imageUrl
+        }).catch(() => null);
+      }
 
     } catch (err) {
       console.error('[KOT] Error:', err);
