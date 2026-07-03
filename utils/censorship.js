@@ -15,13 +15,13 @@ async function intelligentCensor(text, context = 'tekst użytkownika') {
     const promptText = 
       `Jesteś ekspertem od cenzury. Twoim zadaniem jest maskowanie obraźliwych lub nieodpowiednich słów w tekście.\n\n` +
       `ZASADY CENZURY:\n` +
-      `1. Dla słów o długości 1-3 litery: zamaskuj DOKŁADNIE 1 literę (jedna gwiazdka *)\n` +
-      `2. Dla słów o długości 4 litery: zamaskuj DOKŁADNIE 2 litery (dwie gwiazdki **)\n` +
-      `3. Dla słów o długości 5-7 liter: zamaskuj DOKŁADNIE 3 litery (trzy gwiazdki ***)\n` +
-      `4. Dla słów dłuższych niż 7 liter: zamaskuj MINIMUM 4 litery (cztery lub więcej gwiazdek ****)\n` +
-      `5. Gwiazdki mogą być umieszczane w dowolnym miejscu w słowie - zastępują one zamaskowane litery\n` +
-      `6. NIE WOLNO usuwać liter - zawsze używaj formy maskowania gwiazdkami\n` +
-      `7. Dla każdego słowa wybierz, które litery zastąpić gwiazdkami, ale przestrzegaj wymaganej liczby gwiazdek\n` +
+      `1. Dla słów o długości 1-3 litery: zamaskuj DOKŁADNIE 1 literę (jeden symbol •)\n` +
+      `2. Dla słów o długości 4 litery: zamaskuj DOKŁADNIE 2 litery (dwa symbole ••)\n` +
+      `3. Dla słów o długości 5-7 liter: zamaskuj DOKŁADNIE 3 litery (trzy symbole •••)\n` +
+      `4. Dla słów dłuższych niż 7 liter: zamaskuj MINIMUM 4 litery (cztery lub więcej symboli ••••)\n` +
+      `5. Symbole • mogą być umieszczane w dowolnym miejscu w słowie - zastępują one zamaskowane litery\n` +
+      `6. NIE WOLNO usuwać liter - zawsze używaj formy maskowania symbolami •\n` +
+      `7. Dla każdego słowa wybierz, które litery zastąpić symbolami •, ale przestrzegaj wymaganej liczby symboli\n` +
       `8. Dla różnych słów użyj różnych schematów (nie używaj jednego sztywnego wzoru)\n` +
       `9. Zachowaj czytelność słowa - nie maskuj wszystkich liter\n\n` +
       `PRZYKŁADY:\n` +
