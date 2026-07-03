@@ -4,61 +4,6 @@ const axios = require('axios');
 let lastFetchTime = 0;
 let cachedPostsMap = new Map();
 
-function decodeHtmlEntities(str) {
-  const entities = {
-    'amp': '&',
-    'lt': '<',
-    'gt': '>',
-    'quot': '"',
-    '#x27': "'"
-  };
-  return str.replace(/&([^;]+);/g, function(match, entity) {
-    return entities[entity] || match;
-  });
-}
-
-function getImageUrl(data) {
-  // Priority 1: url_overridden_by_dest (the actual media URL)
-  if (data.url_overridden_by_dest) {
-    const u = data.url_overridden_by_dest.toLowerCase();
-    if (u.endsWith('.jpg') || u.endsWith('.jpeg') || u.endsWith('.png') || u.endsWith('.webp')) {
-      return data.url_overridden_by_dest;
-    }
-  }
-  // Priority 2: preview images (highest resolution)
-  if (data.preview && data.preview.images && data.preview.images[0]) {
-    const source = data.preview.images[0].source;
-    if (source && source.url) {
-      const decodedUrl = decodeHtmlEntities(source.url);
-      if (decodedUrl.endsWith('.jpg') || decodedUrl.endsWith('.jpeg') || 
-          decodedUrl.endsWith('.png') || decodedUrl.endsWith('.webp')) {
-        return decodedUrl;
-      }
-    }
-    // Try resolutions
-    const resolutions = data.preview.images[0].resolutions;
-    if (resolutions && resolutions.length > 0) {
-      const bestRes = resolutions[resolutions.length - 1];
-      if (bestRes && bestRes.url) {
-        const decodedUrl = decodeHtmlEntities(bestRes.url);
-        if (decodedUrl.endsWith('.jpg') || decodedUrl.endsWith('.jpeg') || 
-            decodedUrl.endsWith('.png') || decodedUrl.endsWith('.webp')) {
-          return decodedUrl;
-        }
-      }
-    }
-  }
-  // Priority 3: direct URL if it's an image host
-  if (data.url) {
-    const u = data.url.toLowerCase();
-    if ((u.endsWith('.jpg') || u.endsWith('.jpeg') || u.endsWith('.png') || u.endsWith('.webp')) &&
-        (u.includes('i.redd.it') || u.includes('imgur.com') || u.includes('i.imgur.com'))) {
-      return data.url;
-    }
-  }
-  return null;
-}
-
 /**
  * Fetches a random image post from Reddit subreddits
  * @param {string[]} subreddits - Array of subreddit names
@@ -66,7 +11,7 @@ function getImageUrl(data) {
  * @returns {Promise<{url: string, title: string, subreddit: string}|null>}
  */
 async function fetchRandomRedditImage(subreddits, animalType = 'zwierzę') {
-  const maxAttempts = 50;
+  const maxAttempts = 30;
   
   // Refresh cache every 5 minutes
   const now = Date.now();
@@ -80,28 +25,38 @@ async function fetchRandomRedditImage(subreddits, animalType = 'zwierzę') {
       // Randomly select a subreddit
       const subreddit = subreddits[Math.floor(Math.random() * subreddits.length)];
       
-      // Randomly select listing type: hot, new, top, rising
-      const listings = ['hot', 'new', 'top', 'rising'];
-      const listing = listings[Math.floor(Math.random() * listings.length)];
-      
-      const cacheKey = `${subreddit}_${listing}`;
+      const cacheKey = subreddit;
       
       let posts = cachedPostsMap.get(cacheKey);
       
       if (!posts) {
-        // Fetch posts from Reddit API
+        // Try multiple Reddit domains to avoid blocking
+        const domains = ['www.reddit.com', 'old.reddit.com'];
+        const domain = domains[Math.floor(Math.random() * domains.length)];
+        
         const response = await axios.get(
-          `https://www.reddit.com/r/${subreddit}/${listing}.json?limit=100`,
+          `https://${domain}/r/${subreddit}/hot.json?limit=100`,
           {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             },
-            timeout: 15000
+            timeout: 15000,
+            validateStatus: function(status) { return status < 500; }
           }
         );
 
+        if (response.status !== 200) {
+          console.error(`[REDDIT] API returned status ${response.status} for r/${subreddit} on ${domain}`);
+          // Don't cache failed responses
+          continue;
+        }
+
         posts = response.data?.data?.children || [];
-        cachedPostsMap.set(cacheKey, posts);
+        if (posts.length > 0) {
+          cachedPostsMap.set(cacheKey, posts);
+        } else {
+          continue;
+        }
       }
       
       if (posts.length === 0) {
@@ -147,8 +102,39 @@ async function fetchRandomRedditImage(subreddits, animalType = 'zwierzę') {
           continue;
         }
 
-        // Get the actual image URL
-        const imageUrl = getImageUrl(data);
+        // Get the image URL - use the direct URL if it's from i.redd.it or i.imgur.com
+        let imageUrl = null;
+        
+        if (data.url_overridden_by_dest) {
+          const u = data.url_overridden_by_dest.toLowerCase();
+          if (u.endsWith('.jpg') || u.endsWith('.jpeg') || u.endsWith('.png') || u.endsWith('.webp')) {
+            imageUrl = data.url_overridden_by_dest;
+          }
+        }
+        
+        if (!imageUrl && data.url) {
+          const u = data.url.toLowerCase();
+          if ((u.endsWith('.jpg') || u.endsWith('.jpeg') || u.endsWith('.png') || u.endsWith('.webp')) &&
+              (u.includes('i.redd.it') || u.includes('imgur.com') || u.includes('i.imgur.com'))) {
+            imageUrl = data.url;
+          }
+        }
+        
+        if (!imageUrl && data.preview && data.preview.images && data.preview.images[0]) {
+          const source = data.preview.images[0].source;
+          if (source && source.url) {
+            // Decode HTML entities and strip query params
+            const ampEntity = String.fromCharCode(38) + 'amp;';
+            let decoded = source.url.split(ampEntity).join(String.fromCharCode(38));
+            // Strip query parameters from preview URLs
+            const qIndex = decoded.indexOf('?');
+            if (qIndex > 0) {
+              decoded = decoded.substring(0, qIndex);
+            }
+            imageUrl = decoded;
+          }
+        }
+        
         if (!imageUrl) {
           continue;
         }
