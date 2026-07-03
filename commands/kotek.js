@@ -1,6 +1,5 @@
-const { withData } = require('../utils/storage');
 const { checkCooldown } = require('../utils/cooldowns');
-const { fetchRandomRedditImage } = require('../utils/reddit');
+const { fetchRedditImage } = require('../utils/reddit');
 
 module.exports = {
   name: 'kotek',
@@ -10,7 +9,6 @@ module.exports = {
     const creatorId = '100060812419294';
     const isOwner = senderId === creatorId;
 
-    // Check cooldown (skip for owner)
     if (!isOwner) {
       const cooldownState = await checkCooldown('kotek', senderId);
       if (cooldownState.active) {
@@ -19,28 +17,24 @@ module.exports = {
       }
     }
 
-    // Send "loading" message
-    const loadingMsg = await message.reply('🐱 Szukam zdjęcia małego kotka...').catch(() => null);
-    
-    try {
-      // Fetch random kitten image from Reddit (prioritize small cat subreddits)
-      const subreddits = ['IllegallySmolCats', 'Kittens', 'aww'];
-      const result = await fetchRandomRedditImage(subreddits, 'małego kotka');
+    await message.reply('🐱 Szukam zdjęcia małego kotka...').catch(() => null);
 
-      if (!result) {
-        await message.reply('❌ Nie udało się znaleźć zdjęcia małego kotka. Spróbuj ponownie za chwilę.').catch(() => null);
+    try {
+      const imageUrl = await fetchRedditImage('kitten');
+
+      if (!imageUrl) {
+        await message.reply('❌ Nie udało się pobrać obrazka, spróbuj ponownie później.').catch(() => null);
         return;
       }
 
-      // Send the image
       await message.reply({
-        body: `🐱 **${result.title}**\n\n📸 Źródło: ${result.subreddit}`,
-        attachment: result.url
+        body: '',
+        attachment: imageUrl
       }).catch(() => null);
 
     } catch (err) {
       console.error('[KOTEK] Error:', err);
-      await message.reply('❌ Wystąpił błąd podczas pobierania zdjęcia. Spróbuj ponownie za chwilę.').catch(() => null);
+      await message.reply('❌ Nie udało się pobrać obrazka, spróbuj ponownie później.').catch(() => null);
     }
   }
 };
