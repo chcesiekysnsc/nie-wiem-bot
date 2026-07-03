@@ -143,6 +143,10 @@ app.post('/api/players/:id', async (req, res) => {
             store.inventory[req.params.id][itemId] = amount;
           }
         }
+        // Jeśli inventory jest puste, usuń klucz
+        if (Object.keys(store.inventory[req.params.id]).length === 0) {
+          delete store.inventory[req.params.id];
+        }
       }
       return { ok: true };
     });
@@ -337,6 +341,95 @@ app.post('/api/restart', async (req, res) => {
       store.profiles.pendingAdminRestart = true;
     });
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== USTAWIENIA =====
+app.get('/api/settings', (req, res) => {
+  const profiles = loadData('profiles');
+  const config = require('../config/config');
+  
+  res.json({
+    groupPrefixes: profiles.groupPrefixes || {},
+    cooldowns: profiles.customCooldowns || {},
+    taxes: profiles.customTaxes || {},
+    events: profiles.activeEvents || []
+  });
+});
+
+app.post('/api/settings', async (req, res) => {
+  const { groupPrefixes, cooldowns, taxes } = req.body || {};
+  try {
+    await withData(store => {
+      if (groupPrefixes && typeof groupPrefixes === 'object') {
+        store.profiles.groupPrefixes = groupPrefixes;
+      }
+      if (cooldowns && typeof cooldowns === 'object') {
+        store.profiles.customCooldowns = cooldowns;
+      }
+      if (taxes && typeof taxes === 'object') {
+        store.profiles.customTaxes = taxes;
+      }
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== EVENTY =====
+app.get('/api/events', (req, res) => {
+  const profiles = loadData('profiles');
+  res.json({ events: profiles.activeEvents || [] });
+});
+
+app.post('/api/events', async (req, res) => {
+  const { type, multiplier, durationHours, description } = req.body || {};
+  if (!type || !multiplier || !durationHours) {
+    return res.status(400).json({ error: 'Wymagane pola: type, multiplier, durationHours' });
+  }
+  
+  const validTypes = ['xp', 'casino', 'items'];
+  if (!validTypes.includes(type)) {
+    return res.status(400).json({ error: 'Nieprawidłowy typ. Dostępne: xp, casino, items' });
+  }
+  
+  try {
+    const result = await withData(store => {
+      store.profiles.activeEvents = store.profiles.activeEvents || [];
+      const event = {
+        id: Date.now().toString(),
+        type,
+        multiplier: parseFloat(multiplier),
+        durationHours: parseInt(durationHours),
+        description: description || '',
+        startTime: Date.now(),
+        endTime: Date.now() + (parseInt(durationHours) * 60 * 60 * 1000)
+      };
+      store.profiles.activeEvents.push(event);
+      store.profiles.pendingAdminBroadcasts = store.profiles.pendingAdminBroadcasts || [];
+      
+      const typeNames = { xp: 'XP', casino: 'Kasyno', items: 'Itemy' };
+      const broadcastMsg = `🎉 **EVENT: ${typeNames[type]} x${multiplier}** 🎉\n\n${description || ''}\n\n⏰ Event trwa przez ${durationHours} godzin!`;
+      store.profiles.pendingAdminBroadcasts.push({ message: broadcastMsg, createdAt: Date.now() });
+      
+      return { event };
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/events/:id', async (req, res) => {
+  try {
+    const result = await withData(store => {
+      store.profiles.activeEvents = (store.profiles.activeEvents || []).filter(e => e.id !== req.params.id);
+      return { ok: true };
+    });
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

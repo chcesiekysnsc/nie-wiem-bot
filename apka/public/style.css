@@ -22,6 +22,8 @@ button:hover { filter: brightness(1.15); }
 button.secondary { background: #2a2e3d; }
 button.danger { background: #d64545; }
 button.small { padding: 3px 10px; font-size: 12px; }
+button.danger-small { background: #d64545; padding: 2px 8px; font-size: 11px; }
+button.primary { background: #4c6fff; }
 
 input, textarea {
   background: #1c1f2b;
@@ -32,6 +34,47 @@ input, textarea {
   font-size: 14px;
 }
 input:focus, textarea:focus { outline: none; border-color: #4c6fff; }
+
+.form-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.form-row input, .form-row select {
+  flex: 1;
+}
+.form-row button {
+  flex-shrink: 0;
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #1c1f2b;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.event-card {
+  background: #1c1f2b;
+  border: 1px solid #333850;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.event-card.active {
+  border-color: #4c6fff;
+  background: #1c1f2b;
+}
+.event-card.expired {
+  opacity: 0.6;
+}
+.event-card h4 {
+  margin-bottom: 8px;
+  color: #4c6fff;
+}
 
 #login-view {
   display: flex;

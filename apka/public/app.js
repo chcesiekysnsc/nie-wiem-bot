@@ -320,4 +320,193 @@ $('#restart-btn').addEventListener('click', async () => {
 
 setInterval(() => { if (token && !$('#panel-view').classList.contains('hidden')) refreshStatusBadge(); }, 30000);
 
+// ===== USTAWIENIA =====
+async function loadSettings() {
+  try {
+    const data = await api('/api/settings');
+    renderPrefixes(data.groupPrefixes || {});
+    renderCooldowns(data.cooldowns || {});
+    renderTaxes(data.taxes || {});
+  } catch (err) { toast(err.message, true); }
+}
+
+function renderPrefixes(prefixes) {
+  const container = $('#prefixes-list');
+  container.innerHTML = Object.entries(prefixes).map(([groupId, prefix]) => 
+    `<div class="list-item"><span>${esc(groupId)}: ${esc(prefix)}</span><button onclick="removePrefix('${groupId}')" class="danger-small">✕</button></div>`
+  ).join('') || '<p class="muted">Brak custom prefixów</p>';
+}
+
+function renderCooldowns(cooldowns) {
+  const container = $('#cooldowns-list');
+  container.innerHTML = Object.entries(cooldowns).map(([cmd, seconds]) => 
+    `<div class="list-item"><span>${esc(cmd)}: ${seconds}s</span><button onclick="removeCooldown('${cmd}')" class="danger-small">✕</button></div>`
+  ).join('') || '<p class="muted">Brak custom cooldownów</p>';
+}
+
+function renderTaxes(taxes) {
+  const container = $('#taxes-list');
+  container.innerHTML = Object.entries(taxes).map(([type, percent]) => 
+    `<div class="list-item"><span>${esc(type)}: ${percent}%</span><button onclick="removeTax('${type}')" class="danger-small">✕</button></div>`
+  ).join('') || '<p class="muted">Brak custom podatków</p>';
+}
+
+window.removePrefix = async function(groupId) {
+  try {
+    const data = await api('/api/settings');
+    const prefixes = data.groupPrefixes || {};
+    delete prefixes[groupId];
+    await api('/api/settings', { method: 'POST', body: JSON.stringify({ groupPrefixes: prefixes }) });
+    toast('Usunięto prefix.');
+    loadSettings();
+  } catch (err) { toast(err.message, true); }
+};
+
+window.removeCooldown = async function(cmd) {
+  try {
+    const data = await api('/api/settings');
+    const cooldowns = data.cooldowns || {};
+    delete cooldowns[cmd];
+    await api('/api/settings', { method: 'POST', body: JSON.stringify({ cooldowns }) });
+    toast('Usunięto cooldown.');
+    loadSettings();
+  } catch (err) { toast(err.message, true); }
+};
+
+window.removeTax = async function(type) {
+  try {
+    const data = await api('/api/settings');
+    const taxes = data.taxes || {};
+    delete taxes[type];
+    await api('/api/settings', { method: 'POST', body: JSON.stringify({ taxes }) });
+    toast('Usunięto podatek.');
+    loadSettings();
+  } catch (err) { toast(err.message, true); }
+};
+
+$('#add-prefix-btn').addEventListener('click', async () => {
+  const groupId = $('#prefix-group').value.trim();
+  const prefix = $('#prefix-value').value.trim();
+  if (!groupId || !prefix) return toast('Wypełnij wszystkie pola.', true);
+  try {
+    const data = await api('/api/settings');
+    const prefixes = data.groupPrefixes || {};
+    prefixes[groupId] = prefix;
+    await api('/api/settings', { method: 'POST', body: JSON.stringify({ groupPrefixes: prefixes }) });
+    $('#prefix-group').value = '';
+    $('#prefix-value').value = '';
+    toast('Dodano prefix.');
+    loadSettings();
+  } catch (err) { toast(err.message, true); }
+});
+
+$('#add-cooldown-btn').addEventListener('click', async () => {
+  const cmd = $('#cooldown-cmd').value.trim();
+  const value = $('#cooldown-value').value;
+  if (!cmd || !value) return toast('Wypełnij wszystkie pola.', true);
+  try {
+    const data = await api('/api/settings');
+    const cooldowns = data.cooldowns || {};
+    cooldowns[cmd] = parseInt(value);
+    await api('/api/settings', { method: 'POST', body: JSON.stringify({ cooldowns }) });
+    $('#cooldown-cmd').value = '';
+    $('#cooldown-value').value = '';
+    toast('Dodano cooldown.');
+    loadSettings();
+  } catch (err) { toast(err.message, true); }
+});
+
+$('#add-tax-btn').addEventListener('click', async () => {
+  const type = $('#tax-type').value.trim();
+  const value = $('#tax-value').value;
+  if (!type || !value) return toast('Wypełnij wszystkie pola.', true);
+  try {
+    const data = await api('/api/settings');
+    const taxes = data.taxes || {};
+    taxes[type] = parseInt(value);
+    await api('/api/settings', { method: 'POST', body: JSON.stringify({ taxes }) });
+    $('#tax-type').value = '';
+    $('#tax-value').value = '';
+    toast('Dodano podatek.');
+    loadSettings();
+  } catch (err) { toast(err.message, true); }
+});
+
+$('#save-settings-btn').addEventListener('click', async () => {
+  toast('Ustawienia są zapisywane automatycznie po każdej zmianie.');
+});
+
+// ===== EVENTY =====
+async function loadEvents() {
+  try {
+    const data = await api('/api/events');
+    renderEvents(data.events || []);
+  } catch (err) { toast(err.message, true); }
+}
+
+function renderEvents(events) {
+  const container = $('#events-list');
+  const now = Date.now();
+  container.innerHTML = events.map(event => {
+    const isActive = now >= event.startTime && now < event.endTime;
+    const timeLeft = Math.max(0, event.endTime - now);
+    const hoursLeft = Math.floor(timeLeft / (60 * 60 * 1000));
+    const minsLeft = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
+    
+    const typeNames = { xp: 'XP', casino: 'Kasyno', items: 'Itemy' };
+    
+    return `
+      <div class="event-card ${isActive ? 'active' : 'expired'}">
+        <h4>${typeNames[event.type]} x${event.multiplier}</h4>
+        <p class="muted">${event.description || 'Brak opisu'}</p>
+        <p class="muted">Status: ${isActive ? `Aktywny (zostało ${hoursLeft}h ${minsLeft}m)` : 'Zakończony'}</p>
+        <button onclick="deleteEvent('${event.id}')" class="danger-small">Usuń</button>
+      </div>
+    `;
+  }).join('') || '<p class="muted">Brak aktywnych eventów</p>';
+}
+
+window.deleteEvent = async function(eventId) {
+  if (!confirm('Usunąć ten event?')) return;
+  try {
+    await api(`/api/events/${eventId}`, { method: 'DELETE' });
+    toast('Event usunięty.');
+    loadEvents();
+  } catch (err) { toast(err.message, true); }
+};
+
+$('#create-event-btn').addEventListener('click', async () => {
+  const type = $('#event-type').value;
+  const multiplier = $('#event-multiplier').value;
+  const duration = $('#event-duration').value;
+  const description = $('#event-description').value.trim();
+  
+  if (!multiplier || !duration) return toast('Wypełnij mnożnik i czas trwania.', true);
+  
+  try {
+    await api('/api/events', { method: 'POST', body: JSON.stringify({ type, multiplier, durationHours: duration, description }) });
+    $('#event-multiplier').value = '';
+    $('#event-duration').value = '';
+    $('#event-description').value = '';
+    toast('Event utworzony! Powiadomienie zostanie wysłane globalnie.');
+    loadEvents();
+  } catch (err) { toast(err.message, true); }
+});
+
+// Dodaj obsługę nowych zakładek
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.add('hidden'));
+    btn.classList.add('active');
+    const tabId = `tab-${btn.dataset.tab}`;
+    document.getElementById(tabId).classList.remove('hidden');
+    
+    // Ładuj dane dla odpowiedniej zakładki
+    if (btn.dataset.tab === 'settings') loadSettings();
+    if (btn.dataset.tab === 'events') loadEvents();
+    if (btn.dataset.tab === 'live') loadLive();
+  });
+});
+
 if (token) showPanel(); else showLogin();

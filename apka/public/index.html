@@ -32,6 +32,8 @@
       <button class="tab-btn" data-tab="bans">🚫 Bany</button>
       <button class="tab-btn" data-tab="logs">📜 Logi</button>
       <button class="tab-btn" data-tab="gangs">🔫 Gangi</button>
+      <button class="tab-btn" data-tab="settings">⚙️ Ustawienia</button>
+      <button class="tab-btn" data-tab="events">🎉 Eventy</button>
       <button class="tab-btn" data-tab="live">📡 Live</button>
     </nav>
 
@@ -83,6 +85,61 @@
 
       <section id="tab-gangs" class="tab hidden">
         <div id="gangs-list"></div>
+      </section>
+
+      <section id="tab-settings" class="tab hidden">
+        <div class="card">
+          <h3>🔤 Prefixy grup</h3>
+          <p class="muted">Ustaw niestandardowy prefix dla konkretnej grupy.</p>
+          <div id="prefixes-list"></div>
+          <div class="form-row">
+            <input type="text" id="prefix-group" placeholder="ID grupy">
+            <input type="text" id="prefix-value" placeholder="Prefix">
+            <button id="add-prefix-btn">Dodaj</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>⏱️ Custom cooldowny</h3>
+          <p class="muted">Ustaw niestandardowe czasy cooldown dla komend.</p>
+          <div id="cooldowns-list"></div>
+          <div class="form-row">
+            <input type="text" id="cooldown-cmd" placeholder="Komenda">
+            <input type="number" id="cooldown-value" placeholder="Sekundy">
+            <button id="add-cooldown-btn">Dodaj</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>💰 Custom podatki</h3>
+          <p class="muted">Ustaw niestandardowe stawki podatkowe.</p>
+          <div id="taxes-list"></div>
+          <div class="form-row">
+            <input type="text" id="tax-type" placeholder="Typ podatku">
+            <input type="number" id="tax-value" placeholder="Procent">
+            <button id="add-tax-btn">Dodaj</button>
+          </div>
+        </div>
+        <button id="save-settings-btn" class="primary">Zapisz ustawienia</button>
+      </section>
+
+      <section id="tab-events" class="tab hidden">
+        <div class="card">
+          <h3>➕ Nowy event</h3>
+          <div class="form-row">
+            <select id="event-type">
+              <option value="xp">2x XP</option>
+              <option value="casino">Większe wygrane kasyno</option>
+              <option value="items">Większa szansa na itemy</option>
+            </select>
+            <input type="number" id="event-multiplier" placeholder="Mnożnik (np. 2)" step="0.1">
+            <input type="number" id="event-duration" placeholder="Czas trwania (godziny)">
+          </div>
+          <textarea id="event-description" rows="2" placeholder="Opis eventu (opcjonalne)..."></textarea>
+          <button id="create-event-btn" class="primary">Utwórz event</button>
+        </div>
+        <div class="card">
+          <h3>📋 Aktywne eventy</h3>
+          <div id="events-list"></div>
+        </div>
       </section>
 
       <section id="tab-live" class="tab hidden">
