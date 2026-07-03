@@ -13,29 +13,31 @@ async function intelligentCensor(text, context = 'tekst użytkownika') {
 
   try {
     const promptText = 
-      `Jesteś ekspertem od cenzury. Twoim zadaniem jest maskowanie obraźliwych lub nieodpowiednich słów w tekście.\n\n` +
+      `Jesteś ekspertem od cenzury. Twoim zadaniem jest maskowanie słów, które mogą skutkować banem lub sankcjami na Facebooku (ciężkie wyzwiska, mowa nienawiści, obraźliwe określenia chronionych grup, nawoływanie do przemocy).\n\n` +
       `ZASADY CENZURY:\n` +
-      `1. Dla słów o długości 1-4 litery: zamaskuj DOKŁADNIE 1 literę (jeden symbol •)\n` +
-      `2. Dla słów o długości 5 liter: zamaskuj DOKŁADNIE 2 litery (dwa symbole ••)\n` +
-      `3. Dla słów o długości 6-7 liter: zamaskuj DOKŁADNIE 3 litery (trzy symbole •••)\n` +
-      `4. Dla słów dłuższych niż 7 liter: zamaskuj MINIMUM 4 litery (cztery lub więcej symboli ••••)\n` +
-      `5. Symbole • mogą być umieszczane w dowolnym miejscu w słowie - zastępują one zamaskowane litery\n` +
-      `6. NIE WOLNO usuwać liter - zawsze używaj formy maskowania symbolami •\n` +
-      `7. Dla każdego słowa wybierz, które litery zastąpić symbolami •, ale przestrzegaj wymaganej liczby symboli\n` +
-      `8. Dla różnych słów użyj różnych schematów (nie używaj jednego sztywnego wzoru)\n` +
-      `9. Zachowaj czytelność słowa - nie maskuj wszystkich liter\n` +
-      `10. WAŻNE: NIE ZMNIEJSZAJ liczby liter w słowie - tylko zastępuj wybrane litery symbolami •. Długość słowa pozostaje taka sama!\n\n` +
+      `1. Używaj WYŁĄCZNIE symbolu • do cenzurowania (nie używaj *, #, _, -, █ ani żadnych innych symboli)\n` +
+      `2. Każda ocenzurowana litera jest zastępowana JEDNYM symbolem •\n` +
+      `3. NIE WOLNO usuwać liter - tylko zastępuj je symbolem •\n` +
+      `4. NIE WOLNO zmieniać liter na inne znaki - tylko zastępuj je symbolem •\n` +
+      `5. NIE WOLNO skracać słów - długość słowa pozostaje taka sama\n` +
+      `6. Cenzuruj WYŁĄCZNIE słowa naruszające standardy społeczności Facebooku (wyzwiska, mowa nienawiści, obraźliwe określenia chronionych grup, nawoływanie do przemocy)\n` +
+      `7. NIE cenzuruj słów, które same w sobie nie stanowią naruszenia standardów\n` +
+      `8. Dla każdego słowa wybierz, które litery zastąpić symbolem •\n` +
+      `9. Dla różnych słów użyj różnych schematów (nie używaj jednego sztywnego wzoru)\n` +
+      `10. Zachowaj czytelność słowa - nie maskuj wszystkich liter\n\n` +
       `PRZYKŁADY:\n` +
-      `- "spierdalaj" → "spi*r**al*j" lub "sp**rd*l*aj"\n` +
-      `- "kurwa" → "ku**a" lub "k*r*a"\n` +
-      `- "chuj" → "ch*j" lub "c**j"\n` +
-      `- "debil" → "de**l" lub "d*b*l"\n` +
-      `- "idiota" → "id***ta" lub "i*i**a"\n\n` +
+      `- "spierdalaj" → "spi•rd•l•j" lub "sp•rd•l•aj"\n` +
+      `- "kurwa" → "ku•a" lub "k•r•a"\n` +
+      `- "chuj" → "ch•j" lub "c•uj"\n` +
+      `- "debil" → "de•il" lub "d•bi•l"\n` +
+      `- "idiota" → "idi•ta" lub "i•io•a"\n\n` +
       `WAŻNE:\n` +
       `- Zwróć TYLKO przetworzony tekst\n` +
       `- Nie dodawaj żadnych wyjaśnień ani komentarzy\n` +
       `- Zachowaj wszystkie inne słowa w tekście bez zmian\n` +
-      `- Zachowaj interpunkcję i formatowanie\n\n` +
+      `- Zachowaj interpunkcję i formatowanie\n` +
+      `- Każda zamaskowana litera = jeden symbol •\n` +
+      `- Długość słowa NIE ZMIENIA SIĘ - tylko litery są zastępowane symbolami •\n\n` +
       `Tekst do ocenzurowania: ${text}`;
 
     const aiResponse = await askGeminiWithFallback(promptText);
