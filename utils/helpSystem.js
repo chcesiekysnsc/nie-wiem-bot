@@ -866,6 +866,19 @@ const helpCommands = [
       "Brak środków o 00:00 zeruje konto dłużnika, dodaje zdefiniowaną karę % do długu oraz włącza windykację komorniczą ze wszystkich zysków dłużnika.",
       "Przedwczesna spłata: komendą !pozyczka gracz splac <kwota>. Minimalna wpłata to 1 rata, a przy większej wpłacie musi to być minimum równowartość 2 rat."
     ]
+  },
+  {
+    id: 66,
+    name: "losuj",
+    category: "SOCIAL_GANGS",
+    shortDescription: "losuje i oznacza osobe na grupie",
+    description: "Losuje losowego członka grupy (z wykluczeniem bota) i oznacza go na czacie.",
+    usage: "!losuj",
+    examples: ["!losuj"],
+    cooldown: "3 sekundy",
+    requirements: "Działa wyłącznie w konwersacjach grupowych.",
+    aliases: ["random", "wylosuj"],
+    additionalInfo: []
   }
 ];
 
