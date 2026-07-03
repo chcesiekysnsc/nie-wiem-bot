@@ -407,8 +407,6 @@ module.exports = {
           }
 
           // Powiadomienie na wszystkie aktywne grupy, jeśli kurs > 80 i wygrana > 10000
-          const taxRateForPayout = (result.meczTaxRate || 15) / 100;
-          const payoutApplied = potentialWin - Math.round(potentialWin * taxRateForPayout);
           if (combinedOdds > 80 && payoutApplied > 10000) {
             try {
               const userName = (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;

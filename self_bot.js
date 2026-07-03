@@ -937,15 +937,22 @@ login({ appState }, (loginErr, api) => {
 
   function startMonthlyResetTimer() {
     const delay = getMsUntilNextMonthlyReset() + 2000;
-    setTimeout(async () => {
-      try {
-        console.log('[MONTHLY RESET] Timer fired. Checking/triggering reset...');
-        await checkAndAnnounceMonthlyReset();
-      } catch (err) {
-        console.error('[MONTHLY RESET TIMER] Błąd podczas automatycznego resetu:', err);
-      }
-      startMonthlyResetTimer();
-    }, delay);
+    const maxDelay = 24 * 60 * 60 * 1000; // 24h limit for setTimeout to prevent 32-bit signed int overflow
+    if (delay > maxDelay) {
+      setTimeout(() => {
+        startMonthlyResetTimer();
+      }, maxDelay);
+    } else {
+      setTimeout(async () => {
+        try {
+          console.log('[MONTHLY RESET] Timer fired. Checking/triggering reset...');
+          await checkAndAnnounceMonthlyReset();
+        } catch (err) {
+          console.error('[MONTHLY RESET TIMER] Błąd podczas automatycznego resetu:', err);
+        }
+        startMonthlyResetTimer();
+      }, delay);
+    }
   }
 
   startMonthlyResetTimer();
