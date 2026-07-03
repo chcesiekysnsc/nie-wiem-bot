@@ -1549,9 +1549,20 @@ login({ appState }, (loginErr, api) => {
         if (isLoggingEnabled || isSubAdmin) {
           try {
             const senderName = await client.resolveUserName(api, cached.senderID);
-            let announceMsg = `🗑️ **Użytkownik ${senderName} usunął wiadomość:**\n"${cached.body}"`;
             
-            if (cached.attachmentUrls && cached.attachmentUrls.length > 0) {
+            // Apply censorship to text only, not media
+            let censoredBody = cached.body || '';
+            const hasMedia = cached.attachmentUrls && cached.attachmentUrls.length > 0;
+            
+            // Only censor if there's text content
+            if (censoredBody && !censoredBody.startsWith('[Załącznik:')) {
+              const { intelligentCensor } = require('./utils/censorship');
+              censoredBody = await intelligentCensor(censoredBody, 'przywrócona wiadomość');
+            }
+            
+            let announceMsg = `🗑️ **Użytkownik ${senderName} usunął wiadomość:**\n"${censoredBody}"`;
+            
+            if (hasMedia) {
               announceMsg += `\n\n🔗 **Linki do usuniętych załączników:**\n` + 
                              cached.attachmentUrls.map((url, idx) => `${idx + 1}. \`${url}\``).join('\n');
             }

@@ -13,16 +13,17 @@ async function intelligentCensor(text, context = 'tekst użytkownika') {
 
   try {
     const promptText = 
-      `Jesteś ekspertem od cenzury. Twoim zadaniem jest inteligentne maskowanie obraźliwych lub nieodpowiednich słów w tekście, zachowując jego czytelność.\n\n` +
+      `Jesteś ekspertem od cenzury. Twoim zadaniem jest maskowanie obraźliwych lub nieodpowiednich słów w tekście.\n\n` +
       `ZASADY CENZURY:\n` +
-      `1. Dla słów o długości 1-3 litery: zamaskuj dokładnie 1 literę (np. "chuj" → "c*h*j", "kur" → "k*u*r")\n` +
-      `2. Dla słów o długości 4 litery: zamaskuj dokładnie 2 litery (np. "debil" → "d*e**l", "kurwa" → "k*u*r*w*a")\n` +
-      `3. Dla słów o długości 5-7 liter: zamaskuj dokładnie 3 litery (np. "idiota" → "i*d*i**o*t*a", "spierdalaj" → "s*p*i*e*r*d*a*l*a*j")\n` +
-      `4. Dla słów dłuższych niż 7 liter: użyj własnego rozsądku, zachowując czytelność\n` +
-      `5. Dla różnych słów użyj różnych schematów cenzury (nie używaj jednego sztywnego wzoru)\n` +
-      `6. Zachowaj pierwszą literę i część charakterystycznych liter, aby słowo było rozpoznawalne\n` +
-      `7. Ukryj wystarczającą liczbę liter, aby przekleństwo nie było zapisane w pełnej postaci\n` +
-      `8. WAŻNE: Gwiazdki NIE MOGĄ być obok siebie - między każdą gwiazdką musi być co najmniej jedna litera (np. "ch**" jest ZŁE, "c*h*j" jest DOBRE)\n\n` +
+      `1. Dla słów o długości 1-3 litery: zamaskuj DOKŁADNIE 1 literę (jedna gwiazdka *)\n` +
+      `2. Dla słów o długości 4 litery: zamaskuj DOKŁADNIE 2 litery (dwie gwiazdki **)\n` +
+      `3. Dla słów o długości 5-7 liter: zamaskuj DOKŁADNIE 3 litery (trzy gwiazdki ***)\n` +
+      `4. Dla słów dłuższych niż 7 liter: zamaskuj MINIMUM 4 litery (cztery lub więcej gwiazdek ****)\n` +
+      `5. Gwiazdki mogą być umieszczane w dowolnym miejscu w słowie - zastępują one zamaskowane litery\n` +
+      `6. NIE WOLNO usuwać liter - zawsze używaj formy maskowania gwiazdkami\n` +
+      `7. Dla każdego słowa wybierz, które litery zastąpić gwiazdkami, ale przestrzegaj wymaganej liczby gwiazdek\n` +
+      `8. Dla różnych słów użyj różnych schematów (nie używaj jednego sztywnego wzoru)\n` +
+      `9. Zachowaj czytelność słowa - nie maskuj wszystkich liter\n\n` +
       `PRZYKŁADY:\n` +
       `- "spierdalaj" → "spi*r**al*j" lub "sp**rd*l*aj"\n` +
       `- "kurwa" → "ku**a" lub "k*r*a"\n` +
