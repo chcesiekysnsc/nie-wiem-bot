@@ -115,8 +115,20 @@ window.openPlayer = async function (id) {
   try {
     const data = await api(`/api/players/${encodeURIComponent(id)}`);
     const items = Object.entries(data.inventory);
+    
+    // Oblicz winrate
+    const wins = data.user.wins || 0;
+    const losses = data.user.losses || 0;
+    const gamesPlayed = data.user.gamesPlayed || 0;
+    const totalGamble = wins + losses;
+    const winrate = totalGamble > 0 ? ((wins / totalGamble) * 100).toFixed(1) + '%' : '0%';
+
     $('#modal').innerHTML = `
       <h3>✏️ ${esc(data.name)} <span class="muted">(${esc(id)})</span></h3>
+      <div style="margin-bottom:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; font-size:13px; border-left: 4px solid #00e676;">
+        📊 <strong>Overall Winrate:</strong> <span style="color:#00e676; font-weight:700;">${winrate}</span> 
+        <span class="muted" style="margin-left:10px;">(Gry: ${gamesPlayed} | Wygrane: ${wins} | Przegrane: ${losses})</span>
+      </div>
       <label>Saldo <input type="number" id="edit-balance" value="${data.user.balance || 0}"></label>
       <label>Bank <input type="number" id="edit-bank" value="${data.user.bank || 0}"></label>
       <label>Poziom <input type="number" id="edit-level" value="${data.user.level || 1}"></label>
