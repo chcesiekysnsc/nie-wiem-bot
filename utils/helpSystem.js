@@ -892,6 +892,32 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: ["brb", "zaz", "zw"],
     additionalInfo: ["Każda kolejna wysłana przez Ciebie wiadomość automatycznie anuluje status AFK. Powód jest cenzurowany przez AI pod kątem słów niedozwolonych na FB."]
+  },
+  {
+    id: 68,
+    name: "krolik",
+    category: "SOCIAL_GANGS",
+    shortDescription: "wysyla losowe zdjecie krolika z Reddita",
+    description: "Wysyła losowe zdjęcie królika pobrane z Reddita (r/Rabbits, r/Bunnies, r/Rabbit). Zdjęcia są filtrowane - tylko obrazy JPG/JPEG/PNG/WEBP, bez filmów, GIF-ów lub treści NSFW.",
+    usage: "!krolik",
+    examples: ["!krolik"],
+    cooldown: "2 minuty",
+    requirements: "Brak.",
+    aliases: ["rabbit", "bunny"],
+    additionalInfo: ["Właściciel bota nie ma cooldownu.", "Jeśli Reddit nie odpowiada, bot wyświetli komunikat o błędzie."]
+  },
+  {
+    id: 69,
+    name: "kotek",
+    category: "SOCIAL_GANGS",
+    shortDescription: "wysyla losowe zdjecie malego kotka z Reddita",
+    description: "Wysyła losowe zdjęcie małego kotka (kociaka) pobrane z Reddita (r/IllegallySmolCats, r/Kittens, r/aww). Priorytet mają małe kotki. Zdjęcia są filtrowane - tylko obrazy JPG/JPEG/PNG/WEBP, bez filmów, GIF-ów lub treści NSFW.",
+    usage: "!kotek",
+    examples: ["!kotek"],
+    cooldown: "2 minuty",
+    requirements: "Brak.",
+    aliases: ["kitten", "kitty", "cat"],
+    additionalInfo: ["Właściciel bota nie ma cooldownu.", "Jeśli Reddit nie odpowiada, bot wyświetli komunikat o błędzie."]
   }
 ];
 
