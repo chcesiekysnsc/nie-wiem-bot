@@ -12,13 +12,15 @@ module.exports = {
     if (args.length > 0 && ['on', 'off', 'wlacz', 'wylacz', '1', '0'].includes(args[0].toLowerCase())) {
       const shouldEnable = ['on', 'wlacz', '1'].includes(args[0].toLowerCase());
       
-      await withData(store => {
+      let filteredReason = 'Nie podano powodu';
+      
+      await withData(async store => {
         store.profiles.afk = store.profiles.afk || {};
         
         if (shouldEnable) {
           // Włącz AFK z domyślnym powodem lub podanym
           const rawReason = args.slice(1).join(' ').trim() || 'Nie podano powodu';
-          let filteredReason = rawReason;
+          filteredReason = rawReason;
           
           // Filtruj powód za pomocą AI jeśli podano
           if (args.length > 1) {
@@ -44,18 +46,20 @@ module.exports = {
             time: Date.now(),
             enabled: true
           };
-          
-          await message.reply(`💤 **${userName}** włączył/a AFK: **${filteredReason}**\n\nAFK będzie automatycznie wyłączany po napisaniu wiadomości.`);
         } else {
           // Wyłącz AFK
           if (store.profiles.afk[userId]) {
             delete store.profiles.afk[userId];
-            await message.reply(`✅ **${userName}** wyłączył/a AFK.`);
-          } else {
-            await message.reply(`ℹ️ **${userName}** nie miał/a włączonego AFK.`);
           }
         }
       });
+      
+      // Send reply after withData completes
+      if (shouldEnable) {
+        await message.reply(`💤 **${userName}** włączył/a AFK: **${filteredReason}**\n\nAFK będzie automatycznie wyłączany po napisaniu wiadomości.`);
+      } else {
+        await message.reply(`✅ **${userName}** wyłączył/a AFK.`);
+      }
       
       return;
     }
