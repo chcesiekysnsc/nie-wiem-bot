@@ -132,6 +132,13 @@ function addXp(user, amount, inventoryRecord = null) {
     }
     finalAmount = Math.round(finalAmount * xpMultiplier);
   }
+
+  // Aplikuj event XP mnożnik
+  const eventXpMul = getActiveEventMultiplier('xp');
+  if (eventXpMul > 1) {
+    finalAmount = Math.round(finalAmount * eventXpMul);
+  }
+
   user.xp += Math.max(0, Math.floor(finalAmount || 0));
   const oldLevel = user.level;
   let leveledUp = false;
@@ -395,6 +402,24 @@ function getPassiveMultiplier(inventoryRecord, itemId, baseBonus) {
   return parseFloat((baseBonus + (hasCzterolistna ? 0.01 : 0.00)).toFixed(4));
 }
 
+function getActiveEventMultiplier(type) {
+  try {
+    const { loadData } = require('./storage');
+    const profiles = loadData('profiles');
+    const events = profiles.events || [];
+    const now = Date.now();
+    let best = 1;
+    for (const e of events) {
+      if (e.type === type && e.endTime > now && e.multiplier > best) {
+        best = e.multiplier;
+      }
+    }
+    return best;
+  } catch (_) {
+    return 1;
+  }
+}
+
 module.exports = {
   randomInt,
   formatNumber,
@@ -415,5 +440,6 @@ module.exports = {
   getMilestoneRewardDescription,
   giveMilestoneReward,
   applyTalizmanBonus,
-  getPassiveMultiplier
+  getPassiveMultiplier,
+  getActiveEventMultiplier
 };

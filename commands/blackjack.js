@@ -7,7 +7,8 @@ const {
   resolveAmount,
   ensureInventoryRecord,
   hasItem,
-  getPassiveMultiplier
+  getPassiveMultiplier,
+  getActiveEventMultiplier
 } = require('../utils/economy');
 const { createUser, withData, loadData } = require('../utils/storage');
 
@@ -578,6 +579,11 @@ module.exports = {
 
       let talizmanBonus = 0;
       if (finalPayout > game.bet) {
+        const evMul = getActiveEventMultiplier('casino');
+        if (evMul > 1) {
+          const profit = finalPayout - game.bet;
+          finalPayout = game.bet + Math.round(profit * evMul);
+        }
         const profit = finalPayout - game.bet;
         const { applyTalizmanBonus } = require('../utils/economy');
         talizmanBonus = applyTalizmanBonus(user, inventory, profit);

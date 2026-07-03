@@ -268,7 +268,8 @@ module.exports = {
 
       // Potrącamy stawkę z góry
       user.balance -= bet;
-      return { bet, newBalance: user.balance };
+      const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
+      return { bet, newBalance: user.balance, meczTaxRate };
     });
 
     if (setupResult.error) {
@@ -285,7 +286,8 @@ module.exports = {
     };
     const odds = match.odds[rawType];
     const potentialWin = Math.round(bet * odds);
-    const tax = Math.round(potentialWin * 0.15);
+    const taxRate = setupResult.meczTaxRate / 100;
+    const tax = Math.round(potentialWin * taxRate);
     const payout = potentialWin - tax;
 
     // Zapisz aktywny zakład do pliku (ochrona przed restartem bota)
@@ -394,8 +396,11 @@ module.exports = {
           let taxApplied = 0;
           let payoutApplied = 0;
 
+          const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
+          const taxRate = meczTaxRate / 100;
+
           if (won) {
-            taxApplied = Math.round(potentialWin * 0.15);
+            taxApplied = Math.round(potentialWin * taxRate);
             payoutApplied = potentialWin - taxApplied;
             net = payoutApplied - bet;
             user.balance += payoutApplied; // Dodajemy wygraną po odliczeniu podatku

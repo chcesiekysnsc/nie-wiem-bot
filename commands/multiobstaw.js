@@ -160,7 +160,8 @@ module.exports = {
         user.balance = currentBalance;
       }
 
-      return { totalStake, selectionsResolved, newBalance: user.balance };
+      const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
+      return { totalStake, selectionsResolved, newBalance: user.balance, meczTaxRate };
     });
 
     if (setupResult.error) {
@@ -191,7 +192,8 @@ module.exports = {
 
     combinedOdds = parseFloat(combinedOdds.toFixed(2));
     const potentialWin = Math.round(totalStake * combinedOdds);
-    const tax = Math.round(potentialWin * 0.15);
+    const taxRate = setupResult.meczTaxRate / 100;
+    const tax = Math.round(potentialWin * taxRate);
     const payout = potentialWin - tax;
 
     // Zapisz aktywny zakład do pliku (ochrona przed restartem bota)
@@ -317,11 +319,14 @@ module.exports = {
             });
           }
 
+          const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
+          const taxRate = meczTaxRate / 100;
+
           let net = 0;
           let taxApplied = 0;
           let payoutApplied = 0;
           if (ticketWon) {
-            taxApplied = Math.round(potentialWin * 0.15);
+            taxApplied = Math.round(potentialWin * taxRate);
             payoutApplied = potentialWin - taxApplied;
             net = payoutApplied - totalStake;
             user.balance += payoutApplied; // Dodajemy wygraną po odliczeniu podatku
@@ -338,7 +343,8 @@ module.exports = {
             net,
             matchResults,
             balance: user.balance,
-            xpResult
+            xpResult,
+            meczTaxRate
           };
         });
 
@@ -375,11 +381,13 @@ module.exports = {
         });
 
         if (result.ticketWon) {
-          const taxApplied = Math.round(potentialWin * 0.15);
+          const meczTaxRate = result.meczTaxRate || 15;
+          const taxRate = meczTaxRate / 100;
+          const taxApplied = Math.round(potentialWin * taxRate);
           const payoutApplied = potentialWin - taxApplied;
           replyText += `🎉 **GRATULACJE! TWÓJ KUPON JEST WYGRANY!** 🎉\n` +
                        `🏆 Wygrana (bez podatku): **${formatCurrency(payoutApplied)}**\n` +
-                       `💸 Pobrany podatek (15%): **${formatCurrency(taxApplied)}**\n` +
+                       `💸 Pobrany podatek (${meczTaxRate}%): **${formatCurrency(taxApplied)}**\n` +
                        `💰 Czysty zysk: **+${formatCurrency(result.net)}**\n\n`;
 
           // Powiadomienie na grupę administratorską, jeśli kurs > 20
@@ -398,11 +406,13 @@ module.exports = {
             }
           }
 
-          // Powiadomienie na wszystkie aktywne grupy, jeśli kurs > 80 i wygrana >= 8mln
-          if (combinedOdds > 80 && payoutApplied >= 8000000) {
+          // Powiadomienie na wszystkie aktywne grupy, jeśli kurs > 80 i wygrana > 10000
+          const taxRateForPayout = (result.meczTaxRate || 15) / 100;
+          const payoutApplied = potentialWin - Math.round(potentialWin * taxRateForPayout);
+          if (combinedOdds > 80 && payoutApplied > 10000) {
             try {
               const userName = (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
-              const globalNotifyMsg = `🎰 **MEGA WYGRANA W MULTI-MECZU!** 🎰\n` +
+              const globalNotifyMsg = `🔥 **MEGA WYGRANA W MULTI-BET!** 🔥\n` +
                                      `👤 Gracz: **${userName}**\n` +
                                      `🏆 Trafiony łączny kurs: **${combinedOdds}**\n` +
                                      `💰 Stawka: **${formatCurrency(totalStake)}**\n` +

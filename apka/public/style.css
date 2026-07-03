@@ -212,3 +212,237 @@ textarea { width: 100%; resize: vertical; margin-bottom: 10px; }
 }
 .ok-toast { background: #1d4a2b; color: #5fe08a; position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px; z-index: 200; }
 .error-toast { background: #4a1d1d; color: #ff8a8a; position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px; z-index: 200; }
+
+/* === MODERN SETTINGS & EVENTS UI === */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-sidebar {
+  position: sticky;
+  top: 20px;
+}
+
+.settings-nav-card {
+  padding: 20px;
+}
+
+.settings-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.shortcut-link {
+  color: #8a90a4;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #151722;
+  transition: all 0.2s ease;
+}
+
+.shortcut-link:hover {
+  background: #232739;
+  color: #4c6fff;
+  transform: translateX(4px);
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #2a2e3d;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.card-desc {
+  margin-bottom: 20px;
+}
+
+.badge.info {
+  background: #1c325c;
+  color: #7faeff;
+}
+
+.cooldowns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.cooldowns-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #c5c9d6;
+  background: #151722;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #252838;
+}
+
+.cooldowns-grid input {
+  width: 100%;
+}
+
+.taxes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #151722;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #252838;
+}
+
+.field-group label {
+  font-weight: 600;
+  color: #fff;
+  font-size: 14px;
+}
+
+.field-desc {
+  font-size: 11px;
+  color: #8a90a4;
+}
+
+.prefixes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.prefixes-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #151722;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #252838;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.prefixes-grid input {
+  margin-top: 4px;
+}
+
+.card-footer {
+  margin-top: 20px;
+  border-top: 1px solid #2a2e3d;
+  padding-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-save {
+  min-width: 150px;
+  font-weight: 600;
+  padding: 10px 20px;
+}
+
+/* === EVENTS STYLE === */
+.events-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .events-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.event-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.event-form .full-width {
+  grid-column: span 2;
+}
+
+.event-form select {
+  background: #1c1f2b;
+  border: 1px solid #333850;
+  border-radius: 6px;
+  color: #e6e8ef;
+  padding: 8px 10px;
+  font-size: 14px;
+  outline: none;
+}
+
+.event-form select:focus {
+  border-color: #4c6fff;
+}
+
+.btn-create {
+  width: 100%;
+  padding: 12px;
+  font-weight: 600;
+}
+
+.events-grid-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.event-card {
+  background: linear-gradient(135deg, #1c1f2b 0%, #151722 100%);
+  border: 1px solid #333850;
+  border-left: 4px solid #4c6fff;
+  border-radius: 8px;
+  padding: 16px;
+  position: relative;
+}
+
+.event-card h4 {
+  color: #fff;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.event-card p {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.event-card .small.danger {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}

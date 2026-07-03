@@ -5,7 +5,8 @@ const {
   hasItem,
   msToReadable,
   recordGame,
-  refreshBadges
+  refreshBadges,
+  getActiveEventMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -78,8 +79,10 @@ module.exports = {
 
       let netChange = 0;
       if (won) {
-        user.balance += stake;
-        netChange = stake;
+        const evMul = getActiveEventMultiplier('casino');
+        const finalStake = evMul > 1 ? Math.round(stake * evMul) : stake;
+        user.balance += finalStake;
+        netChange = finalStake;
       } else {
         user.balance -= stake;
         netChange = -stake;

@@ -132,7 +132,9 @@ module.exports = {
         buyer.balance -= offer.price;
 
         const seller = createUser(offer.sellerId, store.users);
-        const tax = Math.floor(offer.price * 0.10);
+        const marketTaxRate = store.profiles.marketTaxRate !== undefined ? store.profiles.marketTaxRate : 10;
+        const taxRate = marketTaxRate / 100;
+        const tax = Math.floor(offer.price * taxRate);
         const payout = offer.price - tax;
         seller.balance += payout;
 
@@ -152,7 +154,8 @@ module.exports = {
           payout,
           tax,
           sellerId: offer.sellerId,
-          sellerThreadId: seller.lastActiveThreadId
+          sellerThreadId: seller.lastActiveThreadId,
+          marketTaxRate
         };
       });
 
@@ -176,7 +179,7 @@ module.exports = {
           const buyerName = message.author?.username || await getNameAsync(userId);
           client.api.sendMessage(
             `💰 **RYNEK ALARM!** Użytkownik **${buyerName}** kupił Twój wystawiony przedmiot **${buyResult.itemEmoji} ${buyResult.itemName}**!\n` +
-            `Otrzymujesz: **+${formatCurrency(buyResult.payout)}** (cena ${formatCurrency(buyResult.price)} minus 10% podatku).`,
+            `Otrzymujesz: **+${formatCurrency(buyResult.payout)}** (cena ${formatCurrency(buyResult.price)} minus ${buyResult.marketTaxRate}% podatku).`,
             buyResult.sellerThreadId
           );
         } catch (err) {

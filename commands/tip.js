@@ -151,7 +151,9 @@ module.exports = {
         return { error: `❌ Nie masz wystarczających środków. Posiadasz: ${formatCurrency(sender.balance)}` };
       }
 
-      const tax = Math.floor(amount * 0.05);
+      const transferTaxRate = store.profiles.transferTaxRate !== undefined ? store.profiles.transferTaxRate : 5;
+      const taxRate = transferTaxRate / 100;
+      const tax = Math.floor(amount * taxRate);
       const transferAmount = amount - tax;
 
       sender.balance -= amount;

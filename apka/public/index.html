@@ -88,57 +88,143 @@
       </section>
 
       <section id="tab-settings" class="tab hidden">
-        <div class="card">
-          <h3>🔤 Prefixy grup</h3>
-          <p class="muted">Ustaw niestandardowy prefix dla konkretnej grupy.</p>
-          <div id="prefixes-list"></div>
-          <div class="form-row">
-            <input type="text" id="prefix-group" placeholder="ID grupy">
-            <input type="text" id="prefix-value" placeholder="Prefix">
-            <button id="add-prefix-btn">Dodaj</button>
+        <div class="settings-layout">
+          <div class="settings-sidebar">
+            <div class="card settings-nav-card">
+              <h3>⚙️ Panel Ustawień</h3>
+              <p class="muted">Zarządzaj zachowaniem bota, cooldownami, stawkami podatkowymi oraz prefixami na grupach.</p>
+              <div class="settings-shortcuts">
+                <a href="#sec-cooldowns" class="shortcut-link">🔧 Cooldowny komend</a>
+                <a href="#sec-taxes" class="shortcut-link">💸 Podatki systemowe</a>
+                <a href="#sec-prefixes" class="shortcut-link">📝 Prefixy grup</a>
+              </div>
+            </div>
+          </div>
+          
+          <div class="settings-content">
+            <!-- Cooldowny -->
+            <div class="card" id="sec-cooldowns">
+              <div class="card-header">
+                <h3>🔧 Cooldowny komend</h3>
+                <span class="badge info">Czas w sekundach</span>
+              </div>
+              <p class="muted card-desc">Ustaw czas oczekiwania (cooldown) po użyciu danej komendy. Wpisz 0, aby wyłączyć cooldown.</p>
+              <div id="cooldowns-list" class="cooldowns-grid">
+                <!-- Generowane dynamicznie przez JS -->
+              </div>
+              <div class="card-footer">
+                <button id="save-cooldowns" class="primary btn-save">Zapisz cooldowny</button>
+              </div>
+            </div>
+
+            <!-- Podatki -->
+            <div class="card" id="sec-taxes">
+              <div class="card-header">
+                <h3>💸 Podatki systemowe</h3>
+                <span class="badge info">% pobieranej kwoty</span>
+              </div>
+              <p class="muted card-desc">Konfiguruj stawki procentowe podatków i haraczy pobieranych przy różnych operacjach ekonomicznych.</p>
+              <div class="taxes-grid">
+                <div class="field-group">
+                  <label for="tax-balance">🏦 Podatek od salda (%)</label>
+                  <span class="field-desc">Pobierany cyklicznie z konta</span>
+                  <input type="number" id="tax-balance" min="0" max="100" step="0.5">
+                </div>
+                <div class="field-group">
+                  <label for="tax-transfer">💸 Podatek od przelewów (%)</label>
+                  <span class="field-desc">Pobierany podczas !tip / transferów</span>
+                  <input type="number" id="tax-transfer" min="0" max="100" step="0.5">
+                </div>
+                <div class="field-group">
+                  <label for="tax-market">⚖️ Podatek od rynku (%)</label>
+                  <span class="field-desc">Pobierany przy transakcjach na rynku</span>
+                  <input type="number" id="tax-market" min="0" max="100" step="0.5">
+                </div>
+                <div class="field-group">
+                  <label for="tax-gang">🛡️ Haracz gangów (%)</label>
+                  <span class="field-desc">Tribute gangu pobierany do skarbnicy</span>
+                  <input type="number" id="tax-gang" min="0" max="100" step="0.5">
+                </div>
+                <div class="field-group">
+                  <label for="tax-casino">🎰 Podatek od kasyna (%)</label>
+                  <span class="field-desc">Podatek pobierany z wygranych w kasynie</span>
+                  <input type="number" id="tax-casino" min="0" max="100" step="0.5">
+                </div>
+                <div class="field-group">
+                  <label for="tax-mecz">⚽ Podatek od meczów (%)</label>
+                  <span class="field-desc">Podatek pobierany z wygranych kuponów meczowych</span>
+                  <input type="number" id="tax-mecz" min="0" max="100" step="0.5">
+                </div>
+              </div>
+              <div class="card-footer">
+                <button id="save-taxes" class="primary btn-save">Zapisz podatki</button>
+              </div>
+            </div>
+
+            <!-- Prefixy grup -->
+            <div class="card" id="sec-prefixes">
+              <div class="card-header">
+                <h3>📝 Prefixy grup</h3>
+                <span class="badge info">Indywidualne znaki wywołania</span>
+              </div>
+              <p class="muted card-desc">Ustaw unikalny prefix dla każdej grupy. Pozostawienie pustego pola przywróci domyślny prefix (!).</p>
+              <div id="prefixes-list" class="prefixes-grid">
+                <!-- Generowane dynamicznie przez JS -->
+              </div>
+              <div class="card-footer">
+                <button id="save-prefixes" class="primary btn-save">Zapisz prefixy</button>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="card">
-          <h3>⏱️ Custom cooldowny</h3>
-          <p class="muted">Ustaw niestandardowe czasy cooldown dla komend.</p>
-          <div id="cooldowns-list"></div>
-          <div class="form-row">
-            <input type="text" id="cooldown-cmd" placeholder="Komenda">
-            <input type="number" id="cooldown-value" placeholder="Sekundy">
-            <button id="add-cooldown-btn">Dodaj</button>
-          </div>
-        </div>
-        <div class="card">
-          <h3>💰 Custom podatki</h3>
-          <p class="muted">Ustaw niestandardowe stawki podatkowe.</p>
-          <div id="taxes-list"></div>
-          <div class="form-row">
-            <input type="text" id="tax-type" placeholder="Typ podatku">
-            <input type="number" id="tax-value" placeholder="Procent">
-            <button id="add-tax-btn">Dodaj</button>
-          </div>
-        </div>
-        <button id="save-settings-btn" class="primary">Zapisz ustawienia</button>
       </section>
 
       <section id="tab-events" class="tab hidden">
-        <div class="card">
-          <h3>➕ Nowy event</h3>
-          <div class="form-row">
-            <select id="event-type">
-              <option value="xp">2x XP</option>
-              <option value="casino">Większe wygrane kasyno</option>
-              <option value="items">Większa szansa na itemy</option>
-            </select>
-            <input type="number" id="event-multiplier" placeholder="Mnożnik (np. 2)" step="0.1">
-            <input type="number" id="event-duration" placeholder="Czas trwania (godziny)">
+        <div class="events-layout">
+          <!-- Tworzenie eventu -->
+          <div class="card event-creator-card">
+            <h3>➕ Stwórz nowy event</h3>
+            <p class="muted card-desc">Zaplanuj event z mnożnikiem zysków, który aktywuje się w ekonomii bota i wyśle powiadomienie na grupy.</p>
+            
+            <div class="event-form">
+              <div class="field-group">
+                <label for="event-type">Typ eventu</label>
+                <select id="event-type">
+                  <option value="xp">⚡ Event 2x XP</option>
+                  <option value="casino">🎰 Większe wygrane z kasyna</option>
+                  <option value="items">📦 Większa szansa na itemy z paczek</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label for="event-multiplier">Mnożnik zysku / szansy</label>
+                <input type="number" id="event-multiplier" min="1" max="10" step="0.1" value="2">
+                <span class="field-desc">Np. 2 = podwójne zyski/szanse, 1.5 = +50%</span>
+              </div>
+
+              <div class="field-group">
+                <label for="event-duration">Czas trwania (w minutach)</label>
+                <input type="number" id="event-duration" min="1" max="1440" value="60">
+                <span class="field-desc">Podaj czas w minutach (np. 60 = 1 godzina, 1440 = 24 godziny)</span>
+              </div>
+
+              <div class="field-group full-width">
+                <label for="event-description">Opis i powód eventu</label>
+                <input type="text" id="event-description" placeholder="np. Event Weekendowy / Święta z kasynem!">
+              </div>
+            </div>
+            
+            <button id="create-event" class="primary btn-create">Uruchom event i powiadom grupy</button>
           </div>
-          <textarea id="event-description" rows="2" placeholder="Opis eventu (opcjonalne)..."></textarea>
-          <button id="create-event-btn" class="primary">Utwórz event</button>
-        </div>
-        <div class="card">
-          <h3>📋 Aktywne eventy</h3>
-          <div id="events-list"></div>
+
+          <!-- Aktywne eventy -->
+          <div class="card active-events-card">
+            <h3>🎉 Aktywne eventy</h3>
+            <p class="muted card-desc">Lista aktualnie trwających modyfikatorów w systemie bota.</p>
+            <div id="events-list" class="events-grid-container">
+              <!-- Generowane dynamicznie przez JS -->
+            </div>
+          </div>
         </div>
       </section>
 

@@ -609,6 +609,44 @@ login({ appState }, (loginErr, api) => {
     console.log(`[SELF-BOT] Dodano konto bota (${botId}) do grona administratorów.`);
   }
 
+  // Pobierz nazwy dla aktywnych grup na starcie
+  setTimeout(() => {
+    try {
+      const { loadData } = require('./utils/storage');
+      const stats = loadData('groupStats');
+      const threadIds = Array.from(client.activeThreadIds || []);
+      
+      let delay = 0;
+      for (const tId of threadIds) {
+        if (!stats[tId] || !stats[tId].threadName) {
+          setTimeout(() => {
+            if (typeof api.getThreadInfo === 'function') {
+              api.getThreadInfo(tId, (err, info) => {
+                if (!err && info && info.name) {
+                  withData(store => {
+                    store.groupStats = store.groupStats || {};
+                    store.groupStats[tId] = store.groupStats[tId] || {
+                      visibleMessages: 0,
+                      processedMessages: 0,
+                      commandsExecuted: 0,
+                      mentionsCount: 0,
+                      firstUse: Date.now()
+                    };
+                    store.groupStats[tId].threadName = info.name;
+                    store.groupStats[tId].lastUpdated = Date.now();
+                  }).catch(() => null);
+                }
+              });
+            }
+          }, delay);
+          delay += 1500;
+        }
+      }
+    } catch (err) {
+      console.error('[SELF-BOT] Error loading thread names at startup:', err);
+    }
+  }, 10000);
+
   // Odzyskiwanie przerwanych zakładów meczowych/multi-meczowych po restarcie
   const { resolvePendingBets } = require('./utils/bets');
   setTimeout(() => {
@@ -1787,6 +1825,32 @@ login({ appState }, (loginErr, api) => {
         } catch (e) {
           console.error('[SELF-BOT] Failed to save active threads:', e);
         }
+      }
+
+      // Dynamiczne pobieranie i zapisywanie nazwy grupy
+      try {
+        const { loadData } = require('./utils/storage');
+        const stats = loadData('groupStats');
+        if (api && typeof api.getThreadInfo === 'function' && (!stats[threadId] || !stats[threadId].threadName)) {
+          api.getThreadInfo(threadId, (err, info) => {
+            if (!err && info && info.name) {
+              withData(store => {
+                store.groupStats = store.groupStats || {};
+                store.groupStats[threadId] = store.groupStats[threadId] || {
+                  visibleMessages: 0,
+                  processedMessages: 0,
+                  commandsExecuted: 0,
+                  mentionsCount: 0,
+                  firstUse: Date.now()
+                };
+                store.groupStats[threadId].threadName = info.name;
+                store.groupStats[threadId].lastUpdated = Date.now();
+              }).catch(() => null);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('[SELF-BOT] Error in thread name cache check:', err);
       }
     }
 

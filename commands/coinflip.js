@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { ensureInventoryRecord, formatCurrency, hasItem, recordGame, refreshBadges, resolveAmount, getPassiveMultiplier } = require('../utils/economy');
+const { ensureInventoryRecord, formatCurrency, hasItem, recordGame, refreshBadges, resolveAmount, getPassiveMultiplier, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 function normalizeChoice(input) {
@@ -105,6 +105,14 @@ module.exports = {
       const flip = won ? choice : (choice === 'heads' ? 'tails' : 'heads');
 
       let payout = won ? (kosciRefunded ? bet : bet * 2) : 0;
+      // Event casino mnożnik
+      if (won && !kosciRefunded) {
+        const evMul = getActiveEventMultiplier('casino');
+        if (evMul > 1) {
+          const profit = payout - bet;
+          payout = bet + Math.round(profit * evMul);
+        }
+      }
       if (won && !kosciRefunded && user.badges && user.badges.includes(config.badges.uzalezniony)) {
         payout += Math.round(bet * 0.03);
       }

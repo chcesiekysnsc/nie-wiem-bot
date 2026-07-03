@@ -6,7 +6,8 @@ const {
   recordGame,
   refreshBadges,
   resolveAmount,
-  getPassiveMultiplier
+  getPassiveMultiplier,
+  getActiveEventMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -149,6 +150,14 @@ module.exports = {
       }
 
       let payout = Math.floor(bet * multiplier);
+      // Event casino mnożnik
+      if (payout > bet) {
+        const evMul = getActiveEventMultiplier('casino');
+        if (evMul > 1) {
+          const profit = payout - bet;
+          payout = bet + Math.round(profit * evMul);
+        }
+      }
       if (payout > bet && user.badges && user.badges.includes(config.badges.uzalezniony)) {
         const profit = payout - bet;
         payout += Math.round(profit * 0.03);

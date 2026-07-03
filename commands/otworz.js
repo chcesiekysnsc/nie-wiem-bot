@@ -1,4 +1,4 @@
-const { formatCurrency, randomInt, addItem, removeItem, hasItem, ensureInventoryRecord, getItemQuantity } = require('../utils/economy');
+const { formatCurrency, randomInt, addItem, removeItem, hasItem, ensureInventoryRecord, getItemQuantity, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 // Normalizacja polskich liter z wejścia gracza
@@ -112,10 +112,12 @@ const FALLBACKS = {
 
 // Losuje drop na podstawie tabeli szans (1-1000)
 function rollDrop(drops) {
+  const evMul = getActiveEventMultiplier('items');
   const roll = randomInt(1, 1000);
   let cumulative = 0;
   for (const drop of drops) {
-    cumulative += drop.chance;
+    const chance = evMul > 1 ? Math.round(drop.chance * evMul) : drop.chance;
+    cumulative += chance;
     if (roll <= cumulative) return drop;
   }
   return null; // brak dropu
