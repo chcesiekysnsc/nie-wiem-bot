@@ -46,7 +46,7 @@ module.exports = {
       
       // Send reply after withData completes
       if (shouldEnable) {
-        await message.reply(`💤 **${userName}** włączył/a AFK: **${filteredReason}**\n\nAFK będzie automatycznie wyłączany po napisaniu wiadomości.`);
+        await message.reply(`💤 **${userName}** włączył/a AFK: **${filteredReason}**`);
       } else {
         await message.reply(`✅ **${userName}** wyłączył/a AFK.`);
       }
@@ -84,6 +84,6 @@ module.exports = {
       };
     });
 
-    await message.reply(`💤 **${userName}** jest teraz AFK: **${filteredReason}**\n\nAFK będzie automatycznie wyłączany po napisaniu wiadomości.`);
+    await message.reply(`💤 **${userName}** jest teraz AFK: **${filteredReason}**`);
   }
 };

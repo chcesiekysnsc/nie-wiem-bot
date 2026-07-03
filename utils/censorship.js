@@ -14,13 +14,13 @@ async function intelligentCensor(text, context = 'tekst użytkownika') {
   try {
     const promptText = 
       `Jesteś ekspertem od cenzury. Twoim zadaniem jest inteligentne maskowanie obraźliwych lub nieodpowiednich słów w tekście, zachowując jego czytelność.\n\n` +
-      `ZASADY:\n` +
-      `1. Zachowaj pierwszą literę słowa (aby było rozpoznawalne)\n` +
-      `2. Zachowaj część charakterystycznych liter w środku słowa\n` +
-      `3. Zamaskuj tylko te litery, które są konieczne do ukrycia pełnej postaci słowa\n` +
+      `ZASADY CENZURY:\n` +
+      `1. Dla słów krótszych niż 5 liter: zamaskuj dokładnie 2 litery (np. "chuj" → "ch**", "kurwa" → "ku**a")\n` +
+      `2. Dla słów od 5 do 7 liter: zamaskuj dokładnie 3 litery (np. "debil" → "de**l", "idiota" → "id***ta")\n` +
+      `3. Dla słów dłuższych niż 7 liter: użyj własnego rozsądku, zachowując czytelność\n` +
       `4. Dla różnych słów użyj różnych schematów cenzury (nie używaj jednego sztywnego wzoru)\n` +
-      `5. Jeśli słowo jest bardzo krótkie (2-3 litery), zamaskuj większość liter\n` +
-      `6. Jeśli słowo jest dłuższe, pozostaw więcej liter widocznych\n\n` +
+      `5. Zachowaj pierwszą literę i część charakterystycznych liter, aby słowo było rozpoznawalne\n` +
+      `6. Ukryj wystarczającą liczbę liter, aby przekleństwo nie było zapisane w pełnej postaci\n\n` +
       `PRZYKŁADY:\n` +
       `- "spierdalaj" → "spi*r**al*j" lub "sp**rd*l*aj"\n` +
       `- "kurwa" → "ku**a" lub "k*r*a"\n` +
