@@ -1644,6 +1644,48 @@ login({ appState }, (loginErr, api) => {
       });
     }
 
+    // --- SYSTEM AFK ---
+    // 1. Wyłączenie AFK jeśli gracz napisał cokolwiek (poza ponownym ustawieniem AFK)
+    let wasAfk = false;
+    let afkInfo = null;
+    await withData(store => {
+      if (store.profiles.afk && store.profiles.afk[senderId]) {
+        afkInfo = store.profiles.afk[senderId];
+        delete store.profiles.afk[senderId];
+        wasAfk = true;
+      }
+    });
+
+    if (wasAfk && text !== `${currentPrefix}afk` && !text.startsWith(`${currentPrefix}afk `)) {
+      const senderName = await client.resolveUserName(api, senderId);
+      api.sendMessage(`👋 Witaj z powrotem **${senderName}**! Twój status AFK został wyłączony.`, threadId, () => {}, messageId);
+    }
+
+    // 2. Powiadomienie jeśli ktoś oznaczył osobę oznaczoną jako AFK
+    if (event.mentions && Object.keys(event.mentions).length > 0) {
+      const mentionedIds = Object.keys(event.mentions);
+      const afkMessages = [];
+
+      await withData(store => {
+        if (store.profiles.afk) {
+          for (const mId of mentionedIds) {
+            if (store.profiles.afk[mId]) {
+              const afkData = store.profiles.afk[mId];
+              const elapsedMs = Date.now() - afkData.time;
+              const elapsedStr = msToReadable(elapsedMs);
+              afkMessages.push({ id: mId, reason: afkData.reason, elapsedStr });
+            }
+          }
+        }
+      });
+
+      for (const afkUser of afkMessages) {
+        const mName = await client.resolveUserName(api, afkUser.id);
+        const replyMsg = `💤 **${mName}** jest obecnie AFK: **${afkUser.reason}** (od: ${afkUser.elapsedStr})`;
+        api.sendMessage(replyMsg, threadId, () => {}, messageId);
+      }
+    }
+
     // Obsługa sytuacji, gdy treść wiadomości to dokładnie sam prefix (np. !)
     if (text === currentPrefix) {
       api.sendMessage(`💡 Aby zobaczyć listę komend, proszę napisać: **${currentPrefix}help**`, threadId, () => {}, messageId);

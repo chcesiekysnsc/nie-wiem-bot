@@ -334,14 +334,14 @@ const helpCommands = [
     id: 25,
     name: "top",
     category: "SOCIAL_GANGS",
-    shortDescription: "ranking top 5 graczy lub top 3 gangow",
-    description: "Pokazuje ranking 5 najbogatszych graczy lub ranking top 3 gangów.",
-    usage: "!top [gang]",
-    examples: ["!top","!top gang"],
+    shortDescription: "ranking top 5 graczy, top 3 gangow lub top 5 femboyow",
+    description: "Pokazuje ranking 5 najbogatszych graczy, ranking top 3 gangów lub top 5 największych femboyów na grupie.",
+    usage: "!top [gang/femboy]",
+    examples: ["!top","!top gang","!top femboy"],
     cooldown: "8 sekund",
     requirements: "Brak.",
     aliases: ["ranking"],
-    additionalInfo: ["Łączny majątek (portfel + bank).","Użyj !top gang, aby zobaczyć ranking 3 najbogatszych gangów."]
+    additionalInfo: ["Łączny majątek (portfel + bank).","Użyj !top gang, aby zobaczyć ranking gangów.","Użyj !top femboy, aby zobaczyć 5 największych femboyów na grupie."]
   },
   {
     id: 26,
@@ -879,6 +879,19 @@ const helpCommands = [
     requirements: "Działa wyłącznie w konwersacjach grupowych.",
     aliases: ["random", "wylosuj"],
     additionalInfo: []
+  },
+  {
+    id: 67,
+    name: "afk",
+    category: "SOCIAL_GANGS",
+    shortDescription: "ustawia status nieobecnosci (AFK)",
+    description: "Ustawia Twój status jako nieobecny (AFK) z opcjonalnym powodem. Kiedy ktoś Cię oznaczy, bot poinformuje o Twojej nieobecności.",
+    usage: "!afk <powod>",
+    examples: ["!afk robie obiad", "!afk zaraz wracam"],
+    cooldown: "Brak.",
+    requirements: "Brak.",
+    aliases: ["brb", "zaz", "zw"],
+    additionalInfo: ["Każda kolejna wysłana przez Ciebie wiadomość automatycznie anuluje status AFK. Powód jest cenzurowany przez AI pod kątem słów niedozwolonych na FB."]
   }
 ];
 

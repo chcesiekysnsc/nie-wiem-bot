@@ -374,3 +374,5 @@ module.exports = {
     }
   }
 };
+
+module.exports.askGeminiWithFallback = askGeminiWithFallback;
