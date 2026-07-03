@@ -1642,8 +1642,11 @@ login({ appState }, (loginErr, api) => {
     await withData(store => {
       if (store.profiles.afk && store.profiles.afk[senderId]) {
         afkInfo = store.profiles.afk[senderId];
-        delete store.profiles.afk[senderId];
-        wasAfk = true;
+        // Usuń AFK tylko jeśli był włączony (enabled: true)
+        if (afkInfo.enabled !== false) {
+          delete store.profiles.afk[senderId];
+          wasAfk = true;
+        }
       }
     });
 

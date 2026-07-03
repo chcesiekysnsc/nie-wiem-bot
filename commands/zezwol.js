@@ -13,19 +13,32 @@ module.exports = {
     }
 
     if (!args[0] || args[0].toLowerCase() !== 'ai') {
-      await message.reply('❌ Użycie: !zezwol ai <@osoba/id/link>');
+      await message.reply('❌ Użycie: !zezwol ai <@osoba/id/link> [limit_dzienny]');
       return;
     }
 
+    // Parsowanie argumentów: !zezwol ai <oznaczenie> <limit>
     let targetId = null;
     let targetName = 'Użytkownik';
+    let dailyLimit = null; // null = bez limitu (dla twórcy)
 
     const mentioned = message.mentions.users.first();
+    
+    // Sprawdź czy podano limit dzienny (ostatni argument to liczba)
+    const possibleLimit = args[args.length - 1];
+    const parsedLimit = parseInt(possibleLimit, 10);
+    if (!isNaN(parsedLimit) && parsedLimit > 0 && args.length >= 3) {
+      dailyLimit = parsedLimit;
+    }
+
     if (mentioned) {
       targetId = mentioned.id;
       targetName = mentioned.username || `Uzytkownik_${targetId.slice(-6)}`;
     } else if (args[1]) {
-      const input = args.slice(1).join(' ');
+      // Jeśli jest limit, to args[1] to ID/link, a args[args.length-2] to limit
+      // Jeśli nie ma limitu, to args[1] to ID/link
+      const inputIndex = dailyLimit ? 1 : 1;
+      const input = args.slice(inputIndex, dailyLimit ? -1 : undefined).join(' ');
       const parsed = parseFBInput(input);
       if (parsed.type === 'id') {
         targetId = parsed.value;
@@ -42,7 +55,7 @@ module.exports = {
     }
 
     if (!targetId || !/^\d+$/.test(targetId)) {
-      await message.reply('❌ Podaj ID, oznacz osobę lub podaj link do profilu: **!zezwol ai @osoba**, **!zezwol ai <id>** lub **!zezwol ai <link>**');
+      await message.reply('❌ Podaj ID, oznacz osobę lub podaj link do profilu: **!zezwol ai @osoba [limit]** lub **!zezwol ai <id> [limit]**\n\nPrzykłady:\n• !zezwol ai @osoba 10\n• !zezwol ai 123456789 5\n• !zezwol ai @osoba (bez limitu)');
       return;
     }
 
@@ -64,18 +77,45 @@ module.exports = {
 
     const result = await withData(store => {
       if (!store.profiles.allowedAI) store.profiles.allowedAI = [];
-      if (store.profiles.allowedAI.includes(targetId)) {
+      
+      // Sprawdź czy użytkownik już ma zezwolenie
+      const existingIndex = store.profiles.allowedAI.indexOf(targetId);
+      if (existingIndex >= 0) {
+        // Aktualizuj limit jeśli podano
+        if (dailyLimit !== null) {
+          store.profiles.allowedAI[existingIndex] = {
+            id: targetId,
+            dailyLimit: dailyLimit,
+            addedAt: store.profiles.allowedAI[existingIndex]?.addedAt || Date.now()
+          };
+          return { updated: true, hadLimit: !!store.profiles.allowedAI[existingIndex]?.dailyLimit };
+        }
         return { already: true };
       }
-      store.profiles.allowedAI.push(targetId);
+      
+      // Dodaj nowe zezwolenie
+      const entry = dailyLimit !== null ? {
+        id: targetId,
+        dailyLimit: dailyLimit,
+        addedAt: Date.now()
+      } : targetId;
+      
+      store.profiles.allowedAI.push(entry);
       return { success: true };
     });
 
-    if (result.already) {
+    if (result.already && dailyLimit === null) {
       await message.reply(`👤 **${targetName}** ma już zezwolenie na używanie komendy !ai.`);
       return;
     }
 
-    await message.reply(`✅ Zezwolono **${targetName}** na używanie komendy !ai.`);
+    if (result.updated) {
+      const limitText = dailyLimit > 0 ? ` z limitem **${dailyLimit} użyć/dzień**` : ' bez limitu';
+      await message.reply(`✅ Zaktualizowano zezwolenie dla **${targetName}**${limitText}.`);
+      return;
+    }
+
+    const limitText = dailyLimit > 0 ? ` z limitem **${dailyLimit} użyć/dzień**` : ' bez limitu dziennego';
+    await message.reply(`✅ Zezwolono **${targetName}** na używanie komendy !ai${limitText}.`);
   }
 };

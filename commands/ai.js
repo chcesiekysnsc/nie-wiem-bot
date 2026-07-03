@@ -132,8 +132,51 @@ module.exports = {
     if (!isAllowed) {
       try {
         const profiles = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'profiles.json'), 'utf8'));
-        if (profiles.allowedAI && profiles.allowedAI.includes(message.author.id)) {
-          isAllowed = true;
+        if (profiles.allowedAI) {
+          // Sprawdź czy użytkownik ma zezwolenie
+          const allowedEntry = profiles.allowedAI.find(entry => {
+            if (typeof entry === 'string') return entry === message.author.id;
+            if (typeof entry === 'object' && entry.id) return entry.id === message.author.id;
+            return false;
+          });
+          
+          if (allowedEntry) {
+            isAllowed = true;
+            
+            // Sprawdź limit dzienny jeśli ustawiono
+            if (typeof allowedEntry === 'object' && allowedEntry.dailyLimit && message.author.id !== creatorId) {
+              const now = Date.now();
+              const oneDayMs = 24 * 60 * 60 * 1000;
+              const limitCheck = await withData(store => {
+                if (!store.cooldowns.commands[message.author.id]) {
+                  store.cooldowns.commands[message.author.id] = {};
+                }
+                const userCooldowns = store.cooldowns.commands[message.author.id];
+                
+                if (!Array.isArray(userCooldowns['ai_usages'])) {
+                  userCooldowns['ai_usages'] = [];
+                }
+
+                // Filtrujemy użycia z ostatnich 24h
+                userCooldowns['ai_usages'] = userCooldowns['ai_usages'].filter(ts => now - ts < oneDayMs);
+
+                if (userCooldowns['ai_usages'].length >= allowedEntry.dailyLimit) {
+                  const oldestUsage = userCooldowns['ai_usages'][0];
+                  const remaining = oneDayMs - (now - oldestUsage);
+                  return { exceeded: true, remaining, limit: allowedEntry.dailyLimit };
+                }
+
+                userCooldowns['ai_usages'].push(now);
+                return { exceeded: false };
+              });
+
+              if (limitCheck.exceeded) {
+                const remainingStr = msToReadable(limitCheck.remaining);
+                await message.reply(`❌ Wykorzystałeś już limit **${limitCheck.limit} użyć** komendy !ai na dobę. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
+                return;
+              }
+            }
+          }
         }
       } catch (_) {}
     }
@@ -141,40 +184,6 @@ module.exports = {
     if (!isAllowed) {
       await message.reply('❌ Ta komenda jest dostępna tylko dla twórcy bota oraz uprawnionych osób.');
       return;
-    }
-
-    // Sprawdzenie limitu użyć dla osób innych niż twórca (2 na 24h)
-    if (message.author.id !== creatorId) {
-      const now = Date.now();
-      const oneDayMs = 24 * 60 * 60 * 1000;
-      const cooldownCheck = await withData(store => {
-        if (!store.cooldowns.commands[message.author.id]) {
-          store.cooldowns.commands[message.author.id] = {};
-        }
-        const userCooldowns = store.cooldowns.commands[message.author.id];
-        
-        if (!Array.isArray(userCooldowns['ai_usages'])) {
-          userCooldowns['ai_usages'] = [];
-        }
-
-        // Filtrujemy użycia z ostatnich 24h
-        userCooldowns['ai_usages'] = userCooldowns['ai_usages'].filter(ts => now - ts < oneDayMs);
-
-        if (userCooldowns['ai_usages'].length >= 5) {
-          const oldestUsage = userCooldowns['ai_usages'][0];
-          const remaining = oneDayMs - (now - oldestUsage);
-          return { active: true, remaining };
-        }
-
-        userCooldowns['ai_usages'].push(now);
-        return { active: false };
-      });
-
-      if (cooldownCheck.active) {
-        const remainingStr = msToReadable(cooldownCheck.remaining);
-        await message.reply(`❌ Wykorzystałeś już limit **5 użyć** komendy !ai na dobę. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
-        return;
-      }
     }
 
     const threadId = message.guild?.id || message.rawEvent?.threadID;
