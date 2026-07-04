@@ -189,6 +189,17 @@ async function checkCooldown(commandName, userId) {
       };
     }
 
+    // Eventy: jeżeli istnieje event "cooldowns" to skracamy cooldowny.
+    // Panel tworzy eventy w minutach -> endTime w ms działa jak reszta.
+    // Zakładamy mnożnik > 1 oznacza szybsze cooldowny (np. x2 => cooldown * 0.5).
+    try {
+      const { getActiveEventMultiplier } = require('./economy');
+      const evMul = typeof getActiveEventMultiplier === 'function' ? getActiveEventMultiplier('cooldowns') : 1;
+      if (evMul && evMul > 1) {
+        duration = Math.floor(duration / evMul);
+      }
+    } catch (_) {}
+
     userCooldowns[commandName] = now + duration;
     store.cooldowns.commands[userId] = userCooldowns;
     return { active: false, remaining: 0 };

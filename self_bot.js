@@ -487,105 +487,15 @@ function getLastTaxTime() {
 // ===== HARDCODED APPSTATE (cookies wgrane na stałe) =====
 
 const appState = [
-    {
-        "key": "dbln",
-        "value": "%7B%2261562475523609%22%3A%22AX6WwYPo%22%7D",
-        "domain": "facebook.com",
-        "path": "/login/device-based/",
-        "hostOnly": false,
-        "creation": "2026-07-03T18:29:13.029Z",
-        "lastAccessed": "2026-07-03T18:29:13.030Z"
-    },
-    {
-        "key": "sb",
-        "value": "oZ-mZmUkSi-ORxWZSYx0LUyc",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-03T18:29:13.030Z",
-        "lastAccessed": "2026-07-03T18:29:13.030Z"
-    },
-    {
-        "key": "oo",
-        "value": "v1",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-03T18:29:13.030Z",
-        "lastAccessed": "2026-07-03T18:29:13.030Z"
-    },
-    {
-        "key": "datr",
-        "value": "vWo9aRvRclEH-d95BN9Q5ptx",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-03T18:29:13.030Z",
-        "lastAccessed": "2026-07-03T18:29:13.030Z"
-    },
-    {
-        "key": "ps_l",
-        "value": "1",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-03T18:29:13.030Z",
-        "lastAccessed": "2026-07-03T18:29:13.030Z"
-    },
-    {
-        "key": "ps_n",
-        "value": "1",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-03T18:29:13.030Z",
-        "lastAccessed": "2026-07-03T18:29:13.030Z"
-    },
-    {
-        "key": "c_user",
-        "value": "61560227271099",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-03T18:29:13.030Z",
-        "lastAccessed": "2026-07-03T18:29:13.030Z"
-    },
-    {
-        "key": "xs",
-        "value": "2%3AhPRfpjPKZsEALw%3A2%3A1783100787%3A-1%3A-1%3A%3AAcwK5j4_jrJ-jEyq-3ls9199hDaNC1tfzDFj3qt5Nw",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-03T18:29:13.030Z",
-        "lastAccessed": "2026-07-03T18:29:13.030Z"
-    },
-    {
-        "key": "fr",
-        "value": "0P5KhvyGUp9KbFlnY.AWdbNok-qTnpJRyLd079ngmmHJ2iY1Vc17445iKJQeNrPc3Gunk.BqR_V4..AAA.0.0.BqR_9w.AWfWfeAkPou_UXHPWaJ0Me4L1nk",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-03T18:29:13.030Z",
-        "lastAccessed": "2026-07-03T18:29:13.030Z"
-    },
-    {
-        "key": "wd",
-        "value": "683x649",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-03T18:29:13.030Z",
-        "lastAccessed": "2026-07-03T18:29:13.030Z"
-    },
-    {
-        "key": "presence",
-        "value": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1783103350388%2C%22v%22%3A1%7D",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-03T18:29:13.030Z",
-        "lastAccessed": "2026-07-03T18:29:13.030Z"
-    }
+  {
+    "key": "dbln",
+    "value": "%7B%22%3A%22%22%7D",
+    "domain": "facebook.com",
+    "path": "/login/device-based/",
+    "hostOnly": false,
+    "creation": "2026-07-03T18:29:13.029Z",
+    "lastAccessed": "2026-07-03T18:29:13.030Z"
+  }
 ];
 
 // ===== KONIEC HARDCODED APPSTATE =====
