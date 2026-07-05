@@ -234,7 +234,7 @@ module.exports = {
         const usage = store.profiles.eventCasinoMultiBetUsage || {};
         const currentUsage = usage[message.author.id] || 0;
         if (currentUsage + count > 100) {
-          return { error: '❌ Osiągnąłeś limit seryjnych obstawień na czas trwania eventu.' };
+          return { error: `❌ Limit seryjnych obstawień podczas bonusu kasyna: użyłeś już **${currentUsage}/100** zakładów.` };
         }
         usage[message.author.id] = currentUsage + count;
         store.profiles.eventCasinoMultiBetUsage = usage;

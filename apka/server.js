@@ -37,17 +37,22 @@ function sendBufferedEventNotifications() {
     const durationStr = ev.durationMinutes >= 60 ? `${Math.floor(ev.durationMinutes / 60)}h ${ev.durationMinutes % 60}min` : `${ev.durationMinutes} min`;
     let bonusLabel = '';
     if (ev.type === 'cooldowns') {
-      bonusLabel = `Skrócenie cooldownów: **-${ev.reductionPercent}%**`;
+      bonusLabel = `-${ev.reductionPercent}% cooldownów`;
     } else if (ev.type === 'shop_discount') {
-      bonusLabel = `Przecena w sklepie: **-${ev.reductionPercent}%**`;
+      bonusLabel = `-${ev.reductionPercent}% w sklepie`;
+    } else if (ev.type === 'bank_interest') {
+      bonusLabel = `x${ev.multiplier} odsetek bankowych`;
+    } else if (ev.type === 'crime_luck') {
+      bonusLabel = `x${ev.multiplier} szans na napad`;
+    } else if (ev.type === 'company_payout') {
+      bonusLabel = `x${ev.multiplier} zysków z firm`;
     } else {
-      bonusLabel = `Mnożnik: **x${ev.multiplier}**`;
+      bonusLabel = `x${ev.multiplier}`;
     }
-    const desc = ev.description ? `\n📝 ${ev.description}` : '';
-    return `🟢 **${name}**\n${bonusLabel}\n⏱️ Czas trwania: ${durationStr}${desc}`;
+    return `🟢 ${name}: ${bonusLabel} na ${durationStr}`;
   });
 
-  const notifyMsg = `🎉 **NOWE EVENTY AKTYWNE!** 🎉\n\n${lines.join('\n\n')}\n\n💪 Korzystajcie z bonusów!`;
+  const notifyMsg = `🎉 Eventy aktywne!\n${lines.join('\n')}\n💪 Korzystajcie z bonusów!`;
 
   try {
     const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
