@@ -6,6 +6,10 @@ const path = require('path');
 const { loadData, withData, DATA_FILES } = require('../utils/storage');
 const { getRegistry, getUserOverrides, saveUserOverrides } = require('../utils/chances');
 
+function getChancesRegistry() {
+  return getRegistry();
+}
+
 const app = express();
 const PORT = process.env.PANEL_PORT || 3000;
 
