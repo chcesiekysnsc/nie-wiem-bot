@@ -9,6 +9,13 @@ const { getRegistry, getUserOverrides, saveUserOverrides } = require('../utils/c
 const app = express();
 const PORT = process.env.PANEL_PORT || 3000;
 
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // ===== GRACZE =====
 app.get('/api/players', (req, res) => {
   const users = loadData('users');
