@@ -30,10 +30,6 @@ module.exports = {
 
     const chosenNumber = Math.floor(Number(rawNum));
     const isCreator = message.author.id === '100060812419294';
-    if (isNaN(chosenNumber) || chosenNumber < (isCreator ? 1 : 1) || chosenNumber > 90) {
-      await message.reply('❌ Wybierz liczbę od **1 do 90** (np. **!bet 1000 50**).');
-      return;
-    }
 
     let isMulti = false;
     let count = 1;
@@ -64,6 +60,19 @@ module.exports = {
           }
         }
         isMulti = true;
+      }
+    }
+
+    if (isMulti) {
+      const multiMin = isCreator ? 1 : 5;
+      if (isNaN(chosenNumber) || chosenNumber < multiMin || chosenNumber > 90) {
+        await message.reply(`❌ W seryjnym obstawianiu (multi-bet) dozwolony zakres liczby to **${multiMin}–90**.`);
+        return;
+      }
+    } else {
+      if (isNaN(chosenNumber) || chosenNumber < 1 || chosenNumber > 90) {
+        await message.reply('❌ Wybierz liczbę od **1 do 90** (np. **!bet 1000 50**).');
+        return;
       }
     }
 
