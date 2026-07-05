@@ -71,6 +71,18 @@ async function executeCommand(event, pageId) {
     return;
   }
 
+  if (!client.pendingBails) client.pendingBails = new Map();
+  const pendingBail = client.pendingBails.get(senderId);
+  if (pendingBail) {
+    const cleanText = text.trim().toLowerCase().replace(/^!/, '').split(/\s+/)[0];
+    if (cleanText === 'wykup' || cleanText === 'stop') {
+      const senderUser = await client.cacheUser(senderId);
+      const message = createMessageContext(client, senderUser, text, [], event, pageId);
+      await handleBailResponse(client, message, pendingBail, cleanText);
+      return;
+    }
+  }
+
   const senderUser = await client.cacheUser(senderId);
 
   // Interceptor dla aktywnej gry w blackjacka
@@ -143,16 +155,6 @@ async function executeCommand(event, pageId) {
         }
         return;
       }
-    }
-  }
-
-  if (!client.pendingBails) client.pendingBails = new Map();
-  const pendingBail = client.pendingBails.get(senderId);
-  if (pendingBail) {
-    const cleanText = text.trim().toLowerCase().replace(/^!/, '').split(/\s+/)[0];
-    if (cleanText === 'wykup' || cleanText === 'stop') {
-      await handleBailResponse(client, message, pendingBail, cleanText);
-      return;
     }
   }
 
