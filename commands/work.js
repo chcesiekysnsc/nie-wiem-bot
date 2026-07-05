@@ -7,7 +7,8 @@ const {
   msToReadable,
   randomInt,
   refreshBadges,
-  getPassiveMultiplier
+  getPassiveMultiplier,
+  getActiveEventMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -33,7 +34,13 @@ module.exports = {
       }
       const hasZegar = hasItem(inventory, 'stary_zegar');
       const baseCd = config.cooldowns.work || 600;
-      const actualCd = hasZegar ? baseCd * 0.90 : baseCd;
+      let actualCd = hasZegar ? baseCd * 0.90 : baseCd;
+
+      const evMul = getActiveEventMultiplier('cooldowns');
+      if (evMul && evMul > 1) {
+        actualCd = Math.floor(actualCd / evMul);
+      }
+
       const cdMs = actualCd * 1000;
       const last = user.lastWorkTime || 0;
       const diff = now - last;

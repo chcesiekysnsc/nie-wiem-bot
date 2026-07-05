@@ -1,4 +1,4 @@
-const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier } = require('../utils/economy');
+const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 function notifySupportThreads(client, heist, msg) {
@@ -1185,8 +1185,13 @@ module.exports = {
         // Sprawdź cooldown 1h
         const lastTime = gang.lastHeistTime || 0;
         const now = Date.now();
-        if (now - lastTime < 3600000) {
-          const diffSec = Math.ceil((3600000 - (now - lastTime)) / 1000);
+        let heistCooldownMs = 3600000;
+        const evMul = getActiveEventMultiplier('cooldowns');
+        if (evMul && evMul > 1) {
+          heistCooldownMs = Math.floor(heistCooldownMs / evMul);
+        }
+        if (now - lastTime < heistCooldownMs) {
+          const diffSec = Math.ceil((heistCooldownMs - (now - lastTime)) / 1000);
           const hrs = Math.floor(diffSec / 3600);
           const mins = Math.floor((diffSec % 3600) / 60);
           const secs = diffSec % 60;
