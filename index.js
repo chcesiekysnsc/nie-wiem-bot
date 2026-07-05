@@ -146,6 +146,16 @@ async function executeCommand(event, pageId) {
     }
   }
 
+  if (!client.pendingBails) client.pendingBails = new Map();
+  const pendingBail = client.pendingBails.get(senderId);
+  if (pendingBail) {
+    const cleanText = text.trim().toLowerCase();
+    if (cleanText === 'wykup' || cleanText === 'stop') {
+      await handleBailResponse(client, message, pendingBail, cleanText);
+      return;
+    }
+  }
+
   if (!text.startsWith(client.config.prefix)) {
     if (!client.lastNormalMessageTime) {
       client.lastNormalMessageTime = new Map();
@@ -515,6 +525,43 @@ function createServer() {
   }).listen(port, '0.0.0.0', () => {
     console.log(`[BOT] Messenger webhook listening on http://0.0.0.0:${port}${webhookPath}`);
   });
+}
+
+async function handleBailResponse(client, message, pendingBail, action) {
+  const authorId = message.author.id;
+  client.pendingBails.delete(authorId);
+  clearTimeout(pendingBail.timeout);
+
+  if (action === 'stop') {
+    await message.reply('❌ Wykup został anulowany.');
+    return;
+  }
+
+  if (action === 'wykup') {
+    const bailResult = await withData(store => {
+      const target = store.users[pendingBail.targetId];
+      if (!target || !target.jailUntil || target.jailUntil <= Date.now()) {
+        return { error: '❌ Ten gracz już nie jest w więzieniu.' };
+      }
+      const user = store.users[authorId];
+      if (!user || user.balance < pendingBail.cost) {
+        return { error: '❌ Nie posiadasz wystarczającej ilości VicCoinów.' };
+      }
+      user.balance -= pendingBail.cost;
+      target.jailUntil = 0;
+      return { ok: true, cost: pendingBail.cost, targetName: target.name || pendingBail.targetName };
+    });
+
+    if (bailResult.error) {
+      await message.reply(bailResult.error);
+      return;
+    }
+
+    await message.reply(
+      `🎉 Udało się wykupić @${bailResult.targetName} z więzienia!\n\n` +
+      `💸 Zapłacono: **${bailResult.cost.toLocaleString()} VicCoinów**.`
+    );
+  }
 }
 
 async function start() {

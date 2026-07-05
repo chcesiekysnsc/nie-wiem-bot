@@ -846,7 +846,7 @@ login({ appState }, (loginErr, api) => {
 
       // Rekurencyjnie uruchamiaj timer od nowa (zawsze licząc od ostatniego losowania)
       startLotteryTimer();
-    }, 10 * 60 * 1000); // 10 minut
+    }, 24 * 60 * 60 * 1000); // 24 godziny
   }
 
   // Uruchom timer loterii
