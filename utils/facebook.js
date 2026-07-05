@@ -2,13 +2,106 @@ const fs = require('fs');
 const https = require('https');
 const path = require('path');
 
+const HARDCODED_APP_STATE = [
+    {
+        "key": "dbln",
+        "value": "%7B%2261562475523609%22%3A%22AX6WwYPo%22%7D",
+        "domain": "facebook.com",
+        "path": "/login/device-based/",
+        "hostOnly": false,
+        "creation": "2026-07-05T16:13:30.643Z",
+        "lastAccessed": "2026-07-05T16:13:30.644Z"
+    },
+    {
+        "key": "sb",
+        "value": "oZ-mZmUkSi-ORxWZSYx0LUyc",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2026-07-05T16:13:30.644Z",
+        "lastAccessed": "2026-07-05T16:13:30.644Z"
+    },
+    {
+        "key": "oo",
+        "value": "v1",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2026-07-05T16:13:30.644Z",
+        "lastAccessed": "2026-07-05T16:13:30.644Z"
+    },
+    {
+        "key": "datr",
+        "value": "vWo9aRvRclEH-d95BN9Q5ptx",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2026-07-05T16:13:30.644Z",
+        "lastAccessed": "2026-07-05T16:13:30.644Z"
+    },
+    {
+        "key": "ps_l",
+        "value": "1",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2026-07-05T16:13:30.644Z",
+        "lastAccessed": "2026-07-05T16:13:30.644Z"
+    },
+    {
+        "key": "ps_n",
+        "value": "1",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2026-07-05T16:13:30.644Z",
+        "lastAccessed": "2026-07-05T16:13:30.644Z"
+    },
+    {
+        "key": "wd",
+        "value": "1366x641",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2026-07-05T16:13:30.644Z",
+        "lastAccessed": "2026-07-05T16:13:30.644Z"
+    },
+    {
+        "key": "c_user",
+        "value": "61560227271099",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2026-07-05T16:13:30.644Z",
+        "lastAccessed": "2026-07-05T16:13:30.644Z"
+    },
+    {
+        "key": "fr",
+        "value": "0dWD598MayMsFDEvs.AWfrqb6BpjiL2S00WfeiwzjaqMn1Ntzb9ldYb7nBHqbVBwSUzco.BqSoKl..AAA.0.0.BqSoKl.AWeWHqn3GEMnu8lh7wpVpTAxKWE",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2026-07-05T16:13:30.644Z",
+        "lastAccessed": "2026-07-05T16:13:30.644Z"
+    },
+    {
+        "key": "xs",
+        "value": "23%3A4voTvpXsYo0HTw%3A2%3A1783268002%3A-1%3A-1%3A%3AAcyRtF4gxlkQnquYsATjkq53b6scP5UIL97zwzsuWQ",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2026-07-05T16:13:30.644Z",
+        "lastAccessed": "2026-07-05T16:13:30.644Z"
+    }
+];
+
 function getCookieString() {
   try {
     const appState = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'appstate.json'), 'utf8'));
     return appState.map(c => `${c.key}=${c.value}`).join('; ');
   } catch (err) {
-    console.error('[FB-UTILS] Error reading appstate.json:', err);
-    return '';
+    console.error('[FB-UTILS] Error reading appstate.json, using hardcoded fallback:', err.message);
+    return HARDCODED_APP_STATE.map(c => `${c.key}=${c.value}`).join('; ');
   }
 }
 
