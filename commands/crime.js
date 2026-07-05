@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable } = require('../utils/economy');
+const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable, getCrimeSuccessMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 const successLines = [
@@ -125,6 +125,10 @@ module.exports = {
         if (Number.isFinite(v)) {
           baseSuccessChance = v / 100;
         }
+      }
+      const crimeMul = getCrimeSuccessMultiplier();
+      if (crimeMul !== 1) {
+        baseSuccessChance = Math.min(baseSuccessChance * crimeMul, 1);
       }
       if (user.badges) {
         if (user.badges.includes(config.badges.boss)) {

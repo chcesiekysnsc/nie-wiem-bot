@@ -226,6 +226,20 @@ module.exports = {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
+      const isCreator = message.author.id === '100060812419294';
+      const casinoMul = getActiveEventMultiplier('casino');
+      const hasCasinoEvent = !isCreator && casinoMul > 1;
+
+      if (hasCasinoEvent) {
+        const usage = store.profiles.eventCasinoMultiBetUsage || {};
+        const currentUsage = usage[message.author.id] || 0;
+        if (currentUsage + count > 100) {
+          return { error: '❌ Osiągnąłeś limit seryjnych obstawień na czas trwania eventu.' };
+        }
+        usage[message.author.id] = currentUsage + count;
+        store.profiles.eventCasinoMultiBetUsage = usage;
+      }
+
       const initialBalance = user.balance;
       const startLevel = user.level;
       const startPrestige = user.prestige;

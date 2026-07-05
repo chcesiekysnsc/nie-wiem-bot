@@ -31,7 +31,7 @@ function sendBufferedEventNotifications() {
   pendingEventNotifications = [];
   eventNotificationTimer = null;
 
-  const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy', cooldowns: '⚡ Szybsze cooldowny', shop_discount: '🛒 Przecena w sklepie' };
+  const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy', cooldowns: '⚡ Szybsze cooldowny', shop_discount: '🛒 Przecena w sklepie', bank_interest: '🏦 Bankowy Raj', crime_luck: '🌑 Czarna Godzina', company_payout: '🪙 Midasowy Dotyk' };
   const lines = events.map(ev => {
     const name = typeNames[ev.type] || ev.type;
     const durationStr = ev.durationMinutes >= 60 ? `${Math.floor(ev.durationMinutes / 60)}h ${ev.durationMinutes % 60}min` : `${ev.durationMinutes} min`;
@@ -560,7 +560,7 @@ app.post('/api/events', async (req, res) => {
   if (!type || !durationMinutes) {
     return res.status(400).json({ error: 'Wymagane pola: type, durationMinutes.' });
   }
-  const allowedTypes = ['xp', 'casino', 'items', 'cooldowns', 'shop_discount'];
+  const allowedTypes = ['xp', 'casino', 'items', 'cooldowns', 'shop_discount', 'bank_interest', 'crime_luck', 'company_payout'];
   if (!allowedTypes.includes(type)) {
     return res.status(400).json({ error: 'Nieznany typ eventu.' });
   }

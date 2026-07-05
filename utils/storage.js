@@ -445,7 +445,11 @@ async function withData(callback) {
             rate += hasCzterolistna ? 0.0075 : 0.0025; // +0.25% or +0.75% co 12h
           }
 
-          const interest = Math.floor(user.bank * rate);
+          const { getBankInterestMultiplier } = require('./economy');
+          const interestMul = getBankInterestMultiplier();
+          const finalRate = rate * interestMul;
+
+          const interest = Math.floor(user.bank * finalRate);
           if (interest > 0) {
             user.balance = (user.balance || 0) + interest;
           }

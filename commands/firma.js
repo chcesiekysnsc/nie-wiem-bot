@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier } = require('../utils/economy');
+const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 module.exports = {
@@ -186,6 +186,10 @@ module.exports = {
         // Give payout
         let payout = compDef.payout;
         const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+        const companyMul = getCompanyPayoutMultiplier();
+        if (companyMul !== 1) {
+          payout = Math.floor(payout * companyMul);
+        }
         
         const garniturBonusPct = getPassiveMultiplier(inventory, 'garnitur', 0.10);
         let garniturBonus = 0;

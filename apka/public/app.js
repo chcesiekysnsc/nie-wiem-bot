@@ -361,9 +361,11 @@ function getCooldownReductionPercent(event) {
 }
 
 function updateEventFormVisibility() {
-  const isCooldownEvent = $('#event-type').value === 'cooldowns';
-  const isShopDiscountEvent = $('#event-type').value === 'shop_discount';
-  $('#event-multiplier-group').classList.toggle('hidden', isCooldownEvent || isShopDiscountEvent);
+  const type = $('#event-type').value;
+  const isCooldownEvent = type === 'cooldowns';
+  const isShopDiscountEvent = type === 'shop_discount';
+  const isMultiplierEvent = ['xp', 'casino', 'items', 'bank_interest', 'crime_luck', 'company_payout'].includes(type);
+  $('#event-multiplier-group').classList.toggle('hidden', !isMultiplierEvent);
   $('#cooldown-reduction-group').classList.toggle('hidden', !isCooldownEvent);
   $('#shop-discount-group').classList.toggle('hidden', !isShopDiscountEvent);
 }
@@ -380,7 +382,7 @@ async function loadEvents() {
       const endTime = new Date(event.endTime);
       const now = new Date();
       const remaining = endTime > now ? Math.max(0, Math.ceil((endTime - now) / 60000)) : 0;
-      const typeNames = { xp: 'XP', casino: 'Kasyno', items: 'Itemy', cooldowns: 'Szybsze cooldowny', shop_discount: 'Przecena w sklepie' };
+      const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy', cooldowns: '⚡ Szybsze cooldowny', shop_discount: '🛒 Przecena w sklepie', bank_interest: '🏦 Bankowy Raj', crime_luck: '🌑 Czarna Godzina', company_payout: '🪙 Midasowy Dotyk' };
       let bonusLabel = '';
       if (event.type === 'cooldowns') {
         bonusLabel = `-${getCooldownReductionPercent(event)}% cooldownów`;

@@ -420,6 +420,60 @@ function getActiveEventMultiplier(type) {
   }
 }
 
+function getBankInterestMultiplier() {
+  try {
+    const { loadData } = require('./storage');
+    const profiles = loadData('profiles');
+    const events = profiles.events || [];
+    const now = Date.now();
+    let best = 1;
+    for (const e of events) {
+      if (e.type === 'bank_interest' && e.endTime > now && e.multiplier > best) {
+        best = e.multiplier;
+      }
+    }
+    return best;
+  } catch (_) {
+    return 1;
+  }
+}
+
+function getCrimeSuccessMultiplier() {
+  try {
+    const { loadData } = require('./storage');
+    const profiles = loadData('profiles');
+    const events = profiles.events || [];
+    const now = Date.now();
+    let best = 1;
+    for (const e of events) {
+      if (e.type === 'crime_luck' && e.endTime > now && e.multiplier > best) {
+        best = e.multiplier;
+      }
+    }
+    return best;
+  } catch (_) {
+    return 1;
+  }
+}
+
+function getCompanyPayoutMultiplier() {
+  try {
+    const { loadData } = require('./storage');
+    const profiles = loadData('profiles');
+    const events = profiles.events || [];
+    const now = Date.now();
+    let best = 1;
+    for (const e of events) {
+      if (e.type === 'company_payout' && e.endTime > now && e.multiplier > best) {
+        best = e.multiplier;
+      }
+    }
+    return best;
+  } catch (_) {
+    return 1;
+  }
+}
+
 function getShopDiscount() {
   try {
     const { loadData } = require('./storage');
@@ -464,5 +518,8 @@ module.exports = {
   applyTalizmanBonus,
   getPassiveMultiplier,
   getActiveEventMultiplier,
-  getShopDiscount
+  getShopDiscount,
+  getBankInterestMultiplier,
+  getCrimeSuccessMultiplier,
+  getCompanyPayoutMultiplier
 };
