@@ -204,7 +204,13 @@ module.exports = {
         user.company.lastPayout = now;
 
         // Check for breakdown (progressive breakdown chance)
-        const broke = Math.random() < compDef.breakChance;
+        const overrides = store.profiles.chanceOverrides || {};
+        const userOverrides = overrides[user.id] || {};
+        const overrideBreakChanceRaw = userOverrides['company_breakdown'];
+        const effectiveBreakChance = overrideBreakChanceRaw !== undefined && overrideBreakChanceRaw !== null && overrideBreakChanceRaw !== ''
+          ? Number(overrideBreakChanceRaw) / 100
+          : compDef.breakChance;
+        const broke = Number.isFinite(effectiveBreakChance) && Math.random() < effectiveBreakChance;
         if (broke) {
           user.company.isBroken = true;
         }

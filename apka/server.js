@@ -4,72 +4,10 @@ const fs = require('fs');
 const path = require('path');
 
 const { loadData, withData, DATA_FILES } = require('../utils/storage');
+const { getRegistry, getUserOverrides, saveUserOverrides } = require('../utils/chances');
 
 const app = express();
 const PORT = process.env.PANEL_PORT || 3000;
-
-const ADMIN_LOGIN = process.env.ADMIN_PANEL_LOGIN || 'rafal7373';
-const ADMIN_PASSWORD = process.env.ADMIN_PANEL_PASSWORD || 'rafal6336';
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
-
-const sessions = new Map();
-
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-function timingSafeEquals(a, b) {
-  const bufA = Buffer.from(String(a));
-  const bufB = Buffer.from(String(b));
-  if (bufA.length !== bufB.length) return false;
-  return crypto.timingSafeEqual(bufA, bufB);
-}
-
-app.post('/api/login', (req, res) => {
-  const { login, password } = req.body || {};
-  if (!timingSafeEquals(login || '', ADMIN_LOGIN) || !timingSafeEquals(password || '', ADMIN_PASSWORD)) {
-    return res.status(401).json({ error: 'Nieprawidłowy login lub hasło.' });
-  }
-  const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, { createdAt: Date.now() });
-  res.json({ token });
-});
-
-function requireAuth(req, res, next) {
-  const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-  const session = token ? sessions.get(token) : null;
-  if (!session || Date.now() - session.createdAt > SESSION_TTL_MS) {
-    if (token) sessions.delete(token);
-    return res.status(401).json({ error: 'Brak autoryzacji. Zaloguj się ponownie.' });
-  }
-  req.token = token;
-  next();
-}
-
-app.use('/api', (req, res, next) => {
-  if (req.path === '/login') return next();
-  requireAuth(req, res, next);
-});
-
-app.post('/api/logout', (req, res) => {
-  sessions.delete(req.token);
-  res.json({ ok: true });
-});
-
-function userName(user, id) {
-  return (user && user.name) || `Użytkownik_${String(id).slice(-6)}`;
-}
-
-function buildGangIndex(profiles) {
-  const index = {};
-  const gangs = profiles.gangs || {};
-  for (const [gangId, gang] of Object.entries(gangs)) {
-    for (const memberId of gang.members || []) {
-      index[memberId] = { id: gangId, name: gang.name };
-    }
-  }
-  return index;
-}
 
 // ===== GRACZE =====
 app.get('/api/players', (req, res) => {
@@ -160,6 +98,53 @@ app.post('/api/players/:id', async (req, res) => {
     });
     if (result.error) return res.status(404).json(result);
     res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== SZANSE =====
+app.get('/api/chances/:id', async (req, res) => {
+  try {
+    const registry = getChancesRegistry();
+    const overrides = await getUserOverrides(req.params.id);
+    const chances = Object.values(registry).map(entry => ({
+      id: entry.id,
+      label: entry.label,
+      description: entry.description,
+      unit: entry.unit,
+      category: entry.category,
+      min: entry.min,
+      max: entry.max,
+      step: entry.step || 1,
+      default: entry.default,
+      current: overrides && overrides[entry.id] !== undefined && overrides[entry.id] !== null && overrides[entry.id] !== ''
+        ? Number(overrides[entry.id])
+        : entry.default
+    }));
+    res.json({ chances });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/chances/:id', async (req, res) => {
+  const { chances } = req.body || {};
+  if (!chances || typeof chances !== 'object') {
+    return res.status(400).json({ error: 'Wymagane pole: chances.' });
+  }
+  try {
+    const registry = getChancesRegistry();
+    const cleaned = {};
+    for (const entry of Object.values(registry)) {
+      if (chances[entry.id] !== undefined && chances[entry.id] !== null && chances[entry.id] !== '') {
+        const v = Number(chances[entry.id]);
+        if (!Number.isFinite(v)) continue;
+        cleaned[entry.id] = Math.min(entry.max, Math.max(entry.min, v));
+      }
+    }
+    await saveUserOverrides(req.params.id, cleaned);
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -445,16 +430,32 @@ app.get('/api/events', (req, res) => {
 });
 
 app.post('/api/events', async (req, res) => {
-  const { type, multiplier, durationMinutes, description } = req.body || {};
+  const { type, multiplier, cooldownReductionPercent, durationMinutes, description } = req.body || {};
   if (!type || !multiplier || !durationMinutes) {
     return res.status(400).json({ error: 'Wymagane pola: type, multiplier, durationMinutes.' });
   }
+  const allowedTypes = ['xp', 'casino', 'items', 'cooldowns'];
+  if (!allowedTypes.includes(type)) {
+    return res.status(400).json({ error: 'Nieznany typ eventu.' });
+  }
+
+  const parsedMultiplier = parseFloat(multiplier);
+  const parsedDuration = parseInt(durationMinutes, 10);
+  if (!Number.isFinite(parsedMultiplier) || parsedMultiplier <= 0 || !Number.isFinite(parsedDuration) || parsedDuration <= 0) {
+    return res.status(400).json({ error: 'Nieprawidłowy mnożnik lub czas trwania.' });
+  }
+
+  const parsedReduction = type === 'cooldowns'
+    ? Math.min(90, Math.max(1, Math.round(Number(cooldownReductionPercent) || ((1 - (1 / parsedMultiplier)) * 100))))
+    : null;
+
   try {
     const event = {
       id: `evt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       type,
-      multiplier: parseFloat(multiplier),
-      endTime: Date.now() + parseInt(durationMinutes) * 60 * 1000,
+      multiplier: parsedMultiplier,
+      ...(parsedReduction != null ? { reductionPercent: parsedReduction } : {}),
+      endTime: Date.now() + parsedDuration * 60 * 1000,
       description: String(description || '').trim().slice(0, 200),
       createdAt: Date.now()
     };
@@ -470,13 +471,16 @@ app.post('/api/events', async (req, res) => {
       const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
       if (fs.existsSync(threadsPath)) {
         const threadIds = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
-        const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy' };
-        const durationStr = parseInt(durationMinutes) >= 60 
-          ? `${Math.floor(parseInt(durationMinutes) / 60)}h ${parseInt(durationMinutes) % 60}min`
-          : `${parseInt(durationMinutes)} min`;
+        const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy', cooldowns: '⚡ Szybsze cooldowny' };
+        const durationStr = parsedDuration >= 60 
+          ? `${Math.floor(parsedDuration / 60)}h ${parsedDuration % 60}min`
+          : `${parsedDuration} min`;
+        const bonusLine = type === 'cooldowns'
+          ? `⚡ Skrócenie cooldownów: **-${parsedReduction}%**\n`
+          : `🔥 Mnożnik: **x${parsedMultiplier}**\n`;
         const notifyMsg = `🎉 **NOWY EVENT AKTYWNY!** 🎉\n\n` +
           `📋 Typ: **${typeNames[type] || type}**\n` +
-          `🔥 Mnożnik: **x${parseFloat(multiplier)}**\n` +
+          bonusLine +
           `⏱️ Czas trwania: **${durationStr}**\n` +
           (description ? `📝 ${description}\n` : '') +
           `\n💪 Korzystajcie z bonusów!`;

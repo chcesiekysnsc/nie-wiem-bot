@@ -111,13 +111,14 @@ const FALLBACKS = {
 };
 
 // Losuje drop na podstawie tabeli szans (1-1000)
-function rollDrop(drops) {
+function rollDrop(drops, luckMultiplier = 1) {
   const evMul = getActiveEventMultiplier('items');
   const roll = randomInt(1, 1000);
   let cumulative = 0;
   for (const drop of drops) {
     const chance = evMul > 1 ? Math.round(drop.chance * evMul) : drop.chance;
-    cumulative += chance;
+    const adjustedChance = luckMultiplier !== 1 ? Math.round(chance * luckMultiplier) : chance;
+    cumulative += adjustedChance;
     if (roll <= cumulative) return drop;
   }
   return null; // brak dropu
@@ -204,12 +205,16 @@ module.exports = {
       let totalCash = 0;
       const itemsSummary = {};
       let fallbackCount = 0;
+      const overrides = store.profiles.chanceOverrides || {};
+      const userOverrides = overrides[message.author.id] || {};
+      const dropLuckRaw = userOverrides['box_drop_luck'];
+      const dropLuck = dropLuckRaw !== undefined && dropLuckRaw !== null && dropLuckRaw !== '' ? Number(dropLuckRaw) : 1;
 
       for (let i = 0; i < count; i++) {
         const cash = randomInt(pack.minCash, pack.maxCash);
         totalCash += cash;
 
-        const drop = rollDrop(pack.drops);
+        const drop = rollDrop(pack.drops, dropLuck !== 1 ? dropLuck : 1);
         if (drop) {
           for (const item of drop.items) {
             if (item.permanent && hasItem(inventory, item.id)) {

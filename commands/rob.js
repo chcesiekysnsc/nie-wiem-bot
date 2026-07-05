@@ -152,6 +152,14 @@ module.exports = {
       // Szanse: 60% sukces, 40% wpadka. Krwawy Żeton daje +6%. Odznaka Zwycięzca daje +5%
       const robberHasZeton = hasItem(robberInv, 'krwawy_zeton');
       let baseSuccessChance = robberHasZeton ? 0.66 : 0.60;
+      const overrides = store.profiles.chanceOverrides || {};
+      const robberOverrides = overrides[robber.id] || {};
+      if (robberOverrides['rob_success'] !== undefined && robberOverrides['rob_success'] !== null && robberOverrides['rob_success'] !== '') {
+        const v = Number(robberOverrides['rob_success']);
+        if (Number.isFinite(v)) {
+          baseSuccessChance = v / 100;
+        }
+      }
       if (robber.badges && robber.badges.includes(config.badges.zwyciezca)) {
         baseSuccessChance += 0.05;
       }
@@ -162,7 +170,7 @@ module.exports = {
       const alarmBonus = getPassiveMultiplier(victimInv, 'alarm', 0.04);
       baseSuccessChance -= alarmBonus;
 
-      const success = Math.random() < baseSuccessChance;
+      const success = Math.random() < Math.min(baseSuccessChance, 1);
 
       const latarkaBonusPct = getPassiveMultiplier(robberInv, 'latarka', 0.02);
       const kominiarkaBonusPct = getPassiveMultiplier(robberInv, 'kominiarka', 0.10);

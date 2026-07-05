@@ -118,6 +118,14 @@ module.exports = {
       const inventory = ensureInventoryRecord(store.inventory, authorId);
 
       let baseSuccessChance = 0.50;
+      const overrides = store.profiles.chanceOverrides || {};
+      const userOverrides = overrides[user.id] || {};
+      if (userOverrides['crime_success'] !== undefined && userOverrides['crime_success'] !== null && userOverrides['crime_success'] !== '') {
+        const v = Number(userOverrides['crime_success']);
+        if (Number.isFinite(v)) {
+          baseSuccessChance = v / 100;
+        }
+      }
       if (user.badges) {
         if (user.badges.includes(config.badges.boss)) {
           baseSuccessChance += 0.05;
@@ -127,7 +135,7 @@ module.exports = {
           baseSuccessChance += 0.015;
         }
       }
-      const success = Math.random() < baseSuccessChance;
+      const success = Math.random() < Math.min(baseSuccessChance, 1);
       let amount = randomInt(5000, 30000);
 
       // Gang bonus

@@ -73,6 +73,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab').forEach(t => t.classList.add('hidden'));
     $(`#tab-${btn.dataset.tab}`).classList.remove('hidden');
     if (btn.dataset.tab === 'players') loadPlayers();
+    if (btn.dataset.tab === 'chances') loadChances();
     if (btn.dataset.tab === 'bans') loadBans();
     if (btn.dataset.tab === 'logs') { loadLogs(); loadActivity(); }
     if (btn.dataset.tab === 'gangs') loadGangs();
@@ -182,6 +183,90 @@ window.savePlayer = async function (id) {
 window.closeModal = function () { $('#modal-overlay').classList.add('hidden'); };
 $('#modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') closeModal(); });
 
+// ===== SZANSE =====
+let chanceSearchTimer = null;
+$('#chance-search').addEventListener('input', () => {
+  clearTimeout(chanceSearchTimer);
+  chanceSearchTimer = setTimeout(loadChances, 300);
+});
+
+async function loadChances() {
+  try {
+    const search = encodeURIComponent($('#chance-search').value.trim());
+    const data = await api(`/api/players?search=${search}&limit=200`);
+    $('#chance-player-count').textContent = `Znaleziono: ${data.total}`;
+    const tbody = $('#chances-table tbody');
+    tbody.innerHTML = data.players.map(p => `
+      <tr>
+        <td>${esc(p.name)}</td>
+        <td class="muted">${esc(p.id)}</td>
+        <td>${esc(p.gang || '—')}</td>
+        <td><button class="small" onclick="openChances('${esc(p.id)}', '${esc(p.name)}')">Szanse</button></td>
+      </tr>`).join('');
+  } catch (err) { toast(err.message, true); }
+}
+
+window.openChances = async function (id, name) {
+  try {
+    const data = await api(`/api/chances/${encodeURIComponent(id)}`);
+    const rows = data.chances.map(c => {
+      const isOverridden = c.current !== c.default;
+      const statusClass = isOverridden ? 'style="color:#00e676; font-weight:700;"' : '';
+      const statusLabel = isOverridden ? '✏️ Nadpisane' : '📌 Domyślne';
+      return `
+        <div class="field-group">
+          <label>
+            <span style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+              <span>
+                <strong style="color:#fff;">${esc(c.label)}</strong>
+                <span class="muted" style="margin-left:8px; font-size:12px;">${esc(c.description)}</span>
+              </span>
+              <span class="badge" style="background:#151722; color:#8a90a4; font-size:11px;" ${statusClass}>${statusLabel} ${isOverridden ? '(' + esc(c.current) + c.unit + ')' : ''}</span>
+            </span>
+            <input type="number" data-chance="${esc(c.id)}" value="${c.current}" min="${c.min}" max="${c.max}" step="${c.step}" style="margin-top:8px;">
+            <span class="field-desc">Zakres: ${c.min}–${c.max}${c.unit} | Domyślnie: ${c.default}${c.unit}</span>
+          </label>
+        </div>`;
+    }).join('');
+
+    $('#modal').innerHTML = `
+      <h3>🎲 ${esc(name)} <span class="muted">(${esc(id)})</span></h3>
+      <p class="muted" style="margin-bottom:14px;">Tutaj możesz nadpisać wartości szans dla tego użytkownika. Zmiany dotyczą wyłącznie tego gracza i obowiązują natychmiast.</p>
+      <div style="display:flex; flex-direction:column; gap:12px; max-height:60vh; overflow-y:auto; padding-right:4px;">
+        ${rows || '<p class="muted">Brak dostępnych systemów szans.</p>'}
+      </div>
+      <div class="modal-actions">
+        <button onclick="saveChances('${esc(id)}')">Zapisz szanse</button>
+        <button class="secondary" onclick="closeModal()">Anuluj</button>
+      </div>`;
+    $('#modal-overlay').classList.remove('hidden');
+  } catch (err) { toast(err.message, true); }
+};
+
+window.saveChances = async function (id) {
+  try {
+    const chances = {};
+    document.querySelectorAll('#modal input[data-chance]').forEach(inp => {
+      const key = inp.dataset.chance;
+      const raw = inp.value.trim();
+      if (raw === '' || raw === null || raw === undefined) {
+        chances[key] = null;
+      } else {
+        const v = Number(raw);
+        if (Number.isFinite(v)) {
+          chances[key] = v;
+        }
+      }
+    });
+    await api(`/api/chances/${encodeURIComponent(id)}`, {
+      method: 'POST',
+      body: JSON.stringify({ chances })
+    });
+    closeModal();
+    toast('Zapisano szanse gracza.');
+  } catch (err) { toast(err.message, true); }
+};
+
 // ===== USTAWIENIA =====
 async function loadSettings() {
   try {
@@ -269,6 +354,18 @@ $('#save-prefixes').addEventListener('click', async () => {
 });
 
 // ===== EVENTY =====
+function getCooldownReductionPercent(event) {
+  if (event.reductionPercent != null) return Math.round(Number(event.reductionPercent) || 0);
+  const multiplier = Number(event.multiplier) || 1;
+  return multiplier > 1 ? Math.round((1 - (1 / multiplier)) * 100) : 0;
+}
+
+function updateEventFormVisibility() {
+  const isCooldownEvent = $('#event-type').value === 'cooldowns';
+  $('#event-multiplier-group').classList.toggle('hidden', isCooldownEvent);
+  $('#cooldown-reduction-group').classList.toggle('hidden', !isCooldownEvent);
+}
+
 async function loadEvents() {
   try {
     const data = await api('/api/events');
@@ -281,10 +378,13 @@ async function loadEvents() {
       const endTime = new Date(event.endTime);
       const now = new Date();
       const remaining = endTime > now ? Math.max(0, Math.ceil((endTime - now) / 60000)) : 0;
-      const typeNames = { xp: 'XP', casino: 'Kasyno', items: 'Itemy' };
+      const typeNames = { xp: 'XP', casino: 'Kasyno', items: 'Itemy', cooldowns: 'Szybsze cooldowny' };
+      const bonusLabel = event.type === 'cooldowns'
+        ? `-${getCooldownReductionPercent(event)}% cooldownów`
+        : `x${event.multiplier}`;
       return `
         <div class="event-card">
-          <h4>${esc(typeNames[event.type] || event.type)} x${event.multiplier}</h4>
+          <h4>${esc(typeNames[event.type] || event.type)} ${esc(bonusLabel)}</h4>
           <p>${esc(event.description || '')}</p>
           <p class="muted">Pozostało: ${remaining} min | ID: ${esc(event.id)}</p>
           <button class="small danger" onclick="deleteEvent('${esc(event.id)}')">Usuń</button>
@@ -294,12 +394,24 @@ async function loadEvents() {
   } catch (err) { toast(err.message, true); }
 }
 
+$('#event-type').addEventListener('change', updateEventFormVisibility);
+updateEventFormVisibility();
+
 $('#create-event').addEventListener('click', async () => {
   try {
     const type = $('#event-type').value;
-    const multiplier = parseFloat($('#event-multiplier').value);
+    let multiplier = parseFloat($('#event-multiplier').value);
+    let cooldownReductionPercent = null;
     const durationMinutes = parseInt($('#event-duration').value);
     const description = $('#event-description').value.trim();
+
+    if (type === 'cooldowns') {
+      cooldownReductionPercent = parseInt($('#event-cooldown-reduction').value, 10);
+      if (!cooldownReductionPercent || cooldownReductionPercent < 1 || cooldownReductionPercent > 90) {
+        return toast('Podaj skrócenie cooldownów od 1% do 90%.', true);
+      }
+      multiplier = 100 / (100 - cooldownReductionPercent);
+    }
     
     if (!type || !multiplier || !durationMinutes) {
       return toast('Wypełnij wszystkie wymagane pola.', true);
@@ -307,7 +419,7 @@ $('#create-event').addEventListener('click', async () => {
     
     await api('/api/events', { 
       method: 'POST', 
-      body: JSON.stringify({ type, multiplier, durationMinutes, description }) 
+      body: JSON.stringify({ type, multiplier, cooldownReductionPercent, durationMinutes, description }) 
     });
     
     $('#event-description').value = '';

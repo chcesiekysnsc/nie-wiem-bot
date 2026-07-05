@@ -47,6 +47,16 @@ module.exports = {
         reward = Math.floor(reward * config.economy.workVipBonus);
       }
 
+      const overrides = store.profiles.chanceOverrides || {};
+      const userOverrides = overrides[user.id] || {};
+      const luckOverride = userOverrides['work_luck'];
+      if (luckOverride !== undefined && luckOverride !== null && luckOverride !== '') {
+        const luck = Number(luckOverride);
+        if (Number.isFinite(luck)) {
+          reward = Math.floor(reward * luck);
+        }
+      }
+
       const walizkaBonus = getPassiveMultiplier(inventory, 'walizka', 0.05);
       if (walizkaBonus > 0) {
         reward = Math.floor(reward * (1 + walizkaBonus));
