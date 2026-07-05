@@ -9,8 +9,68 @@ const { getRegistry, getUserOverrides, saveUserOverrides } = require('../utils/c
 const app = express();
 const PORT = process.env.PANEL_PORT || 3000;
 
+const ADMIN_LOGIN = process.env.ADMIN_PANEL_LOGIN || 'rafal7373';
+const ADMIN_PASSWORD = process.env.ADMIN_PANEL_PASSWORD || 'rafal6336';
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+
+const sessions = new Map();
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+function timingSafeEquals(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+app.post('/api/login', (req, res) => {
+  const { login, password } = req.body || {};
+  if (!timingSafeEquals(login || '', ADMIN_LOGIN) || !timingSafeEquals(password || '', ADMIN_PASSWORD)) {
+    return res.status(401).json({ error: 'Nieprawidłowy login lub hasło.' });
+  }
+  const token = crypto.randomBytes(32).toString('hex');
+  sessions.set(token, { createdAt: Date.now() });
+  res.json({ token });
+});
+
+function requireAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const session = token ? sessions.get(token) : null;
+  if (!session || Date.now() - session.createdAt > SESSION_TTL_MS) {
+    if (token) sessions.delete(token);
+    return res.status(401).json({ error: 'Brak autoryzacji. Zaloguj się ponownie.' });
+  }
+  req.token = token;
+  next();
+}
+
+app.use('/api', (req, res, next) => {
+  if (req.path === '/login') return next();
+  requireAuth(req, res, next);
+});
+
+app.post('/api/logout', (req, res) => {
+  sessions.delete(req.token);
+  res.json({ ok: true });
+});
+
+function userName(user, id) {
+  return (user && user.name) || `Użytkownik_${String(id).slice(-6)}`;
+}
+
+function buildGangIndex(profiles) {
+  const index = {};
+  const gangs = profiles.gangs || {};
+  for (const [gangId, gang] of Object.entries(gangs)) {
+    for (const memberId of gang.members || []) {
+      index[memberId] = { id: gangId, name: gang.name };
+    }
+  }
+  return index;
+}
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
