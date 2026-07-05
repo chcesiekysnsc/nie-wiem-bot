@@ -146,7 +146,7 @@ const helpCommands = [
     name: "loteria",
     category: "ECONOMY_GAMBLING",
     shortDescription: "informacje o loterii",
-    description: "Pokazuje informacje o loterii, pulę nagród, liczbę kupionych biletów oraz czas do następnego losowania. Bilety kupuje się w sklepie (!sklep 4).",
+    description: "Pokazuje informacje o loterii, pulę nagród, liczbę kupionych biletów oraz czas do następnego losowania. Bilety kupuje się w sklepie (!sklep 3).",
     usage: "!loteria",
     examples: ["!loteria"],
     cooldown: "3 sekundy",

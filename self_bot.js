@@ -62,6 +62,17 @@ const { renderPayloadToText } = require('./utils/messenger');
 const { formatCurrency, msToReadable } = require('./utils/economy');
 const { extractTikTokLink, getTikTokVideoData, downloadFile } = require('./utils/tiktok');
 
+async function getRecentActiveThreads(client) {
+  const { loadData } = require('./utils/storage');
+  const stats = loadData('groupStats') || {};
+  const twelveHours = 12 * 60 * 60 * 1000;
+  const now = Date.now();
+  return Array.from(client.activeThreadIds).filter(tId => {
+    const s = stats[tId];
+    return s && s.lastUpdated && (now - s.lastUpdated) <= twelveHours && (s.commandsExecuted || 0) >= 2;
+  });
+}
+
 // Algorytm Levenshteina do wykrywania litowek
 function levenshtein(a, b) {
   const m = a.length, n = b.length;
@@ -671,15 +682,16 @@ login({ appState }, (loginErr, api) => {
       const restart = store.profiles.pendingAdminRestart === true;
       store.profiles.pendingAdminRestart = false;
       return { broadcasts, restart, expiredEvents };
-    }).then(({ broadcasts, restart, expiredEvents }) => {
+    }).then(async ({ broadcasts, restart, expiredEvents }) => {
       // Wyślij powiadomienia o zakończeniu eventów
+      const recentTargets = await getRecentActiveThreads(client);
       for (const e of expiredEvents) {
         const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy' };
         const msg = `ℹ️ **EVENT ZAKOŃCZONY!** ℹ️\n\n` +
           `Modyfikator **${typeNames[e.type] || e.type} x${e.multiplier}** dobiegł końca.\n` +
           `Wskaźniki gry wróciły do normy. Dziękujemy za udział!`;
         
-        for (const t of Array.from(client.activeThreadIds)) {
+        for (const t of recentTargets) {
           try {
             api.sendMessage(msg, t);
           } catch (err) {
@@ -690,7 +702,7 @@ login({ appState }, (loginErr, api) => {
 
       for (const b of broadcasts) {
         const msg = `📢 **OGŁOSZENIE ADMINISTRACJI:**\n\n${b.message}`;
-        for (const t of Array.from(client.activeThreadIds)) {
+        for (const t of recentTargets) {
           try { api.sendMessage(msg, t); } catch (err) {
             console.error('[ADMIN-PANEL] Błąd wysyłania ogłoszenia:', err);
           }
@@ -764,12 +776,14 @@ login({ appState }, (loginErr, api) => {
       try {
         const drawResult = await withData(store => {
           const ticketPool = [];
+          const ticketOwners = new Set();
           let totalTickets = 0;
 
           for (const [userId, inv] of Object.entries(store.inventory || {})) {
             const ticketCount = inv.ticket || 0;
             if (ticketCount > 0) {
               totalTickets += ticketCount;
+              ticketOwners.add(userId);
               for (let i = 0; i < ticketCount; i++) {
                 ticketPool.push(userId);
               }
@@ -795,7 +809,8 @@ login({ appState }, (loginErr, api) => {
           return {
             winnerId,
             totalTickets,
-            totalPrize
+            totalPrize,
+            ticketOwners: Array.from(ticketOwners)
           };
         });
 
@@ -807,15 +822,22 @@ login({ appState }, (loginErr, api) => {
             `Łączna liczba biletów w grze: **${drawResult.totalTickets}**\n` +
             `Wygrywa: **${winnerName}**! 🎉\n` +
             `Nagroda główna: **+${drawResult.totalPrize.toLocaleString()} viccoinów** została dodana do portfela!\n` +
-            `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą \`!sklep 4\`.`;
+            `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą \`!sklep 3\`.`;
 
-          const targets = Array.from(client.activeThreadIds);
+          const uniqueBuyers = [...new Set(drawResult.ticketOwners || [])];
+          let targets = [];
+          if (uniqueBuyers.length === 1) {
+            const soleBuyerId = uniqueBuyers[0];
+            const buyer = await withData(store => store.users[soleBuyerId]);
+            const buyerThreadId = buyer && buyer.lastActiveThreadId ? String(buyer.lastActiveThreadId) : null;
+            targets = buyerThreadId ? [buyerThreadId] : (client.lastThreadId ? [client.lastThreadId] : []);
+          } else {
+            targets = await getRecentActiveThreads(client);
+          }
           if (targets.length > 0) {
             for (const tId of targets) {
               client.api.sendMessage(announceMsg, tId);
             }
-          } else if (client.lastThreadId) {
-            client.api.sendMessage(announceMsg, client.lastThreadId);
           }
         }
       } catch (err) {
@@ -939,13 +961,10 @@ login({ appState }, (loginErr, api) => {
           (winnerLines.length > 0 ? winnerLines.join('\n') : 'Brak kwalifikujących się graczy.') + `\n\n` +
           `💪 Czas na nowy sezon! Powodzenia w zdobywaniu kolejnych szczytów ekonomii!`;
 
-        const targets = Array.from(client.activeThreadIds);
-        if (targets.length > 0) {
-          for (const tId of targets) {
-            client.api.sendMessage(announceMsg, tId);
-          }
-        } else if (client.lastThreadId) {
-          client.api.sendMessage(announceMsg, client.lastThreadId);
+        const recentTargets = await getRecentActiveThreads(client);
+        const targets = recentTargets.length > 0 ? recentTargets : (client.lastThreadId ? [client.lastThreadId] : []);
+        for (const tId of targets) {
+          client.api.sendMessage(announceMsg, tId);
         }
       }
     } catch (err) {
