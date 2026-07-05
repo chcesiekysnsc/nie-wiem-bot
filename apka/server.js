@@ -19,6 +19,67 @@ const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 const sessions = new Map();
 
+// ===== POWIADOMIENIA EVENTÓW =====
+const pendingEventNotifications = [];
+let eventNotificationTimer = null;
+
+function buildEventNotificationMessage(events) {
+  const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy', cooldowns: '⚡ Szybsze cooldowny', shop_discount: '🛒 Przecena w sklepie' };
+  const lines = events.map(ev => {
+    const label = typeNames[ev.type] || ev.type;
+    let detail = '';
+    if (ev.type === 'cooldowns') {
+      const pct = ev.parsedReduction != null ? Math.round(Number(ev.parsedReduction)) : Math.round((1 - Number(ev.parsedMultiplier || 1)) * 100);
+      detail = `+${pct}% skrócenia cooldownów`;
+    } else if (ev.type === 'shop_discount') {
+      const pct = ev.parsedReduction != null ? Math.round(Number(ev.parsedReduction)) : 0;
+      detail = `-${pct}% w sklepie`;
+    } else {
+      detail = `x${Number(ev.parsedMultiplier || 1).toFixed ? Number(ev.parsedMultiplier).toFixed(2) : ev.parsedMultiplier}`;
+    }
+    const desc = ev.description ? ` — ${ev.description}` : '';
+    return `🟢 ${label} (${detail})${desc}`;
+  });
+  const count = events.length;
+  const header = count === 1 ? '🎉 **NOWY EVENT AKTYWNY!** 🎉' : `🎉 **AKTYWOWANO ${count} EVENTY!** 🎉`;
+  return `${header}\n\n${lines.join('\n')}\n\n💪 Korzystajcie z bonusów!`;
+}
+
+async function flushPendingEventNotifications() {
+  const eventsToNotify = pendingEventNotifications.splice(0, pendingEventNotifications.length);
+  if (eventNotificationTimer) {
+    clearTimeout(eventNotificationTimer);
+    eventNotificationTimer = null;
+  }
+  if (eventsToNotify.length === 0) return;
+
+  try {
+    const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
+    if (!fs.existsSync(threadsPath)) return;
+    const threadIds = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
+    if (!Array.isArray(threadIds) || !global.botApi) return;
+
+    const message = buildEventNotificationMessage(eventsToNotify);
+    for (const tId of threadIds) {
+      try {
+        global.botApi.sendMessage(message, tId);
+      } catch (err) {
+        console.error('[EVENTS] Failed to send combined notification:', err);
+      }
+    }
+  } catch (err) {
+    console.error('[EVENTS] Failed to flush pending event notifications:', err);
+  }
+}
+
+function scheduleEventNotification(eventData) {
+  pendingEventNotifications.push(eventData);
+  if (eventNotificationTimer) {
+    clearTimeout(eventNotificationTimer);
+  }
+  eventNotificationTimer = setTimeout(() => flushPendingEventNotifications(), 10000);
+}
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -544,39 +605,14 @@ app.post('/api/events', async (req, res) => {
       store.profiles.events.push(event);
     });
     
-    // Wyślij powiadomienie o starcie eventu na wszystkie aktywne grupy
-    try {
-      const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
-      if (fs.existsSync(threadsPath)) {
-        const threadIds = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
-        const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy', cooldowns: '⚡ Szybsze cooldowny', shop_discount: '🛒 Przecena w sklepie' };
-        const durationStr = parsedDuration >= 60 
-          ? `${Math.floor(parsedDuration / 60)}h ${parsedDuration % 60}min`
-          : `${parsedDuration} min`;
-        let bonusLine = '';
-        if (type === 'cooldowns') {
-          bonusLine = `⚡ Skrócenie cooldownów: **-${parsedReduction}%**\n`;
-        } else if (type === 'shop_discount') {
-          bonusLine = `🛒 Przecena w sklepie: **-${parsedReduction}%**\n`;
-        } else {
-          bonusLine = `🔥 Mnożnik: **x${parsedMultiplier}**\n`;
-        }
-        const notifyMsg = `🎉 **NOWY EVENT AKTYWNY!** 🎉\n\n` +
-          `📋 Typ: **${typeNames[type] || type}**\n` +
-          bonusLine +
-          `⏱️ Czas trwania: **${durationStr}**\n` +
-          (description ? `📝 ${description}\n` : '') +
-          `\n💪 Korzystajcie z bonusów!`;
-        
-        if (Array.isArray(threadIds) && global.botApi) {
-          for (const tId of threadIds) {
-            global.botApi.sendMessage(notifyMsg, tId);
-          }
-        }
-      }
-    } catch (notifyErr) {
-      console.error('[EVENTS] Failed to broadcast event start:', notifyErr);
-    }
+    scheduleEventNotification({
+      type,
+      parsedMultiplier,
+      parsedReduction,
+      parsedDuration,
+      description
+    });
+    
     res.json({ ok: true, event });
   } catch (err) {
     res.status(500).json({ error: err.message });
