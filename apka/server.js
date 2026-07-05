@@ -18,66 +18,60 @@ const ADMIN_PASSWORD = process.env.ADMIN_PANEL_PASSWORD || 'rafal6336';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 const sessions = new Map();
-
-// ===== POWIADOMIENIA EVENTÓW =====
-const pendingEventNotifications = [];
+let pendingEventNotifications = [];
 let eventNotificationTimer = null;
+const EVENT_NOTIFICATION_DELAY = 10000;
 
-function buildEventNotificationMessage(events) {
+function sendBufferedEventNotifications() {
+  if (pendingEventNotifications.length === 0) {
+    return;
+  }
+
+  const events = pendingEventNotifications;
+  pendingEventNotifications = [];
+  eventNotificationTimer = null;
+
   const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy', cooldowns: '⚡ Szybsze cooldowny', shop_discount: '🛒 Przecena w sklepie' };
   const lines = events.map(ev => {
-    const label = typeNames[ev.type] || ev.type;
-    let detail = '';
+    const name = typeNames[ev.type] || ev.type;
+    const durationStr = ev.durationMinutes >= 60 ? `${Math.floor(ev.durationMinutes / 60)}h ${ev.durationMinutes % 60}min` : `${ev.durationMinutes} min`;
+    let bonusLabel = '';
     if (ev.type === 'cooldowns') {
-      const pct = ev.parsedReduction != null ? Math.round(Number(ev.parsedReduction)) : Math.round((1 - Number(ev.parsedMultiplier || 1)) * 100);
-      detail = `+${pct}% skrócenia cooldownów`;
+      bonusLabel = `Skrócenie cooldownów: **-${ev.reductionPercent}%**`;
     } else if (ev.type === 'shop_discount') {
-      const pct = ev.parsedReduction != null ? Math.round(Number(ev.parsedReduction)) : 0;
-      detail = `-${pct}% w sklepie`;
+      bonusLabel = `Przecena w sklepie: **-${ev.reductionPercent}%**`;
     } else {
-      detail = `x${Number(ev.parsedMultiplier || 1).toFixed ? Number(ev.parsedMultiplier).toFixed(2) : ev.parsedMultiplier}`;
+      bonusLabel = `Mnożnik: **x${ev.multiplier}**`;
     }
-    const desc = ev.description ? ` — ${ev.description}` : '';
-    return `🟢 ${label} (${detail})${desc}`;
+    const desc = ev.description ? `\n📝 ${ev.description}` : '';
+    return `🟢 **${name}**\n${bonusLabel}\n⏱️ Czas trwania: ${durationStr}${desc}`;
   });
-  const count = events.length;
-  const header = count === 1 ? '🎉 **NOWY EVENT AKTYWNY!** 🎉' : `🎉 **AKTYWOWANO ${count} EVENTY!** 🎉`;
-  return `${header}\n\n${lines.join('\n')}\n\n💪 Korzystajcie z bonusów!`;
-}
 
-async function flushPendingEventNotifications() {
-  const eventsToNotify = pendingEventNotifications.splice(0, pendingEventNotifications.length);
-  if (eventNotificationTimer) {
-    clearTimeout(eventNotificationTimer);
-    eventNotificationTimer = null;
-  }
-  if (eventsToNotify.length === 0) return;
+  const notifyMsg = `🎉 **NOWE EVENTY AKTYWNE!** 🎉\n\n${lines.join('\n\n')}\n\n💪 Korzystajcie z bonusów!`;
 
   try {
     const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
-    if (!fs.existsSync(threadsPath)) return;
-    const threadIds = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
-    if (!Array.isArray(threadIds) || !global.botApi) return;
-
-    const message = buildEventNotificationMessage(eventsToNotify);
-    for (const tId of threadIds) {
-      try {
-        global.botApi.sendMessage(message, tId);
-      } catch (err) {
-        console.error('[EVENTS] Failed to send combined notification:', err);
+    if (fs.existsSync(threadsPath)) {
+      const threadIds = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
+      if (Array.isArray(threadIds) && global.botApi) {
+        for (const tId of threadIds) {
+          global.botApi.sendMessage(notifyMsg, tId);
+        }
       }
     }
-  } catch (err) {
-    console.error('[EVENTS] Failed to flush pending event notifications:', err);
+  } catch (notifyErr) {
+    console.error('[EVENTS] Failed to broadcast batched events:', notifyErr);
   }
 }
 
-function scheduleEventNotification(eventData) {
-  pendingEventNotifications.push(eventData);
+function queueEventNotification(eventMeta) {
+  pendingEventNotifications.push(eventMeta);
+
   if (eventNotificationTimer) {
     clearTimeout(eventNotificationTimer);
   }
-  eventNotificationTimer = setTimeout(() => flushPendingEventNotifications(), 10000);
+
+  eventNotificationTimer = setTimeout(sendBufferedEventNotifications, EVENT_NOTIFICATION_DELAY);
 }
 
 app.use(express.json());
@@ -605,12 +599,12 @@ app.post('/api/events', async (req, res) => {
       store.profiles.events.push(event);
     });
     
-    scheduleEventNotification({
+    queueEventNotification({
       type,
-      parsedMultiplier,
-      parsedReduction,
-      parsedDuration,
-      description
+      multiplier: parsedMultiplier,
+      reductionPercent: parsedReduction,
+      durationMinutes: parsedDuration,
+      description: String(description || '').trim().slice(0, 200)
     });
     
     res.json({ ok: true, event });
