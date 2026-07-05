@@ -149,7 +149,7 @@ async function executeCommand(event, pageId) {
   if (!client.pendingBails) client.pendingBails = new Map();
   const pendingBail = client.pendingBails.get(senderId);
   if (pendingBail) {
-    const cleanText = text.trim().toLowerCase();
+    const cleanText = text.trim().toLowerCase().replace(/^!/, '');
     if (cleanText === 'wykup' || cleanText === 'stop') {
       await handleBailResponse(client, message, pendingBail, cleanText);
       return;
