@@ -362,8 +362,10 @@ function getCooldownReductionPercent(event) {
 
 function updateEventFormVisibility() {
   const isCooldownEvent = $('#event-type').value === 'cooldowns';
-  $('#event-multiplier-group').classList.toggle('hidden', isCooldownEvent);
+  const isShopDiscountEvent = $('#event-type').value === 'shop_discount';
+  $('#event-multiplier-group').classList.toggle('hidden', isCooldownEvent || isShopDiscountEvent);
   $('#cooldown-reduction-group').classList.toggle('hidden', !isCooldownEvent);
+  $('#shop-discount-group').classList.toggle('hidden', !isShopDiscountEvent);
 }
 
 async function loadEvents() {
@@ -378,10 +380,16 @@ async function loadEvents() {
       const endTime = new Date(event.endTime);
       const now = new Date();
       const remaining = endTime > now ? Math.max(0, Math.ceil((endTime - now) / 60000)) : 0;
-      const typeNames = { xp: 'XP', casino: 'Kasyno', items: 'Itemy', cooldowns: 'Szybsze cooldowny' };
-      const bonusLabel = event.type === 'cooldowns'
-        ? `-${getCooldownReductionPercent(event)}% cooldownów`
-        : `x${event.multiplier}`;
+      const typeNames = { xp: 'XP', casino: 'Kasyno', items: 'Itemy', cooldowns: 'Szybsze cooldowny', shop_discount: 'Przecena w sklepie' };
+      let bonusLabel = '';
+      if (event.type === 'cooldowns') {
+        bonusLabel = `-${getCooldownReductionPercent(event)}% cooldownów`;
+      } else if (event.type === 'shop_discount') {
+        const discount = event.reductionPercent != null ? Math.round(Number(event.reductionPercent)) : Math.round((1 - Number(event.multiplier || 1)) * 100);
+        bonusLabel = `-${discount}% w sklepie`;
+      } else {
+        bonusLabel = `x${event.multiplier}`;
+      }
       return `
         <div class="event-card">
           <h4>${esc(typeNames[event.type] || event.type)} ${esc(bonusLabel)}</h4>
@@ -402,6 +410,7 @@ $('#create-event').addEventListener('click', async () => {
     const type = $('#event-type').value;
     let multiplier = parseFloat($('#event-multiplier').value);
     let cooldownReductionPercent = null;
+    let discountPercent = null;
     const durationMinutes = parseInt($('#event-duration').value);
     const description = $('#event-description').value.trim();
 
@@ -411,15 +420,25 @@ $('#create-event').addEventListener('click', async () => {
         return toast('Podaj skrócenie cooldownów od 1% do 90%.', true);
       }
       multiplier = 100 / (100 - cooldownReductionPercent);
+    } else if (type === 'shop_discount') {
+      discountPercent = parseInt($('#event-shop-discount').value, 10);
+      if (!discountPercent || discountPercent < 1 || discountPercent > 90) {
+        return toast('Podaj przecenę od 1% do 90%.', true);
+      }
+      multiplier = 1 - discountPercent / 100;
+    } else {
+      if (!multiplier || multiplier <= 1) {
+        return toast('Podaj mnożnik większy od 1 dla tego typu eventu.', true);
+      }
     }
     
-    if (!type || !multiplier || !durationMinutes) {
+    if (!type || !durationMinutes) {
       return toast('Wypełnij wszystkie wymagane pola.', true);
     }
     
     await api('/api/events', { 
       method: 'POST', 
-      body: JSON.stringify({ type, multiplier, cooldownReductionPercent, durationMinutes, description }) 
+      body: JSON.stringify({ type, multiplier, cooldownReductionPercent, discountPercent, durationMinutes, description }) 
     });
     
     $('#event-description').value = '';

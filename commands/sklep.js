@@ -4,7 +4,8 @@ const {
   ensureInventoryRecord,
   formatCurrency,
   hasItem,
-  refreshBadges
+  refreshBadges,
+  getShopDiscount
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -30,11 +31,17 @@ const ALL_SHOP_ITEMS = Object.entries(config.shopItems).map(([id, item]) => {
 
 // Lista sklepu — krótkie opisy, paczki jako lootbox
 function renderShopList() {
+  const discount = getShopDiscount();
   return SHOP_ITEMS_ORDERED
     .map(item => {
       const isPackage = item.id.startsWith('paczka_');
       const desc = isPackage ? 'lootbox' : (item.shortDesc || item.description);
-      return `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${formatCurrency(item.price)}\n_${desc}_`;
+      const originalPrice = item.price;
+      const discountedPrice = discount > 0 ? Math.max(0, Math.floor(originalPrice * (1 - discount / 100))) : originalPrice;
+      const priceLabel = discount > 0
+        ? `~~${formatCurrency(originalPrice)}~~ **${formatCurrency(discountedPrice)}** (-${discount}%)`
+        : formatCurrency(originalPrice);
+      return `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${priceLabel}\n_${desc}_`;
     })
     .join('\n');
 }
@@ -69,9 +76,14 @@ module.exports = {
       const buyLabel  = item.buyable === false
         ? `❌ Niedostępny w sklepie — ${item.shopNote || 'tylko z paczek'}`
         : `✅ Dostępny w sklepie — kup: **!sklep ${shopEntry.num} [ilość]**`;
+      const discount = getShopDiscount();
+      const effectivePrice = Math.max(0, Math.floor(shopEntry.price * (1 - discount / 100)));
+      const priceText = discount > 0
+        ? `~~${formatCurrency(shopEntry.price)}~~ **${formatCurrency(effectivePrice)}** (-${discount}%)`
+        : formatCurrency(shopEntry.price);
 
       await message.reply(
-        `${shopEntry.emoji} **${shopEntry.name}** — ${formatCurrency(shopEntry.price)}\n` +
+        `${shopEntry.emoji} **${shopEntry.name}** — ${priceText}\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
         `${item.description}\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -123,6 +135,8 @@ module.exports = {
     const result = await withData(store => {
       const user      = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+      const discount = getShopDiscount();
+      const effectivePrice = Math.max(0, Math.floor(item.price * (1 - discount / 100)));
 
       if (item.type === 'permanent' && hasItem(inventory, itemId)) {
         return { error: '❌ Posiadasz już ten przedmiot (permanent).' };
@@ -150,7 +164,7 @@ module.exports = {
         }
       }
 
-      const totalPrice = item.price * quantity;
+      const totalPrice = effectivePrice * quantity;
       if (user.balance < totalPrice) {
         return { error: `❌ Brak środków. Potrzebujesz ${formatCurrency(totalPrice)}, posiadasz ${formatCurrency(user.balance)}.` };
       }

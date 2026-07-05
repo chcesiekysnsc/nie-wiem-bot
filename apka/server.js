@@ -501,24 +501,31 @@ app.get('/api/events', (req, res) => {
 });
 
 app.post('/api/events', async (req, res) => {
-  const { type, multiplier, cooldownReductionPercent, durationMinutes, description } = req.body || {};
-  if (!type || !multiplier || !durationMinutes) {
-    return res.status(400).json({ error: 'Wymagane pola: type, multiplier, durationMinutes.' });
+  const { type, multiplier, cooldownReductionPercent, durationMinutes, description, discountPercent } = req.body || {};
+  if (!type || !durationMinutes) {
+    return res.status(400).json({ error: 'Wymagane pola: type, durationMinutes.' });
   }
-  const allowedTypes = ['xp', 'casino', 'items', 'cooldowns'];
+  const allowedTypes = ['xp', 'casino', 'items', 'cooldowns', 'shop_discount'];
   if (!allowedTypes.includes(type)) {
     return res.status(400).json({ error: 'Nieznany typ eventu.' });
   }
 
-  const parsedMultiplier = parseFloat(multiplier);
   const parsedDuration = parseInt(durationMinutes, 10);
-  if (!Number.isFinite(parsedMultiplier) || parsedMultiplier <= 0 || !Number.isFinite(parsedDuration) || parsedDuration <= 0) {
-    return res.status(400).json({ error: 'Nieprawidłowy mnożnik lub czas trwania.' });
+  if (!Number.isFinite(parsedDuration) || parsedDuration <= 0) {
+    return res.status(400).json({ error: 'Nieprawidłowy czas trwania.' });
   }
 
-  const parsedReduction = type === 'cooldowns'
-    ? Math.min(90, Math.max(1, Math.round(Number(cooldownReductionPercent) || ((1 - (1 / parsedMultiplier)) * 100))))
-    : null;
+  let parsedMultiplier = null;
+  let parsedReduction = null;
+  if (type === 'cooldowns') {
+    parsedMultiplier = parseFloat(multiplier) || 2;
+    parsedReduction = Math.min(90, Math.max(1, Math.round(Number(cooldownReductionPercent) || ((1 - (1 / parsedMultiplier)) * 100))));
+  } else if (type === 'shop_discount') {
+    parsedReduction = Math.min(90, Math.max(1, Math.round(Number(discountPercent) || 0)));
+    parsedMultiplier = 1 - parsedReduction / 100;
+  } else {
+    parsedMultiplier = Math.max(1.01, parseFloat(multiplier) || 2);
+  }
 
   try {
     const event = {
@@ -542,13 +549,18 @@ app.post('/api/events', async (req, res) => {
       const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
       if (fs.existsSync(threadsPath)) {
         const threadIds = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
-        const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy', cooldowns: '⚡ Szybsze cooldowny' };
+        const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy', cooldowns: '⚡ Szybsze cooldowny', shop_discount: '🛒 Przecena w sklepie' };
         const durationStr = parsedDuration >= 60 
           ? `${Math.floor(parsedDuration / 60)}h ${parsedDuration % 60}min`
           : `${parsedDuration} min`;
-        const bonusLine = type === 'cooldowns'
-          ? `⚡ Skrócenie cooldownów: **-${parsedReduction}%**\n`
-          : `🔥 Mnożnik: **x${parsedMultiplier}**\n`;
+        let bonusLine = '';
+        if (type === 'cooldowns') {
+          bonusLine = `⚡ Skrócenie cooldownów: **-${parsedReduction}%**\n`;
+        } else if (type === 'shop_discount') {
+          bonusLine = `🛒 Przecena w sklepie: **-${parsedReduction}%**\n`;
+        } else {
+          bonusLine = `🔥 Mnożnik: **x${parsedMultiplier}**\n`;
+        }
         const notifyMsg = `🎉 **NOWY EVENT AKTYWNY!** 🎉\n\n` +
           `📋 Typ: **${typeNames[type] || type}**\n` +
           bonusLine +

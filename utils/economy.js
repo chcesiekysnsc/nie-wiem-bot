@@ -420,6 +420,28 @@ function getActiveEventMultiplier(type) {
   }
 }
 
+function getShopDiscount() {
+  try {
+    const { loadData } = require('./storage');
+    const profiles = loadData('profiles');
+    const events = profiles.events || [];
+    const now = Date.now();
+    let bestDiscount = 0;
+    for (const e of events) {
+      if (e.type === 'shop_discount' && e.endTime > now) {
+        const raw = e.reductionPercent;
+        const discount = raw != null ? Number(raw) : (1 - Number(e.multiplier || 1)) * 100;
+        if (Number.isFinite(discount) && discount > bestDiscount) {
+          bestDiscount = discount;
+        }
+      }
+    }
+    return Math.min(100, Math.max(0, bestDiscount));
+  } catch (_) {
+    return 0;
+  }
+}
+
 module.exports = {
   randomInt,
   formatNumber,
@@ -441,5 +463,6 @@ module.exports = {
   giveMilestoneReward,
   applyTalizmanBonus,
   getPassiveMultiplier,
-  getActiveEventMultiplier
+  getActiveEventMultiplier,
+  getShopDiscount
 };

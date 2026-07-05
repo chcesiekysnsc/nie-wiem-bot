@@ -203,15 +203,16 @@
             <p class="muted card-desc">Zaplanuj event z mnożnikiem zysków, który aktywuje się w ekonomii bota i wyśle powiadomienie na grupy.</p>
             
             <div class="event-form">
-              <div class="field-group">
-                <label for="event-type">Typ eventu</label>
-                <select id="event-type">
-                  <option value="xp">⚡ Event 2x XP</option>
-                  <option value="casino">🎰 Większe wygrane z kasyna</option>
-                  <option value="items">📦 Większa szansa na itemy z paczek</option>
-                  <option value="cooldowns">⚡ Szybsze cooldowny</option>
-                </select>
-              </div>
+               <div class="field-group">
+                 <label for="event-type">Typ eventu</label>
+                 <select id="event-type">
+                   <option value="xp">⚡ Event 2x XP</option>
+                   <option value="casino">🎰 Większe wygrane z kasyna</option>
+                   <option value="items">📦 Większa szansa na itemy z paczek</option>
+                   <option value="cooldowns">⚡ Szybsze cooldowny</option>
+                   <option value="shop_discount">🛒 Przecena w sklepie</option>
+                 </select>
+               </div>
 
               <div class="field-group" id="event-multiplier-group">
                 <label for="event-multiplier">Mnożnik zysku / szansy</label>
@@ -223,6 +224,12 @@
                 <label for="event-cooldown-reduction">Skrócenie cooldownów (%)</label>
                 <input type="number" id="event-cooldown-reduction" min="1" max="90" step="1" value="50">
                 <span class="field-desc">Np. 50 = cooldowny są o połowę krótsze (60s → 30s)</span>
+              </div>
+
+              <div class="field-group hidden" id="shop-discount-group">
+                <label for="event-shop-discount">Przecena w sklepie (%)</label>
+                <input type="number" id="event-shop-discount" min="1" max="90" step="1" value="15">
+                <span class="field-desc">Np. 15 = wszystkie przedmioty w sklepie są 15% tańsze</span>
               </div>
 
               <div class="field-group">
