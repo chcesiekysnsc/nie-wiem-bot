@@ -149,7 +149,7 @@ async function executeCommand(event, pageId) {
   if (!client.pendingBails) client.pendingBails = new Map();
   const pendingBail = client.pendingBails.get(senderId);
   if (pendingBail) {
-    const cleanText = text.trim().toLowerCase().replace(/^!/, '');
+    const cleanText = text.trim().toLowerCase().replace(/^!/, '').split(/\s+/)[0];
     if (cleanText === 'wykup' || cleanText === 'stop') {
       await handleBailResponse(client, message, pendingBail, cleanText);
       return;
@@ -538,6 +538,13 @@ async function handleBailResponse(client, message, pendingBail, action) {
   }
 
   if (action === 'wykup') {
+    const mentioned = message.mentions && message.mentions.users && message.mentions.users.first();
+    const mentionedId = mentioned ? String(mentioned.id) : null;
+    if (mentionedId && mentionedId !== String(pendingBail.targetId)) {
+      await message.reply('❌ Oznaczyłeś złego gracza.');
+      return;
+    }
+
     const bailResult = await withData(store => {
       const target = store.users[pendingBail.targetId];
       if (!target || !target.jailUntil || target.jailUntil <= Date.now()) {

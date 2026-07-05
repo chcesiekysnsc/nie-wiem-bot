@@ -60,9 +60,9 @@ module.exports = {
       `⏳ Pozostały czas: **${remainingText}**\n` +
       `💰 Koszt wykupu: **${formatCurrency(bailResult.cost)}**\n\n` +
       '✍️ Aby wykupić tego gracza wpisz:\n' +
-      '**wykup**\n\n' +
+      '**!wykup**\n\n' +
       '❌ Aby anulować wpisz:\n' +
-      '**stop**\n\n' +
+      '**!stop**\n\n' +
       '══════════════════════'
     );
   }
