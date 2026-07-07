@@ -179,7 +179,7 @@ module.exports = {
             const absMin = Math.max(1, Math.abs(min));
             const absMax = Math.max(absMin, Math.abs(max));
             const magnitude = crypto.randomInt(absMin, absMax + 1);
-            const isNegative = Math.random() < 0.525;
+            const isNegative = Math.random() < 0.55;
             return isNegative ? -magnitude : magnitude;
           };
 
