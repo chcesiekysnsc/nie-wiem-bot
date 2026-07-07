@@ -204,6 +204,17 @@ async function executeCommand(event, pageId) {
     return;
   }
 
+  if (senderId !== creatorId) {
+    const isDisabled = await withData(store => {
+      const disabled = new Set(store.profiles.disabledCommands || []);
+      return disabled.has(commandName) || (command.aliases || []).some(a => disabled.has(a));
+    });
+    if (isDisabled) {
+      await message.reply('🔧 Bot jest aktualnie w trakcie prac konserwacyjnych nad tą komendą. Spróbuj ponownie później.').catch(() => null);
+      return;
+    }
+  }
+
   try {
     let isBlocked = false;
     let multiAccountInfo = null;

@@ -640,6 +640,72 @@ app.post('/api/restart', async (req, res) => {
   }
 });
 
+// ===== KOMENDY =====
+app.get('/api/commands', async (req, res) => {
+  try {
+    const commandsPath = path.join(__dirname, '..', 'commands');
+    const files = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+    
+    const profiles = loadData('profiles');
+    const disabledCommands = new Set(profiles.disabledCommands || []);
+    
+    const commands = files.map(file => {
+      const filePath = path.join(commandsPath, file);
+      try {
+        const command = require(filePath);
+        if (!command.name || typeof command.execute !== 'function') {
+          return null;
+        }
+        return {
+          name: command.name,
+          aliases: command.aliases || [],
+          file: file
+        };
+      } catch (err) {
+        return null;
+      }
+    }).filter(Boolean);
+    
+    const result = commands.map(cmd => ({
+      name: cmd.name,
+      aliases: cmd.aliases,
+      disabled: disabledCommands.has(cmd.name) || cmd.aliases.some(a => disabledCommands.has(a))
+    }));
+    
+    res.json({ commands: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/commands/:name/toggle', async (req, res) => {
+  try {
+    const commandName = req.params.name;
+    const { disabled } = req.body || {};
+    
+    if (!commandName) {
+      return res.status(400).json({ error: 'Brak nazwy komendy.' });
+    }
+    
+    const result = await withData(store => {
+      store.profiles.disabledCommands = store.profiles.disabledCommands || [];
+      const index = store.profiles.disabledCommands.indexOf(commandName);
+      
+      if (disabled && index === -1) {
+        store.profiles.disabledCommands.push(commandName);
+      } else if (!disabled && index !== -1) {
+        store.profiles.disabledCommands.splice(index, 1);
+      }
+      
+      return { disabled: disabled !== false };
+    });
+    
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 if (require.main === module) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Panel administratora działa na http://localhost:${PORT}`);

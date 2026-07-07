@@ -80,6 +80,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'settings') loadSettings();
     if (btn.dataset.tab === 'events') loadEvents();
     if (btn.dataset.tab === 'live') loadLive();
+    if (btn.dataset.tab === 'commands') loadCommands();
   });
 });
 
@@ -621,3 +622,56 @@ $('#restart-btn').addEventListener('click', async () => {
 setInterval(() => { if (token && !$('#panel-view').classList.contains('hidden')) refreshStatusBadge(); }, 30000);
 
 if (token) showPanel(); else showLogin();
+
+// ===== KOMENDY =====
+let commandsSearchTimer = null;
+$('#command-search').addEventListener('input', () => {
+  clearTimeout(commandsSearchTimer);
+  commandsSearchTimer = setTimeout(loadCommands, 300);
+});
+
+async function loadCommands() {
+  try {
+    const search = encodeURIComponent($('#command-search').value.trim().toLowerCase());
+    const data = await api('/api/commands');
+    let commands = data.commands || [];
+    
+    if (search) {
+      commands = commands.filter(c => 
+        c.name.toLowerCase().includes(search) || 
+        c.aliases.some(a => a.toLowerCase().includes(search))
+      );
+    }
+    
+    $('#command-count').textContent = `Znaleziono: ${commands.length}`;
+    const tbody = $('#commands-table tbody');
+    tbody.innerHTML = commands.map(c => `
+      <tr>
+        <td><b>!${esc(c.name)}</b></td>
+        <td>${c.aliases.map(a => `!${esc(a)}`).join(', ') || '—'}</td>
+        <td class="muted">Komenda</td>
+        <td>
+          <span class="badge ${c.disabled ? 'offline' : 'online'}">
+            ${c.disabled ? 'Wyłączona' : 'Włączona'}
+          </span>
+        </td>
+        <td>
+          <button class="small ${c.disabled ? 'primary' : 'danger'}" onclick="toggleCommand('${esc(c.name)}', ${!c.disabled})">
+            ${c.disabled ? 'Włącz' : 'Wyłącz'}
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) { toast(err.message, true); }
+}
+
+window.toggleCommand = async function (name, disable) {
+  try {
+    await api(`/api/commands/${encodeURIComponent(name)}/toggle`, {
+      method: 'POST',
+      body: JSON.stringify({ disabled: disable })
+    });
+    toast(disable ? `Komenda !${name} została wyłączona.` : `Komenda !${name} została włączona.`);
+    loadCommands();
+  } catch (err) { toast(err.message, true); }
+};
