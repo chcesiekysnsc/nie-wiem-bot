@@ -1,95 +1,142 @@
-const config = require('../config/config');
-const { formatCurrency, msToReadable } = require('../utils/economy');
-const { createUser, withData } = require('../utils/storage');
+const { formatCurrency } = require('../utils/economy');
+const { loadData } = require('../utils/storage');
+
+function getPolandDateString(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find(p => p.type === 'year').value;
+  const month = parts.find(p => p.type === 'month').value;
+  const day = parts.find(p => p.type === 'day').value;
+  return `${year}-${month}-${day}`;
+}
+
+function getDaysBetween(dateStrA, dateStrB) {
+  const a = new Date(dateStrA + 'T00:00:00Z');
+  const b = new Date(dateStrB + 'T00:00:00Z');
+  return Math.round((b - a) / (1000 * 60 * 60 * 24));
+}
+
+function getName(client, id) {
+  return (client.userNames && client.userNames.get(id)) || `Użytkownik_${String(id).slice(-6)}`;
+}
 
 module.exports = {
   name: 'dlug',
   aliases: ['dlugi', 'debts', 'debtors'],
   async execute(client, message, args) {
-    if (!config.admins.includes(message.author.id)) {
-      await message.reply('❌ Brak uprawnień do tej komendy.');
-      return;
-    }
-
+    const senderId = message.author.id;
     const action = String(args[0] || '').trim().toLowerCase();
-    if (action !== 'lista') {
-      await message.reply('❌ Użyj: **!dlug lista**');
+    const targetUid = args[1] ? String(args[1]).trim() : null;
+
+    const profiles = loadData('profiles');
+    const loans = (profiles && profiles.playerLoans) ? profiles.playerLoans : [];
+
+    if (loans.length === 0) {
+      await message.reply('✅ Nie masz żadnych pożyczek — ani nie jesteś nikomu winien, ani nikt nie jest winien Tobie.');
       return;
     }
 
-    async function getName(id) {
-      if (client.resolvedUserNames && client.resolvedUserNames.has(id) && client.userNames.has(id)) {
-        return client.userNames.get(id);
-      }
-      if (client.api && typeof client.api.getUserInfo === 'function') {
-        try {
-          const info = await new Promise((resolve) => {
-            client.api.getUserInfo(id, (err, ret) => {
-              if (!err && ret && ret[id]) {
-                const name = ret[id].name;
-                if (client.userNames) client.userNames.set(id, name);
-                if (client.resolvedUserNames) client.resolvedUserNames.add(id);
-                resolve(name);
-              } else {
-                resolve(null);
-              }
-            });
-          });
-          if (info) return info;
-        } catch (_) {}
-      }
-      if (client.fetchUser && typeof client.fetchUser === 'function') {
-        try {
-          const platformUser = await client.fetchUser(id);
-          if (platformUser && platformUser.profile && platformUser.profile.name) {
-            return platformUser.profile.name;
-          }
-        } catch (_) {}
-      }
-      return (client.userNames && client.userNames.get(id)) || `Uzytkownik_${String(id).slice(-6)}`;
+    const todayStr = getPolandDateString(new Date());
+
+    const isList = action === 'lista';
+    const isGracz = action === 'gracz' && targetUid;
+
+    if (!isList && !isGracz) {
+      const debtToOthers = loans
+        .filter(l => l.borrowerId === senderId && l.amount > 0)
+        .reduce((sum, l) => sum + l.amount, 0);
+      const owedToSender = loans
+        .filter(l => l.lenderId === senderId && l.amount > 0)
+        .reduce((sum, l) => sum + l.amount, 0);
+
+      const net = owedToSender - debtToOthers;
+      const netText = net > 0 ? `+${formatCurrency(net)}` : (net < 0 ? `-${formatCurrency(Math.abs(net))}` : `${formatCurrency(0)}`);
+
+      await message.reply(
+        `📊 **Twoje długi — podsumowanie**\n\n` +
+        `📉 Suma zadłużenia: **${formatCurrency(debtToOthers)} v**\n` +
+        `📈 Suma wierzytelności: **${formatCurrency(owedToSender)} v**\n` +
+        `⚖️ Bilans netto: **${netText} v**`
+      );
+      return;
     }
 
-    const debtorsData = await withData(store => {
-      const debtors = [];
-      for (const [userId, user] of Object.entries(store.users)) {
-        if (user && user.activeLoan && user.activeLoan.amount > 0) {
-          debtors.push({
-            id: userId,
-            originalAmount: user.activeLoan.originalAmount,
-            amount: user.activeLoan.amount,
-            takenAt: user.activeLoan.takenAt
-          });
+    let filtered = loans;
+    if (isGracz) {
+      const otherId = targetUid;
+      filtered = loans.filter(l =>
+        (l.lenderId === senderId && l.borrowerId === otherId) ||
+        (l.lenderId === otherId && l.borrowerId === senderId)
+      );
+    } else if (isList) {
+      filtered = loans.filter(l => l.lenderId === senderId || l.borrowerId === senderId);
+    }
+
+    if (filtered.length === 0) {
+      await message.reply('✅ Nie masz żadnych pożyczek — ani nie jesteś nikomu winien, ani nikt nie jest winien Tobie.');
+      return;
+    }
+
+    const iOwe = filtered.filter(l => l.borrowerId === senderId && l.amount > 0);
+    const theyOwe = filtered.filter(l => l.lenderId === senderId && l.amount > 0);
+
+    const lines = [];
+    for (const loan of iOwe) {
+      const lenderName = getName(client, loan.lenderId);
+      const nextDate = String(loan.nextCollectionDate || '');
+      const overdueDays = nextDate ? getDaysBetween(todayStr, nextDate) : 0;
+      let suffix = '';
+      if (nextDate && nextDate < todayStr) {
+        suffix = ` • ⚠️ opóźnienie: ${overdueDays} dni`;
+        if (loan.status === 'defaulted') {
+          suffix += ` (kara +${Math.round((loan.penaltyRate || 0) * 100)}% naliczona)`;
         }
       }
-      return debtors;
-    });
-
-    if (debtorsData.length === 0) {
-      await message.reply('🏦 **Dłużnicy**\nBrak aktywnych pożyczek w systemie.');
-      return;
+      lines.push(`├─ ${formatCurrency(loan.amount)} v → @${lenderName} • rata ${nextDate}${suffix}`);
     }
 
-    const list = await Promise.all(debtorsData.map(async (d) => {
-      const name = await getName(d.id);
-      const elapsed = Date.now() - d.takenAt;
-      const remainingRepayMs = Math.max(0, 48 * 60 * 60 * 1000 - elapsed);
-      
-      return {
-        ...d,
-        name,
-        remainingTimeStr: msToReadable(remainingRepayMs)
-      };
-    }));
+    for (const loan of theyOwe) {
+      const borrowerName = getName(client, loan.borrowerId);
+      const nextDate = String(loan.nextCollectionDate || '');
+      const overdueDays = nextDate ? getDaysBetween(todayStr, nextDate) : 0;
+      let suffix = '';
+      if (nextDate && nextDate < todayStr) {
+        suffix = ` • ⚠️ opóźnienie: ${overdueDays} dni`;
+        if (loan.status === 'defaulted') {
+          suffix += ` (kara +${Math.round((loan.penaltyRate || 0) * 100)}% naliczona)`;
+        }
+      }
+      lines.push(`└─ ${formatCurrency(loan.amount)} v ← @${borrowerName} • rata ${nextDate}${suffix}`);
+    }
 
-    let response = `🏦 **LISTA DŁUŻNIKÓW** 🏦\n`;
-    response += `----------------------------------------\n`;
-    let totalDebt = 0;
-    list.forEach((d, idx) => {
-      response += `${idx + 1}. 👤 **${d.name}** (**${d.id}**) — **${formatCurrency(d.amount)}** (pierwotnie: **${formatCurrency(d.originalAmount)}**, spłata za: **${d.remainingTimeStr}**)\n`;
-      totalDebt += d.amount;
-    });
-    response += `----------------------------------------\n`;
-    response += `📈 Łączny dług w systemie: **${formatCurrency(totalDebt)}**`;
+    const debtSum = iOwe.reduce((sum, l) => sum + l.amount, 0);
+    const creditSum = theyOwe.reduce((sum, l) => sum + l.amount, 0);
+    const net = creditSum - debtSum;
+    const netText = net > 0 ? `+${formatCurrency(net)}` : (net < 0 ? `-${formatCurrency(Math.abs(net))}` : `${formatCurrency(0)}`);
+
+    const header = isGracz
+      ? `📊 Długi: Ty ↔ ${getName(client, targetUid)}`
+      : `📊 Twoje długi — szczegóły`;
+
+    let response = `${header}\n\n`;
+    if (iOwe.length > 0) {
+      response += `🔴 Ty jesteś winien (${iOwe.length}):\n`;
+      response += lines.slice(0, iOwe.length).join('\n') + '\n';
+    }
+    if (theyOwe.length > 0) {
+      response += `🟢 Winni są Tobie (${theyOwe.length}):\n`;
+      response += lines.slice(iOwe.length).join('\n') + '\n';
+    }
+
+    response += `\n━━━━━━━━━━━━━━\n`;
+    response += `📉 Suma zadłużenia: **${formatCurrency(debtSum)} v**\n`;
+    response += `📈 Suma wierzytelności: **${formatCurrency(creditSum)} v**\n`;
+    response += `⚖️ Bilans netto: **${netText} v**`;
 
     await message.reply(response);
   }
