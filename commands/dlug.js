@@ -21,8 +21,8 @@ function getDaysBetween(dateStrA, dateStrB) {
   return Math.round((b - a) / (1000 * 60 * 60 * 24));
 }
 
-function getName(client, id) {
-  return (client.userNames && client.userNames.get(id)) || `Użytkownik_${String(id).slice(-6)}`;
+function resolveDebtName(client, users, id) {
+  return (users && users[id] && users[id].name) || (client.userNames && client.userNames.get(id)) || `Użytkownik_${String(id).slice(-6)}`;
 }
 
 module.exports = {
@@ -34,6 +34,7 @@ module.exports = {
     const targetUid = args[1] ? String(args[1]).trim() : null;
 
     const profiles = loadData('profiles');
+    const users = loadData('users') || {};
     const loans = (profiles && profiles.playerLoans) ? profiles.playerLoans : [];
 
     if (loans.length === 0) {
@@ -87,7 +88,7 @@ module.exports = {
 
     const lines = [];
     for (const loan of iOwe) {
-      const lenderName = getName(client, loan.lenderId);
+      const lenderName = resolveDebtName(client, users, loan.lenderId);
       const nextDate = String(loan.nextCollectionDate || '');
       const overdueDays = nextDate ? getDaysBetween(todayStr, nextDate) : 0;
       let suffix = '';
@@ -101,7 +102,7 @@ module.exports = {
     }
 
     for (const loan of theyOwe) {
-      const borrowerName = getName(client, loan.borrowerId);
+      const borrowerName = resolveDebtName(client, users, loan.borrowerId);
       const nextDate = String(loan.nextCollectionDate || '');
       const overdueDays = nextDate ? getDaysBetween(todayStr, nextDate) : 0;
       let suffix = '';
@@ -120,7 +121,7 @@ module.exports = {
     const netText = net > 0 ? `+${formatCurrency(net)}` : (net < 0 ? `-${formatCurrency(Math.abs(net))}` : `${formatCurrency(0)}`);
 
     const header = isGracz
-      ? `📊 Długi: Ty ↔ ${getName(client, targetUid)}`
+      ? `📊 Długi: Ty ↔ ${resolveDebtName(client, users, targetUid)}`
       : `📊 Twoje długi — szczegóły`;
 
     let response = `${header}\n\n`;
