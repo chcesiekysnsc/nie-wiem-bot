@@ -688,6 +688,7 @@ app.post('/api/commands/:name/toggle', async (req, res) => {
     }
     
     const result = await withData(store => {
+      store.profiles = store.profiles || {};
       store.profiles.disabledCommands = store.profiles.disabledCommands || [];
       const index = store.profiles.disabledCommands.indexOf(commandName);
       

@@ -206,8 +206,10 @@ async function executeCommand(event, pageId) {
 
   if (senderId !== creatorId) {
     const isDisabled = await withData(store => {
+      store.profiles = store.profiles || {};
       const disabled = new Set(store.profiles.disabledCommands || []);
-      return disabled.has(commandName) || (command.aliases || []).some(a => disabled.has(a));
+      const mainName = command.name;
+      return disabled.has(commandName) || disabled.has(mainName) || (command.aliases || []).some(a => disabled.has(a));
     });
     if (isDisabled) {
       await message.reply('🔧 Bot jest aktualnie w trakcie prac konserwacyjnych nad tą komendą. Spróbuj ponownie później.').catch(() => null);
