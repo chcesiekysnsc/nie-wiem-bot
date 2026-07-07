@@ -2373,11 +2373,32 @@ login({ appState }, (loginErr, api) => {
     }
 
     const creatorId = '100060812419294';
-    // Blacklist checks disabled per user requirements
-    const isUserBlacklisted = false;
-    const isGroupBlacklisted = false;
-    const blacklist = [];
-    const trueBlacklist = [];
+    const { blacklist: currentBlacklist, trueBlacklist: currentTrueBlacklist, blacklistedGroups: currentBlacklistedGroups } = await withData(store => {
+      store.profiles = store.profiles || {};
+      return {
+        blacklist: store.profiles.blacklist || [],
+        trueBlacklist: store.profiles.trueBlacklist || [],
+        blacklistedGroups: store.profiles.blacklistedGroups || []
+      };
+    });
+
+    const isUserBlacklisted = senderId !== creatorId
+      && (currentBlacklist.includes(senderId) || currentTrueBlacklist.includes(senderId));
+    const isGroupBlacklisted = isGroup && currentBlacklistedGroups.includes(threadId);
+
+    if (isGroupBlacklisted) {
+      return;
+    }
+
+    if (isUserBlacklisted) {
+      const args = text.slice(currentPrefix.length).trim().split(/\s+/).filter(Boolean);
+      const potentialCommandName = (args[0] || '').toLowerCase();
+      const adminBypassCmds = ['bl', 'blacklist', 'ubl', 'unblacklist', 'ybl', 'unbl', 'truebl', 'blgrp', 'blacklistgroup', 'bangroup', 'ublgrp', 'unblacklistgroup', 'unbangroup'];
+      const isSenderAdmin = config.admins.includes(senderId) || senderId === creatorId;
+      if (!isSenderAdmin && !adminBypassCmds.includes(potentialCommandName)) {
+        return;
+      }
+    }
 
     let command = client.commands.get(commandName);
     if (!command) {
@@ -2417,7 +2438,19 @@ login({ appState }, (loginErr, api) => {
         }
       }
       
-      let hasBlacklistedTarget = false; // Blacklist checks disabled
+      let hasBlacklistedTarget = false;
+      for (const tid of targetIds) {
+        if (currentBlacklist.includes(tid) || currentTrueBlacklist.includes(tid)) {
+          hasBlacklistedTarget = true;
+          break;
+        }
+      }
+
+      if (hasBlacklistedTarget) {
+        const replyText = '❌ Nie możesz wchodzić w interakcje z zablokowanym użytkownikiem.';
+        api.sendMessage(replyText, threadId, () => {}, messageId);
+        return;
+      }
     }
     if (!command) {
       const normInput = normalizeText(commandName);
