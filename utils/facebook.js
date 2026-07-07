@@ -9,8 +9,8 @@ const HARDCODED_APP_STATE = [
         "domain": "facebook.com",
         "path": "/login/device-based/",
         "hostOnly": false,
-        "creation": "2026-07-07T19:28:46.631Z",
-        "lastAccessed": "2026-07-07T19:28:46.633Z"
+        "creation": "2026-07-07T23:15:47.734Z",
+        "lastAccessed": "2026-07-07T23:15:47.734Z"
     },
     {
         "key": "sb",
@@ -77,7 +77,7 @@ const HARDCODED_APP_STATE = [
     },
     {
         "key": "fr",
-        "value": "0TWt8GkNteL5dbOni.AWeuvWQu8xIvv-s_jIBX1qLBZCGLcrkU5y3w2KenGwOytOFRXDo.BqTVNn..AAA.0.0.BqTVNn.AWfefvkYQNBm8M_cbaoQU6QI1SU",
+        "value": "0PLyxohvMDg0Ok6UR.AWeYdcwKsBXpFGDs-IyKVQN5FgAeM22n9X_ZpOC-bgAj8ELHPjA.BqTYig..AAA.0.0.BqTYig.AWdwxxbTJaGrMeFWYH4FQTGD3n4",
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
@@ -86,7 +86,7 @@ const HARDCODED_APP_STATE = [
     },
     {
         "key": "xs",
-        "value": "1%3AqZCnosiYvtpGew%3A2%3A1783452517%3A-1%3A-1%3A%3AAcwMFpJxpbRpRPXY6jP770jBRiOzYlx0K_WaYjdMPw",
+        "value": "45%3AIbvCZTekhRtmIA%3A2%3A1783466141%3A-1%3A-1%3A%3AAcyL80oSBhrkKafczdDlQzbaYHzIZUfS02nMvaFD6g",
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
