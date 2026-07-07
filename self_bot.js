@@ -2364,6 +2364,19 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
+    if (senderId !== creatorId) {
+      const isDisabled = await withData(store => {
+        store.profiles = store.profiles || {};
+        const disabled = new Set(store.profiles.disabledCommands || []);
+        const mainName = command.name;
+        return disabled.has(commandName) || disabled.has(mainName) || (command.aliases || []).some(a => disabled.has(a));
+      });
+      if (isDisabled) {
+        api.sendMessage('🔧 Bot jest aktualnie w trakcie prac konserwacyjnych nad tą komendą. Spróbuj ponownie później.', threadId, () => {}, messageId);
+        return;
+      }
+    }
+
     // Zapisz imiona z wzmianek do cache'a
     if (event.mentions) {
       for (const [mid, mName] of Object.entries(event.mentions)) {
