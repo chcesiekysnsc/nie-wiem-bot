@@ -175,12 +175,19 @@ module.exports = {
           // Delete session from memory to allow a new game to be started
           client.stockSessions.delete(threadId);
 
-          // Roll final outcomes
+          const rollWithNegativeBias = (min, max) => {
+            const absMin = Math.max(1, Math.abs(min));
+            const absMax = Math.max(absMin, Math.abs(max));
+            const magnitude = crypto.randomInt(absMin, absMax + 1);
+            const isNegative = Math.random() < 0.525;
+            return isNegative ? -magnitude : magnitude;
+          };
+
           const rolledPercentages = {
-            bank: crypto.randomInt(resolveSession.assets.bank.min, resolveSession.assets.bank.max + 1),
-            srebro: crypto.randomInt(resolveSession.assets.srebro.min, resolveSession.assets.srebro.max + 1),
-            zloto: crypto.randomInt(resolveSession.assets.zloto.min, resolveSession.assets.zloto.max + 1),
-            diamenty: crypto.randomInt(resolveSession.assets.diamenty.min, resolveSession.assets.diamenty.max + 1)
+            bank: rollWithNegativeBias(resolveSession.assets.bank.min, resolveSession.assets.bank.max),
+            srebro: rollWithNegativeBias(resolveSession.assets.srebro.min, resolveSession.assets.srebro.max),
+            zloto: rollWithNegativeBias(resolveSession.assets.zloto.min, resolveSession.assets.zloto.max),
+            diamenty: rollWithNegativeBias(resolveSession.assets.diamenty.min, resolveSession.assets.diamenty.max)
           };
 
           // Process database changes inside withData
