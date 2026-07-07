@@ -73,6 +73,50 @@ async function getRecentActiveThreads(client) {
   });
 }
 
+async function handleBailResponse(client, message, pendingBail, action) {
+  const authorId = message.author.id;
+  client.pendingBails.delete(authorId);
+  clearTimeout(pendingBail.timeout);
+
+  if (action === 'stop') {
+    await message.reply('❌ Wykup został anulowany.');
+    return;
+  }
+
+  if (action === 'wykup') {
+    const mentioned = message.mentions && message.mentions.users && typeof message.mentions.users.first === 'function' ? message.mentions.users.first() : null;
+    const mentionedId = mentioned ? String(mentioned.id) : null;
+    if (mentionedId && mentionedId !== String(pendingBail.targetId)) {
+      await message.reply('❌ Oznaczyłeś złego gracza.');
+      return;
+    }
+
+    const bailResult = await withData(store => {
+      const target = store.users[pendingBail.targetId];
+      if (!target || !target.jailUntil || target.jailUntil <= Date.now()) {
+        return { error: '❌ Ten gracz już nie jest w więzieniu.' };
+      }
+      const user = store.users[authorId];
+      if (!user || user.balance < pendingBail.cost) {
+        return { error: '❌ Nie posiadasz wystarczającej ilości VicCoinów.' };
+      }
+      user.balance -= pendingBail.cost;
+      target.jailUntil = 0;
+      return { ok: true, cost: pendingBail.cost, targetName: target.name || pendingBail.targetName };
+    });
+
+    if (bailResult.error) {
+      await message.reply(bailResult.error);
+      return;
+    }
+
+    await message.reply(
+      `🎉 Udało się wykupić @${bailResult.targetName} z więzienia!\n\n` +
+      `💸 Zapłacono: **${bailResult.cost.toLocaleString()} VicCoinów**.`
+    );
+  }
+}
+
 // Algorytm Levenshteina do wykrywania litowek
 function levenshtein(a, b) {
   const m = a.length, n = b.length;
@@ -2273,6 +2317,31 @@ login({ appState }, (loginErr, api) => {
           }
           return;
         }
+      }
+    }
+
+    if (!client.pendingBails) client.pendingBails = new Map();
+    const pendingBail = client.pendingBails.get(senderId);
+    if (pendingBail) {
+      const cleanText = text.trim().toLowerCase().replace(/^!/, '').split(/\s+/)[0];
+      if (cleanText === 'wykup' || cleanText === 'stop') {
+        const senderName = await client.resolveUserName(api, senderId);
+        const bailMessage = {
+          author: { id: senderId },
+          mentions: event.mentions || {},
+          reply: async (payload) => {
+            const replyText = renderPayloadToText(payload);
+            if (!replyText) return null;
+            return new Promise((resolve, reject) => {
+              api.sendMessage(replyText, threadId, (sendErr, msgInfo) => {
+                if (sendErr) return reject(sendErr);
+                resolve(msgInfo);
+              }, messageId);
+            });
+          }
+        };
+        await handleBailResponse(client, bailMessage, pendingBail, cleanText);
+        return;
       }
     }
 
