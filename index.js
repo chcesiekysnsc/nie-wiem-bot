@@ -65,6 +65,8 @@ async function executeCommand(event, pageId) {
   }
 
   const senderId = event.sender?.id;
+  const threadId = event.threadID || pageId;
+  const isGroup = threadId !== senderId;
   const text = String(event.message?.text || '').trim();
 
   if (!senderId || !text) {
@@ -192,6 +194,17 @@ async function executeCommand(event, pageId) {
 
   if (isUserBlacklisted) {
     return;
+  }
+
+  if (isGroup) {
+    const isGroupBlacklisted = await withData(store => {
+      store.profiles = store.profiles || {};
+      store.profiles.blacklistedGroups = store.profiles.blacklistedGroups || [];
+      return store.profiles.blacklistedGroups.includes(threadId);
+    });
+    if (isGroupBlacklisted) {
+      return;
+    }
   }
 
   const command = client.commands.get(commandName);
