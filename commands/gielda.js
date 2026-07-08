@@ -1,5 +1,6 @@
+const crypto = require('crypto');
 const config = require('../config/config');
-const { ensureInventoryRecord, formatCurrency, recordGame, refreshBadges, resolveAmount } = require('../utils/economy');
+const { ensureInventoryRecord, formatCurrency, getMilestoneRewardDescription, recordGame, refreshBadges, resolveAmount } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 function normalizeAsset(input) {
@@ -17,6 +18,16 @@ function displayAsset(asset) {
   if (asset === 'zloto') return '🪙 Złoto';
   if (asset === 'diamenty') return '💎 Diamenty';
   return asset;
+}
+
+function rollAssetResult(min, max) {
+  const isNegative = crypto.randomInt(0, 100) < 52;
+  if (isNegative) {
+    const worstCase = Math.max(1, Math.abs(min));
+    return -crypto.randomInt(0, worstCase + 1);
+  }
+  const bestCase = Math.max(1, max);
+  return crypto.randomInt(0, bestCase + 1);
 }
 
 module.exports = {
@@ -44,7 +55,6 @@ module.exports = {
       const hostName = await client.resolveUserName(session.hostId);
       const participantCount = session.participants.size;
 
-      // Resolve participant names
       const participantNames = [];
       for (const pid of session.participants) {
         const name = await client.resolveUserName(pid);
@@ -71,7 +81,6 @@ module.exports = {
         const elapsed = Date.now() - session.investStartTime;
         const remaining = Math.max(0, Math.ceil((session.investDuration - elapsed) / 1000));
 
-        // Construct investment list (who invested in what without showing amount)
         const investList = [];
         for (const pid of session.participants) {
           const name = await client.resolveUserName(pid);
@@ -92,7 +101,7 @@ module.exports = {
           `🥈 **Srebro**: od ${session.assets.srebro.min}% do +${session.assets.srebro.max}%\n` +
           `🪙 **Złoto**: od ${session.assets.zloto.min}% do +${session.assets.zloto.max}%\n` +
           `💎 **Diamenty**: od ${session.assets.diamenty.min}% do +${session.assets.diamenty.max}%\n\n` +
-          `Wpisz **!gielda inwestuj <kwota> <aktywo>**, aby zainwestować!`
+          `Wpisz **!gielda inwestuj <kwota> <bank/srebro/zloto/diamenty>**, aby zainwestować!`
         );
       }
       return;
@@ -108,15 +117,14 @@ module.exports = {
         return;
       }
 
-      const crypto = require('crypto');
       const newSession = {
         state: 'lobby',
         hostId: message.author.id,
         participants: new Set([message.author.id]),
         investments: new Map(),
         startTime: Date.now(),
-        lobbyDuration: 120000, // 120 seconds lobby
-        investDuration: 60000,  // 60 seconds investing
+        lobbyDuration: 120000,
+        investDuration: 60000,
         assets: {
           bank: { min: crypto.randomInt(-7, -2), max: crypto.randomInt(8, 13) },
           srebro: { min: crypto.randomInt(-18, -11), max: crypto.randomInt(18, 26) },
@@ -127,9 +135,11 @@ module.exports = {
 
       client.stockSessions.set(threadId, newSession);
 
+      const hostName = await client.resolveUserName(message.author.id);
+
       await message.reply(
         `📈 **START SESJI GIEŁDY!** 📈\n` +
-        `**${message.author.username || 'Host'}** otworzył lobby giełdowe!\n\n` +
+        `**${hostName}** otworzył lobby giełdowe!\n\n` +
         `🚗 Gracze mają **2 minuty (120s)** na dołączenie.\n` +
         `Wpisz: **!gielda dolacz**, aby wejść do gry! (Maksymalnie 8 graczy)\n\n` +
         `Dostępne inwestycje w tej sesji:\n` +
@@ -139,7 +149,6 @@ module.exports = {
         `💎 **Diamenty**: od ${newSession.assets.diamenty.min}% do +${newSession.assets.diamenty.max}%`
       );
 
-      // Start lobby timeout
       setTimeout(async () => {
         const active = client.stockSessions.get(threadId);
         if (!active || active.state !== 'lobby') return;
@@ -147,7 +156,6 @@ module.exports = {
         active.state = 'investing';
         active.investStartTime = Date.now();
 
-        // Tag all participants
         const tags = [];
         for (const pid of active.participants) {
           const name = await client.resolveUserName(pid);
@@ -167,30 +175,19 @@ module.exports = {
           `⚠️ *Po zatwierdzeniu inwestycji kwota zostanie zablokowana do losowania wyników.*`
         );
 
-        // Start resolution timeout
         setTimeout(async () => {
           const resolveSession = client.stockSessions.get(threadId);
           if (!resolveSession || resolveSession.state !== 'investing') return;
 
-          // Delete session from memory to allow a new game to be started
           client.stockSessions.delete(threadId);
 
-          const rollWithNegativeBias = (min, max) => {
-            const absMin = Math.max(1, Math.abs(min));
-            const absMax = Math.max(absMin, Math.abs(max));
-            const magnitude = crypto.randomInt(absMin, absMax + 1);
-            const isNegative = Math.random() < 0.55;
-            return isNegative ? -magnitude : magnitude;
-          };
-
           const rolledPercentages = {
-            bank: rollWithNegativeBias(resolveSession.assets.bank.min, resolveSession.assets.bank.max),
-            srebro: rollWithNegativeBias(resolveSession.assets.srebro.min, resolveSession.assets.srebro.max),
-            zloto: rollWithNegativeBias(resolveSession.assets.zloto.min, resolveSession.assets.zloto.max),
-            diamenty: rollWithNegativeBias(resolveSession.assets.diamenty.min, resolveSession.assets.diamenty.max)
+            bank: rollAssetResult(resolveSession.assets.bank.min, resolveSession.assets.bank.max),
+            srebro: rollAssetResult(resolveSession.assets.srebro.min, resolveSession.assets.srebro.max),
+            zloto: rollAssetResult(resolveSession.assets.zloto.min, resolveSession.assets.zloto.max),
+            diamenty: rollAssetResult(resolveSession.assets.diamenty.min, resolveSession.assets.diamenty.max)
           };
 
-          // Process database changes inside withData
           const resolution = await withData(store => {
             const results = [];
 
@@ -207,7 +204,6 @@ module.exports = {
               let finalPayout = rawPayout;
               let badgeBonus = 0;
 
-              // Apply Uzależniony badge bonus: +3% profit on positive wins
               if (net > 0 && user.badges && user.badges.includes(config.badges.uzalezniony)) {
                 badgeBonus = Math.round(inv.amount * 0.03);
                 user.balance += badgeBonus;
@@ -231,7 +227,6 @@ module.exports = {
             return { results };
           });
 
-          // Build results message
           let resultMsg = `📈 **WYNIKI GIEŁDY** 📈\n\n`;
           resultMsg += `🏦 **Bank**: ${rolledPercentages.bank >= 0 ? '+' : ''}${rolledPercentages.bank}%\n`;
           resultMsg += `🥈 **Srebro**: ${rolledPercentages.srebro >= 0 ? '+' : ''}${rolledPercentages.srebro}%\n`;
@@ -253,7 +248,6 @@ module.exports = {
               if (res.xpResult && res.xpResult.leveledUp) {
                 line += `\n  🎉 **AWANS!** Awansowałeś na **poziom ${res.xpResult.newLevel}**!`;
                 if (res.xpResult.milestonesGained && res.xpResult.milestonesGained.length > 0) {
-                  const { getMilestoneRewardDescription } = require('../utils/economy');
                   for (const lvl of res.xpResult.milestonesGained) {
                     line += `\n  🎁 Nagroda kamienia milowego: **${getMilestoneRewardDescription(lvl)}**!`;
                   }

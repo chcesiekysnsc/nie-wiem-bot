@@ -1,3 +1,4 @@
+const axios = require('axios');
 const { checkCooldown } = require('../utils/cooldowns');
 const { fetchRedditImage } = require('../utils/reddit');
 
@@ -12,7 +13,10 @@ module.exports = {
     if (!isOwner) {
       const cooldownState = await checkCooldown('kot', senderId);
       if (cooldownState.active) {
-        await message.reply({ embeds: [cooldownState.embed] }).catch(() => null);
+        const cooldownText = typeof cooldownState.embed?.toMessageText === 'function'
+          ? cooldownState.embed.toMessageText()
+          : String(cooldownState.embed || '');
+        await message.reply(cooldownText).catch(() => null);
         return;
       }
     }
@@ -29,15 +33,13 @@ module.exports = {
 
       const threadId = message.guild?.id || message.rawEvent?.threadID;
       if (client.api && threadId) {
+        const response = await axios.get(imageUrl, { responseType: 'stream' });
         await client.api.sendMessage({
           body: '🐱',
-          attachment: imageUrl
+          attachment: response.data
         }, threadId);
       } else {
-        await message.reply({
-          body: '🐱',
-          attachment: imageUrl
-        }).catch(() => null);
+        await message.reply('🐱').catch(() => null);
       }
 
     } catch (err) {

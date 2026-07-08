@@ -1,7 +1,7 @@
+const config = require('../config/config');
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
-const config = require('../config/config');
 const { withData } = require('../utils/storage');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -18,24 +18,57 @@ function decodeHTML(str) {
     .trim();
 }
 
-function fetchLastFMPage(url) {
+function fetchLastFMPage(url, maxRedirects = 3) {
   return new Promise((resolve, reject) => {
     const options = {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     };
-    https.get(url, options, (res) => {
-      if (res.statusCode !== 200) {
-        if (res.statusCode === 406 || res.statusCode === 429) {
-          return reject(new Error(`Last.fm zablokowało zapytanie (HTTP ${res.statusCode}). Spróbuj ponownie za kilka minut (częste odpytywanie).`));
+
+    function makeRequest(targetUrl, redirectsLeft) {
+      const req = https.get(targetUrl, options, (res) => {
+        const status = res.statusCode;
+
+        if ([301, 302, 303, 307, 308].includes(status) && redirectsLeft > 0) {
+          const location = res.headers.location;
+          if (!location) {
+            res.resume();
+            return reject(new Error(`Przekierowanie (HTTP ${status}) bez nagłówka Location.`));
+          }
+          res.resume();
+          return makeRequest(location, redirectsLeft - 1);
         }
-        return reject(new Error(`HTTP ${res.statusCode}`));
-      }
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve(data));
-    }).on('error', reject);
+
+        if (status === 403) {
+          res.resume();
+          return reject(new Error(`Last.fm zablokowało zapytanie (HTTP 403). Spróbuj ponownie za kilka minut.`));
+        }
+
+        if (status === 406 || status === 429) {
+          res.resume();
+          return reject(new Error(`Last.fm zablokowało zapytanie (HTTP ${status}). Spróbuj ponownie za kilka minut (częste odpytywanie).`));
+        }
+
+        if (status !== 200) {
+          res.resume();
+          return reject(new Error(`HTTP ${status}`));
+        }
+
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => resolve(data));
+      });
+
+      req.setTimeout(10000, () => {
+        req.destroy(new Error('Przekroczono limit czasu żądania do Last.fm.'));
+      });
+
+      req.on('error', reject);
+    }
+
+    makeRequest(url, maxRedirects);
   });
 }
 
@@ -207,12 +240,6 @@ module.exports = {
   name: 'fm',
   aliases: ['lastfm'],
   async execute(client, message, args) {
-    const creatorId = '100060812419294';
-    if (config.admins.includes(message.author.id) && message.author.id !== creatorId) {
-      await message.reply('❌ Nie masz uprawnień do korzystania z tej komendy.');
-      return;
-    }
-
     const sub = String(args[0] || '').toLowerCase().trim();
 
     if (!sub) {
@@ -319,7 +346,6 @@ module.exports = {
         const participantIDs = threadInfo.participantIDs || [];
         const connections = {};
 
-        // Pobierz wszystkie połączenia
         await withData(store => {
           if (store.profiles.lastfmConnections) {
             for (const pid of participantIDs) {
@@ -338,10 +364,8 @@ module.exports = {
 
         const statusMsg = await message.reply(`📊 Pobieranie scrobbli dla ${activeProfiles.length} członków grupy...`);
 
-        // Pobieranie profili w sposób sekwencyjny z opóźnieniem w celu uniknięcia limitów zapytań (HTTP 429)
         const results = [];
         for (const [pid, conn] of activeProfiles) {
-          // Sprawdzenie incognito: jeśli użytkownik włączył incognito i nie jest nadawcą wiadomości, pomijamy go w rankingu
           if (conn.incognito === true && pid !== message.author.id) {
             continue;
           }
@@ -359,7 +383,6 @@ module.exports = {
               scrobblesStr: parsed.scrobbles
             });
           } catch (e) {
-            // W razie błędu dodajemy z 0 scrobbli, by chociaż figurował w liście
             results.push({
               pid,
               name,
@@ -371,17 +394,14 @@ module.exports = {
           await sleep(350);
         }
 
-        // Sortowanie po scrobbles malejąco
         results.sort((a, b) => b.scrobbles - a.scrobbles);
 
-        // Tworzenie rankingu Top 5
         const top5 = results.slice(0, 5);
         const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
         const lines = top5.map((r, i) => {
           return `${medals[i]} **${r.name}** (${r.username}) — **${r.scrobblesStr}** scrobbli`;
         }).join('\n');
 
-        // Znajdź pozycję nadawcy wiadomości
         const myIndex = results.findIndex(r => r.pid === message.author.id);
         let myRankText = '';
         if (myIndex !== -1) {
@@ -409,7 +429,6 @@ module.exports = {
     const targetName = parsedParams.targetName;
     const isSelf = (targetId === message.author.id);
 
-    // Sprawdź czy cel ma połączone konto Last.fm
     let connection = null;
     await withData(store => {
       if (store.profiles.lastfmConnections && store.profiles.lastfmConnections[targetId]) {
@@ -426,7 +445,6 @@ module.exports = {
       return;
     }
 
-    // Sprawdzenie blokady incognito
     if (!isSelf && connection.incognito === true) {
       await message.reply(`🔒 Użytkownik **${targetName}** włączył tryb incognito i nie możesz sprawdzać jego statystyk.`);
       return;
@@ -599,22 +617,18 @@ module.exports = {
 
     // 9. PLAY
     if (sub === 'play') {
-      // Może być !fm play @osoba lub !fm play nazwa utworu
       let query = parsedParams.searchQuery;
       let finalTrackName = '';
       let finalUrl = '';
 
       if (!query && args.length > 1) {
-        // Jeśli nie wykryto ID ani wzmianki, weź całe wejście po "play" jako frazę
         query = args.slice(1).join(' ').trim();
       }
 
       if (query) {
-        // Użytkownik podał nazwę utworu
         finalTrackName = query;
         finalUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
       } else {
-        // Wyciągamy aktualny utwór celu
         try {
           const html = await fetchLastFMPage(`https://www.last.fm/user/${lastfmUser}`);
           const tracks = parseLastFMHTML(html);
@@ -656,7 +670,6 @@ module.exports = {
         const participantIDs = threadInfo.participantIDs || [];
         const connections = {};
 
-        // Pobierz wszystkie połączenia
         await withData(store => {
           if (store.profiles.lastfmConnections) {
             for (const pid of participantIDs) {
@@ -677,7 +690,6 @@ module.exports = {
         const statusLines = [];
 
         for (const [pid, conn] of activeProfiles) {
-          // Pomijaj osoby incognito
           if (conn.incognito === true && pid !== message.author.id) {
             continue;
           }
