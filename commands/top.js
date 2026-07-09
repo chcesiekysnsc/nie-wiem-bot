@@ -3,7 +3,7 @@ const { withData, createUser } = require('../utils/storage');
 
 module.exports = {
   name: 'top',
-  aliases: ['ranking'],
+  aliases: ['ranking', 'topmsg'],
   async execute(client, message, args) {
     const threadId = message.guild?.id || message.rawEvent?.threadID;
     const sub = String(args[0] || '').trim().toLowerCase();
@@ -132,6 +132,36 @@ module.exports = {
       const responseText = 
         `🏆 **Ranking Wiadomości na tej grupie (Top 10)**\n` +
         `${lines.length ? lines.join('\n') : 'Brak danych o wiadomościach na tej grupie.'}`;
+
+      await message.reply(responseText);
+      return;
+    }
+
+    if (sub === 'global' || sub === 'topmsg') {
+      const topUsers = await withData(store => {
+        return Object.entries(store.users || {})
+          .map(([id, u]) => ({
+            id,
+            count: u.messageCount || 0
+          }))
+          .filter(u => u.count > 0)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+      });
+
+      await preloadNames(topUsers.map(u => u.id));
+
+      const medals10 = ['🥇', '🥈', '🥉', '4.', '5.', '6.', '7.', '8.', '9.', '10.'];
+      const lines = await Promise.all(
+        topUsers.map(async (u, i) => {
+          const name = await getName(u.id);
+          return `${medals10[i]} **${name}** — ${formatNumber(u.count)} wiadomości`;
+        })
+      );
+
+      const responseText = 
+        `🌍 **Ranking Wiadomości Globalny (Top 10)**\n` +
+        `${lines.length ? lines.join('\n') : 'Brak danych o wiadomościach globalnie.'}`;
 
       await message.reply(responseText);
       return;
