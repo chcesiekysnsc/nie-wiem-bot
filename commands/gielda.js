@@ -400,6 +400,7 @@ module.exports = {
         const bet = resolveAmount(amountStr, user.balance);
 
         if (!bet || bet <= 0) return { error: '❌ Podaj poprawną kwotę inwestycji.' };
+        if (bet < user.balance * 0.1) return { error: `❌ Minimalna inwestycja to **10% Twojego salda** (${formatCurrency(Math.floor(user.balance * 0.1))}).` };
         if (bet > user.balance) return { error: '❌ Brak wystarczających środków w portfelu.' };
 
         user.balance -= bet;
