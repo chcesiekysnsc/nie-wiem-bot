@@ -55,7 +55,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 const config = require('./config/config');
-const { ensureDataFiles, withData, createUser, appendLog } = require('./utils/storage');
+const { ensureDataFiles, withData, createUser, appendLog, loadData } = require('./utils/storage');
 const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
