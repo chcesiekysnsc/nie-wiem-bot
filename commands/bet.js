@@ -145,28 +145,28 @@ module.exports = {
           }
         }
 
-        let winAmount = 0;
+        let payout = 0;
         let talizmanBonus = 0;
         if (won) {
           if (kosciRefunded) {
-            winAmount = 0;
+            payout = bet;
           } else {
-            winAmount = Math.round(bet * multiplier) - bet;
+            payout = Math.round(bet * multiplier);
             const evMul = getActiveEventMultiplier('casino');
             if (evMul > 1) {
-              winAmount = Math.round(winAmount * evMul);
+              payout = Math.round(payout * evMul);
             }
             if (user.badges && user.badges.includes(config.badges.uzalezniony)) {
-              winAmount = Math.round(winAmount * 1.03);
+              payout = Math.round(payout * 1.03);
             }
             const { applyTalizmanBonus } = require('../utils/economy');
-            talizmanBonus = applyTalizmanBonus(user, inventory, winAmount);
-            winAmount += talizmanBonus;
-            user.balance += winAmount;
+            talizmanBonus = applyTalizmanBonus(user, inventory, payout - bet);
+            payout += talizmanBonus;
           }
+          user.balance += payout;
         }
 
-        const net = won ? winAmount : -bet;
+        const net = won ? payout - bet : -bet;
         const xpResult = recordGame(user, net, 25, inventory);
         refreshBadges(user, inventory);
 
