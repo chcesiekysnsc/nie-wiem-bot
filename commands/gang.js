@@ -1,5 +1,6 @@
 const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 function notifySupportThreads(client, heist, msg) {
   if (!client.api || !heist || !Array.isArray(heist.supportThreads)) return;
@@ -1158,6 +1159,8 @@ module.exports = {
       }
 
       // INICJACJA SKOKU
+      const gangHeistSuccessOverride = await getEffectiveChance(message.author.id, 'gang_heist_success');
+
       const startResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
         const user = createUser(message.author.id, store.users);
@@ -1272,8 +1275,8 @@ module.exports = {
 
           currentGang.lastHeistTime = Date.now();
 
-          // Calculate success chance: base 50% + gang role bonuses (boss/deputy)
-          let successChance = 0.50;
+          // Calculate success chance: base from override + gang role bonuses (boss/deputy)
+          let successChance = Number.isFinite(gangHeistSuccessOverride) ? gangHeistSuccessOverride / 100 : 0.50;
           for (const pid of listParticipants) {
             const pUser = createUser(pid, store.users);
             if (pUser.gangRole === 'boss') {

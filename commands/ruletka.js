@@ -11,6 +11,7 @@ const {
   getActiveEventMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 
@@ -84,6 +85,8 @@ module.exports = {
       await message.reply(`✅ **Obstawiono!** @${userName} postawił **${formatCurrency(result.bet)}** na **${target.label}**.`);
       return;
     }
+
+    const rouletteLuckOverride = await getEffectiveChance(message.author.id, 'roulette_win_luck');
 
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
@@ -196,6 +199,9 @@ module.exports = {
         }
         const ananasBonus = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
         helperChance += ananasBonus;
+        if (Number.isFinite(rouletteLuckOverride) && rouletteLuckOverride > 0) {
+          helperChance += rouletteLuckOverride / 100;
+        }
 
         let wasRescued = false;
         if (helperChance > 0) {

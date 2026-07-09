@@ -1,6 +1,7 @@
 const config = require('../config/config');
 const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable, getCrimeSuccessMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 const successLines = [
   'Uciekłeś z sejfem bez zostawienia śladów.',
@@ -113,19 +114,13 @@ module.exports = {
     // ==========================================
     // 3. EXECUTE NORMAL CRIME
     // ==========================================
+    const crimeSuccessOverride = await getEffectiveChance(authorId, 'crime_success');
+
     const result = await withData(store => {
       const user = createUser(authorId, store.users);
       const inventory = ensureInventoryRecord(store.inventory, authorId);
 
-      let baseSuccessChance = 0.50;
-      const overrides = store.profiles.chanceOverrides || {};
-      const userOverrides = overrides[user.id] || {};
-      if (userOverrides['crime_success'] !== undefined && userOverrides['crime_success'] !== null && userOverrides['crime_success'] !== '') {
-        const v = Number(userOverrides['crime_success']);
-        if (Number.isFinite(v)) {
-          baseSuccessChance = v / 100;
-        }
-      }
+      let baseSuccessChance = Number.isFinite(crimeSuccessOverride) ? crimeSuccessOverride / 100 : 0.50;
       const crimeMul = getCrimeSuccessMultiplier();
       if (crimeMul !== 1) {
         baseSuccessChance = Math.min(baseSuccessChance * crimeMul, 1);

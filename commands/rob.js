@@ -1,6 +1,7 @@
 const config = require('../config/config');
 const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem, getPassiveMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 const robCooldowns = new Map();   // userId -> timestamp wolny od kiedy
 const caughtBan = new Map();      // userId -> timestamp do kiedy zbanowany
@@ -88,6 +89,8 @@ module.exports = {
       return;
     }
 
+    const robSuccessOverride = await getEffectiveChance(authorId, 'rob_success');
+
     const result = await withData(store => {
       if (store.profiles.blacklist && store.profiles.blacklist.includes(targetId)) {
         return { error: '❌ Ten użytkownik jest zablokowany i nie możesz wchodzić z nim w interakcje.' };
@@ -152,13 +155,8 @@ module.exports = {
       // Szanse: 60% sukces, 40% wpadka. Krwawy Żeton daje +6%. Odznaka Zwycięzca daje +5%
       const robberHasZeton = hasItem(robberInv, 'krwawy_zeton');
       let baseSuccessChance = robberHasZeton ? 0.66 : 0.60;
-      const overrides = store.profiles.chanceOverrides || {};
-      const robberOverrides = overrides[robber.id] || {};
-      if (robberOverrides['rob_success'] !== undefined && robberOverrides['rob_success'] !== null && robberOverrides['rob_success'] !== '') {
-        const v = Number(robberOverrides['rob_success']);
-        if (Number.isFinite(v)) {
-          baseSuccessChance = v / 100;
-        }
+      if (Number.isFinite(robSuccessOverride)) {
+        baseSuccessChance = robSuccessOverride / 100;
       }
       if (robber.badges && robber.badges.includes(config.badges.zwyciezca)) {
         baseSuccessChance += 0.05;

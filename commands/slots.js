@@ -10,6 +10,7 @@ const {
   getActiveEventMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 const SYMBOLS = {
   cherry: '🍒',
@@ -64,6 +65,8 @@ module.exports = {
   name: 'slots',
   aliases: ['slot'],
   async execute(client, message, args) {
+    const slotsLuckOverride = await getEffectiveChance(message.author.id, 'slots_win_luck');
+
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
@@ -119,6 +122,9 @@ module.exports = {
         }
         const ananasBonus = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
         helperChance += ananasBonus;
+        if (Number.isFinite(slotsLuckOverride) && slotsLuckOverride > 0) {
+          helperChance += slotsLuckOverride / 100;
+        }
 
         let wasRescued = false;
         if (helperChance > 0) {

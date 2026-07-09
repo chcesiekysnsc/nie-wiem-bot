@@ -12,6 +12,7 @@ const {
   getActiveEventMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 const SINGLE_MULTIPLIERS = {};
 const MULTI_MULTIPLIERS = {};
@@ -77,6 +78,7 @@ module.exports = {
     }
 
     if (!isMulti) {
+      const betLuckOverride = await getEffectiveChance(message.author.id, 'bet_win_luck');
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
         const inventory = ensureInventoryRecord(store.inventory, message.author.id);
@@ -89,6 +91,8 @@ module.exports = {
         if (bet > user.balance) {
           return { error: `❌ Nie masz tylu monet. Posiadasz: ${formatCurrency(user.balance)}` };
         }
+
+        user.balance -= bet;
 
         let badgeBonus = 0;
         let activeBadgeName = '';
@@ -111,9 +115,10 @@ module.exports = {
         const ananasBonus = ananasMultiplier * 100;
 
         const totalBonus = badgeBonus + okoBonus + ananasBonus;
+        const finalBonus = totalBonus + (Number.isFinite(betLuckOverride) ? betLuckOverride : 0);
 
         const rolledFloat = Math.random() * 100;
-        let won = rolledFloat < (chosenNumber + totalBonus);
+        let won = rolledFloat < (chosenNumber + finalBonus);
         const rolledNumber = Math.floor(rolledFloat);
         const multiplier = SINGLE_MULTIPLIERS[chosenNumber];
 
@@ -127,7 +132,7 @@ module.exports = {
             badgeSaved = true;
           } else if (rolledFloat >= chosenNumber + badgeBonus && rolledFloat < chosenNumber + badgeBonus + okoBonus) {
             szkarlatneOkoSaved = true;
-          } else if (rolledFloat >= chosenNumber + badgeBonus + okoBonus && rolledFloat < chosenNumber + totalBonus) {
+          } else if (rolledFloat >= chosenNumber + badgeBonus + okoBonus && rolledFloat < chosenNumber + finalBonus) {
             ananasSaved = true;
           }
         }
@@ -222,6 +227,8 @@ module.exports = {
       return;
     }
 
+    const betLuckOverrideMulti = await getEffectiveChance(message.author.id, 'bet_win_luck');
+
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
@@ -280,23 +287,24 @@ module.exports = {
         let badgeBonus = 0;
         if (user.badges) {
           if (user.badges.includes(config.badges.bog)) {
-            badgeBonus = 0.25; // Bóg Kasyna: 0.25% instead of 1.5% during multibet
+            badgeBonus = 0.25;
           } else if (user.badges.includes(config.badges.rekin)) {
-            badgeBonus = 0.12; // Rekin Kasyna: 0.12% instead of 1.0% during multibet
+            badgeBonus = 0.12;
           } else if (user.badges.includes(config.badges.hazardzista)) {
-            badgeBonus = 0.06; // Hazardzista: 0.06% instead of 0.5% during multibet
+            badgeBonus = 0.06;
           }
         }
         const hasOko = hasItem(inventory, 'szkarlatne_oko');
-        const okoBonus = hasOko ? 0.75 : 0; // Szkarłatne Oko: 0.75% instead of 1.5% during multibet
+        const okoBonus = hasOko ? 0.75 : 0;
         
         const ananasMultiplier = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
         const ananasBonus = ananasMultiplier * 50;
 
         const totalBonus = badgeBonus + okoBonus + ananasBonus;
+        const finalBonus = totalBonus + (Number.isFinite(betLuckOverrideMulti) ? betLuckOverrideMulti / 2 : 0);
 
         const rolledFloat = Math.random() * 100;
-        let won = rolledFloat < (chosenNumber + totalBonus);
+        let won = rolledFloat < (chosenNumber + finalBonus);
         const multiplier = MULTI_MULTIPLIERS[chosenNumber];
 
         if (won) {
@@ -304,7 +312,7 @@ module.exports = {
             badgeSaves++;
           } else if (rolledFloat >= chosenNumber + badgeBonus && rolledFloat < chosenNumber + badgeBonus + okoBonus) {
             okoSaves++;
-          } else if (rolledFloat >= chosenNumber + badgeBonus + okoBonus && rolledFloat < chosenNumber + totalBonus) {
+          } else if (rolledFloat >= chosenNumber + badgeBonus + okoBonus && rolledFloat < chosenNumber + finalBonus) {
             ananasSaves++;
           }
         }
@@ -355,7 +363,6 @@ module.exports = {
         refreshBadges(user, inventory);
       }
 
-      // Dajemy XP i kamienie milowe tylko raz za całe użycie komendy
       const xpResult = addXp(user, 25, inventory);
       if (xpResult.leveledUp && xpResult.milestonesGained) {
         accumulatedMilestones.push(...xpResult.milestonesGained);

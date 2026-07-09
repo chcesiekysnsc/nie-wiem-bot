@@ -1,6 +1,7 @@
 const config = require('../config/config');
 const { formatCurrency } = require('../utils/economy');
 const { withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 function msToReadable(ms) {
   const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
@@ -19,6 +20,8 @@ module.exports = {
   name: 'loteria',
   aliases: ['lottery'],
   async execute(client, message) {
+    const lotteryMultOverride = await getEffectiveChance(message.author.id, 'lottery_ticket_mult');
+
     const result = await withData(store => {
       let totalTickets = 0;
 
@@ -32,7 +35,8 @@ module.exports = {
       return { totalTickets };
     });
 
-    const totalPrize = result.totalTickets * 50000;
+    const ticketMultiplier = Number.isFinite(lotteryMultOverride) ? lotteryMultOverride : 1;
+    const totalPrize = Math.floor(result.totalTickets * 50000 * ticketMultiplier);
     const lastDraw = client.lastLotteryDraw || 0;
     const nextDraw = lastDraw + (24 * 60 * 60 * 1000);
     const timeUntilDraw = Math.max(0, nextDraw - Date.now());

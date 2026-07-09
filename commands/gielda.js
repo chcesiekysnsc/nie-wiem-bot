@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const config = require('../config/config');
 const { ensureInventoryRecord, formatCurrency, getMilestoneRewardDescription, recordGame, refreshBadges, resolveAmount } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveLuck } = require('../utils/chances');
 
 function normalizeAsset(input) {
   const val = String(input || '').toLowerCase().trim();
@@ -220,6 +221,11 @@ module.exports = {
             diamenty: rollAssetResult(resolveSession.assets.diamenty.min, resolveSession.assets.diamenty.max)
           };
 
+          const gieldaLuckOverrides = {};
+          for (const [userId] of resolveSession.investments.entries()) {
+            gieldaLuckOverrides[userId] = await getEffectiveLuck(userId, 'gielda_luck');
+          }
+
           const resolution = await withData(store => {
             const results = [];
 
@@ -228,7 +234,9 @@ module.exports = {
               const inventory = ensureInventoryRecord(store.inventory, userId);
 
               const pct = rolledPercentages[inv.asset];
-              const rawPayout = Math.max(0, Math.round(inv.amount * (1 + pct / 100)));
+              const gieldaLuck = gieldaLuckOverrides[userId] || 1;
+              const adjustedPct = Number.isFinite(gieldaLuck) ? pct * gieldaLuck : pct;
+              const rawPayout = Math.max(0, Math.round(inv.amount * (1 + adjustedPct / 100)));
               const net = rawPayout - inv.amount;
 
               user.balance += rawPayout;

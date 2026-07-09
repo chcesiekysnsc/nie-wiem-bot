@@ -9,6 +9,7 @@ const {
   getActiveEventMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 
@@ -57,6 +58,11 @@ module.exports = {
       // Symulacja losowania
       setTimeout(async () => {
         try {
+          const rouletteLuckOverrides = {};
+          for (const bet of game.bets) {
+            rouletteLuckOverrides[bet.userId] = await getEffectiveChance(bet.userId, 'roulette_win_luck');
+          }
+
           const result = await withData(store => {
             const rand = Math.random();
             let rolledColor;
@@ -126,6 +132,10 @@ module.exports = {
                 }
                 const ananasBonus = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
                 helperChance += ananasBonus;
+                const rLuck = rouletteLuckOverrides[bet.userId];
+                if (Number.isFinite(rLuck) && rLuck > 0) {
+                  helperChance += rLuck / 100;
+                }
 
                 let wasRescued = false;
                 if (helperChance > 0) {

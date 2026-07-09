@@ -88,6 +88,83 @@ const REGISTRY = {
     step: 0.1,
     unit: '×',
     category: 'losowania'
+  },
+  coinflip_win: {
+    id: 'coinflip_win',
+    label: 'Coinflip (wygrana)',
+    description: 'Bazowa szansa na wygraną w !coinflip przed bonusami z odznak/przedmiotów',
+    default: 48.5,
+    min: 0,
+    max: 100,
+    step: 0.5,
+    unit: '%',
+    category: 'hazard'
+  },
+  roulette_win_luck: {
+    id: 'roulette_win_luck',
+    label: 'Ruletka (dodatkowa szansa)',
+    description: 'Dodatkowa szansa na uratowanie przegranej w !ruletka i !multiruletka (jak odznaki/przedmioty)',
+    default: 0,
+    min: 0,
+    max: 20,
+    step: 0.5,
+    unit: '%',
+    category: 'hazard'
+  },
+  slots_win_luck: {
+    id: 'slots_win_luck',
+    label: 'Sloty (dodatkowa szansa)',
+    description: 'Dodatkowa szansa na uratowanie przegranej w !slots (jak odznaki/przedmioty)',
+    default: 0,
+    min: 0,
+    max: 20,
+    step: 0.5,
+    unit: '%',
+    category: 'hazard'
+  },
+  rr_solo_survive: {
+    id: 'rr_solo_survive',
+    label: 'Rosyjska ruletka (solo, przeżycie)',
+    description: 'Szansa przeżycia w trybie solo !rr (domyślnie 4/6 = 66.67%)',
+    default: 66.67,
+    min: 0,
+    max: 100,
+    step: 0.1,
+    unit: '%',
+    category: 'hazard'
+  },
+  rr_duel_bullet: {
+    id: 'rr_duel_bullet',
+    label: 'Rosyjska ruletka (pojedynek, komora z nabojem)',
+    description: 'Szansa że pierwsza komora (challenger) ma nabój w pojedynku !rr acc (domyślnie 1/6)',
+    default: 16.67,
+    min: 0,
+    max: 100,
+    step: 0.1,
+    unit: '%',
+    category: 'hazard'
+  },
+  blackjack_save_luck: {
+    id: 'blackjack_save_luck',
+    label: 'Blackjack (dodatkowa szansa ratunku)',
+    description: 'Dodatkowa szansa na uratowanie przegranej (bust/push) w !blackjack, jak odznaki/przedmioty',
+    default: 0,
+    min: 0,
+    max: 20,
+    step: 0.5,
+    unit: '%',
+    category: 'hazard'
+  },
+  bet_win_luck: {
+    id: 'bet_win_luck',
+    label: 'Bet (dodatkowa szansa)',
+    description: 'Dodatkowe punkty procentowe do progu wygranej w !bet (single i multi-bet)',
+    default: 0,
+    min: 0,
+    max: 20,
+    step: 0.5,
+    unit: 'pkt %',
+    category: 'hazard'
   }
 };
 

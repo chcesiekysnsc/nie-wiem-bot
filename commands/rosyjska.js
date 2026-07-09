@@ -1,6 +1,7 @@
 const { formatCurrency, refreshBadges, ensureInventoryRecord, recordGame } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const config = require('../config/config');
+const { getEffectiveChance } = require('../utils/chances');
 
 module.exports = {
   name: 'rosyjska',
@@ -24,24 +25,27 @@ module.exports = {
 
       client.rrRequests.delete(targetId);
 
+      const rrDuelOverride = await getEffectiveChance(request.challengerId, 'rr_duel_bullet');
+
       const result = await withData(store => {
         if (store.profiles.blacklist && (store.profiles.blacklist.includes(request.challengerId) || store.profiles.blacklist.includes(targetId))) {
-          return { error: '❌ Jeden z graczy jest zablokowany i nie można rozegrać pojedynku.' };
+          return { error: '❌ Jeden z graczy jest na czarnej liście.' };
         }
 
         const challenger = createUser(request.challengerId, store.users);
         const target = createUser(targetId, store.users);
 
         if (challenger.balance < request.amount) {
-          return { error: `❌ Wyzywający nie ma już wymaganej kwoty (${formatCurrency(request.amount)}) w portfelu.` };
+          return { error: '❌ Wyzywający nie ma już wymaganej kwoty.' };
         }
 
         if (target.balance < request.amount) {
-          return { error: `❌ Nie masz wystarczającej kwoty (${formatCurrency(request.amount)}) w portfelu.` };
+          return { error: '❌ Nie masz wystarczającej kwoty w portfelu.' };
         }
 
         // Symulacja gry
-        const bulletIndex = Math.floor(Math.random() * 6); // 0-5
+        const bulletChance = Number.isFinite(rrDuelOverride) ? rrDuelOverride / 100 : (1 / 6);
+        const bulletIndex = Math.random() < bulletChance ? 0 : (1 + Math.floor(Math.random() * 5));
         const turns = [];
         let currentPlayerId = request.challengerId;
         let otherPlayerId = targetId;
@@ -191,6 +195,8 @@ module.exports = {
 
     // A. TRYB SOLO
     if (!targetId) {
+      const rrSoloOverride = await getEffectiveChance(message.author.id, 'rr_solo_survive');
+
       const result = await withData(store => {
         if (store.profiles.blacklist && store.profiles.blacklist.includes(message.author.id)) {
           return { error: '❌ Jesteś na czarnej liście.' };
@@ -208,8 +214,8 @@ module.exports = {
           return { error: `❌ Nie masz tylu monet w portfelu. Posiadasz: ${formatCurrency(user.balance)}` };
         }
 
-        // Rosyjska ruletka: 2/6 szansy na porażkę
-        const isDead = Math.random() < (2 / 6);
+        const survivePercent = Number.isFinite(rrSoloOverride) ? rrSoloOverride : (4 / 6) * 100;
+        const isDead = Math.random() >= (survivePercent / 100);
 
         let net = 0;
         if (isDead) {

@@ -1,5 +1,6 @@
 const config = require('../config/config');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 module.exports = {
   name: 'loteriastart',
@@ -12,6 +13,8 @@ module.exports = {
     }
 
     try {
+      const lotteryMultOverride = await getEffectiveChance(message.author.id, 'lottery_ticket_mult');
+
       const drawResult = await withData(store => {
         const ticketPool = [];
         let totalTickets = 0;
@@ -31,7 +34,8 @@ module.exports = {
         }
 
         const winnerId = ticketPool[Math.floor(Math.random() * ticketPool.length)];
-        const totalPrize = totalTickets * 50000;
+        const ticketMultiplier = Number.isFinite(lotteryMultOverride) ? lotteryMultOverride : 1;
+        const totalPrize = Math.floor(totalTickets * 50000 * ticketMultiplier);
 
         const winnerUser = createUser(winnerId, store.users);
         winnerUser.balance = (winnerUser.balance || 0) + totalPrize;

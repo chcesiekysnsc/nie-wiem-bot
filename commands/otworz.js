@@ -1,5 +1,6 @@
 const { formatCurrency, randomInt, addItem, removeItem, hasItem, ensureInventoryRecord, getItemQuantity, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveLuck } = require('../utils/chances');
 
 // Normalizacja polskich liter z wejścia gracza
 function normalizePack(str) {
@@ -156,6 +157,9 @@ module.exports = {
 
     const countInput = String(args[1] || '').trim().toLowerCase();
 
+    const boxDropLuckOverride = await getEffectiveLuck(message.author.id, 'box_drop_luck');
+    const dropLuck = Number.isFinite(boxDropLuckOverride) ? boxDropLuckOverride : 1;
+
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
@@ -205,10 +209,6 @@ module.exports = {
       let totalCash = 0;
       const itemsSummary = {};
       let fallbackCount = 0;
-      const overrides = store.profiles.chanceOverrides || {};
-      const userOverrides = overrides[message.author.id] || {};
-      const dropLuckRaw = userOverrides['box_drop_luck'];
-      const dropLuck = dropLuckRaw !== undefined && dropLuckRaw !== null && dropLuckRaw !== '' ? Number(dropLuckRaw) : 1;
 
       for (let i = 0; i < count; i++) {
         const cash = randomInt(pack.minCash, pack.maxCash);

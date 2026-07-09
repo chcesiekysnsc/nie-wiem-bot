@@ -1,6 +1,7 @@
 const config = require('../config/config');
 const { ensureInventoryRecord, formatCurrency, hasItem, recordGame, refreshBadges, resolveAmount, getPassiveMultiplier, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 function normalizeChoice(input) {
   const value = String(input || '').toLowerCase();
@@ -24,6 +25,8 @@ module.exports = {
       return;
     }
 
+    const coinflipOverride = await getEffectiveChance(message.author.id, 'coinflip_win');
+
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
@@ -35,7 +38,7 @@ module.exports = {
       user.balance -= bet;
 
       const crypto = require('crypto');
-      let baseChance = 0.485;
+      let baseChance = Number.isFinite(coinflipOverride) ? coinflipOverride / 100 : 0.485;
       let badgeUsed = '';
 
       if (user.badges) {

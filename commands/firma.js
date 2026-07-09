@@ -1,6 +1,7 @@
 const config = require('../config/config');
 const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 module.exports = {
   name: 'firma',
@@ -156,6 +157,8 @@ module.exports = {
 
     // --- SUBCOMMAND: ZBIERZ / ODBIERZ / WYPLATA ---
     if (action === 'zbierz' || action === 'odbierz' || action === 'wyplata' || action === 'claim') {
+      const companyBreakdownOverride = await getEffectiveChance(message.author.id, 'company_breakdown');
+
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
 
@@ -208,13 +211,8 @@ module.exports = {
         user.company.lastPayout = now;
 
         // Check for breakdown (progressive breakdown chance)
-        const overrides = store.profiles.chanceOverrides || {};
-        const userOverrides = overrides[user.id] || {};
-        const overrideBreakChanceRaw = userOverrides['company_breakdown'];
-        const effectiveBreakChance = overrideBreakChanceRaw !== undefined && overrideBreakChanceRaw !== null && overrideBreakChanceRaw !== ''
-          ? Number(overrideBreakChanceRaw) / 100
-          : compDef.breakChance;
-        const broke = Number.isFinite(effectiveBreakChance) && Math.random() < effectiveBreakChance;
+        const effectiveBreakChance = Number.isFinite(companyBreakdownOverride) ? companyBreakdownOverride / 100 : compDef.breakChance;
+        const broke = Math.random() < effectiveBreakChance;
         if (broke) {
           user.company.isBroken = true;
         }

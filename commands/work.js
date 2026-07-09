@@ -11,6 +11,7 @@ const {
   getActiveEventMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 const jobs = [
   'Ogarnales nocna zmiane przy stolach pokerowych.',
@@ -23,6 +24,8 @@ module.exports = {
   name: 'work',
   aliases: [],
   async execute(client, message) {
+    const workLuckOverride = await getEffectiveChance(message.author.id, 'work_luck');
+
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
@@ -54,14 +57,8 @@ module.exports = {
         reward = Math.floor(reward * config.economy.workVipBonus);
       }
 
-      const overrides = store.profiles.chanceOverrides || {};
-      const userOverrides = overrides[user.id] || {};
-      const luckOverride = userOverrides['work_luck'];
-      if (luckOverride !== undefined && luckOverride !== null && luckOverride !== '') {
-        const luck = Number(luckOverride);
-        if (Number.isFinite(luck)) {
-          reward = Math.floor(reward * luck);
-        }
+      if (Number.isFinite(workLuckOverride) && workLuckOverride !== 1) {
+        reward = Math.floor(reward * workLuckOverride);
       }
 
       const walizkaBonus = getPassiveMultiplier(inventory, 'walizka', 0.05);

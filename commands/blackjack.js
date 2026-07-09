@@ -11,6 +11,7 @@ const {
   getActiveEventMultiplier
 } = require('../utils/economy');
 const { createUser, withData, loadData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
 
 const SUITS = ['♠️', '♥️', '♦️', '♣️'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -250,7 +251,7 @@ module.exports = {
       const cheatNote = drawnCard.isCheat ? `\n🧠 **Przekupiony Krupier:** *Krupier dyskretnie wsunął Ci korzystniejszą kartę: ${drawnCard.cheatDetails}!*` : '';
 
       if (playerValue > 21) {
-        // Przegrana (Bust)
+        const bjLuckOverride = await getEffectiveChance(authorId, 'blackjack_save_luck');
         const dealerValue = getHandValue(game.dealerCards);
         const dbResult = await withData(store => {
           const user = createUser(authorId, store.users);
@@ -282,6 +283,9 @@ module.exports = {
           }
           const ananasBonus = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
           helperChance += ananasBonus;
+          if (Number.isFinite(bjLuckOverride) && bjLuckOverride > 0) {
+            helperChance += bjLuckOverride / 100;
+          }
 
           let wasRescued = false;
           if (helperChance > 0) {
@@ -379,6 +383,7 @@ module.exports = {
       const cheatNote = drawnCard.isCheat ? `\n🧠 **Przekupiony Krupier:** *Krupier dyskretnie wsunął Ci korzystniejszą kartę: ${drawnCard.cheatDetails}!*` : '';
 
       if (playerValue > 21) {
+        const bjLuckOverride = await getEffectiveChance(authorId, 'blackjack_save_luck');
         // Przegrana (Bust) przy podwojeniu
         const dealerValue = getHandValue(game.dealerCards);
         const dbResult = await withData(store => {
@@ -411,6 +416,9 @@ module.exports = {
           }
           const ananasBonus = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
           helperChance += ananasBonus;
+          if (Number.isFinite(bjLuckOverride) && bjLuckOverride > 0) {
+            helperChance += bjLuckOverride / 100;
+          }
 
           let wasRescued = false;
           if (helperChance > 0) {
@@ -509,6 +517,8 @@ module.exports = {
       net = -game.bet;
     }
 
+    const bjLuckOverride = await getEffectiveChance(authorId, 'blackjack_save_luck');
+
     const dbResult = await withData(store => {
       const user = createUser(authorId, store.users);
       const inventory = ensureInventoryRecord(store.inventory, authorId);
@@ -540,6 +550,9 @@ module.exports = {
         }
         const ananasBonus = getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02);
         helperChance += ananasBonus;
+        if (Number.isFinite(bjLuckOverride) && bjLuckOverride > 0) {
+          helperChance += bjLuckOverride / 100;
+        }
 
         let wasRescued = false;
         if (helperChance > 0) {
