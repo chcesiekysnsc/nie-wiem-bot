@@ -164,8 +164,6 @@ module.exports = {
             winAmount += talizmanBonus;
             user.balance += winAmount;
           }
-        } else {
-          user.balance -= bet;
         }
 
         const net = won ? winAmount : -bet;

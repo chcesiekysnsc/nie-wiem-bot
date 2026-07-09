@@ -150,6 +150,22 @@ module.exports = {
         return;
       }
 
+      const persistedCooldown = await withData(store => {
+        const user = createUser(message.author.id, store.users);
+        return user.gieldaHostCooldownUntil || 0;
+      });
+      if (persistedCooldown > Date.now()) {
+        const remainingMs = persistedCooldown - Date.now();
+        const remainingMin = Math.floor(remainingMs / 60000);
+        const remainingSec = Math.floor((remainingMs % 60000) / 1000);
+        await message.reply(
+          `⏳ **Nie możesz teraz odpalić nowej giełdy**\n\n` +
+          `Twoja poprzednia sesja na tej grupie zakończyła się bez żadnej inwestycji.\n` +
+          `Musisz poczekać jeszcze **${remainingMin} min ${remainingSec}s**, zanim znowu założysz lobby.`
+        );
+        return;
+      }
+
       const newSession = {
         state: 'lobby',
         hostId: message.author.id,
@@ -221,6 +237,8 @@ module.exports = {
             diamenty: rollAssetResult(resolveSession.assets.diamenty.min, resolveSession.assets.diamenty.max)
           };
 
+          const hostCooldownKey = `${threadId}:${resolveSession.hostId}`;
+
           const gieldaLuckOverrides = {};
           for (const [userId] of resolveSession.investments.entries()) {
             gieldaLuckOverrides[userId] = await getEffectiveLuck(userId, 'gielda_luck');
@@ -262,6 +280,11 @@ module.exports = {
                 net: finalNet,
                 xpResult
               });
+            }
+
+            if (resolveSession.investments.size === 0 && resolveSession.hostId) {
+              const hostUser = createUser(resolveSession.hostId, store.users);
+              hostUser.gieldaHostCooldownUntil = Date.now() + 10 * 60 * 1000;
             }
 
             return { results };
