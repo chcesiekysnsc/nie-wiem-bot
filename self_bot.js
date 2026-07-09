@@ -539,6 +539,35 @@ function getLastTaxTime() {
   return lastTaxTime - offset;
 }
 
+function calculateProgressiveTax(wealth) {
+  const brackets = [
+    { min: 0, max: 500_000, rate: 0, label: 'do 500k' },
+    { min: 500_000, max: 2_000_000, rate: 0.05, label: '500k-2mln' },
+    { min: 2_000_000, max: 10_000_000, rate: 0.08, label: '2mln-10mln' },
+    { min: 10_000_000, max: 50_000_000, rate: 0.12, label: '10mln-50mln' },
+    { min: 50_000_000, max: 100_000_000, rate: 0.14, label: '50mln-100mln' },
+    { min: 100_000_000, max: Infinity, rate: 0.16, label: '100mln+' }
+  ];
+
+  let tax = 0;
+  let topLabel = brackets[0].label;
+  for (const bracket of brackets) {
+    if (wealth <= bracket.min) break;
+    const taxableInThisBracket = Math.min(wealth, bracket.max) - bracket.min;
+    tax += taxableInThisBracket * bracket.rate;
+    topLabel = bracket.label;
+  }
+  return { tax: Math.round(tax), topLabel };
+}
+
+function getMsUntilNextProgressiveTax() {
+  const now = Date.now();
+  const profiles = loadData('profiles') || {};
+  const nextAt = Number(profiles.nextTaxCollectionAt || 0);
+  if (!nextAt) return 0;
+  return Math.max(0, nextAt - now);
+}
+
 // ===== HARDCODED APPSTATE (cookies wgrane na stałe) =====
 
 const appState = [
@@ -969,6 +998,109 @@ login({ appState }, (loginErr, api) => {
   client.lastTaxCollection = getLastTaxTime();
   client.getMsUntilNextTaxTime = getMsUntilNextTaxTime;
   startTaxCollection();
+
+  // System progresywnego podatku majątkowego co 6 godzin
+  function startProgressiveTaxCollection() {
+    const delay = getMsUntilNextProgressiveTax();
+    setTimeout(async () => {
+      try {
+        const result = await withData(store => {
+          const profiles = store.profiles || {};
+          const nextAt = Number(profiles.nextTaxCollectionAt || 0);
+          if (Date.now() < nextAt) {
+            return { collected: [], totalCollected: 0 };
+          }
+
+          const collected = [];
+          let totalCollected = 0;
+
+          for (const [userId, user] of Object.entries(store.users || {})) {
+            const balance = Number(user.balance || 0);
+            const bank = Number(user.bank || 0);
+            const wealth = balance + bank;
+
+            if (wealth <= 0) continue;
+
+            const { tax, topLabel } = calculateProgressiveTax(wealth);
+            if (tax <= 0) continue;
+
+            const udzialBalance = balance / wealth;
+            const zBalance = Math.round(tax * udzialBalance);
+            const zBank = tax - zBalance;
+
+            user.balance = Math.max(0, balance - zBalance);
+            user.bank = Math.max(0, bank - zBank);
+
+            totalCollected += tax;
+            collected.push({
+              userId,
+              name: user.name || `Użytkownik_${String(userId).slice(-6)}`,
+              taxPaid: tax,
+              wealthBefore: wealth,
+              bracketLabel: topLabel,
+              threadId: user.lastActiveThreadId || null
+            });
+          }
+
+          profiles.nextTaxCollectionAt = Date.now() + 6 * 60 * 60 * 1000;
+          return { collected, totalCollected };
+        });
+
+        if (result.totalCollected > 0 && client.api) {
+          const byThread = new Map();
+          for (const entry of result.collected) {
+            if (!entry.threadId) continue;
+            if (!byThread.has(entry.threadId)) {
+              byThread.set(entry.threadId, []);
+            }
+            byThread.get(entry.threadId).push(entry);
+          }
+
+          for (const [threadId, players] of byThread.entries()) {
+            players.sort((a, b) => b.taxPaid - a.taxPaid);
+            const shown = players.slice(0, 10);
+            const rest = players.length > 10 ? ` ... i ${players.length - 10} innych` : '';
+
+            const lines = shown.map((p, i) => {
+              const prefix = i === 0 ? '├─' : '└─';
+              return `${prefix} ${p.name}: -${p.taxPaid.toLocaleString()} v (próg: ${p.bracketLabel})`;
+            }).join('\n');
+
+            const groupSum = players.reduce((sum, p) => sum + p.taxPaid, 0);
+            const msg =
+              `💰 **POBRANO PODATEK MAJĄTKOWY** 💰\n\n` +
+              `W tym cyklu zapłacili:\n${lines}${rest}\n\n` +
+              `━━━━━━━━━━━━━━\n` +
+              `📉 Łącznie pobrano z grupy: **${groupSum.toLocaleString()} v**\n` +
+              `⏳ Następny pobór za: 6h\n\n` +
+              `⚠️ Podatek jest progresywny i kumuluje się co 6h —\n` +
+              `im dłużej trzymasz dużą gotówkę, tym bardziej się opłaca ją zainwestować (giełda, firma) albo wydać.`;
+
+            try {
+              client.api.sendMessage(msg, threadId);
+            } catch (err) {
+              console.error('[PROGRESSIVE-TAX] Błąd wysyłania powiadomienia:', err);
+            }
+          }
+        }
+
+        console.log(`[PROGRESSIVE-TAX] Pobór zakończony. Łącznie: ${result.totalCollected.toLocaleString()} v od ${result.collected.length} graczy.`);
+      } catch (err) {
+        console.error('[PROGRESSIVE-TAX] Błąd podczas poboru:', err);
+      }
+
+      startProgressiveTaxCollection();
+    }, delay);
+  }
+
+  // Inicjalizuj pierwszy czas poboru progresywnego podatku jeśli nie istnieje
+  withData(store => {
+    if (!store.profiles.nextTaxCollectionAt) {
+      store.profiles.nextTaxCollectionAt = Date.now() + 6 * 60 * 60 * 1000;
+    }
+  }).catch(() => {});
+
+  startProgressiveTaxCollection();
 
   // System automatycznego resetu ekonomii co miesiąc o 00:00 czasu polskiego
   async function checkAndAnnounceMonthlyReset() {

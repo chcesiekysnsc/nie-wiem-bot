@@ -30,11 +30,29 @@ function rollAssetResult(min, max) {
   return crypto.randomInt(0, bestCase + 1);
 }
 
+function getCooldownRemaining(cooldowns, key) {
+  if (!cooldowns || !cooldowns.size) return null;
+  const expiry = cooldowns.get(key);
+  if (!expiry) return null;
+  const remaining = expiry - Date.now();
+  if (remaining <= 0) {
+    cooldowns.delete(key);
+    return null;
+  }
+  return remaining;
+}
+
 module.exports = {
   name: 'gielda',
   aliases: ['stock', 'giełda'],
   async execute(client, message, args) {
     client.stockSessions = client.stockSessions || new Map();
+    client.gieldaHostCooldowns = client.gieldaHostCooldowns || new Map();
+
+    for (const [key, expiry] of client.gieldaHostCooldowns.entries()) {
+      if (Date.now() >= expiry) client.gieldaHostCooldowns.delete(key);
+    }
+
     const threadId = message.guild?.id || message.rawEvent?.threadID || 'default_thread';
     const sub = String(args[0] || '').toLowerCase().trim();
 
@@ -117,6 +135,20 @@ module.exports = {
         return;
       }
 
+      const startCooldownKey = `${threadId}:${message.author.id}`;
+      const startCooldownUntil = getCooldownRemaining(client.gieldaHostCooldowns, startCooldownKey);
+      if (startCooldownUntil) {
+        const remainingMs = startCooldownUntil;
+        const remainingMin = Math.floor(remainingMs / 60000);
+        const remainingSec = Math.floor((remainingMs % 60000) / 1000);
+        await message.reply(
+          `⏳ **Nie możesz teraz odpalić nowej giełdy**\n\n` +
+          `Twoja poprzednia sesja na tej grupie zakończyła się bez żadnej inwestycji.\n` +
+          `Musisz poczekać jeszcze **${remainingMin} min ${remainingSec}s**, zanim znowu założysz lobby.`
+        );
+        return;
+      }
+
       const newSession = {
         state: 'lobby',
         hostId: message.author.id,
@@ -126,10 +158,10 @@ module.exports = {
         lobbyDuration: 120000,
         investDuration: 60000,
         assets: {
-          bank: { min: crypto.randomInt(-7, -2), max: crypto.randomInt(8, 13) },
-          srebro: { min: crypto.randomInt(-18, -11), max: crypto.randomInt(18, 26) },
-          zloto: { min: crypto.randomInt(-30, -19), max: crypto.randomInt(30, 41) },
-          diamenty: { min: crypto.randomInt(-60, -39), max: crypto.randomInt(60, 91) }
+          bank: { min: -crypto.randomInt(3, 13), max: crypto.randomInt(3, 13) },
+          srebro: { min: -crypto.randomInt(12, 26), max: crypto.randomInt(12, 26) },
+          zloto: { min: -crypto.randomInt(20, 41), max: crypto.randomInt(20, 41) },
+          diamenty: { min: -crypto.randomInt(40, 91), max: crypto.randomInt(40, 91) }
         }
       };
 
@@ -227,6 +259,11 @@ module.exports = {
             return { results };
           });
 
+          if (resolution.results.length === 0) {
+            const cooldownKey = `${threadId}:${resolveSession.hostId}`;
+            client.gieldaHostCooldowns.set(cooldownKey, Date.now() + 10 * 60 * 1000);
+          }
+
           let resultMsg = `📈 **WYNIKI GIEŁDY** 📈\n\n`;
           resultMsg += `🏦 **Bank**: ${rolledPercentages.bank >= 0 ? '+' : ''}${rolledPercentages.bank}%\n`;
           resultMsg += `🥈 **Srebro**: ${rolledPercentages.srebro >= 0 ? '+' : ''}${rolledPercentages.srebro}%\n`;
@@ -279,6 +316,20 @@ module.exports = {
 
       if (session.state !== 'lobby') {
         await message.reply('❌ Zapisy do lobby zostały już zamknięte.');
+        return;
+      }
+
+      const joinCooldownKey = `${threadId}:${message.author.id}`;
+      const joinCooldownUntil = getCooldownRemaining(client.gieldaHostCooldowns, joinCooldownKey);
+      if (joinCooldownUntil) {
+        const remainingMs = joinCooldownUntil;
+        const remainingMin = Math.floor(remainingMs / 60000);
+        const remainingSec = Math.floor((remainingMs % 60000) / 1000);
+        await message.reply(
+          `⏳ **Nie możesz teraz dołączyć do tej giełdy**\n\n` +
+          `Twoja poprzednia sesja na tej grupie zakończyła się bez inwestycji.\n` +
+          `Musisz poczekać jeszcze **${remainingMin} min ${remainingSec}s**, zanim znowu dołączysz do gry.`
+        );
         return;
       }
 
