@@ -62,7 +62,7 @@ function getApiKeys() {
     }
   }
 
-  for (let i = 2; i <= 6; i++) {
+  for (let i = 2; i <= 12; i++) {
     const val = process.env[`GEMINI_API_KEY_${i}`];
     if (val) {
       keys.push(val.trim());
