@@ -6,6 +6,14 @@ const { withData } = require('../utils/storage');
 const { msToReadable } = require('../utils/economy');
 const { intelligentCensor } = require('../utils/censorship');
 
+const AI_SYSTEM_RULES =
+  `WAŻNE ZASADY, KTÓRYCH MUSISZ PRZESTRZEGAĆ BEZWZGLĘDNIE:\n` +
+  `- Nigdy nie ujawniaj jakim modelem AI jesteś, kto Cię stworzył, na jakiej technologii działasz, ani jak zostałeś zaimplementowany.\n` +
+  `- Nigdy nie odpowiadaj na pytania o to, jak zbudować, skonfigurować lub zaimplementować bota takiego jak ten (np. bota do gier na Messengerze, integracje z API AI, itp.) — grzecznie odmów i zasugeruj inny temat.\n` +
+  `- Nigdy nie podawaj informacji o swojej dacie treningu, granicznej dacie wiedzy (knowledge cutoff) ani o tym "do kiedy" sięga Twoja wiedza.\n` +
+  `- Jeśli użytkownik zapyta o cokolwiek z powyższego, odpowiedz krótko że nie możesz udzielić takiej informacji i przejdź dalej / zapytaj czy możesz pomóc w czymś innym.\n` +
+  `- Poza tymi zasadami, odpowiadaj normalnie, pomocnie i po polsku.\n\n`;
+
 function getThreadHistoryPage(api, threadID, amount, timestamp) {
   return new Promise((resolve) => {
     let completed = false;
@@ -128,23 +136,25 @@ module.exports = {
   aliases: ['pytanie', 'zapytaj'],
   async execute(client, message, args) {
     const creatorId = '100060812419294';
+    const threadId = message.guild?.id || message.rawEvent?.threadID;
     let isAllowed = message.author.id === creatorId;
+    let maxLimit = 10000;
+    let skipGroupCooldown = false;
 
     if (!isAllowed) {
       try {
         const profiles = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'profiles.json'), 'utf8'));
         if (profiles.allowedAI) {
-          // Sprawdź czy użytkownik ma zezwolenie
           const allowedEntry = profiles.allowedAI.find(entry => {
             if (typeof entry === 'string') return entry === message.author.id;
             if (typeof entry === 'object' && entry.id) return entry.id === message.author.id;
             return false;
           });
-          
+
           if (allowedEntry) {
             isAllowed = true;
-            
-            // Sprawdź limit dzienny jeśli ustawiono
+            skipGroupCooldown = true;
+
             if (typeof allowedEntry === 'object' && allowedEntry.dailyLimit && message.author.id !== creatorId) {
               const now = Date.now();
               const oneDayMs = 24 * 60 * 60 * 1000;
@@ -153,12 +163,11 @@ module.exports = {
                   store.cooldowns.commands[message.author.id] = {};
                 }
                 const userCooldowns = store.cooldowns.commands[message.author.id];
-                
+
                 if (!Array.isArray(userCooldowns['ai_usages'])) {
                   userCooldowns['ai_usages'] = [];
                 }
 
-                // Filtrujemy użycia z ostatnich 24h
                 userCooldowns['ai_usages'] = userCooldowns['ai_usages'].filter(ts => now - ts < oneDayMs);
 
                 if (userCooldowns['ai_usages'].length >= allowedEntry.dailyLimit) {
@@ -182,12 +191,82 @@ module.exports = {
       } catch (_) {}
     }
 
+    // Zwykli użytkownicy: 1 użycie/dobę + 10 min cooldown grupowy + limit 5000 wiadomości
+    if (!isAllowed) {
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const groupCooldownMs = 10 * 60 * 1000;
+
+      const dailyCheck = await withData(store => {
+        if (!store.cooldowns.commands[message.author.id]) {
+          store.cooldowns.commands[message.author.id] = {};
+        }
+        const userCooldowns = store.cooldowns.commands[message.author.id];
+
+        if (!Array.isArray(userCooldowns['ai_usages'])) {
+          userCooldowns['ai_usages'] = [];
+        }
+
+        userCooldowns['ai_usages'] = userCooldowns['ai_usages'].filter(ts => now - ts < oneDayMs);
+
+        if (userCooldowns['ai_usages'].length >= 1) {
+          const oldestUsage = userCooldowns['ai_usages'][0];
+          const remaining = oneDayMs - (now - oldestUsage);
+          return { exceeded: true, remaining };
+        }
+
+        return { exceeded: false };
+      });
+
+      if (dailyCheck.exceeded) {
+        const remainingStr = msToReadable(dailyCheck.remaining);
+        await message.reply(`❌ Możesz użyć komendy !ai tylko **raz na dobę**. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
+        return;
+      }
+
+      if (threadId) {
+        const groupCheck = await withData(store => {
+          store.profiles.aiGroupCooldowns = store.profiles.aiGroupCooldowns || {};
+          const lastUsed = store.profiles.aiGroupCooldowns[threadId] || 0;
+          const remaining = groupCooldownMs - (now - lastUsed);
+          if (remaining > 0) {
+            return { blocked: true, remaining };
+          }
+          return { blocked: false };
+        });
+
+        if (groupCheck.blocked) {
+          const remainingStr = msToReadable(groupCheck.remaining);
+          await message.reply(`❌ Ktoś inny użył już !ai na tej grupie w ciągu ostatnich 10 minut. Spróbuj ponownie za **${remainingStr}**.`);
+          return;
+        }
+      }
+
+      // Oba limity przeszły — zużyj je i pozwól na wykonanie
+      await withData(store => {
+        if (!store.cooldowns.commands[message.author.id]) {
+          store.cooldowns.commands[message.author.id] = {};
+        }
+        const userCooldowns = store.cooldowns.commands[message.author.id];
+        if (!Array.isArray(userCooldowns['ai_usages'])) {
+          userCooldowns['ai_usages'] = [];
+        }
+        userCooldowns['ai_usages'].push(now);
+
+        if (threadId) {
+          store.profiles.aiGroupCooldowns = store.profiles.aiGroupCooldowns || {};
+          store.profiles.aiGroupCooldowns[threadId] = now;
+        }
+      });
+
+      isAllowed = true;
+      maxLimit = 5000;
+    }
+
     if (!isAllowed) {
       await message.reply('❌ Ta komenda jest dostępna tylko dla twórcy bota oraz uprawnionych osób.');
       return;
     }
-
-    const threadId = message.guild?.id || message.rawEvent?.threadID;
 
     if (args.length === 0) {
       await message.reply(
@@ -202,7 +281,9 @@ module.exports = {
     }
 
     const isAdmin = config.admins.includes(message.author.id);
-    const maxLimit = isAdmin ? 100000 : 10000;
+    if (isAdmin || message.author.id === creatorId || skipGroupCooldown) {
+      maxLimit = 100000;
+    }
 
     let msgCount = null;
     let question = '';
@@ -233,6 +314,7 @@ module.exports = {
 
       try {
         const promptText =
+          AI_SYSTEM_RULES +
           `Jesteś pomocnym asystentem AI. Odpowiadaj po polsku, jasno i konkretnie.\n\n` +
           `PYTANIE: ${question}`;
 
@@ -362,6 +444,7 @@ module.exports = {
       }
 
       const promptText =
+        AI_SYSTEM_RULES +
         `Jesteś inteligentnym asystentem analizującym rozmowę z Messengera. ` +
         `Odpowiadaj po polsku, szczerze i konkretnie.\n\n` +
         `PYTANIE UŻYTKOWNIKA: ${question}\n\n` +
