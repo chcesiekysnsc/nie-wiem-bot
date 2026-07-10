@@ -79,7 +79,9 @@ function getApiKeys() {
     }
   } catch (_) {}
 
-  return [...new Set(keys)].filter(Boolean);
+  const uniqueKeys = [...new Set(keys)].filter(Boolean);
+  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Gemini.`);
+  return uniqueKeys;
 }
 
 async function askGemini(apiKey, promptText) {
@@ -112,17 +114,20 @@ async function askGeminiWithFallback(promptText) {
     throw new Error('Brak skonfigurowanych kluczy Gemini API!');
   }
 
+  const startIndex = Math.floor(Math.random() * keys.length);
+
   let lastError = null;
-  for (let i = 0; i < keys.length; i++) {
-    const apiKey = keys[i];
+  for (let attempt = 0; attempt < keys.length; attempt++) {
+    const idx = (startIndex + attempt) % keys.length;
+    const apiKey = keys[idx];
     try {
       return await askGemini(apiKey, promptText);
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
-      console.warn(`[AI] Błąd klucza ${i + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
-      
-      if (i < keys.length - 1) {
+      console.warn(`[AI] Błąd klucza ${idx + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
+
+      if (attempt < keys.length - 1) {
         console.warn(`[AI] Próba użycia kolejnego klucza...`);
         continue;
       }
@@ -132,23 +137,16 @@ async function askGeminiWithFallback(promptText) {
   throw lastError;
 }
 
-async function askGeminiWithSpecificKey(apiKey, promptText) {
-  return askGemini(apiKey, promptText);
-}
-
-async function askGeminiRotating(promptText, keys, keyIndexRef) {
+async function askGeminiForChunk(promptText, keys, chunkIndex) {
   let lastError = null;
-  const startIndex = keyIndexRef.value;
   for (let attempt = 0; attempt < keys.length; attempt++) {
-    const idx = (startIndex + attempt) % keys.length;
+    const idx = (chunkIndex + attempt) % keys.length;
     try {
-      const result = await askGeminiWithSpecificKey(keys[idx], promptText);
-      keyIndexRef.value = (idx + 1) % keys.length;
-      return result;
+      return await askGemini(keys[idx], promptText);
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
-      console.warn(`[AI-CHUNK] Błąd klucza ${idx + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
+      console.warn(`[AI-CHUNK] Błąd klucza ${idx + 1}/${keys.length} dla chunku ${chunkIndex + 1} (Status: ${status}, Błąd: ${errorMsg}).`);
       lastError = err;
     }
   }
@@ -515,8 +513,6 @@ module.exports = {
       } else {
         await message.reply(`🧩 Historia jest zbyt długa na jedno zapytanie — dzielę na **${chunks.length}** części i analizuję równolegle...`);
 
-        const keyIndexRef = { value: 0 };
-
         const partialSummaries = await Promise.all(
           chunks.map(async (chunkLines, idx) => {
             const chunkPrompt =
@@ -532,7 +528,7 @@ module.exports = {
               `${chunkLines.join('\n')}\n`;
 
             try {
-              const summary = await askGeminiRotating(chunkPrompt, apiKeysForChunks, keyIndexRef);
+              const summary = await askGeminiForChunk(chunkPrompt, apiKeysForChunks, idx);
               return { idx, summary, error: null };
             } catch (err) {
               console.error(`[AI-CHUNK] Błąd przetwarzania chunku ${idx + 1}:`, err.message);
