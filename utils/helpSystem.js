@@ -944,18 +944,6 @@ const helpCommands = [
     additionalInfo: ["Maksymalnie 2000 znaków.", "Nie wysyłaj żartów — za niepoważne zgłoszenia otrzymujesz ostrzeżenia."]
   },
   {
-    name: "stresc",
-    category: "UTILITY_ADMIN",
-    shortDescription: "streszczenie historii czatu",
-    description: "Pobiera ostatnie wiadomości z czatu grupowego i tworzy ich streszczenie. Działa tylko w konwersacjach grupowych.",
-    usage: "!stresc",
-    examples: ["!stresc"],
-    cooldown: "60 sekund",
-    requirements: "Tylko w konwersacjach grupowych.",
-    aliases: ["skrot", "podsumuj", "summarize"],
-    additionalInfo: ["Pobiera do 200 ostatnich wiadomości."]
-  },
-  {
     name: "dlug",
     category: "ECONOMY_GAMBLING",
     shortDescription: "przegladaj dlugi graczy",

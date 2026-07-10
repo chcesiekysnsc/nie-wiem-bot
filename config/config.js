@@ -67,7 +67,6 @@ module.exports = {
     rynek: 3,
     itemadd: 2,
     firma: 3,
-    stresc: 60,
     analiza: 10
   },
   economy: {
