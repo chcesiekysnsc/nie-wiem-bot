@@ -132,6 +132,52 @@ async function askGeminiWithFallback(promptText) {
   throw lastError;
 }
 
+async function askGeminiWithSpecificKey(apiKey, promptText) {
+  return askGemini(apiKey, promptText);
+}
+
+async function askGeminiRotating(promptText, keys, keyIndexRef) {
+  let lastError = null;
+  const startIndex = keyIndexRef.value;
+  for (let attempt = 0; attempt < keys.length; attempt++) {
+    const idx = (startIndex + attempt) % keys.length;
+    try {
+      const result = await askGeminiWithSpecificKey(keys[idx], promptText);
+      keyIndexRef.value = (idx + 1) % keys.length;
+      return result;
+    } catch (err) {
+      const status = err.response?.status;
+      const errorMsg = err.response?.data?.error?.message || err.message;
+      console.warn(`[AI-CHUNK] Błąd klucza ${idx + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
+const CHARS_PER_CHUNK = 350000;
+
+function splitTranscriptIntoChunks(transcriptLines, maxCharsPerChunk = CHARS_PER_CHUNK) {
+  const chunks = [];
+  let current = [];
+  let currentLength = 0;
+
+  for (const line of transcriptLines) {
+    const lineLength = line.length + 1;
+    if (currentLength + lineLength > maxCharsPerChunk && current.length > 0) {
+      chunks.push(current);
+      current = [];
+      currentLength = 0;
+    }
+    current.push(line);
+    currentLength += lineLength;
+  }
+  if (current.length > 0) {
+    chunks.push(current);
+  }
+  return chunks;
+}
+
 module.exports = {
   name: 'ai',
   aliases: ['pytanie', 'zapytaj'],
@@ -444,18 +490,86 @@ module.exports = {
         return;
       }
 
-      const promptText =
-        AI_SYSTEM_RULES +
-        `Jesteś inteligentnym asystentem analizującym rozmowę z Messengera. ` +
-        `Odpowiadaj po polsku, szczerze i konkretnie.\n\n` +
-        `PYTANIE UŻYTKOWNIKA: ${question}\n\n` +
-        `Przeanalizuj poniższą historię rozmowy (${transcriptLines.length} wiadomości) i odpowiedz na pytanie.\n` +
-        `Bądź szczery, konkretny i oparty na faktach z rozmowy. Używaj imion uczestników.\n\n` +
-        `Rozmowa:\n` +
-        `${transcriptLines.join('\n')}\n`;
+      const chunks = splitTranscriptIntoChunks(transcriptLines);
+      const apiKeysForChunks = getApiKeys();
 
-      const replyText = await askGeminiWithFallback(promptText);
-      await message.reply(`🤖 **Odpowiedź AI** (na podstawie ${transcriptLines.length} wiadomości):\n\n${replyText}`);
+      if (apiKeysForChunks.length === 0) {
+        await message.reply('❌ Brak skonfigurowanego klucza Gemini API!');
+        return;
+      }
+
+      let finalReplyText = '';
+
+      if (chunks.length === 1) {
+        const promptText =
+          AI_SYSTEM_RULES +
+          `Jesteś inteligentnym asystentem analizującym rozmowę z Messengera. ` +
+          `Odpowiadaj po polsku, szczerze i konkretnie.\n\n` +
+          `PYTANIE UŻYTKOWNIKA: ${question}\n\n` +
+          `Przeanalizuj poniższą historię rozmowy (${transcriptLines.length} wiadomości) i odpowiedz na pytanie.\n` +
+          `Bądź szczery, konkretny i oparty na faktach z rozmowy. Używaj imion uczestników.\n\n` +
+          `Rozmowa:\n` +
+          `${transcriptLines.join('\n')}\n`;
+
+        finalReplyText = await askGeminiWithFallback(promptText);
+      } else {
+        await message.reply(`🧩 Historia jest zbyt długa na jedno zapytanie — dzielę na **${chunks.length}** części i analizuję równolegle...`);
+
+        const keyIndexRef = { value: 0 };
+
+        const partialSummaries = await Promise.all(
+          chunks.map(async (chunkLines, idx) => {
+            const chunkPrompt =
+              AI_SYSTEM_RULES +
+              `Jesteś asystentem analizującym FRAGMENT dłuższej rozmowy z Messengera (część ${idx + 1} z ${chunks.length}). ` +
+              `Odpowiadaj po polsku.\n\n` +
+              `PYTANIE UŻYTKOWNIKA (kontekst do całej analizy): ${question}\n\n` +
+              `Przeanalizuj poniższy fragment rozmowy (${chunkLines.length} wiadomości) i wypisz w punktach kluczowe fakty, ` +
+              `wątki, osoby i ich wypowiedzi, które są istotne w kontekście powyższego pytania. ` +
+              `Nie odpowiadaj jeszcze na pytanie — tylko wyciągnij istotne informacje z tego fragmentu. ` +
+              `Bądź zwięzły i konkretny.\n\n` +
+              `Fragment rozmowy:\n` +
+              `${chunkLines.join('\n')}\n`;
+
+            try {
+              const summary = await askGeminiRotating(chunkPrompt, apiKeysForChunks, keyIndexRef);
+              return { idx, summary, error: null };
+            } catch (err) {
+              console.error(`[AI-CHUNK] Błąd przetwarzania chunku ${idx + 1}:`, err.message);
+              return { idx, summary: null, error: err.message };
+            }
+          })
+        );
+
+        const successfulSummaries = partialSummaries
+          .filter(p => p.summary)
+          .sort((a, b) => a.idx - b.idx)
+          .map(p => `--- Część ${p.idx + 1} ---\n${p.summary}`);
+
+        const failedCount = partialSummaries.filter(p => p.error).length;
+
+        if (successfulSummaries.length === 0) {
+          await message.reply('❌ Nie udało się przeanalizować żadnej z części rozmowy. Spróbuj ponownie za chwilę.');
+          return;
+        }
+
+        const finalPrompt =
+          AI_SYSTEM_RULES +
+          `Jesteś inteligentnym asystentem. Poniżej masz zestaw streszczeń kolejnych fragmentów jednej, długiej rozmowy z Messengera, ` +
+          `przygotowanych wcześniej. Na ich podstawie odpowiedz na pytanie użytkownika w sposób spójny, tak jakbyś przeanalizował całą rozmowę naraz. ` +
+          `Odpowiadaj po polsku, szczerze i konkretnie. Używaj imion uczestników.\n\n` +
+          `PYTANIE UŻYTKOWNIKA: ${question}\n\n` +
+          `Streszczenia fragmentów rozmowy:\n` +
+          `${successfulSummaries.join('\n\n')}\n`;
+
+        finalReplyText = await askGeminiWithFallback(finalPrompt);
+
+        if (failedCount > 0) {
+          finalReplyText += `\n\n⚠️ *Uwaga: ${failedCount} z ${chunks.length} części rozmowy nie udało się przeanalizować z powodu błędów API — odpowiedź może być niepełna.*`;
+        }
+      }
+
+      await message.reply(`🤖 **Odpowiedź AI** (na podstawie ${transcriptLines.length} wiadomości, ${chunks.length} ${chunks.length === 1 ? 'zapytanie' : 'części'}):\n\n${finalReplyText}`);
     } catch (err) {
       console.error('[AI] Błąd:', err);
       let errorMsg = '❌ Wystąpił błąd podczas analizy.';
