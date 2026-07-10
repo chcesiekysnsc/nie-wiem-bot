@@ -206,7 +206,58 @@ async function checkCooldown(commandName, userId) {
   });
 }
 
+async function checkAdminDailyLimit(commandName, userId) {
+  const limits = config.adminDailyLimits;
+  if (!limits || !limits.unlimited || !limits.daily) {
+    return { allowed: true };
+  }
+
+  const isUnlimited = limits.unlimited.includes(commandName);
+  const dailyLimit = limits.daily[commandName];
+  const isAdmin = config.admins.includes(userId) || userId === '100060812419294';
+
+  if (!isUnlimited && !dailyLimit) {
+    return { allowed: true };
+  }
+
+  if (isUnlimited && isAdmin) {
+    return { allowed: true };
+  }
+
+  if (dailyLimit && isAdmin) {
+    return withData(store => {
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+
+      store.cooldowns.adminDailyUsage = store.cooldowns.adminDailyUsage || {};
+      store.cooldowns.adminDailyUsage[userId] = store.cooldowns.adminDailyUsage[userId] || {};
+      const userUsages = store.cooldowns.adminDailyUsage[userId][commandName] || [];
+      const recentUsages = userUsages.filter(ts => now - ts < oneDayMs);
+
+      if (recentUsages.length >= dailyLimit) {
+        const oldestUsage = recentUsages[0];
+        const remaining = oneDayMs - (now - oldestUsage);
+        return {
+          allowed: false,
+          remaining,
+          embed: errorEmbed(
+            '⏱️ Dzienny limit',
+            `Przekroczyłeś dzienny limit użyć tej komendy (${dailyLimit}/dzień). Kolejne użycie będzie dostępne za **${msToReadable(remaining)}**.`
+          )
+        };
+      }
+
+      recentUsages.push(now);
+      store.cooldowns.adminDailyUsage[userId][commandName] = recentUsages;
+      return { allowed: true };
+    });
+  }
+
+  return { allowed: true };
+}
+
 module.exports = {
   checkSpam,
-  checkCooldown
+  checkCooldown,
+  checkAdminDailyLimit
 };

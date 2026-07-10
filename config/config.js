@@ -69,6 +69,13 @@ module.exports = {
     firma: 3,
     analiza: 10
   },
+  adminDailyLimits: {
+    unlimited: ['admadd', 'admgiv', 'admgivglobal', 'reset', 'del', 'global', 'say', 'loteriastart'],
+    daily: {
+      reakcja: 5,
+      flaga: 5
+    }
+  },
   economy: {
     defaultUser: {
       balance: 5000,

@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const config = require('./config/config');
 const { ensureDataFiles, withData, createUser } = require('./utils/storage');
-const { checkCooldown, checkSpam } = require('./utils/cooldowns');
+const { checkCooldown, checkSpam, checkAdminDailyLimit } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { createMessageContext, createMessengerClient } = require('./utils/messenger');
 
@@ -397,6 +397,12 @@ async function executeCommand(event, pageId) {
     }
     if (cooldownState.active) {
       await message.reply({ embeds: [cooldownState.embed] }).catch(() => null);
+      return;
+    }
+
+    const adminDailyLimitState = await checkAdminDailyLimit(command.name, senderId);
+    if (!adminDailyLimitState.allowed) {
+      await message.reply({ embeds: [adminDailyLimitState.embed] }).catch(() => null);
       return;
     }
 
