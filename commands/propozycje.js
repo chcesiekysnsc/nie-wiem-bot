@@ -64,7 +64,7 @@ module.exports = {
     const authorName = (client.userNames && client.userNames.get(senderId)) || `Użytkownik_${senderId.slice(-6)}`;
 
     if (firstLine.startsWith('TAK')) {
-      const adminMsg = `!propozycja ${content}\n\n👤 Zgłosił: ${authorName} (ID: ${senderId})`;
+      const adminMsg = `👤 Zgłosił: ${authorName} (ID: ${senderId})\n\n!propozycja ${content}`;
       client.api.sendMessage(adminMsg, ADMIN_GROUP_ID);
       await message.reply('✅ Dziękujemy za zgłoszenie! Twoja propozycja została przesłana do administracji.');
       return;
