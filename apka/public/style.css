@@ -446,3 +446,45 @@ textarea { width: 100%; resize: vertical; margin-bottom: 10px; }
   top: 16px;
   right: 16px;
 }
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: #151722;
+  border: 1px solid #252838;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.toggle-row .cmd-name { font-weight: 600; color: #fff; }
+.toggle-row .cmd-meta { color: #8a90a4; font-size: 11px; margin-left: 6px; }
+
+.toggle-switch {
+  position: relative;
+  width: 42px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-switch .slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #4a1d1d;
+  border-radius: 22px;
+  transition: 0.2s;
+}
+.toggle-switch .slider::before {
+  content: "";
+  position: absolute;
+  height: 16px; width: 16px;
+  left: 3px; top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+.toggle-switch input:checked + .slider { background: #1d4a2b; }
+.toggle-switch input:checked + .slider::before { transform: translateX(20px); }
+.toggle-switch.overridden .slider { box-shadow: 0 0 0 2px #4c6fff inset; }

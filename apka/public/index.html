@@ -37,6 +37,7 @@
       <button class="tab-btn" data-tab="settings">⚙️ Ustawienia</button>
       <button class="tab-btn" data-tab="events">🎉 Eventy</button>
       <button class="tab-btn" data-tab="live">📡 Live</button>
+      <button class="tab-btn" data-tab="mody">🛠️ Mody</button>
     </nav>
 
     <main>
@@ -289,6 +290,21 @@
           <h3>🔄 Restart bota</h3>
           <p class="muted">Bot zakończy proces — hosting (np. Railway) uruchomi go ponownie automatycznie.</p>
           <button id="restart-btn" class="danger">Restartuj bota</button>
+        </div>
+      </section>
+
+      <section id="tab-mody" class="tab hidden">
+        <div class="toolbar">
+          <input type="text" id="mody-search" placeholder="Szukaj po nazwie, ID lub gangu...">
+          <span id="mody-count" class="muted"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="mody-table">
+            <thead>
+              <tr><th>Nazwa</th><th>ID</th><th>Gang</th><th>Nadane</th><th>Odebrane</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
       </section>
     </main>

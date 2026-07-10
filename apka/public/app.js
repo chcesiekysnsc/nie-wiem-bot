@@ -81,6 +81,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'events') loadEvents();
     if (btn.dataset.tab === 'live') loadLive();
     if (btn.dataset.tab === 'commands') loadCommands();
+    if (btn.dataset.tab === 'mody') loadMody();
   });
 });
 
@@ -673,5 +674,93 @@ window.toggleCommand = async function (name, disable) {
     });
     toast(disable ? `Komenda !${name} została wyłączona.` : `Komenda !${name} została włączona.`);
     loadCommands();
+  } catch (err) { toast(err.message, true); }
+};
+
+// ===== MODY =====
+let modySearchTimer = null;
+$('#mody-search').addEventListener('input', () => {
+  clearTimeout(modySearchTimer);
+  modySearchTimer = setTimeout(loadMody, 300);
+});
+
+async function loadMody() {
+  try {
+    const search = encodeURIComponent($('#mody-search').value.trim());
+    const data = await api(`/api/players?search=${search}&limit=200`);
+    $('#mody-count').textContent = `Znaleziono: ${data.total}`;
+
+    const tbody = $('#mody-table tbody');
+    tbody.innerHTML = data.players.map(p => `
+      <tr data-mody-row="${esc(p.id)}">
+        <td>${esc(p.name)}</td>
+        <td class="muted">${esc(p.id)}</td>
+        <td>${esc(p.gang || '—')}</td>
+        <td class="muted" data-allowed-count>—</td>
+        <td class="muted" data-denied-count>—</td>
+        <td><button class="small" onclick="openModPermissions('${esc(p.id)}', '${esc(p.name)}')">Zarządzaj</button></td>
+      </tr>`).join('');
+
+    data.players.forEach(async p => {
+      try {
+        const perm = await api(`/api/permissions/${encodeURIComponent(p.id)}`);
+        const allowedCount = perm.commands.filter(c => c.override === true).length;
+        const deniedCount = perm.commands.filter(c => c.override === false).length;
+        const row = document.querySelector(`tr[data-mody-row="${CSS.escape(p.id)}"]`);
+        if (row) {
+          row.querySelector('[data-allowed-count]').textContent = allowedCount;
+          row.querySelector('[data-denied-count]').textContent = deniedCount;
+        }
+      } catch (_) {}
+    });
+  } catch (err) { toast(err.message, true); }
+}
+
+window.openModPermissions = async function (id, name) {
+  try {
+    const data = await api(`/api/permissions/${encodeURIComponent(id)}`);
+    const rows = data.commands.map(c => {
+      const isOverridden = c.override !== null;
+      return `
+        <div class="toggle-row">
+          <span>
+            <span class="cmd-name">!${esc(c.name)}</span>
+            <span class="cmd-meta">${c.globallyDisabled ? '(globalnie wyłączona)' : ''}${isOverridden ? (c.override ? ' · ręcznie nadane' : ' · ręcznie odebrane') : ''}</span>
+          </span>
+          <label class="toggle-switch ${isOverridden ? 'overridden' : ''}">
+            <input type="checkbox" data-perm-command="${esc(c.name)}" data-perm-user="${esc(id)}" ${c.hasAccess ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+        </div>`;
+    }).join('');
+
+    $('#modal').innerHTML = `
+      <h3>🛠️ ${esc(name)} <span class="muted">(${esc(id)})</span></h3>
+      <p class="muted" style="margin-bottom:14px;">Zmiana przełącznika zapisuje się natychmiast.</p>
+      <div style="display:flex; flex-direction:column; gap:4px; max-height:60vh; overflow-y:auto; padding-right:4px;">
+        ${rows || '<p class="muted">Brak komend do wyświetlenia.</p>'}
+      </div>
+      <div class="modal-actions">
+        <button class="secondary" onclick="closeModal()">Zamknij</button>
+      </div>`;
+    $('#modal-overlay').classList.remove('hidden');
+
+    $('#modal').querySelectorAll('input[data-perm-command]').forEach(input => {
+      input.addEventListener('change', async () => {
+        const command = input.dataset.permCommand;
+        const userId = input.dataset.permUser;
+        try {
+          await api(`/api/permissions/${encodeURIComponent(userId)}`, {
+            method: 'POST',
+            body: JSON.stringify({ command, allowed: input.checked })
+          });
+          toast(`Zmieniono dostęp do !${command}.`);
+          openModPermissions(userId, name);
+        } catch (err) {
+          toast(err.message, true);
+          input.checked = !input.checked;
+        }
+      });
+    });
   } catch (err) { toast(err.message, true); }
 };

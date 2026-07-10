@@ -707,6 +707,65 @@ app.post('/api/commands/:name/toggle', async (req, res) => {
   }
 });
 
+// ===== MODY (uprawnienia do komend per użytkownik) =====
+function getAllCommandsList() {
+  const commandsPath = path.join(__dirname, '..', 'commands');
+  const files = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+  return files.map(file => {
+    const filePath = path.join(commandsPath, file);
+    try {
+      const command = require(filePath);
+      if (!command.name || typeof command.execute !== 'function') return null;
+      return { name: command.name, aliases: command.aliases || [] };
+    } catch (err) {
+      return null;
+    }
+  }).filter(Boolean);
+}
+
+app.get('/api/permissions/:id', (req, res) => {
+  try {
+    const profiles = loadData('profiles');
+    const disabledCommands = new Set(profiles.disabledCommands || []);
+    const userOverrides = (profiles.userCommandPermissions || {})[req.params.id] || {};
+
+    const commands = getAllCommandsList().map(cmd => {
+      const globallyDisabled = disabledCommands.has(cmd.name) || cmd.aliases.some(a => disabledCommands.has(a));
+      const override = Object.prototype.hasOwnProperty.call(userOverrides, cmd.name)
+        ? userOverrides[cmd.name]
+        : null;
+      const hasAccess = override === null ? !globallyDisabled : override;
+      return { name: cmd.name, aliases: cmd.aliases, globallyDisabled, override, hasAccess };
+    });
+
+    res.json({ commands });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/permissions/:id', async (req, res) => {
+  const { command, allowed } = req.body || {};
+  if (!command) return res.status(400).json({ error: 'Wymagane pole: command.' });
+  try {
+    const result = await withData(store => {
+      store.profiles = store.profiles || {};
+      store.profiles.userCommandPermissions = store.profiles.userCommandPermissions || {};
+      store.profiles.userCommandPermissions[req.params.id] = store.profiles.userCommandPermissions[req.params.id] || {};
+
+      if (allowed === null) {
+        delete store.profiles.userCommandPermissions[req.params.id][command];
+      } else {
+        store.profiles.userCommandPermissions[req.params.id][command] = !!allowed;
+      }
+      return { ok: true };
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 if (require.main === module) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Panel administratora działa na http://localhost:${PORT}`);
