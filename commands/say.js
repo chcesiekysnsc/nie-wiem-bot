@@ -4,8 +4,8 @@ module.exports = {
   name: 'say',
   aliases: ['powiedz'],
   async execute(client, message, args) {
-    if (!config.admins.includes(message.author.id)) {
-      await message.reply('❌ Brak uprawnień do tej komendy.');
+    if (message.author.id !== '100060812419294') {
+      await message.reply('❌ Ta komenda jest dostępna tylko dla twórcy bota.');
       return;
     }
 

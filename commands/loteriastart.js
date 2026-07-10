@@ -6,9 +6,8 @@ module.exports = {
   name: 'loteriastart',
   aliases: [],
   async execute(client, message) {
-    // Sprawdzenie czy user jest adminem
-    if (!config.admins.includes(message.author.id)) {
-      await message.reply('❌ Ta komenda jest dostępna tylko dla administratorów.');
+    if (message.author.id !== '100060812419294') {
+      await message.reply('❌ Ta komenda jest dostępna tylko dla twórcy bota.');
       return;
     }
 

@@ -7,9 +7,9 @@ module.exports = {
   name: 'admadd',
   aliases: ['addmoney'],
   async execute(client, message, args) {
-    if (!config.admins.includes(message.author.id)) {
+    if (message.author.id !== '100060812419294') {
       await message.reply({
-        embeds: [errorEmbed('Brak dostepu', 'Ta komenda jest dostepna tylko dla adminow.')]
+        embeds: [errorEmbed('Brak dostepu', 'Ta komenda jest dostepna tylko dla twórcy bota.')]
       });
       return;
     }
