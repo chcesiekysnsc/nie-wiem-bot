@@ -68,7 +68,7 @@ module.exports = {
     itemadd: 2,
     firma: 3,
     stresc: 60,
-    ai: 10
+    analiza: 10
   },
   economy: {
     defaultUser: {

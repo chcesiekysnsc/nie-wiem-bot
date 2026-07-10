@@ -891,7 +891,7 @@ const helpCommands = [
     cooldown: "Brak.",
     requirements: "Brak.",
     aliases: ["brb", "zaz", "zw"],
-    additionalInfo: ["Każda kolejna wysłana przez Ciebie wiadomość automatycznie anuluje status AFK. Powód jest cenzurowany przez AI pod kątem słów niedozwolonych na FB."]
+    additionalInfo: ["Każda kolejna wysłana przez Ciebie wiadomość automatycznie anuluje status AFK. Powód jest cenzurowany automatycznie pod kątem słów niedozwolonych na FB."]
   },
   {
     id: 68,
@@ -918,6 +918,54 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: ["kitten", "kitty", "cat"],
     additionalInfo: ["Właściciel bota nie ma cooldownu.", "Jeśli Reddit nie odpowiada, bot wyświetli komunikat o błędzie."]
+  },
+  {
+    name: "analiza",
+    category: "UTILITY_ADMIN",
+    shortDescription: "analiza historii czatu lub odpowiedz na pytanie",
+    description: "Analizuje historię czatu grupowego lub odpowiada na pytanie. Zwykli użytkownicy mają limit 1 użycia na dobę oraz 10-minutowy cooldown grupowy (max 5000 wiadomości). Administratorzy i uprawnieni użytkownicy mają wyższe limity.",
+    usage: "!analiza <pytanie> | !analiza <liczba_wiadomosci> <pytanie>",
+    examples: ["!analiza jaka jest stolica Francji?", "!analiza 500 przeanalizuj kto ma rację w sporze"],
+    cooldown: "10 minut (grupowy) / 1 na dobę (zwykli użytkownicy)",
+    requirements: "Zwykli użytkownicy: 1 użycie/dobę + cooldown grupowy. Uprawnieni użytkownicy: bez limitów.",
+    aliases: ["pytanie", "zapytaj"],
+    additionalInfo: ["Max 5000 wiadomości dla zwykłych użytkowników.", "Możesz podać liczbę wiadomości do analizy jako pierwszy argument."]
+  },
+  {
+    name: "propozycje",
+    category: "UTILITY_ADMIN",
+    shortDescription: "wyslij propozycje do administracji",
+    description: "Wysyła propozycję nowej komendy, przedmiotu, funkcji lub ulepszenia bota do grupy administracyjnej. Zgłoszenia są moderowane automatycznie — niepoważne propozycje skutkują ostrzeżeniami, a po 3 ostrzeżeniach tracisz dostęp do komendy.",
+    usage: "!propozycje <treść>",
+    examples: ["!propozycje dodaj komende do zakladania wlasnych eventow"],
+    cooldown: "Brak.",
+    requirements: "Brak.",
+    aliases: ["propozycja"],
+    additionalInfo: ["Maksymalnie 2000 znaków.", "Nie wysyłaj żartów — za niepoważne zgłoszenia otrzymujesz ostrzeżenia."]
+  },
+  {
+    name: "stresc",
+    category: "UTILITY_ADMIN",
+    shortDescription: "streszczenie historii czatu",
+    description: "Pobiera ostatnie wiadomości z czatu grupowego i tworzy ich streszczenie za pomocą analizy. Działa tylko w konwersacjach grupowych.",
+    usage: "!stresc",
+    examples: ["!stresc"],
+    cooldown: "60 sekund",
+    requirements: "Tylko w konwersacjach grupowych.",
+    aliases: ["skrot", "podsumuj", "summarize"],
+    additionalInfo: ["Pobiera do 200 ostatnich wiadomości."]
+  },
+  {
+    name: "dlug",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "przegladaj dlugi graczy",
+    description: "Pokazuje podsumowanie Twoich długów i wierzytelności, listę wszystkich pożyczek lub szczegóły długu z wybranym graczem.",
+    usage: "!dlug | !dlug lista | !dlug gracz <id>",
+    examples: ["!dlug", "!dlug lista", "!dlug gracz 123456789"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["dlugi", "debts", "debtors"],
+    additionalInfo: ["Bilans netto pokazuje różnicę między tym co jesteś winien a tym co Ci są winni."]
   }
 ];
 

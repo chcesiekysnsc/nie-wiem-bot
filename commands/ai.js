@@ -177,7 +177,7 @@ function splitTranscriptIntoChunks(transcriptLines, maxCharsPerChunk = CHARS_PER
 }
 
 module.exports = {
-  name: 'ai',
+  name: 'analiza',
   aliases: ['pytanie', 'zapytaj'],
   async execute(client, message, args) {
     const creatorId = '100060812419294';
@@ -227,7 +227,7 @@ module.exports = {
 
               if (limitCheck.exceeded) {
                 const remainingStr = msToReadable(limitCheck.remaining);
-                await message.reply(`❌ Wykorzystałeś już limit **${limitCheck.limit} użyć** komendy !ai na dobę. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
+                await message.reply(`❌ Wykorzystałeś już limit **${limitCheck.limit} użyć** komendy !analiza na dobę. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
                 return;
               }
             }
@@ -265,7 +265,7 @@ module.exports = {
 
       if (dailyCheck.exceeded) {
         const remainingStr = msToReadable(dailyCheck.remaining);
-        await message.reply(`❌ Możesz użyć komendy !ai tylko **raz na dobę**. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
+        await message.reply(`❌ Możesz użyć komendy !analiza tylko **raz na dobę**. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
         return;
       }
 
@@ -282,7 +282,7 @@ module.exports = {
 
         if (groupCheck.blocked) {
           const remainingStr = msToReadable(groupCheck.remaining);
-          await message.reply(`❌ Ktoś inny użył już !ai na tej grupie w ciągu ostatnich 10 minut. Spróbuj ponownie za **${remainingStr}**.`);
+          await message.reply(`❌ Ktoś inny użył już !analiza na tej grupie w ciągu ostatnich 10 minut. Spróbuj ponownie za **${remainingStr}**.`);
           return;
         }
       }
@@ -315,12 +315,12 @@ module.exports = {
 
     if (args.length === 0) {
       await message.reply(
-        '❌ Użycie: !ai [liczba wiadomości] <pytanie>\n\n' +
+        '❌ Użycie: !analiza [liczba wiadomości] <pytanie>\n\n' +
         'Przykłady:\n' +
-        '• !ai jaka jest stolica Francji?\n' +
-        '• !ai wyjaśnij czym jest inflacja\n' +
-        '• !ai kto jest najaktywniejszy?\n' +
-        '• !ai 500 przeanalizuj kto ma rację w sporze'
+        '• !analiza jaka jest stolica Francji?\n' +
+        '• !analiza wyjaśnij czym jest inflacja\n' +
+        '• !analiza kto jest najaktywniejszy?\n' +
+        '• !analiza 500 przeanalizuj kto ma rację w sporze'
       );
       return;
     }
@@ -342,7 +342,7 @@ module.exports = {
     }
 
     if (!question) {
-      await message.reply('❌ Musisz zadać pytanie! Np: !ai 500 kto ma rację w dyskusji o...');
+      await message.reply('❌ Musisz zadać pytanie! Np: !analiza 500 kto ma rację w dyskusji o...');
       return;
     }
 
@@ -355,16 +355,16 @@ module.exports = {
     const useChatContext = msgCount !== null;
 
     if (!useChatContext) {
-      await message.reply('🤖 Analizuję pytanie...');
+      await message.reply('📊 Analizuję pytanie...');
 
       try {
         const promptText =
           AI_SYSTEM_RULES +
-          `Jesteś pomocnym asystentem AI. Odpowiadaj po polsku, jasno i konkretnie.\n\n` +
+          `Jesteś pomocnym asystentem. Odpowiadaj po polsku, jasno i konkretnie.\n\n` +
           `PYTANIE: ${question}`;
 
         const replyText = await askGeminiWithFallback(promptText);
-        await message.reply(`🤖 **Odpowiedź AI:**\n\n${replyText}`);
+        await message.reply(`📊 **Odpowiedź:**\n\n${replyText}`);
       } catch (err) {
         console.error('[AI] Błąd:', err);
         let errorMsg = '❌ Wystąpił błąd podczas generowania odpowiedzi.';
@@ -389,7 +389,7 @@ module.exports = {
     }
 
     const fetchCount = msgCount || 200;
-    await message.reply(`🤖 Pobieram ${fetchCount} wiadomości i analizuję...`);
+    await message.reply(`📥 Pobieram ${fetchCount} wiadomości i analizuję...`);
 
     try {
       const history = [];
@@ -565,7 +565,7 @@ module.exports = {
         }
       }
 
-      await message.reply(`🤖 **Odpowiedź AI** (na podstawie ${transcriptLines.length} wiadomości, ${chunks.length} ${chunks.length === 1 ? 'zapytanie' : 'części'}):\n\n${finalReplyText}`);
+      await message.reply(`📊 **Odpowiedź** (na podstawie ${transcriptLines.length} wiadomości, ${chunks.length} ${chunks.length === 1 ? 'zapytanie' : 'części'}):\n\n${finalReplyText}`);
     } catch (err) {
       console.error('[AI] Błąd:', err);
       let errorMsg = '❌ Wystąpił błąd podczas analizy.';

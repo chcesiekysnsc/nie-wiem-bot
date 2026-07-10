@@ -14,7 +14,7 @@ module.exports = {
     if (args.length === 0) {
       await message.reply(
         '❌ Użycie: !propozycje <treść>\n\n' +
-        'Opisz swój pomysł na nową komendę, przedmiot, funkcję lub inny sensowny sugerowany rozwój bota. Unikaj żartów — zgłoszenia są moderowane przez AI.'
+        'Opisz swój pomysł na nową komendę, przedmiot, funkcję lub inny sensowny sugerowany rozwój bota. Unikaj żartów — zgłoszenia są moderowane automatycznie.'
       );
       return;
     }
@@ -38,7 +38,19 @@ module.exports = {
     }
 
     const promptText =
-      `Jesteś moderatorem zgłoszeń w grze/bocie na Messengerze. Twoim zadaniem jest ocenić, czy poniższa wiadomość to SENSOWNA propozycja — np. pomysł na nową komendę, nowy przedmiot w sklepie, nową funkcję, ulepszenie istniejącej mechaniki, lub konkretne zgłoszenie problemu/błędu — czy jest to żart, spam, wulgaryzm, przypadkowy ciąg znaków, obraźliwy tekst lub coś niepoważnego (np. "!gowno", "xd", "działa dobrze lol", pojedyncze emoji).\n\n` +
+      `Jesteś bardzo surowym moderatorem zgłoszeń w grze/bocie na Messengerze. Twoim zadaniem jest ABSOLUTNIE STRICT ocena, czy poniższa wiadomość to POWAŻNA, UŻYTECZNA propozycja dla bota.\n\n` +
+      `✅ ZEZWALAJ TYLKO NA:\n` +
+      `- Konkretne pomysły na NOWE KOMENDY (z opisem działania i przykładem użycia)\n` +
+      `- Propozycje NOWYCH PRZEDMIOTÓW w sklepie (z nazwą, ceną, efektem)\n` +
+      `- Propozycje NOWYCH FUNKCJI lub ULEPSZEŃ istniejących mechanik (z opisem zmiany i korzyści)\n` +
+      `- Konkretne ZGŁOSZENIA BŁĘDÓW lub PROBLEMÓW (z opisem co nie działa i jak to reprodukować)\n` +
+      `- Innowacje, które realnie pomogą botowi lub ulepszą doświadczenie graczy\n\n` +
+      `❌ ODRZUCĄJ BEZWZGLĘDNIE (odpowiedz NIE):\n` +
+      `- Wszystkie żarty, memy, śmieszne historie, ironiczne komentarze\n` +
+      `- Pojedyncze słowa, emoji, losowe ciągi znaków, bezsensowne ciągi\n` +
+      `- Zapytania o to, czy coś działa, czy bot jest online, czy ktoś tu jest\n` +
+      `- Obraźliwe treści, wulgaryzmy, spam, reklamy\n` +
+      `- Wszystko co NIE jest konkretną propozycją poprawy/ulepszenia bota\n\n` +
       `Odpowiedz WYŁĄCZNIE w tym formacie, dokładnie dwie linie, bez żadnego dodatkowego tekstu:\n` +
       `TAK albo NIE (jedno słowo w pierwszej linii)\n` +
       `Krótkie uzasadnienie po polsku w jednej linii\n\n` +

@@ -105,7 +105,7 @@ module.exports = {
     });
 
     if (result.already && dailyLimit === null) {
-      await message.reply(`👤 **${targetName}** ma już zezwolenie na używanie komendy !ai.`);
+      await message.reply(`👤 **${targetName}** ma już zezwolenie na używanie komendy !analiza.`);
       return;
     }
 
@@ -116,6 +116,6 @@ module.exports = {
     }
 
     const limitText = dailyLimit > 0 ? ` z limitem **${dailyLimit} użyć/dzień**` : ' bez limitu dziennego';
-    await message.reply(`✅ Zezwolono **${targetName}** na używanie komendy !ai${limitText}.`);
+    await message.reply(`✅ Zezwolono **${targetName}** na używanie komendy !analiza${limitText}.`);
   }
 };
