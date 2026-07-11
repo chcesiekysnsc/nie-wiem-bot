@@ -120,6 +120,9 @@ module.exports = {
           let totalFetched = 0;
 
           while (keepFetching && totalFetched < 30000) { // Limit bezpieczeństwa na 30 000 wiadomości
+            if (totalFetched > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1200));
+            }
             const history = await getThreadHistoryPage(client.api, threadId, 500, oldestTimestamp);
             if (!history || history.length === 0) {
               break;

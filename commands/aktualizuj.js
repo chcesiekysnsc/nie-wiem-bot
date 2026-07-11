@@ -74,6 +74,9 @@ module.exports = {
 
     try {
       while (keepFetching && totalFetched < 100000) {
+        if (totalFetched > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1200));
+        }
         const history = await getThreadHistoryPage(client.api, threadId, 500, oldestTimestamp);
         if (history === null) {
           fetchErrorOccurred = true;

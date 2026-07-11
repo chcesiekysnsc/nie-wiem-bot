@@ -399,6 +399,9 @@ module.exports = {
       let lastProgressSentTime = Date.now();
 
       while (keepFetching && totalFetched < fetchCount) {
+        if (totalFetched > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1200));
+        }
         const limitThisTurn = Math.min(200, fetchCount - totalFetched);
         const batch = await getThreadHistoryPage(client.api, threadId, limitThisTurn, oldestTimestamp);
         

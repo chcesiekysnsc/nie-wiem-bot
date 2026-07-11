@@ -70,6 +70,8 @@ let _threadApiLastCall = 0;
 let _threadApiConsecutiveErrors = 0;
 let _threadApiBackoffUntil = 0;
 
+let _originalGetThreadInfo = null;
+
 function getThreadInfoCached(api, threadId, callback) {
   // 1. Sprawdź cache
   const cached = _threadInfoCache.get(threadId);
@@ -90,13 +92,14 @@ function getThreadInfoCached(api, threadId, callback) {
   const delay = Math.max(0, THREAD_API_MIN_INTERVAL - elapsed);
 
   setTimeout(() => {
-    if (typeof api.getThreadInfo !== 'function') {
+    const getFn = _originalGetThreadInfo || api.getThreadInfo;
+    if (typeof getFn !== 'function') {
       return callback(new Error('api.getThreadInfo is not a function'), null);
     }
 
     _threadApiLastCall = Date.now();
 
-    api.getThreadInfo(threadId, (err, info) => {
+    getFn.call(api, threadId, (err, info) => {
       if (err) {
         _threadApiConsecutiveErrors++;
         if (_threadApiConsecutiveErrors >= 3) {
@@ -741,6 +744,12 @@ login({ appState }, (loginErr, api) => {
 
   client.api = api;
   global.botApi = api;
+
+  // Globally patch api.getThreadInfo with cache, rate limiting, and backoff
+  _originalGetThreadInfo = api.getThreadInfo;
+  api.getThreadInfo = function(threadId, callback) {
+    return getThreadInfoCached(api, threadId, callback);
+  };
 
   console.log('[SELF-BOT] Zalogowano pomyslnie! Rozpoczynanie nasluchiwania wiadomosci...');
   
