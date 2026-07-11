@@ -664,7 +664,7 @@ app.get('/api/commands', async (req, res) => {
       } catch (err) {
         return null;
       }
-    }).filter(Boolean);
+    }).filter(Boolean).filter(cmd => cmd.file !== 'amelcia.js');
     
     const result = commands.map(cmd => ({
       name: cmd.name,
