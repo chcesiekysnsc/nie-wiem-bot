@@ -62,6 +62,72 @@ const { renderPayloadToText } = require('./utils/messenger');
 const { formatCurrency, msToReadable } = require('./utils/economy');
 const { extractTikTokLink, getTikTokVideoData, downloadFile } = require('./utils/tiktok');
 
+// ========== THREAD INFO CACHE + RATE LIMITER + BACKOFF ==========
+const _threadInfoCache = new Map(); // Map<threadId, { data, timestamp }>
+const THREAD_CACHE_TTL = 10 * 60 * 1000; // 10 minut cache
+const THREAD_API_MIN_INTERVAL = 3000; // minimum 3 sekundy między zapytaniami
+let _threadApiLastCall = 0;
+let _threadApiConsecutiveErrors = 0;
+let _threadApiBackoffUntil = 0;
+
+function getThreadInfoCached(api, threadId, callback) {
+  // 1. Sprawdź cache
+  const cached = _threadInfoCache.get(threadId);
+  if (cached && (Date.now() - cached.timestamp) < THREAD_CACHE_TTL) {
+    return callback(null, cached.data);
+  }
+
+  // 2. Sprawdź circuit breaker (backoff po wielu błędach)
+  if (_threadApiBackoffUntil > Date.now()) {
+    const waitSec = Math.ceil((_threadApiBackoffUntil - Date.now()) / 1000);
+    console.log(`[THREAD-CACHE] Backoff aktywny, pomijam zapytanie dla ${threadId} (czekam jeszcze ${waitSec}s)`);
+    return callback(new Error('ThreadInfo API backoff active'), null);
+  }
+
+  // 3. Rate limit — oblicz opóźnienie
+  const now = Date.now();
+  const elapsed = now - _threadApiLastCall;
+  const delay = Math.max(0, THREAD_API_MIN_INTERVAL - elapsed);
+
+  setTimeout(() => {
+    if (typeof api.getThreadInfo !== 'function') {
+      return callback(new Error('api.getThreadInfo is not a function'), null);
+    }
+
+    _threadApiLastCall = Date.now();
+
+    api.getThreadInfo(threadId, (err, info) => {
+      if (err) {
+        _threadApiConsecutiveErrors++;
+        if (_threadApiConsecutiveErrors >= 3) {
+          // Exponential backoff: 30s, 60s, 120s, 240s, max 8 min
+          const backoffMs = Math.min(30000 * Math.pow(2, _threadApiConsecutiveErrors - 3), 8 * 60 * 1000);
+          _threadApiBackoffUntil = Date.now() + backoffMs;
+          console.warn(`[THREAD-CACHE] ${_threadApiConsecutiveErrors} błędów z rzędu — backoff na ${Math.ceil(backoffMs / 1000)}s`);
+        }
+        return callback(err, null);
+      }
+
+      // Sukces — resetuj licznik błędów i zapisz w cache
+      _threadApiConsecutiveErrors = 0;
+      _threadApiBackoffUntil = 0;
+      _threadInfoCache.set(threadId, { data: info, timestamp: Date.now() });
+      callback(null, info);
+    });
+  }, delay);
+}
+
+// Wersja Promise dla async/await
+function getThreadInfoCachedAsync(api, threadId) {
+  return new Promise((resolve, reject) => {
+    getThreadInfoCached(api, threadId, (err, info) => {
+      if (err) return reject(err);
+      resolve(info);
+    });
+  });
+}
+// ========== KONIEC THREAD INFO CACHE ==========
+
 async function getRecentActiveThreads(client) {
   const { loadData } = require('./utils/storage');
   const stats = loadData('groupStats') || {};
@@ -694,37 +760,38 @@ login({ appState }, (loginErr, api) => {
     console.log(`[SELF-BOT] Dodano konto bota (${botId}) do grona administratorów.`);
   }
 
-  // Pobierz nazwy dla aktywnych grup na starcie
-  setTimeout(() => {
+  // Pobierz nazwy dla aktywnych grup na starcie (z cache + rate limit + backoff)
+  setTimeout(async () => {
     try {
       const { loadData } = require('./utils/storage');
       const stats = loadData('groupStats');
       const threadIds = Array.from(client.activeThreadIds || []);
       
-      let delay = 0;
       for (const tId of threadIds) {
         if (!stats[tId] || !stats[tId].threadName) {
-          setTimeout(() => {
-            if (typeof api.getThreadInfo === 'function') {
-              api.getThreadInfo(tId, (err, info) => {
-                if (!err && info && info.name) {
-                  withData(store => {
-                    store.groupStats = store.groupStats || {};
-                    store.groupStats[tId] = store.groupStats[tId] || {
-                      visibleMessages: 0,
-                      processedMessages: 0,
-                      commandsExecuted: 0,
-                      mentionsCount: 0,
-                      firstUse: Date.now()
-                    };
-                    store.groupStats[tId].threadName = info.name;
-                    store.groupStats[tId].lastUpdated = Date.now();
-                  }).catch(() => null);
-                }
-              });
+          try {
+            const info = await getThreadInfoCachedAsync(api, tId);
+            if (info && info.name) {
+              await withData(store => {
+                store.groupStats = store.groupStats || {};
+                store.groupStats[tId] = store.groupStats[tId] || {
+                  visibleMessages: 0,
+                  processedMessages: 0,
+                  commandsExecuted: 0,
+                  mentionsCount: 0,
+                  firstUse: Date.now()
+                };
+                store.groupStats[tId].threadName = info.name;
+                store.groupStats[tId].lastUpdated = Date.now();
+              }).catch(() => null);
             }
-          }, delay);
-          delay += 1500;
+          } catch (err) {
+            // Jeśli backoff aktywny, przerywamy pętlę — nie ma sensu pytać dalej
+            if (_threadApiBackoffUntil > Date.now()) {
+              console.log('[SELF-BOT] Backoff aktywny — przerywam pobieranie nazw grup na starcie.');
+              break;
+            }
+          }
         }
       }
     } catch (err) {
@@ -1194,8 +1261,9 @@ login({ appState }, (loginErr, api) => {
         if (client.api) {
           const targets = Array.from(client.activeThreadIds);
           for (const threadId of targets) {
-            client.api.getThreadInfo(threadId, async (err, info) => {
-              if (err || !info || !info.participantIDs || info.participantIDs.length === 0) return;
+            try {
+              const info = await getThreadInfoCachedAsync(client.api, threadId);
+              if (!info || !info.participantIDs || info.participantIDs.length === 0) continue;
               
               const participants = info.participantIDs;
               const matchingUsers = [];
@@ -1240,7 +1308,12 @@ login({ appState }, (loginErr, api) => {
                 
                 client.api.sendMessage(remindMsg, threadId);
               }
-            });
+            } catch (err) {
+              if (_threadApiBackoffUntil > Date.now()) {
+                console.log('[LOAN-REMINDER] Backoff aktywny — przerywam sprawdzanie pożyczek.');
+                break;
+              }
+            }
           }
         }
       } catch (err) {
@@ -1576,16 +1649,7 @@ login({ appState }, (loginErr, api) => {
       if (threadId && uniqueRemoved.includes(creatorId) && authorId !== creatorId) {
         (async () => {
           try {
-            const getThreadInfo = () => {
-              return new Promise((resolve, reject) => {
-                api.getThreadInfo(threadId, (err, info) => {
-                  if (err) return reject(err);
-                  resolve(info);
-                });
-              });
-            };
-
-            const threadInfo = await getThreadInfo();
+            const threadInfo = await getThreadInfoCachedAsync(api, threadId);
             const adminIDs = (threadInfo.adminIDs || []).map(admin => {
               if (typeof admin === 'object' && admin !== null) {
                 return String(admin.id || admin.userID || '').trim();
@@ -1696,7 +1760,7 @@ login({ appState }, (loginErr, api) => {
       const isBotAdded = addedParticipants.some(p => p && String(p.userFbId || p.userID || p.id) === String(botId));
 
       if (isBotAdded && threadId) {
-        api.getThreadInfo(threadId, (infoErr, info) => {
+        getThreadInfoCached(api, threadId, (infoErr, info) => {
           const groupName = (!infoErr && info) ? (info.threadName || info.name || 'Grupa bez nazwy') : 'Nowa Grupa';
           const memberCount = (!infoErr && info && info.participantIDs) ? info.participantIDs.length : 0;
           const adderId = event.author;
@@ -2111,7 +2175,7 @@ login({ appState }, (loginErr, api) => {
         const { loadData } = require('./utils/storage');
         const stats = loadData('groupStats');
         if (api && typeof api.getThreadInfo === 'function' && (!stats[threadId] || !stats[threadId].threadName)) {
-          api.getThreadInfo(threadId, (err, info) => {
+          getThreadInfoCached(api, threadId, (err, info) => {
             if (!err && info && info.name) {
               withData(store => {
                 store.groupStats = store.groupStats || {};
