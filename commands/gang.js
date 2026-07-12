@@ -161,7 +161,6 @@ module.exports = {
       if (writeResult.action === 'broken') {
         await message.reply(`💔 Zerwałeś sojusz z gangiem **${readResult.targetGangName}**!`);
 
-        // Notify target boss
         const notifyBody = `💔 Boss gangu **${readResult.myGangName}** zerwał sojusz z Twoim gangiem **${readResult.targetGangName}**!`;
         const notifyPayload = {
           body: `${targetBossName}, ${notifyBody}`,
@@ -171,7 +170,6 @@ module.exports = {
       } else if (writeResult.action === 'accepted') {
         await message.reply(`🤝 Sojusz z gangiem **${readResult.targetGangName}** został zawarty!`);
 
-        // Notify target boss only if they are on a different group
         if (targetThreadId !== message.threadID) {
           const notifyBody = `🤝 Boss gangu **${readResult.myGangName}** (${myBossName}) zaakceptował Twoją propozycję sojuszu! Gangi **${readResult.myGangName}** oraz **${readResult.targetGangName}** są teraz oficjalnymi sojusznikami.`;
           const notifyPayload = {
@@ -183,13 +181,42 @@ module.exports = {
       } else if (writeResult.action === 'proposed') {
         await message.reply(`⌛ Wysłano propozycję sojuszu do gangu **${readResult.targetGangName}**. Oczekiwanie na akceptację Bossa...`);
 
-        // Notify target boss
-        const notifyBody = `🔔 Boss gangu **${readResult.myGangName}** (${myBossName}) chce zawrzeć sojusz z Twoim gangiem **${readResult.targetGangName}**!\n\n💡 Aby zaakceptować propozycję, wpisz na czacie: **!gang sojusz ${readResult.myGangName}**`;
-        const notifyPayload = {
-          body: `${targetBossName}, ${notifyBody}`,
-          mentions: [{ tag: targetBossName, id: readResult.targetBossId }]
-        };
-        client.api.sendMessage(notifyPayload, targetThreadId);
+        let aiDecision = null;
+        try {
+          const { handleAllianceProposalToAI } = require('../utils/gangAI');
+          aiDecision = await handleAllianceProposalToAI(readResult.targetGangId, readResult.myGangId, config);
+        } catch (_) {}
+
+        if (aiDecision && aiDecision.handled) {
+          if (aiDecision.accepted) {
+            await message.reply(`🤝 Sojusz z gangiem **${readResult.targetGangName}** został zawarty!`);
+            if (targetThreadId !== message.threadID) {
+              const notifyBody = `🤝 Boss gangu **${readResult.targetGangName}** zaakceptował Twoją propozycję sojuszu! Gangi **${readResult.myGangName}** oraz **${readResult.targetGangName}** są teraz oficjalnymi sojusznikami.`;
+              const notifyPayload = {
+                body: `${targetBossName}, ${notifyBody}`,
+                mentions: [{ tag: targetBossName, id: readResult.targetBossId }]
+              };
+              client.api.sendMessage(notifyPayload, targetThreadId);
+            }
+          } else {
+            await message.reply(`❌ Gang **${readResult.targetGangName}** odmówił sojuszu.`);
+            if (targetThreadId !== message.threadID) {
+              const notifyBody = `❌ Boss gangu **${readResult.targetGangName}** odmówił przyjęcia propozycji sojuszu od gangu **${readResult.myGangName}**.`;
+              const notifyPayload = {
+                body: `${targetBossName}, ${notifyBody}`,
+                mentions: [{ tag: targetBossName, id: readResult.targetBossId }]
+              };
+              client.api.sendMessage(notifyPayload, targetThreadId);
+            }
+          }
+        } else {
+          const notifyBody = `🔔 Boss gangu **${readResult.myGangName}** (${myBossName}) chce zawrzeć sojusz z Twoim gangiem **${readResult.targetGangName}**!\n\n💡 Aby zaakceptować propozycję, wpisz na czacie: **!gang sojusz ${readResult.myGangName}**`;
+          const notifyPayload = {
+            body: `${targetBossName}, ${notifyBody}`,
+            mentions: [{ tag: targetBossName, id: readResult.targetBossId }]
+          };
+          client.api.sendMessage(notifyPayload, targetThreadId);
+        }
       }
 
       return;

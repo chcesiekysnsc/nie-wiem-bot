@@ -603,5 +603,45 @@ module.exports = {
     boss: '👑 Boss Gangu',
     zastepca: '⭐ Zastępca',
     czlonek: '👤 Członek Gangu'
+  },
+  gangAI: {
+    enabled: true,
+    maxAIGangs: 5,
+    maxVault: 2000000,
+    minVaultAfterAttack: 100000,
+    actionIntervalMinutesMin: 30,
+    actionIntervalMinutesMax: 120,
+    actionsPerTickMin: 1,
+    actionsPerTickMax: 3,
+    repeatActionRerollChance: 0.7,
+    actionWeights: { earn: 35, upgrade: 22, recruit: 13, attack: 10, alliance: 8, event: 5 },
+    attackTimeStartHour: 8,
+    attackTimeEndHour: 22,
+    aiToAiAllianceWeight: 3,
+    aiToPlayerAllianceWeight: 1,
+    allianceAcceptChanceFromAI: 0.7,
+    allianceAcceptChanceFromPlayer: 0.35,
+    maxAlliances: 3,
+    participantRatioMin: 0.4,
+    participantRatioMax: 1.0,
+    attackVaultCostRatio: 0.10,
+    attackTargetVaultRatioMin: 0.5,
+    attackTargetVaultRatioMax: 2.0,
+    attackStrongTargetChance: 0.04,
+    startVaultMin: 50000,
+    startVaultMax: 300000,
+    startMembersMin: 1,
+    startMembersMax: 3,
+    personalities: {
+      agresywny: { upgradePriority: ['fach', 'dziupla', 'biznesy'], attackWeight: 1.8 },
+      defensywny: { upgradePriority: ['dziupla', 'fach', 'biznesy'], attackWeight: 0.4 },
+      bogacz: { upgradePriority: ['biznesy', 'dziupla', 'fach'], attackWeight: 0.5 },
+      rekruter: { upgradePriority: ['dziupla', 'biznesy', 'fach'], attackWeight: 0.7 },
+      zbalansowany: { upgradePriority: ['dziupla', 'biznesy', 'fach'], attackWeight: 1.0 }
+    },
+    nameParts: {
+      adjectives: ['Cienie', 'Żmije', 'Czarna', 'Krwawa', 'Stalowa', 'Złota', 'Srebrna', 'Wściekła', 'Niewidzialna', 'Podziemna', 'Mroczna', 'Płomienna', 'Lodowa', 'Szara', 'Błękitna'],
+      nouns: ['Gwardia', 'Bractwo', 'Kartel', 'Legion', 'Sfora', 'Banda', 'Syndykat', 'Klan', 'Horda', 'Wataha', 'Grom', 'Straż', 'Firma', 'Zespół', 'Ród']
+    }
   }
 };

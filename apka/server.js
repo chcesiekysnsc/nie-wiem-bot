@@ -378,7 +378,8 @@ app.get('/api/gangs', (req, res) => {
     boss: { id: gang.bossId, name: userName(users[gang.bossId], gang.bossId) },
     deputies: (gang.deputies || []).map(mid => ({ id: mid, name: userName(users[mid], mid) })),
     members: (gang.members || []).map(mid => ({ id: mid, name: userName(users[mid], mid) })),
-    alliances: gang.alliances || []
+    alliances: gang.alliances || [],
+    isAI: !!gang.isAI
   }));
   res.json({ gangs });
 });

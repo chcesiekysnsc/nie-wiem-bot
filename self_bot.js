@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const login = require('@dongdev/fca-unofficial');
+const gangAI = require('./utils/gangAI');
 
 require('dotenv').config();
 
@@ -920,6 +921,42 @@ login({ appState }, (loginErr, api) => {
       }
     }).catch(err => console.error('[ADMIN-PANEL] Błąd pętli panelu:', err));
   }, 10000);
+
+  // Centralny tick gangów AI
+  if (config.gangAI && config.gangAI.enabled) {
+    setInterval(async () => {
+      try {
+        const cfg = config.gangAI;
+        const gangs = await gangAI.getAIGangs();
+        const currentCount = gangs.length;
+        const maxAIGangs = cfg.maxAIGangs || 5;
+
+        if (currentCount < maxAIGangs) {
+          const shouldCreate = Math.random() < 0.3;
+          if (shouldCreate) {
+            const newId = await withData(store => gangAI.createAIGang(store, cfg));
+            if (newId) {
+              await gangAI.logAIAction('system', `Utworzono nowy gang AI: ${newId}`);
+            }
+          }
+        }
+
+        const updatedGangs = await gangAI.getAIGangs();
+        for (const gang of updatedGangs) {
+          try {
+            await gangAI.processAIGang(client, gang.id, gang, cfg);
+          } catch (err) {
+            console.error(`[GANG-AI] Błąd przetwarzania gangu ${gang.id}:`, err);
+          }
+        }
+
+        const finalCount = await gangAI.countAIGangs();
+        await gangAI.logAIAction('system', `Tick zakończony. Aktywne gangi AI: ${finalCount}`);
+      } catch (err) {
+        console.error('[GANG-AI] Błąd centralnego ticku:', err);
+      }
+    }, 5 * 60 * 1000);
+  }
 
 
 

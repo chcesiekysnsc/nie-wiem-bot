@@ -526,7 +526,7 @@ async function loadGangs() {
     const data = await api('/api/gangs');
     $('#gangs-list').innerHTML = data.gangs.length ? data.gangs.map(g => `
       <div class="card">
-        <h3>🔫 ${esc(g.name)} <span class="muted">(${esc(g.id)})</span></h3>
+        <h3>🔫 ${esc(g.name)} <span class="muted">(${esc(g.id)})</span>${g.isAI ? ' <span class="badge warn">🤖 AI</span>' : ''}</h3>
         <p>👑 Szef: <b>${esc(g.boss.name)}</b> | Zastępcy: ${g.deputies.map(d => esc(d.name)).join(', ') || '—'}</p>
         <p>🏚️ Dziupla: ${g.levelDziupla} | 💼 Biznesy: ${g.levelBiznesy} | 🛠️ Fach: ${g.levelFach} | 🤝 Sojusze: ${g.alliances.map(esc).join(', ') || '—'}</p>
         <div class="gang-edit">
