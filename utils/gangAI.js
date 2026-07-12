@@ -15,7 +15,7 @@ function getPolandHour(date) {
 }
 
 function generateGangName(cfg) {
-  const parts = cfg.gangAI && cfg.gangAI.nameParts ? cfg.gangAI.nameParts : { adjectives: [], nouns: [], suffixes: [] };
+  const parts = (cfg && cfg.nameParts) ? cfg.nameParts : { adjectives: [], nouns: [], suffixes: [] };
   const adjectives = parts.adjectives || [];
   const nouns = parts.nouns || [];
   const suffixes = parts.suffixes || [];
@@ -123,8 +123,8 @@ function pickPersonality() {
 }
 
 function selectAction(gang, cfg) {
-  const weights = (cfg.gangAI && cfg.gangAI.actionWeights) || { earn: 35, upgrade: 22, recruit: 13, attack: 10, alliance: 8, event: 5 };
-  const rerollChance = (cfg.gangAI && cfg.gangAI.repeatActionRerollChance) || 0.7;
+  const weights = (cfg && cfg.actionWeights) || { earn: 35, upgrade: 22, recruit: 13, attack: 10, alliance: 8, event: 5 };
+  const rerollChance = (cfg && cfg.repeatActionRerollChance) || 0.7;
   const entries = Object.entries(weights);
   let chosen = null;
   let attempts = 0;
@@ -380,8 +380,8 @@ async function executeAttack(gang, cfg, client) {
 
   const aiGangs = possibleTargets.filter(([, g]) => g.isAI);
   const playerGangs = possibleTargets.filter(([, g]) => !g.isAI);
-  const aiWeight = (cfg.gangAI && cfg.gangAI.aiToAiAllianceWeight) || 3;
-  const playerWeight = (cfg.gangAI && cfg.gangAI.aiToPlayerAllianceWeight) || 1;
+  const aiWeight = (cfg && cfg.aiToAiAllianceWeight) || 3;
+  const playerWeight = (cfg && cfg.aiToPlayerAllianceWeight) || 1;
   const totalWeight = aiGangs.length * aiWeight + playerGangs.length * playerWeight;
 
   if (totalWeight > 0 && possibleTargets.length > 0) {
@@ -649,8 +649,8 @@ async function executeAlliance(gang, cfg, store, client) {
     return { type: 'alliance', skipped: true, reason: 'no_candidates' };
   }
 
-  const aiWeight = (cfg.gangAI && cfg.gangAI.aiToAiAllianceWeight) || 3;
-  const playerWeight = (cfg.gangAI && cfg.gangAI.aiToPlayerAllianceWeight) || 1;
+  const aiWeight = (cfg && cfg.aiToAiAllianceWeight) || 3;
+  const playerWeight = (cfg && cfg.aiToPlayerAllianceWeight) || 1;
   const aiCandidates = candidates.filter(([, g]) => g.isAI);
   const playerCandidates = candidates.filter(([, g]) => !g.isAI);
 
@@ -803,7 +803,7 @@ async function processAIGang(client, gangId, gang, cfg) {
   const nextActionTime = gang.aiNextActionTime || 0;
   if (now < nextActionTime) return;
 
-  const actionsCount = Math.floor(Math.random() * ((cfg.gangAI && cfg.gangAI.actionsPerTickMax) || 3)) + ((cfg.gangAI && cfg.gangAI.actionsPerTickMin) || 1);
+  const actionsCount = Math.floor(Math.random() * ((cfg && cfg.actionsPerTickMax) || 3)) + ((cfg && cfg.actionsPerTickMin) || 1);
   const actions = [];
 
   for (let i = 0; i < actionsCount; i++) {
@@ -814,7 +814,7 @@ async function processAIGang(client, gangId, gang, cfg) {
     }
 
     if (actionType === 'alliance') {
-      const maxAlliances = (cfg.gangAI && cfg.gangAI.maxAlliances) || 3;
+      const maxAlliances = (cfg && cfg.maxAlliances) || 3;
       if ((gang.alliances || []).length >= maxAlliances) {
         actionType = 'earn';
       }
@@ -880,7 +880,7 @@ async function processAIGang(client, gangId, gang, cfg) {
 }
 
 async function createAIGang(store, cfg) {
-  const maxAIGangs = (cfg.gangAI && cfg.gangAI.maxAIGangs) || 5;
+  const maxAIGangs = (cfg && cfg.maxAIGangs) || 5;
   const existingAI = Object.values(store.profiles.gangs || {}).filter(g => g.isAI);
   if (existingAI.length >= maxAIGangs) return null;
 
@@ -897,11 +897,11 @@ async function createAIGang(store, cfg) {
   } while (store.profiles.gangs[nameResult.gangId]);
 
   const gangId = nameResult.gangId;
-  const startVaultMin = (cfg.gangAI && cfg.gangAI.startVaultMin) || 50000;
-  const startVaultMax = (cfg.gangAI && cfg.gangAI.startVaultMax) || 300000;
+  const startVaultMin = (cfg && cfg.startVaultMin) || 50000;
+  const startVaultMax = (cfg && cfg.startVaultMax) || 300000;
   const startVault = Math.floor(Math.random() * (startVaultMax - startVaultMin + 1)) + startVaultMin;
-  const startMembersMin = (cfg.gangAI && cfg.gangAI.startMembersMin) || 1;
-  const startMembersMax = (cfg.gangAI && cfg.gangAI.startMembersMax) || 3;
+  const startMembersMin = (cfg && cfg.startMembersMin) || 1;
+  const startMembersMax = (cfg && cfg.startMembersMax) || 3;
   const startMemberCount = Math.floor(Math.random() * (startMembersMax - startMembersMin + 1)) + startMembersMin;
 
   const fakeUsers = generateFakeUsers(gangId, startMemberCount);
@@ -943,7 +943,7 @@ async function handleAllianceProposalToAI(gangId, proposerGangId, cfg) {
     if (!gang || !gang.isAI) return { handled: false };
     if (!proposer) return { handled: false };
 
-    const maxAlliances = (cfg.gangAI && cfg.gangAI.maxAlliances) || 3;
+    const maxAlliances = (cfg && cfg.maxAlliances) || 3;
     if ((gang.alliances || []).length >= maxAlliances) {
       return { handled: true, accepted: false, reason: 'max_alliances' };
     }
@@ -961,9 +961,9 @@ async function handleAllianceProposalToAI(gangId, proposerGangId, cfg) {
       return { handled: true, accepted: true };
     }
 
-    let acceptChance = (cfg.gangAI && cfg.gangAI.allianceAcceptChanceFromPlayer) || 0.35;
+    let acceptChance = (cfg && cfg.allianceAcceptChanceFromPlayer) || 0.35;
     if (proposer.isAI) {
-      acceptChance = (cfg.gangAI && cfg.gangAI.allianceAcceptChanceFromAI) || 0.7;
+      acceptChance = (cfg && cfg.allianceAcceptChanceFromAI) || 0.7;
     }
 
     if (Math.random() < acceptChance) {
