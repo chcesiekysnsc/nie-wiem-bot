@@ -11,6 +11,37 @@ const {
   processBossShopPurchase
 } = require('../utils/gangBossShop');
 
+function renderBossShopList(gangItems, vault, purchasesToday) {
+  const crates = getAllCrateDefinitions();
+  const remaining = 10 - (purchasesToday || 0);
+
+  const lines = [];
+  lines.push(`🛒 **BOSSOWY SKLEP GANGU**`);
+  lines.push(`💰 Sejf: **${formatCurrency(vault)}** | 📅 Dzisiaj: **${purchasesToday}/10** (pozostało: **${remaining}**)\n`);
+
+  for (const [crateId, crate] of Object.entries(crates)) {
+    const ownedItems = (crate.items && Object.keys(crate.items)) || [];
+    const ownedTags = ownedItems.map(id => {
+      const def = crate.items[id];
+      return gangItems.includes(id) ? ` ~~${def.emoji} ${def.name}~~` : '';
+    }).join('');
+
+    lines.push(`${crate.emoji} **${crate.name}** — **${formatCurrency(crate.price)}**`);
+    lines.push(`   💰 Drop: ${formatCurrency(crate.moneyMin)} – ${formatCurrency(crate.moneyMax)}`);
+    lines.push(`   🎁 Przedmioty:`);
+    for (const [itemId, itemDef] of Object.entries(crate.items)) {
+      const owned = gangItems.includes(itemId);
+      const strike = owned ? '~~' : '';
+      const tag = owned ? ' (już posiadacie)' : '';
+      lines.push(`   • ${strike}${itemDef.emoji} **${itemDef.name}** — ${itemDef.chance}% — ${itemDef.description}${strike}${tag}`);
+    }
+    lines.push('');
+  }
+
+  lines.push(`💡 Kup: **!bosssklep kup <skrzynia> [ilość]**`);
+  return lines.join('\n');
+}
+
 module.exports = {
   name: 'bosssklep',
   aliases: ['boss_sklep', 'sklep_boss'],
@@ -73,11 +104,26 @@ module.exports = {
         return;
       }
 
+      const crateDef = getItemDefinition(purchaseResult.droppedItems[0] || '');
+      const crateName = crateDef ? crateDef.name : crateId;
+
       const lines = [
-        `🛒 **Bossowy Sklep — Zakup zakończony!**`,
-        `📦 Skrzynka: **${getItemDefinition(purchaseResult.droppedItems[0] || '')?.name || crateId}** x${quantity}`,
+        `🛒 **BOSSOWY SKLEP — Zakup**`,
+        `📦 Skrzynka: **${crateName}** x${quantity}`,
         `💰 Łączny drop pieniędzy: **+${formatCurrency(purchaseResult.totalMoney)}**`,
       ];
+
+      if (purchaseResult.perCrateResults && purchaseResult.perCrateResults.length > 1) {
+        lines.push(`\n📋 **Szczegóły każdej skrzynki:**`);
+        purchaseResult.perCrateResults.forEach((crateResult, idx) => {
+          const moneyLine = `   💰 #${idx + 1}: **+${formatCurrency(crateResult.money)}**`;
+          const itemLine = crateResult.item
+            ? `   🎁 #${idx + 1}: ${getItemEmoji(crateResult.item)} **${getItemName(crateResult.item)}**${crateResult.gained ? '' : ' (już posiadacie — pominięto)'}`
+            : `   💨 #${idx + 1}: Brak przedmiotu`;
+          lines.push(moneyLine);
+          lines.push(itemLine);
+        });
+      }
 
       if (purchaseResult.itemsSummary) {
         lines.push(purchaseResult.itemsSummary);
@@ -92,28 +138,7 @@ module.exports = {
     const crates = getAllCrateDefinitions();
     const gangItems = readResult.bossShopItems || [];
     const purchasesToday = readResult.purchasesToday || 0;
-    const remaining = 10 - purchasesToday;
 
-    let response = `🛒 **Bossowy Sklep Gangu** — Gang: **${readResult.gangName}**\n`;
-    response += `💰 Sejf gangu: **${formatCurrency(readResult.vault)}**\n`;
-    response += `📅 Dzisiejsze zakupy: **${purchasesToday}/10** (pozostało: **${remaining}**)\n\n`;
-
-    for (const [crateId, crate] of Object.entries(crates)) {
-      response += `${crate.emoji} **${crate.name}** — **${formatCurrency(crate.price)}**\n`;
-      response += `   💰 Drop: ${formatCurrency(crate.moneyMin)} – ${formatCurrency(crate.moneyMax)}\n`;
-      response += `   🎁 Przedmioty:\n`;
-
-      for (const [itemId, itemDef] of Object.entries(crate.items)) {
-        const owned = gangItems.includes(itemId);
-        const ownedTag = owned ? ' (już posiadacie)' : '';
-        response += `   • ${itemDef.emoji} **${itemDef.name}** — ${itemDef.chance}% — ${itemDef.description}${ownedTag}\n`;
-      }
-
-      response += '\n';
-    }
-
-    response += `💡 Aby kupić skrzynkę, wpisz: **!bosssklep kup <nazwa_skrzynki> [ilość]**`;
-
-    await message.reply(response);
+    await message.reply(renderBossShopList(readResult.bossShopItems, readResult.vault, purchasesToday));
   }
 };

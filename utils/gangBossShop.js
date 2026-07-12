@@ -143,15 +143,17 @@ async function processBossShopPurchase(gang, crateId, quantity) {
   let totalMoney = 0;
   const droppedItems = [];
   const gangItems = Array.isArray(gang.bossShopItems) ? gang.bossShopItems : [];
+  const perCrateResults = [];
 
   for (let i = 0; i < quantity; i++) {
     const result = rollCrateRewards(crateId);
     totalMoney += result.money;
-
-    if (result.item && !gangItems.includes(result.item)) {
+    const gained = result.item && !gangItems.includes(result.item);
+    if (gained) {
       gangItems.push(result.item);
       droppedItems.push(result.item);
     }
+    perCrateResults.push({ money: result.money, item: result.item, gained });
   }
 
   gang.bossShopItems = gangItems;
@@ -166,6 +168,7 @@ async function processBossShopPurchase(gang, crateId, quantity) {
     totalMoney,
     droppedItems,
     itemsSummary,
+    perCrateResults,
     remainingPurchases: 10 - gang.bossShopPurchasesToday
   };
 }

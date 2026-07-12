@@ -1,7 +1,7 @@
 const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
-const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji } = require('../utils/gangBossShop');
+const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getItemDefinition } = require('../utils/gangBossShop');
 
 function notifySupportThreads(client, heist, msg) {
   if (!client.api || !heist || !Array.isArray(heist.supportThreads)) return;
