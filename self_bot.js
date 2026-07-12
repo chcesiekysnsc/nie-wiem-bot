@@ -149,6 +149,55 @@ async function getRecentActiveThreads(client) {
   });
 }
 
+// ===== BUFOROWANIE POWIADOMIEŃ O ZAKOŃCZENIU EVENTÓW =====
+let pendingExpiredEventNotifications = [];
+let expiredEventNotificationTimer = null;
+const EXPIRED_EVENT_NOTIFICATION_DELAY = 10000;
+
+function queueExpiredEventNotification(eventMeta) {
+  pendingExpiredEventNotifications.push(eventMeta);
+
+  if (expiredEventNotificationTimer) {
+    clearTimeout(expiredEventNotificationTimer);
+  }
+
+  expiredEventNotificationTimer = setTimeout(sendBufferedExpiredEventNotifications, EXPIRED_EVENT_NOTIFICATION_DELAY);
+}
+
+async function sendBufferedExpiredEventNotifications() {
+  if (pendingExpiredEventNotifications.length === 0) {
+    return;
+  }
+
+  const events = pendingExpiredEventNotifications;
+  pendingExpiredEventNotifications = [];
+  expiredEventNotificationTimer = null;
+
+  const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy', cooldowns: '⚡ Szybsze cooldowny', shop_discount: '🛒 Przecena w sklepie', bank_interest: '🏦 Bankowy Raj', crime_luck: '🌑 Czarna Godzina', company_payout: '🪙 Midasowy Dotyk' };
+  const lines = events.map(e => {
+    const name = typeNames[e.type] || e.type;
+    return `🔴 ${name} x${e.multiplier}`;
+  });
+
+  const notifyMsg = `ℹ️ **EVENTY ZAKOŃCZONE!** ℹ️\n\n${lines.join('\n')}\n\nWskaźniki gry wróciły do normy. Dziękujemy za udział!`;
+
+  try {
+    if (client.api) {
+      const targets = await getRecentActiveThreads(client);
+      for (const t of targets) {
+        try {
+          client.api.sendMessage(notifyMsg, t);
+        } catch (err) {
+          console.error('[EVENTS] Błąd wysyłania zbiorczego powiadomienia o zakończeniu eventów:', err);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[EVENTS] Błąd podczas przygotowywania powiadomienia o zakończeniu eventów:', err);
+  }
+}
+// ===== KONIEC BUFOROWANIA POWIADOMIEŃ O ZAKOŃCZENIU EVENTÓW =====
+
 async function handleBailResponse(client, message, pendingBail, action) {
   const authorId = message.author.id;
   client.pendingBails.delete(authorId);
@@ -848,21 +897,12 @@ login({ appState }, (loginErr, api) => {
       store.profiles.pendingAdminRestart = false;
       return { broadcasts, restart, expiredEvents };
     }).then(async ({ broadcasts, restart, expiredEvents }) => {
-      // Wyślij powiadomienia o zakończeniu eventów
-      const recentTargets = await getRecentActiveThreads(client);
+      // Zakolejkuj powiadomienia o zakończeniu eventów (wysyłane zbiorczo po 10s ciszy)
       for (const e of expiredEvents) {
-        const typeNames = { xp: '⚡ XP', casino: '🎰 Kasyno', items: '📦 Itemy' };
-        const msg = `ℹ️ **EVENT ZAKOŃCZONY!** ℹ️\n\n` +
-          `Modyfikator **${typeNames[e.type] || e.type} x${e.multiplier}** dobiegł końca.\n` +
-          `Wskaźniki gry wróciły do normy. Dziękujemy za udział!`;
-        
-        for (const t of recentTargets) {
-          try {
-            api.sendMessage(msg, t);
-          } catch (err) {
-            console.error('[EVENTS] Błąd wysyłania powiadomienia o zakończeniu eventu:', err);
-          }
-        }
+        queueExpiredEventNotification({
+          type: e.type,
+          multiplier: e.multiplier
+        });
       }
 
       for (const b of broadcasts) {
