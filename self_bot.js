@@ -664,7 +664,7 @@ function getLastTaxTime() {
   return lastTaxTime - offset;
 }
 
-function calculateProgressiveTax(wealth) {
+function calculateProgressiveTax(wealth, hasKsiegowa = false) {
   const brackets = [
     { min: 0, max: 500_000, rate: 0, label: 'do 500k' },
     { min: 500_000, max: 2_000_000, rate: 0.05, label: '500k-2mln' },
@@ -679,7 +679,8 @@ function calculateProgressiveTax(wealth) {
   for (const bracket of brackets) {
     if (wealth <= bracket.min) break;
     const taxableInThisBracket = Math.min(wealth, bracket.max) - bracket.min;
-    tax += taxableInThisBracket * bracket.rate;
+    const effectiveRate = hasKsiegowa ? Math.max(0, bracket.rate - 0.02) : bracket.rate;
+    tax += taxableInThisBracket * effectiveRate;
     topLabel = bracket.label;
   }
   return { tax: Math.round(tax), topLabel };
@@ -1080,7 +1081,10 @@ login({ appState }, (loginErr, api) => {
 
           for (const [userId, user] of Object.entries(store.users || {})) {
             if (user.balance > 0) {
-              const tax = Math.floor(user.balance * 0.04);
+              const userInv = store.inventory[userId] || {};
+              const hasKsiegowa = (userInv['dobra_ksiegowa'] || 0) > 0;
+              const taxRate = hasKsiegowa ? 0.02 : 0.04;
+              const tax = Math.floor(user.balance * taxRate);
               user.balance -= tax;
               totalCollected += tax;
               taxedUsers.push({
@@ -1164,7 +1168,9 @@ login({ appState }, (loginErr, api) => {
 
             if (wealth <= 0) continue;
 
-            const { tax, topLabel } = calculateProgressiveTax(wealth);
+            const userInv = store.inventory[userId] || {};
+            const hasKsiegowa = (userInv['dobra_ksiegowa'] || 0) > 0;
+            const { tax, topLabel } = calculateProgressiveTax(wealth, hasKsiegowa);
             if (tax <= 0) continue;
 
             const udzialBalance = balance / wealth;

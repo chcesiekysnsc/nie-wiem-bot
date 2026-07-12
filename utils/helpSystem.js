@@ -159,7 +159,7 @@ const helpCommands = [
     name: "podatki",
     category: "ECONOMY_GAMBLING",
     shortDescription: "informacje o podatkach",
-    description: "Pokazuje informacje o podatkach w grze: podatek od salda (4% co 12h) oraz podatek od przelewów (5% przy !tip).",
+    description: "Pokazuje informacje o podatkach w grze: podatek od salda (4% co 12h, 2% z Dobrą Księgową) oraz podatek progresywny majątkowy (obniżany o 2% z Dobrą Księgową).",
     usage: "!podatki",
     examples: ["!podatki"],
     cooldown: "3 sekundy",

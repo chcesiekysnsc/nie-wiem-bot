@@ -332,7 +332,8 @@ function performMonthlyReset(store) {
     'szwajcarski_zegarek',
     'licencja_monopolisty',
     'ksiega_monopolisty',
-    'katalizator_bogactwa'
+    'katalizator_bogactwa',
+    'dobra_ksiegowa'
   ];
 
   for (const [userId, user] of Object.entries(store.users)) {

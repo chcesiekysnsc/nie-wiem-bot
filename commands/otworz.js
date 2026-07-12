@@ -86,7 +86,8 @@ const PACZKI = {
       { chance: 150, items: [{ id: 'piwo',  qty: 1, label: '🍺 Piwo'  }] },
       { chance: 100, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] },
       { chance: 30, items: [{ id: 'kosc_ryzyka', qty: 1, label: '🎲 Kostka Ryzyka', permanent: true }] },
-      { chance: 30, items: [{ id: 'insygnia_gang', qty: 1, label: '🏴‍☠️ Insygnia Gangu', permanent: true }] } // 3.0%
+      { chance: 30, items: [{ id: 'insygnia_gang', qty: 1, label: '🏴‍☠️ Insygnia Gangu', permanent: true }] }, // 3.0%
+      { chance: 7.5, items: [{ id: 'dobra_ksiegowa', qty: 1, label: '👩‍💼 Dobra Księgowa', permanent: true }] } // 0.75%
     ]
   }
 };
@@ -108,7 +109,8 @@ const FALLBACKS = {
   alarm:            [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }],
   pies_strozujacy:  [{ id: 'klodka', qty: 2, label: '🔒 Kłódka x2' }],
   kaczka_biznesu:   [{ id: 'bomba', qty: 1, label: '💣 Bomba' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }],
-  insygnia_gang:    [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }]
+  insygnia_gang:    [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }],
+  dobra_ksiegowa:   [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }]
 };
 
 // Losuje drop na podstawie tabeli szans (1-1000)
@@ -147,7 +149,7 @@ module.exports = {
         `⬜ **Srebrna** (100k)   — 64 125 – 131 625 + 10% Kłódka lub Piwo\n` +
         `🟨 **Złota** (200k)     — 130 500 – 220 500 + 10% szans: Bomba, Kłódka+Piwo, Bilet, 2% Złota Karta, 1% Kamera, 1% Talizman Fortuny\n` +
         `🟦 **Diamentowa** (500k) — 202 500 – 652 500 + 10% szans: VIP, Sejf, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur\n` +
-        `🩶 **Tytanowa** (800k)   — 495 000 – 900 000 + 2% Przekupiony Krupier, 3% Kostka Ryzyka, 40% Bomba/Piwo/Kłódka\n\n` +
+        `🩶 **Tytanowa** (800k)   — 495 000 – 900 000 + 2% Przekupiony Krupier, 3% Kostka Ryzyka, 0.75% Dobra Księgowa, 40% Bomba/Piwo/Kłódka\n\n` +
         `💡 Kup paczki w sklepie: **!sklep**`
       );
       return;

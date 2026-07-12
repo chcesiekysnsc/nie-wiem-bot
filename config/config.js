@@ -302,8 +302,8 @@ module.exports = {
       name: 'Tytanowa Paczka',
       emoji: '🩶',
       price: 800000,
-      shortDesc: 'Lootbox: 495k–900k + szansa na Krupiera, Kostkę, Insygnia.',
-      description: 'Otwórz komendą: !otworz tytanowa\nZawartość: losowa kwota od 495 000 do 900 000 viccoinów.\nBonus drop: 2% Przekupiony Krupier, 3% Kostka Ryzyka, 3% Insygnia Gangu, 40% Bomba/Piwo/Kłódka.',
+      shortDesc: 'Lootbox: 495k–900k + szansa na Krupiera, Kostkę, Insygnia, Księgową.',
+      description: 'Otwórz komendą: !otworz tytanowa\nZawartość: losowa kwota od 495 000 do 900 000 viccoinów.\nBonus drop: 2% Przekupiony Krupier, 3% Kostka Ryzyka, 3% Insygnia Gangu, 0.75% Dobra Księgowa, 40% Bomba/Piwo/Kłódka.',
       type: 'stackable',
       buyable: true
     },
@@ -546,6 +546,16 @@ module.exports = {
       type: 'permanent',
       buyable: false,
       shopNote: 'Dostępna tylko z Diamentowej Paczki (1.5%).'
+    },
+    dobra_ksiegowa: {
+      name: 'Dobra Księgowa',
+      emoji: '👩‍💼',
+      price: 0,
+      shortDesc: '-2% podatku co 12h i progresywnego.',
+      description: 'Pasywny przedmiot. Zmniejsza podatek od salda pobierany co 12h o 2% (z 4% na 2%) oraz obniża stopę progresywnego podatku majątkowego w każdym progu o 2%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko z Tytanowej Paczki (0.75%).'
     }
   },
   badges: {

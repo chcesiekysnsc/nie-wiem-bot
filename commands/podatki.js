@@ -10,16 +10,20 @@ const TAX_BRACKETS = [
   { min: 100_000_000, max: Infinity, rate: 0.16, label: '100mln+' }
 ];
 
-function calculateProgressiveTax(wealth) {
+function calculateProgressiveTax(wealth, hasKsiegowa = false) {
   let tax = 0;
   let topLabel = TAX_BRACKETS[0].label;
   for (const bracket of TAX_BRACKETS) {
     if (wealth <= bracket.min) break;
     const taxableInThisBracket = Math.min(wealth, bracket.max) - bracket.min;
-    tax += taxableInThisBracket * bracket.rate;
+    const effectiveRate = hasKsiegowa ? Math.max(0, bracket.rate - 0.02) : bracket.rate;
+    tax += taxableInThisBracket * effectiveRate;
     topLabel = bracket.label;
   }
-  return { tax: Math.round(tax), topLabel, rate: TAX_BRACKETS.find(b => b.label === topLabel)?.rate || 0 };
+  const topBracket = TAX_BRACKETS.find(b => b.label === topLabel);
+  const rawRate = topBracket ? topBracket.rate : 0;
+  const effectiveRate = hasKsiegowa ? Math.max(0, rawRate - 0.02) : rawRate;
+  return { tax: Math.round(tax), topLabel, rate: effectiveRate };
 }
 
 function getBracketInfo(wealth) {
@@ -39,11 +43,15 @@ module.exports = {
 
     const profiles = loadData('profiles') || {};
     const users = loadData('users') || {};
+    const inventory = loadData('inventory') || {};
     const user = users[senderId] || {};
+    const userInv = inventory[senderId] || {};
 
     const balance = Number(user.balance || 0);
     const bank = Number(user.bank || 0);
     const wealth = balance + bank;
+
+    const hasKsiegowa = (userInv['dobra_ksiegowa'] || 0) > 0;
 
     const nextAt = Number(profiles.nextTaxCollectionAt || 0);
     const now = Date.now();
@@ -52,7 +60,8 @@ module.exports = {
     const remainingHours = Math.floor(remainingMin / 60);
     const remainingMinutes = remainingMin % 60;
 
-    const { tax, topLabel, rate } = calculateProgressiveTax(wealth);
+    const { tax, topLabel, rate } = calculateProgressiveTax(wealth, hasKsiegowa);
+    const ksiegowaNote = hasKsiegowa ? '\n👩‍💼 **Dobra Księgowa** — stawki obniżone o 2%!' : '';
 
     if (wealth < 500_000) {
       await message.reply(
@@ -60,7 +69,8 @@ module.exports = {
         `📊 Majątek: **${formatCurrency(wealth)} v**\n` +
         `✅ Jesteś poniżej progu wolnego od podatku (500 000 v)\n` +
         `Nie zapłacisz nic przy najbliższym poborze.\n\n` +
-        `⏳ Następny pobór za: ${remainingHours}h ${remainingMinutes}min`
+        `⏳ Następny pobór za: ${remainingHours}h ${remainingMinutes}min` +
+        ksiegowaNote
       );
       return;
     }
@@ -72,7 +82,8 @@ module.exports = {
       `⏳ Następny pobór za: ${remainingHours}h ${remainingMinutes}min\n` +
       `💸 Szacowany podatek: ≈**${formatCurrency(tax)} v**\n\n` +
       `━━━━━━━━━━━━━━\n` +
-      `ℹ️ Podatek jest progresywny — płacisz wyższą stawkę tylko od nadwyżki w każdym progu, nie od całości.`
+      `ℹ️ Podatek jest progresywny — płacisz wyższą stawkę tylko od nadwyżki w każdym progu, nie od całości.` +
+      ksiegowaNote
     );
   }
 };
