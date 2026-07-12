@@ -385,6 +385,19 @@ module.exports = {
       return;
     }
 
+    // Tryb bez liczby wiadomości (zwykłe pytanie do AI) jest zarezerwowany dla
+    // twórcy bota oraz użytkowników z jawnym pozwoleniem (profiles.allowedAI).
+    // Zwykli użytkownicy oraz ci korzystający z limitu 1/dobę mogą używać
+    // wyłącznie trybu z analizą historii czatu (!analiza <liczba> <pytanie>).
+    const isCreatorOrWhitelisted = message.author.id === creatorId || skipGroupCooldown;
+    if (msgCount === null && !isCreatorOrWhitelisted) {
+      await safeReply(message,
+        '❌ Zwykłe pytania do AI (bez podania liczby wiadomości) są dostępne tylko dla twórcy bota oraz osób z nadanym dostępem.\n\n' +
+        'Możesz użyć: **!analiza <liczba wiadomości> <pytanie>**, np. **!analiza 500 przeanalizuj kto ma rację w sporze**.'
+      );
+      return;
+    }
+
     const apiKeys = getApiKeys();
     if (apiKeys.length === 0) {
       await safeReply(message, '❌ Brak skonfigurowanego klucza Gemini API!');
