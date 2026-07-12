@@ -36,8 +36,11 @@ module.exports = {
         return { error: `❌ Jesteś w więzieniu! Odzyskasz wolność za **${msToReadable(msLeft)}**.` };
       }
       const hasZegar = hasItem(inventory, 'stary_zegar');
+      const hasSzwajcar = hasItem(inventory, 'szwajcarski_zegarek');
       const baseCd = config.cooldowns.work || 600;
-      let actualCd = hasZegar ? baseCd * 0.90 : baseCd;
+      let actualCd = baseCd;
+      if (hasZegar) actualCd *= 0.90;
+      if (hasSzwajcar) actualCd *= 0.85;
 
       const evMul = getActiveEventMultiplier('cooldowns');
       if (evMul && evMul > 1) {
@@ -68,6 +71,10 @@ module.exports = {
 
       if (user.badges && user.badges.includes(config.badges.krolSpamu)) {
         reward = Math.floor(reward * 1.05);
+      }
+
+      if (hasItem(inventory, 'krolewskie_insygnia')) {
+        reward = Math.floor(reward * 1.10);
       }
 
       // Zastosuj bonus za prestiż (4% za każdy poziom prestiżu)

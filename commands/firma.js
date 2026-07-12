@@ -18,6 +18,7 @@ module.exports = {
 
     const action = String(args[0] || '').toLowerCase();
     const companiesDef = config.economy.companies;
+    const companyTiers = ['kiosk', 'restauracja', 'salon', 'stocznia', 'bank'];
 
     // Helper: find company definition by ID, number (1-5) or name
     const findCompanyDef = (query) => {
@@ -58,8 +59,7 @@ module.exports = {
         const repairCost = def.payout * 4;
         const breakPct = Math.round(def.breakChance * 100);
         
-        // Calculate payback time under 4 collections/day (expected payback time formula)
-        // expected_payout = payout * (1 - 4 * breakChance)
+        // Calculate payback time under 4 collections/day
         const expectedPayout = def.payout * (1 - 4 * def.breakChance);
         const paybackDays = expectedPayout > 0 ? (def.price / expectedPayout / 4).toFixed(1) : 'nigdy';
 
@@ -123,6 +123,67 @@ module.exports = {
       return;
     }
 
+    // --- SUBCOMMAND: KUP2 ---
+    if (action === 'kup2' || action === 'buy2') {
+      const targetQuery = args.slice(1).join(' ');
+      if (!targetQuery) {
+        await message.reply('❌ Podaj ID lub numer drugiej firmy do kupienia! Przykład: **!firma kup2 1** lub **!firma kup2 kiosk**.');
+        return;
+      }
+
+      const compDef = findCompanyDef(targetQuery);
+      if (!compDef) {
+        await message.reply('❌ Nie znaleziono takiej firmy w ofercie! Wpisz **!firma**, aby zobaczyć listę.');
+        return;
+      }
+
+      const result = await withData(store => {
+        const user = createUser(message.author.id, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+
+        if (!hasItem(inventory, 'licencja_monopolisty')) {
+          return { error: '❌ Musisz posiadać przedmiot 🏢 **Licencja Monopolisty**, aby móc posiadać drugą firmę jednocześnie!' };
+        }
+
+        if (!user.company) {
+          return { error: '❌ Musisz najpierw kupić pierwszą firmę za pomocą **!firma kup <nr>**!' };
+        }
+
+        if (user.company2) {
+          const currentDef2 = companiesDef[user.company2.id] || { name: 'Obecna druga firma' };
+          return { error: `❌ Posiadasz już drugą firmę: **${currentDef2.name}**!\n💡 Aby kupić nową, musisz najpierw ją sprzedać wpisując **!firma sprzedaj2**.` };
+        }
+
+        const idx1 = companyTiers.indexOf(user.company.id);
+        const idx2 = companyTiers.indexOf(compDef.id);
+        if (idx2 >= idx1) {
+          return { error: `❌ Druga firma musi być o co najmniej jeden tier niższa niż Twoja pierwsza firma (**${companiesDef[user.company.id].name}**).` };
+        }
+
+        if (user.balance < compDef.price) {
+          return { error: `❌ Brak wystarczających środków w portfelu! Cena to **${formatCurrency(compDef.price)}**, a posiadasz **${formatCurrency(user.balance)}**.` };
+        }
+
+        user.balance -= compDef.price;
+        user.company2 = {
+          id: compDef.id,
+          boughtAt: Date.now(),
+          lastPayout: Date.now() - 3 * 3600 * 1000, // Pozwól na pierwszą wypłatę od razu po kupieniu!
+          isBroken: false
+        };
+
+        return { success: true, compDef, balance: user.balance };
+      });
+
+      if (result.error) {
+        await message.reply(result.error);
+        return;
+      }
+
+      await message.reply(`🎉 Pomyślnie kupiono drugą firmę: **${result.compDef.emoji} ${result.compDef.name}** za **${formatCurrency(result.compDef.price)}**!\n💰 Pozostało w portfelu: **${formatCurrency(result.balance)}**.\n💡 Możesz już odebrać pierwszą wypłatę komendą: **!firma zbierz**!`);
+      return;
+    }
+
     // --- SUBCOMMAND: SPRZEDAJ ---
     if (action === 'sprzedaj' || action === 'sell') {
       const result = await withData(store => {
@@ -134,7 +195,6 @@ module.exports = {
 
         const compDef = companiesDef[user.company.id];
         if (!compDef) {
-          // Fallback if company definition vanished from config
           user.company = null;
           return { error: '⚠️ Twój typ firmy jest nieprawidłowy. Firma została wyczyszczona z bazy.' };
         }
@@ -155,77 +215,185 @@ module.exports = {
       return;
     }
 
+    // --- SUBCOMMAND: SPRZEDAJ2 ---
+    if (action === 'sprzedaj2' || action === 'sell2') {
+      const result = await withData(store => {
+        const user = createUser(message.author.id, store.users);
+
+        if (!user.company2) {
+          return { error: '❌ Nie posiadasz drugiej firmy do sprzedania!' };
+        }
+
+        const compDef = companiesDef[user.company2.id];
+        if (!compDef) {
+          user.company2 = null;
+          return { error: '⚠️ Twój typ drugiej firmy jest nieprawidłowy. Firma została wyczyszczona z bazy.' };
+        }
+
+        const refund = Math.floor(compDef.price * 0.5);
+        user.balance += refund;
+        user.company2 = null;
+
+        return { success: true, compDef, refund, balance: user.balance };
+      });
+
+      if (result.error) {
+        await message.reply(result.error);
+        return;
+      }
+
+      await message.reply(`💸 Sprzedano drugą firmę **${result.compDef.emoji} ${result.compDef.name}** za **${formatCurrency(result.refund)}** (50% ceny zakupu).\n💰 Twój portfel: **${formatCurrency(result.balance)}**.`);
+      return;
+    }
+
     // --- SUBCOMMAND: ZBIERZ / ODBIERZ / WYPLATA ---
     if (action === 'zbierz' || action === 'odbierz' || action === 'wyplata' || action === 'claim') {
       const companyBreakdownOverride = await getEffectiveChance(message.author.id, 'company_breakdown');
 
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+        const companyMul = getCompanyPayoutMultiplier();
+        const hasKsiega = hasItem(inventory, 'ksiega_monopolisty');
+        const now = Date.now();
+        const cooldownMs = 3 * 3600 * 1000;
 
-        if (!user.company) {
+        if (!user.company && !user.company2) {
           return { error: '❌ Nie posiadasz żadnego przedsiębiorstwa! Kup je najpierw za pomocą **!firma kup <nr>**.' };
         }
 
-        const compDef = companiesDef[user.company.id];
-        if (!compDef) {
-          user.company = null;
-          return { error: '⚠️ Twój typ firmy jest nieprawidłowy. Firma została wyczyszczona.' };
+        let collected1 = null;
+        let collected2 = null;
+        let errors = [];
+
+        // Check company 1
+        if (user.company) {
+          const compDef = companiesDef[user.company.id];
+          if (!compDef) {
+            user.company = null;
+          } else if (user.company.isBroken) {
+            const repairCost = compDef.payout * 4;
+            errors.push(`❌ Twoja pierwsza firma **${compDef.emoji} ${compDef.name}** uległa awarii! Koszt naprawy: **${formatCurrency(repairCost)}** (Użyj: **!firma napraw**)`);
+          } else {
+            const diff = now - (user.company.lastPayout || 0);
+            if (diff < cooldownMs) {
+              const timeLeft = cooldownMs - diff;
+              errors.push(`⏳ Pierwsza firma (**${compDef.name}**) nie wygenerowała jeszcze zysku. Wróć za **${msToReadable(timeLeft)}**.`);
+            } else {
+              // Calculate payout for company 1
+              let payout = compDef.payout;
+              if (companyMul !== 1) {
+                payout = Math.floor(payout * companyMul);
+              }
+              const garniturBonusPct = getPassiveMultiplier(inventory, 'garnitur', 0.10);
+              let garniturBonus = 0;
+              if (garniturBonusPct > 0) {
+                garniturBonus = Math.floor(compDef.payout * garniturBonusPct);
+              }
+              const kaczkaBonusPct = getPassiveMultiplier(inventory, 'kaczka_biznesu', 0.05);
+              let kaczkaBonus = 0;
+              if (kaczkaBonusPct > 0) {
+                kaczkaBonus = Math.floor(compDef.payout * kaczkaBonusPct);
+              }
+              let ksiegaBonus = 0;
+              if (hasKsiega) {
+                ksiegaBonus = Math.floor(compDef.payout * 0.15);
+              }
+              payout += garniturBonus + kaczkaBonus + ksiegaBonus;
+              
+              user.company.lastPayout = now;
+              let breakChance = Number.isFinite(companyBreakdownOverride) ? companyBreakdownOverride / 100 : compDef.breakChance;
+              if (hasKsiega) {
+                breakChance = Math.max(0, breakChance - 0.02);
+              }
+              const broke = Math.random() < breakChance;
+              if (broke) {
+                user.company.isBroken = true;
+              }
+
+              collected1 = {
+                compDef,
+                payout,
+                garniturBonus,
+                kaczkaBonus,
+                ksiegaBonus,
+                broke
+              };
+            }
+          }
         }
 
-        if (user.company.isBroken) {
-          const repairCost = compDef.payout * 4;
-          return { error: `❌ Twoja firma **${compDef.emoji} ${compDef.name}** uległa awarii! Musisz ją naprawić przed kolejną wypłatą.\n🔧 Koszt naprawy: **${formatCurrency(repairCost)}** (Użyj: **!firma napraw**)` };
+        // Check company 2
+        if (user.company2) {
+          const compDef = companiesDef[user.company2.id];
+          if (!compDef) {
+            user.company2 = null;
+          } else if (user.company2.isBroken) {
+            const repairCost = compDef.payout * 4;
+            errors.push(`❌ Twoja druga firma **${compDef.emoji} ${compDef.name}** uległa awarii! Koszt naprawy: **${formatCurrency(repairCost)}** (Użyj: **!firma napraw2**)`);
+          } else {
+            const diff = now - (user.company2.lastPayout || 0);
+            if (diff < cooldownMs) {
+              const timeLeft = cooldownMs - diff;
+              errors.push(`⏳ Druga firma (**${compDef.name}**) nie wygenerowała jeszcze zysku. Wróć za **${msToReadable(timeLeft)}**.`);
+            } else {
+              // Calculate payout for company 2
+              let payout = compDef.payout;
+              if (companyMul !== 1) {
+                payout = Math.floor(payout * companyMul);
+              }
+              const garniturBonusPct = getPassiveMultiplier(inventory, 'garnitur', 0.10);
+              let garniturBonus = 0;
+              if (garniturBonusPct > 0) {
+                garniturBonus = Math.floor(compDef.payout * garniturBonusPct);
+              }
+              const kaczkaBonusPct = getPassiveMultiplier(inventory, 'kaczka_biznesu', 0.05);
+              let kaczkaBonus = 0;
+              if (kaczkaBonusPct > 0) {
+                kaczkaBonus = Math.floor(compDef.payout * kaczkaBonusPct);
+              }
+              let ksiegaBonus = 0;
+              if (hasKsiega) {
+                ksiegaBonus = Math.floor(compDef.payout * 0.15);
+              }
+              payout += garniturBonus + kaczkaBonus + ksiegaBonus;
+              
+              user.company2.lastPayout = now;
+              let breakChance = Number.isFinite(companyBreakdownOverride) ? companyBreakdownOverride / 100 : compDef.breakChance;
+              if (hasKsiega) {
+                breakChance = Math.max(0, breakChance - 0.02);
+              }
+              const broke = Math.random() < breakChance;
+              if (broke) {
+                user.company2.isBroken = true;
+              }
+
+              collected2 = {
+                compDef,
+                payout,
+                garniturBonus,
+                kaczkaBonus,
+                ksiegaBonus,
+                broke
+              };
+            }
+          }
         }
 
-        const now = Date.now();
-        const cooldownMs = 3 * 3600 * 1000;
-        const diff = now - (user.company.lastPayout || 0);
-
-        if (diff < cooldownMs) {
-          const timeLeft = cooldownMs - diff;
-          return { error: `⏳ Twoja firma jeszcze nie wygenerowała kolejnej wypłaty! Wróć za **${msToReadable(timeLeft)}**.` };
+        if (!collected1 && !collected2) {
+          return { error: errors.join('\n') };
         }
 
-        // Give payout
-        let payout = compDef.payout;
-        const inventory = ensureInventoryRecord(store.inventory, message.author.id);
-        const companyMul = getCompanyPayoutMultiplier();
-        if (companyMul !== 1) {
-          payout = Math.floor(payout * companyMul);
-        }
-        
-        const garniturBonusPct = getPassiveMultiplier(inventory, 'garnitur', 0.10);
-        let garniturBonus = 0;
-        if (garniturBonusPct > 0) {
-          garniturBonus = Math.floor(compDef.payout * garniturBonusPct);
-        }
-
-        const kaczkaBonusPct = getPassiveMultiplier(inventory, 'kaczka_biznesu', 0.05);
-        let kaczkaBonus = 0;
-        if (kaczkaBonusPct > 0) {
-          kaczkaBonus = Math.floor(compDef.payout * kaczkaBonusPct);
-        }
-
-        payout += garniturBonus + kaczkaBonus;
-        user.balance += payout;
-        user.company.lastPayout = now;
-
-        // Check for breakdown (progressive breakdown chance)
-        const effectiveBreakChance = Number.isFinite(companyBreakdownOverride) ? companyBreakdownOverride / 100 : compDef.breakChance;
-        const broke = Math.random() < effectiveBreakChance;
-        if (broke) {
-          user.company.isBroken = true;
-        }
+        let totalPayout = 0;
+        if (collected1) totalPayout += collected1.payout;
+        if (collected2) totalPayout += collected2.payout;
+        user.balance += totalPayout;
 
         return {
           success: true,
-          compDef,
-          payout,
-          garniturBonus,
-          garniturBonusPct,
-          kaczkaBonus,
-          kaczkaBonusPct,
-          broke,
+          collected1,
+          collected2,
+          totalPayout,
           balance: user.balance
         };
       });
@@ -235,31 +403,44 @@ module.exports = {
         return;
       }
 
-      let replyText = `💰 Zebrałeś wypłatę z firmy **${result.compDef.emoji} ${result.compDef.name}**!\n`;
-      if (result.garniturBonus > 0 || result.kaczkaBonus > 0) {
-        replyText += `➕ Zysk nominalny: **+${formatCurrency(result.compDef.payout)}**\n`;
-        if (result.garniturBonus > 0) {
-          const pct = Math.round(result.garniturBonusPct * 100);
-          replyText += `👔 **Garnitur (+${pct}%):** **+${formatCurrency(result.garniturBonus)}**\n`;
+      let replyText = '';
+      
+      const formatFirmaPayout = (col, label) => {
+        let txt = `💰 Zebrałeś wypłatę z ${label} **${col.compDef.emoji} ${col.compDef.name}**!\n`;
+        if (col.garniturBonus > 0 || col.kaczkaBonus > 0 || col.ksiegaBonus > 0) {
+          txt += `   ➕ Zysk nominalny: **+${formatCurrency(col.compDef.payout)}**\n`;
+          if (col.garniturBonus > 0) {
+            txt += `   👔 **Garnitur (+10%):** **+${formatCurrency(col.garniturBonus)}**\n`;
+          }
+          if (col.kaczkaBonus > 0) {
+            txt += `   🦆 **Kaczka Biznesu (+5%):** **+${formatCurrency(col.kaczkaBonus)}**\n`;
+          }
+          if (col.ksiegaBonus > 0) {
+            txt += `   📕 **Księga Monopolisty (+15%):** **+${formatCurrency(col.ksiegaBonus)}**\n`;
+          }
+          txt += `   ➕ Zysk z firmy: **+${formatCurrency(col.payout)}**\n`;
+        } else {
+          txt += `   ➕ Zysk z firmy: **+${formatCurrency(col.payout)}**\n`;
         }
-        if (result.kaczkaBonus > 0) {
-          const pct = Math.round(result.kaczkaBonusPct * 100);
-          replyText += `🦆 **Kaczka Biznesu (+${pct}%):** **+${formatCurrency(result.kaczkaBonus)}**\n`;
+        if (col.broke) {
+          const repairCost = col.compDef.payout * 4;
+          txt += `   ⚠️ **AWARIA!** Doszło do usterki sprzętu w tej firmie.\n   🔧 Wymagana naprawa za **${formatCurrency(repairCost)}**.\n`;
         }
-        replyText += `➕ Łączny zysk: **+${formatCurrency(result.payout)}**\n`;
-      } else {
-        replyText += `➕ Zysk: **+${formatCurrency(result.payout)}**\n`;
-      }
-      replyText += `💰 Stan portfela: **${formatCurrency(result.balance)}**\n`;
+        return txt;
+      };
 
-      if (result.broke) {
-        const repairCost = result.compDef.payout * 4;
-        replyText += `\n⚠️ **AWARIA!** Podczas wypłacania środków doszło do usterki sprzętu w Twojej firmie. Urządzenia zostały uszkodzone.\n`;
-        replyText += `🔧 Firma nie wygeneruje zysków, dopóki jej nie naprawisz.\n`;
-        replyText += `🔧 Koszt naprawy: **${formatCurrency(repairCost)}** (Wpisz: **!firma napraw**).`;
-      } else {
-        replyText += `\n⏰ Kolejna wypłata będzie gotowa za **3 godziny**.`;
+      if (result.collected1) {
+        replyText += formatFirmaPayout(result.collected1, 'pierwszej firmy');
+        replyText += '\n';
       }
+      if (result.collected2) {
+        replyText += formatFirmaPayout(result.collected2, 'drugiej firmy');
+        replyText += '\n';
+      }
+
+      replyText += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      replyText += `💰 **Łączny zebrany zysk:** **+${formatCurrency(result.totalPayout)}**\n`;
+      replyText += `💰 **Stan portfela:** **${formatCurrency(result.balance)}**`;
 
       await message.reply(replyText);
       return;
@@ -304,51 +485,78 @@ module.exports = {
       return;
     }
 
+    // --- SUBCOMMAND: NAPRAW2 --- (Handled in action check above)
+
     // --- DEFAULT ACTION: SHOW STATUS ---
     await withData(async (store) => {
       const user = createUser(message.author.id, store.users);
+      const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+      const hasLicense = hasItem(inventory, 'licencja_monopolisty');
 
-      if (!user.company) {
+      if (!user.company && !user.company2) {
         await message.reply(renderAvailableList());
         return;
       }
 
-      const compDef = companiesDef[user.company.id];
-      if (!compDef) {
-        user.company = null;
-        await message.reply(renderAvailableList());
-        return;
+      let statusMsg = `💼 **TWOJE PRZEDSIĘBIORSTWA**\n\n`;
+
+      if (user.company) {
+        const compDef = companiesDef[user.company.id];
+        if (compDef) {
+          const now = Date.now();
+          const cooldownMs = 3 * 3600 * 1000;
+          const diff = now - (user.company.lastPayout || 0);
+          const isReady = diff >= cooldownMs;
+
+          statusMsg += `1️⃣ **PIERWSZA FIRMA:** ${compDef.emoji} **${compDef.name}**\n`;
+          statusMsg += `   • Status: ${user.company.isBroken ? '🔴 Zepsuta (wymaga naprawy!)' : '🟢 Sprawna'}\n`;
+          if (user.company.isBroken) {
+            const repairCost = compDef.payout * 4;
+            statusMsg += `   • Wypłata: Zablokowana (Naprawa: **${formatCurrency(repairCost)}** — użyj **!firma napraw**)\n`;
+          } else {
+            statusMsg += `   • Wypłata: ${isReady ? '🟢 Gotowa do odbioru!' : `⏳ Za ${msToReadable(cooldownMs - diff)}`}\n`;
+          }
+          statusMsg += `   • Dochód nominalny: **${formatCurrency(compDef.payout)}** co 3h\n\n`;
+        }
       }
 
-      // Calculate cooldown
-      const now = Date.now();
-      const cooldownMs = 3 * 3600 * 1000;
-      const diff = now - (user.company.lastPayout || 0);
-      const isReady = diff >= cooldownMs;
+      if (user.company2) {
+        const compDef = companiesDef[user.company2.id];
+        if (compDef) {
+          const now = Date.now();
+          const cooldownMs = 3 * 3600 * 1000;
+          const diff = now - (user.company2.lastPayout || 0);
+          const isReady = diff >= cooldownMs;
 
-      let statusMsg = `💼 **TWOJE PRZEDSIĘBIORSTWO**\n`;
-      statusMsg += `${compDef.emoji} **${compDef.name}**\n`;
+          statusMsg += `2️⃣ **DRUGA FIRMA:** ${compDef.emoji} **${compDef.name}**\n`;
+          statusMsg += `   • Status: ${user.company2.isBroken ? '🔴 Zepsuta (wymaga naprawy!)' : '🟢 Sprawna'}\n`;
+          if (user.company2.isBroken) {
+            const repairCost = compDef.payout * 4;
+            statusMsg += `   • Wypłata: Zablokowana (Naprawa: **${formatCurrency(repairCost)}** — użyj **!firma napraw2**)\n`;
+          } else {
+            statusMsg += `   • Wypłata: ${isReady ? '🟢 Gotowa do odbioru!' : `⏳ Za ${msToReadable(cooldownMs - diff)}`}\n`;
+          }
+          statusMsg += `   • Dochód nominalny: **${formatCurrency(compDef.payout)}** co 3h\n\n`;
+        }
+      } else if (hasLicense) {
+        statusMsg += `2️⃣ **DRUGA FIRMA:** ❌ Brak (Kup przy użyciu: **!firma kup2 <nr>**)\n\n`;
+      }
+
       statusMsg += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      statusMsg += `📊 **Status:** ${user.company.isBroken ? '🔴 Zepsuta (wymaga naprawy!)' : '🟢 Sprawna'}\n`;
-      
-      if (user.company.isBroken) {
-        const repairCost = compDef.payout * 4;
-        statusMsg += `⏰ **Wypłata:** Zablokowana (Naprawa: **${formatCurrency(repairCost)}**)\n`;
-      } else {
-        statusMsg += `⏰ **Wypłata:** ${isReady ? '🟢 Gotowa do odbioru!' : `⏳ Za ${msToReadable(cooldownMs - diff)}`}\n`;
-      }
-      
-      statusMsg += `💰 **Nominalny dochód:** **${formatCurrency(compDef.payout)}** co 3h\n`;
-      statusMsg += `🛡️ **Szansa na awarię:** **${Math.round(compDef.breakChance * 100)}%**\n\n`;
-      
       statusMsg += `💡 **Dostępne polecenia:**\n`;
       statusMsg += `• 🪙 **!firma zbierz** — odbierz pasywny zysk\n`;
-      if (user.company.isBroken) {
-        statusMsg += `• 🔧 **!firma napraw** — napraw usterkę za **${formatCurrency(compDef.payout * 4)}**\n`;
+      if (user.company && user.company.isBroken) {
+        statusMsg += `• 🔧 **!firma napraw** — napraw pierwszą firmę\n`;
       }
-      statusMsg += `• 💸 **!firma sprzedaj** — sprzedaj firmę za 50% ceny (zwrot: **${formatCurrency(compDef.price * 0.5)}**)\n\n`;
-      
-      statusMsg += `💡 Wpisz **!firma kup** bez parametrów, aby zobaczyć ofertę innych firm.`;
+      if (user.company2 && user.company2.isBroken) {
+        statusMsg += `• 🔧 **!firma napraw2** — napraw drugą firmę\n`;
+      }
+      if (user.company) {
+        statusMsg += `• 💸 **!firma sprzedaj** — sprzedaj pierwszą firmę (50% ceny)\n`;
+      }
+      if (user.company2) {
+        statusMsg += `• 💸 **!firma sprzedaj2** — sprzedaj drugą firmę (50% ceny)\n`;
+      }
 
       await message.reply(statusMsg);
     });

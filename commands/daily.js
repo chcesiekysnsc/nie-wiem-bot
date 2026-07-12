@@ -49,10 +49,13 @@ module.exports = {
       const now = Date.now();
       const todayMidnight = getPolishMidnight(new Date(now));
 
-      if (user.lastDailyClaim && user.lastDailyClaim >= todayMidnight) {
+      const hasSzwajcar = hasItem(inventory, 'szwajcarski_zegarek');
+      const offsetHours = hasSzwajcar ? 3.6 * 60 * 60 * 1000 : 0;
+
+      if (user.lastDailyClaim && user.lastDailyClaim >= (todayMidnight - offsetHours)) {
         const tomorrowMidnight = getPolishMidnight(new Date(todayMidnight + 26 * 60 * 60 * 1000));
         return {
-          error: `Zaczekaj jeszcze **${msToReadable(tomorrowMidnight - now)}**.`
+          error: `Zaczekaj jeszcze **${msToReadable(tomorrowMidnight - offsetHours - now)}**.`
         };
       }
 
@@ -89,6 +92,10 @@ module.exports = {
         }
       }
       reward = Math.floor(reward * dailyBonusMult);
+
+      if (hasItem(inventory, 'krolewskie_insygnia')) {
+        reward = Math.floor(reward * 1.10);
+      }
 
       user.balance += reward;
       const tomorrowMidnight = getPolishMidnight(new Date(todayMidnight + 26 * 60 * 60 * 1000));

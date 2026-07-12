@@ -70,6 +70,41 @@ const eventItems = {
     emoji: '💳',
     desc: 'Co każde 6 godzin dopisuje do salda portfela dodatkowe 10% monet zdeponowanych w banku.',
     award: 'TOP 5 sezonu 2'
+  },
+  11: {
+    id: 'krolewskie_insygnia',
+    name: 'Królewskie Insygnia',
+    emoji: '👑',
+    desc: 'Zwiększają zyski ze wszystkich źródeł (!work, !crime, !daily, !firma, !rob) o stałe 10%. Stackuje się z innymi bonusami.',
+    award: 'TOP 1 sezonu 3'
+  },
+  12: {
+    id: 'szwajcarski_zegarek',
+    name: 'Szwajcarski Zegarek',
+    emoji: '⌚',
+    desc: 'Skraca cooldown na wszystkie komendy ekonomiczne (!work, !crime, !rob, !daily) o 15%. Stackuje się z innymi bonusami.',
+    award: 'TOP 2 sezonu 3'
+  },
+  13: {
+    id: 'licencja_monopolisty',
+    name: 'Licencja Monopolisty',
+    emoji: '🏢',
+    desc: 'Pozwala posiadać drugą firmę jednocześnie. Druga firma musi być zawsze o jeden tier niższa niż pierwsza. Komenda !firma zbierz odbiera zysk z obu firm naraz.',
+    award: 'TOP 3 sezonu 3'
+  },
+  14: {
+    id: 'ksiega_monopolisty',
+    name: 'Księga Monopolisty',
+    emoji: '📕',
+    desc: 'Zwiększa zyski z Twojej firmy o 15% i zmniejsza szansę na awarię o 2 punkty procentowe.',
+    award: 'TOP 4 sezonu 3'
+  },
+  15: {
+    id: 'katalizator_bogactwa',
+    name: 'Katalizator Bogactwa',
+    emoji: '💎',
+    desc: 'Podwaja bazowe oprocentowanie w banku (np. zamiast +2% co 6h/12h daje +4%). Stackuje się z innymi bonusami.',
+    award: 'TOP 5 sezonu 3'
   }
 };
 
@@ -89,7 +124,7 @@ module.exports = {
 
       const nr = Number(args[1]);
       if (isNaN(nr) || !eventItems[nr]) {
-        await message.reply(`❌ Podaj poprawny numer przedmiotu (1-10). Użyj: **!eventitemy ${subCommand} <nr> <@osoba/ID>**`);
+        await message.reply(`❌ Podaj poprawny numer przedmiotu (1-15). Użyj: **!eventitemy ${subCommand} <nr> <@osoba/ID>**`);
         return;
       }
 
@@ -161,7 +196,7 @@ module.exports = {
     }
 
     if (isNaN(nr) || !eventItems[nr]) {
-      await message.reply('❌ Podaj poprawny numer przedmiotu (1-10).');
+      await message.reply('❌ Podaj poprawny numer przedmiotu (1-15).');
       return;
     }
 

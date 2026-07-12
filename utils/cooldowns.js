@@ -153,6 +153,14 @@ async function checkCooldown(commandName, userId) {
       }
     }
 
+    // Szwajcarski Zegarek cooldown reduction
+    if (['crime', 'work', 'rob'].includes(commandName)) {
+      const inventory = store.inventory[userId];
+      if (inventory && (inventory['szwajcarski_zegarek'] || 0) > 0) {
+        duration = Math.floor(duration * 0.85);
+      }
+    }
+
     // Klikacz / Wladca Bota cooldown reduction
     const user = store.users[userId];
     if (user && user.badges) {

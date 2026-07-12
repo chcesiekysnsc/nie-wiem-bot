@@ -134,8 +134,11 @@ module.exports = {
           baseSuccessChance += 0.015;
         }
       }
-      const success = Math.random() < Math.min(baseSuccessChance, 1);
+      let success = Math.random() < Math.min(baseSuccessChance, 1);
       let amount = randomInt(5000, 30000);
+      if (hasItem(inventory, 'krolewskie_insygnia')) {
+        amount = Math.floor(amount * 1.10);
+      }
 
       // Gang bonus
       let gangBonus = 0;

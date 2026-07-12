@@ -50,14 +50,20 @@ module.exports = {
       return;
     }
 
-    // Sprawdź cooldown 30min (lub 22.5min dla Cień Nocy)
-    const hasCienNocy = await withData(store => {
+    // Sprawdź cooldown 30min (lub 22.5min dla Cień Nocy, 25.5min dla Szwajcarskiego Zegarka)
+    const { hasCienNocy, hasSzwajcar } = await withData(store => {
       const inv = ensureInventoryRecord(store.inventory, authorId);
-      return hasItem(inv, 'cien_nocy');
+      return {
+        hasCienNocy: hasItem(inv, 'cien_nocy'),
+        hasSzwajcar: hasItem(inv, 'szwajcarski_zegarek')
+      };
     });
     let robCooldownDuration = 30 * 60 * 1000;
     if (hasCienNocy) {
       robCooldownDuration = Math.floor(robCooldownDuration * 0.75);
+    }
+    if (hasSzwajcar) {
+      robCooldownDuration = Math.floor(robCooldownDuration * 0.85);
     }
 
     const coolUntil = robCooldowns.get(authorId) || 0;
@@ -216,7 +222,12 @@ module.exports = {
           }
         }
 
-        const netStolen = stolen - tribute + sztyletBonus;
+        let insygniaBonus = 0;
+        if (hasItem(robberInv, 'krolewskie_insygnia')) {
+          insygniaBonus = Math.floor((stolen - tribute) * 0.10);
+        }
+
+        const netStolen = stolen - tribute + sztyletBonus + insygniaBonus;
         victim.balance = Math.max(0, victim.balance - (stolen + sztyletBonus));
         robber.balance += netStolen;
 
@@ -283,7 +294,11 @@ module.exports = {
                   secondTribute = Math.floor(secondStolen * (tributePercent / 100));
                 }
               }
-              const secondNet = secondStolen - secondTribute + secondSztylet;
+              let secondInsygnia = 0;
+              if (hasItem(robberInv, 'krolewskie_insygnia')) {
+                secondInsygnia = Math.floor((secondStolen - secondTribute) * 0.10);
+              }
+              const secondNet = secondStolen - secondTribute + secondSztylet + secondInsygnia;
               victim.balance = Math.max(0, victim.balance - (secondStolen + secondSztylet));
               robber.balance += secondNet;
 
@@ -293,7 +308,7 @@ module.exports = {
                 bossUser.balance += secondTribute;
               }
 
-              secondRob = { success: true, stolen: secondNet, tribute: secondTribute, sztyletBonus: secondSztylet };
+              secondRob = { success: true, stolen: secondNet, tribute: secondTribute, sztyletBonus: secondSztylet, insygniaBonus: secondInsygnia };
             } else {
               let secondFine = Math.max(1, Math.floor(robber.balance * losePercent));
               if (robberHasZeton) {
@@ -335,6 +350,7 @@ module.exports = {
           sztyletResetTriggered,
           latarkaBonus,
           latarkaBonusPct,
+          insygniaBonus,
           secondRob
         };
       } else {
@@ -433,6 +449,9 @@ module.exports = {
         if (result.sztyletBonus) {
           itemsUsedNotes.push(`**+${formatCurrency(result.sztyletBonus)}** z 🗡️ Wampirzego Sztyletu${result.sztyletResetTriggered ? ' (zresetowano cooldowny)' : ''}`);
         }
+        if (result.insygniaBonus) {
+          itemsUsedNotes.push(`**+${formatCurrency(result.insygniaBonus)}** z 👑 Królewskich Insygniów`);
+        }
         const itemsNote = itemsUsedNotes.length > 0 ? ` (w tym ${itemsUsedNotes.join(' oraz ')})` : '';
         const bonusNote = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z fachu gangu)` : '';
 
@@ -448,12 +467,16 @@ module.exports = {
             const secStolen = result.secondRob.stolen;
             const secTribute = result.secondRob.tribute;
             const secSztylet = result.secondRob.sztyletBonus;
+            const secInsygnia = result.secondRob.insygniaBonus || 0;
             let secNote = `\n🏴 **Czarna Bandera: DRUGI NAPAD!** Napad udany! Dodatkowo ukradłeś **${formatCurrency(secStolen)}** od **${targetName}**`;
             if (secTribute > 0) {
               secNote += ` (pobrano **${formatCurrency(secTribute)}** haraczu dla Bossa)`;
             }
             if (secSztylet > 0) {
               secNote += ` (w tym **+${formatCurrency(secSztylet)}** ze Sztyletu)`;
+            }
+            if (secInsygnia > 0) {
+              secNote += ` (w tym **+${formatCurrency(secInsygnia)}** z Insygniów)`;
             }
             replyMsg += secNote;
             notifyMsg += `\n🏴 **DRUGI NAPAD!** Złodziej uderzył ponownie i ukradł dodatkowe **+${formatCurrency(secStolen)}**!`;

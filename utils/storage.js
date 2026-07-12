@@ -177,6 +177,7 @@ function sanitizeUser(user) {
   merged.activeLoan = merged.activeLoan || null;
   merged.blacklistedForNegativeBalance = merged.blacklistedForNegativeBalance || false;
   merged.company = merged.company && typeof merged.company === 'object' ? merged.company : null;
+  merged.company2 = merged.company2 && typeof merged.company2 === 'object' ? merged.company2 : null;
   merged.commandCounts = merged.commandCounts && typeof merged.commandCounts === 'object' && !Array.isArray(merged.commandCounts)
     ? merged.commandCounts
     : {};
@@ -291,11 +292,11 @@ function performMonthlyReset(store) {
 
   // 2. Distribute items to TOP 5 eligible users
   const rewards = [
-    'ananas_na_pizzy',
-    'czarna_bandera',
-    'kosci_oszusta',
-    'czterolistna_moneta',
-    'czarna_karta'
+    'krolewskie_insygnia',
+    'szwajcarski_zegarek',
+    'licencja_monopolisty',
+    'ksiega_monopolisty',
+    'katalizator_bogactwa'
   ];
 
   for (let i = 0; i < Math.min(5, eligibleUsers.length); i++) {
@@ -326,7 +327,12 @@ function performMonthlyReset(store) {
     'czarna_bandera',
     'czarna_karta',
     'kosci_oszusta',
-    'czterolistna_moneta'
+    'czterolistna_moneta',
+    'krolewskie_insygnia',
+    'szwajcarski_zegarek',
+    'licencja_monopolisty',
+    'ksiega_monopolisty',
+    'katalizator_bogactwa'
   ];
 
   for (const [userId, user] of Object.entries(store.users)) {
@@ -347,6 +353,7 @@ function performMonthlyReset(store) {
       user.activeLoan = null;
       user.negativeSince = null;
       user.company = null;
+      user.company2 = null;
 
       // Reset last work time to allow working immediately in the new month
       user.lastWorkTime = 0;
@@ -427,6 +434,10 @@ async function withData(callback) {
         if (user && user.bank > 0) {
           let rate = 0.02;
           const userInv = store.inventory[userId] || {};
+          const hasKatalizator = (userInv['katalizator_bogactwa'] || 0) > 0;
+          if (hasKatalizator) {
+            rate *= 2;
+          }
           const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
 
           if (user.badges) {
