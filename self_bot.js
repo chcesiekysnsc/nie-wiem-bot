@@ -2672,12 +2672,31 @@ login({ appState }, (loginErr, api) => {
     }
 
     if (senderId !== creatorId) {
-      const isDisabled = await withData(store => {
+      const { isDisabled, isDeniedForUser } = await withData(store => {
         store.profiles = store.profiles || {};
         const disabled = new Set(store.profiles.disabledCommands || []);
         const mainName = command.name;
-        return disabled.has(commandName) || disabled.has(mainName) || (command.aliases || []).some(a => disabled.has(a));
+        const globallyDisabled = disabled.has(commandName) || disabled.has(mainName) || (command.aliases || []).some(a => disabled.has(a));
+
+        const userOverrides = (store.profiles.userCommandPermissions || {})[senderId] || {};
+        const override = Object.prototype.hasOwnProperty.call(userOverrides, mainName)
+          ? userOverrides[mainName]
+          : null;
+
+        const deniedForUser = override === false;
+        const explicitlyAllowed = override === true;
+
+        return {
+          isDisabled: explicitlyAllowed ? false : globallyDisabled,
+          isDeniedForUser: deniedForUser
+        };
       });
+
+      if (isDeniedForUser) {
+        api.sendMessage(`🚫 Administrator odebrał Ci dostęp do komendy **!${command.name}**.`, threadId, () => {}, messageId);
+        return;
+      }
+
       if (isDisabled) {
         api.sendMessage('🔧 Bot jest aktualnie w trakcie prac konserwacyjnych nad tą komendą. Spróbuj ponownie później.', threadId, () => {}, messageId);
         return;
