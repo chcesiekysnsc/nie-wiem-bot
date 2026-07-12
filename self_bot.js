@@ -3,6 +3,8 @@ const path = require('path');
 const http = require('http');
 const login = require('@dongdev/fca-unofficial');
 
+require('dotenv').config();
+
 // Auto-seed data directory if empty (used for migration/Railway Volume setup)
 // Wyłączono synchronizację appstate - używamy hardcoded cookies
 function ensureSeededData() {
@@ -14,6 +16,8 @@ function ensureSeededData() {
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
+  
+  const forceRestore = process.env.FORCE_RESTORE_SEED === 'true';
   
   if (fs.existsSync(seedDir)) {
     try {
@@ -29,9 +33,9 @@ function ensureSeededData() {
           }
         }
         
-        if (targetEmpty) {
+        if (targetEmpty || forceRestore) {
           const seedPath = path.join(seedDir, file);
-          console.log(`[SEED] Copying data seed file ${file} to data/`);
+          console.log(`[SEED] Copying data seed file ${file} to data/ (forceRestore=${forceRestore})`);
           fs.copyFileSync(seedPath, targetPath);
         }
       }
@@ -41,8 +45,6 @@ function ensureSeededData() {
   }
 }
 ensureSeededData();
-
-require('dotenv').config();
 
 process.on('uncaughtException', (err) => {
   console.error('[CRITICAL] Uncaught Exception:', err);
