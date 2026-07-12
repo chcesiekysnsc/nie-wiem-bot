@@ -15,15 +15,21 @@ function getPolandHour(date) {
 }
 
 function generateGangName(cfg) {
-  const parts = cfg.gangAI && cfg.gangAI.nameParts ? cfg.gangAI.nameParts : { adjectives: [], nouns: [] };
+  const parts = cfg.gangAI && cfg.gangAI.nameParts ? cfg.gangAI.nameParts : { adjectives: [], nouns: [], suffixes: [] };
   const adjectives = parts.adjectives || [];
   const nouns = parts.nouns || [];
+  const suffixes = parts.suffixes || [];
   let name = '';
   let attempts = 0;
   do {
     const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const noun = nouns[Math.floor(Math.random() * nouns.length)];
-    name = `${adj} ${noun}`;
+    if (suffixes.length > 0 && Math.random() < 0.5) {
+      const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+      name = `${adj} ${noun} ${suffix}`;
+    } else {
+      name = `${adj} ${noun}`;
+    }
     attempts++;
     if (attempts > 50) {
       name = `${adj}${noun}${Math.floor(Math.random() * 999)}`;
@@ -36,13 +42,18 @@ function generateGangName(cfg) {
 }
 
 function generateFakeUsers(gangId, count) {
-  const prefixes = ['X', 'Z', 'K', 'M', 'V', 'R', 'N', 'S', 'T', 'P', 'L', 'D', 'G', 'H', 'B'];
-  const suffixes = ['_', '88', '99', '77', 'xx', 'zz', 'kk', 'mm', 'vv', 'rr'];
+  const fakeNames = (config.gangAI && config.gangAI.fakeNames) || { first: [], last: [] };
+  const firstNames = fakeNames.first || [];
+  const lastNames = fakeNames.last || [];
   const users = {};
   const bossId = `ai_${gangId}_boss`;
+
+  const pickFirst = () => firstNames[Math.floor(Math.random() * firstNames.length)];
+  const pickLast = () => lastNames[Math.floor(Math.random() * lastNames.length)];
+
   users[bossId] = {
     isAI: true,
-    name: `${prefixes[Math.floor(Math.random() * prefixes.length)]}${suffixes[Math.floor(Math.random() * suffixes.length)]}${Math.floor(Math.random() * 90 + 10)}`,
+    name: `${pickFirst()} ${pickLast()}`,
     gangId,
     gangRole: 'boss',
     balance: 0,
@@ -74,7 +85,7 @@ function generateFakeUsers(gangId, count) {
     const memberId = `ai_${gangId}_m${i}`;
     users[memberId] = {
       isAI: true,
-      name: `${prefixes[Math.floor(Math.random() * prefixes.length)]}${suffixes[Math.floor(Math.random() * suffixes.length)]}${Math.floor(Math.random() * 900 + 100)}`,
+      name: `${pickFirst()} ${pickLast()}`,
       gangId,
       gangRole: 'member',
       balance: Math.floor(Math.random() * 500000),
@@ -297,11 +308,14 @@ async function executeRecruit(gang, cfg) {
   }
 
   const newId = `ai_${gang.id || gang.gangId}_m${Date.now()}_${Math.floor(Math.random() * 999)}`;
-  const prefixes = ['X', 'Z', 'K', 'M', 'V', 'R', 'N', 'S'];
-  const suffixes = ['_', '88', '99', '77', 'xx', 'zz'];
+  const fakeNames = (config.gangAI && config.gangAI.fakeNames) || { first: [], last: [] };
+  const firstNames = fakeNames.first || [];
+  const lastNames = fakeNames.last || [];
+  const pickFirst = () => firstNames[Math.floor(Math.random() * firstNames.length)];
+  const pickLast = () => lastNames[Math.floor(Math.random() * lastNames.length)];
   const fakeUser = {
     isAI: true,
-    name: `${prefixes[Math.floor(Math.random() * prefixes.length)]}${suffixes[Math.floor(Math.random() * suffixes.length)]}${Math.floor(Math.random() * 900 + 100)}`,
+    name: `${pickFirst()} ${pickLast()}`,
     gangId: gang.id || gang.gangId,
     gangRole: 'member',
     balance: Math.floor(Math.random() * 200000),

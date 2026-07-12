@@ -640,8 +640,13 @@ module.exports = {
       zbalansowany: { upgradePriority: ['dziupla', 'biznesy', 'fach'], attackWeight: 1.0 }
     },
     nameParts: {
-      adjectives: ['Cienie', 'Żmije', 'Czarna', 'Krwawa', 'Stalowa', 'Złota', 'Srebrna', 'Wściekła', 'Niewidzialna', 'Podziemna', 'Mroczna', 'Płomienna', 'Lodowa', 'Szara', 'Błękitna'],
-      nouns: ['Gwardia', 'Bractwo', 'Kartel', 'Legion', 'Sfora', 'Banda', 'Syndykat', 'Klan', 'Horda', 'Wataha', 'Grom', 'Straż', 'Firma', 'Zespół', 'Ród']
+      adjectives: ['Cienie', 'Żmije', 'Czarna', 'Krwawa', 'Stalowa', 'Złota', 'Srebrna', 'Wściekła', 'Niewidzialna', 'Podziemna', 'Mroczna', 'Płomienna', 'Lodowa', 'Szara', 'Błękitna', 'Zatruty', 'Zbrodniczy', 'Diabli', 'Kosmiczny', 'Posępny'],
+      nouns: ['Gwardia', 'Bractwo', 'Kartel', 'Legion', 'Sfora', 'Banda', 'Syndykat', 'Klan', 'Horda', 'Wataha', 'Grom', 'Straż', 'Firma', 'Zespół', 'Ród', 'Kolba', 'Węzeł', 'Krąg', 'Szczep', 'Rój'],
+      suffixes: ['Nocy', 'Mroku', 'Stali', 'Ognia', 'Lodu', 'Cienia', 'Krwii', 'Złamanych', 'Ulic', 'Starego', 'Nowego', 'Złotych', 'Srebrnych', 'Diabłów', 'Rozdartych']
+    },
+    fakeNames: {
+      first: ['Jan', 'Piotr', 'Adam', 'Marek', 'Kamil', 'Tomasz', 'Jakub', 'Michał', 'Krzysztof', 'Andrzej', 'Paweł', 'Rafał', 'Grzegorz', 'Marcin', 'Łukasz', 'Dawid', 'Patryk', 'Sebastian', 'Damian', 'Konrad', 'Oskar', 'Dominik', 'Mikołaj', 'Wojciech', 'Artur', 'Mateusz', 'Adrian', 'Bartosz', 'Robert', 'Arkadiusz'],
+      last: ['Nowak', 'Kowalski', 'Wiśniewski', 'Wójcik', 'Kowalczyk', 'Kamiński', 'Lewandowski', 'Zieliński', 'Szymański', 'Woźniak', 'Dąbrowski', 'Kozłowski', 'Jankowski', 'Mazur', 'Krawczyk', 'Piotrowski', 'Grabowski', 'Nowakowski', 'Pawłowski', 'Michalski', 'Adamczyk', 'Dudek', 'Zając', 'Wieczorek', 'Jabłoński', 'Król', 'Witkowski', 'Walczak', 'Stępień', 'Górski']
     }
   },
   bossShopCrates: {
