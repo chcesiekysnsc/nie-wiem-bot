@@ -226,6 +226,10 @@ module.exports = {
           if (user.badges && user.badges.includes(config.badges.uzalezniony)) {
             win = Math.round(win * 1.03);
           }
+          const { hasItem } = require('../utils/economy');
+          if (hasItem(ensureInventoryRecord(store.inventory, message.author.id), 'krolewskie_insygnia')) {
+            win = Math.floor(win * 1.10);
+          }
           user.balance += win;
           net = win;
         }

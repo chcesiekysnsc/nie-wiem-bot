@@ -159,6 +159,12 @@ module.exports = {
             if (user.badges && user.badges.includes(config.badges.uzalezniony)) {
               payout = Math.round(payout * 1.03);
             }
+            if (hasItem(inventory, 'krolewskie_insygnia')) {
+              const profit = payout - bet;
+              if (profit > 0) {
+                payout += Math.floor(profit * 0.10);
+              }
+            }
             const { applyTalizmanBonus } = require('../utils/economy');
             talizmanBonus = applyTalizmanBonus(user, inventory, payout - bet);
             payout += talizmanBonus;
@@ -337,6 +343,11 @@ module.exports = {
             }
             if (user.badges && user.badges.includes(config.badges.uzalezniony)) {
               winAmount = Math.round(winAmount * 1.03);
+            }
+            if (hasItem(inventory, 'krolewskie_insygnia')) {
+              if (winAmount > 0) {
+                winAmount += Math.floor(winAmount * 0.10);
+              }
             }
             user.balance += winAmount;
           }

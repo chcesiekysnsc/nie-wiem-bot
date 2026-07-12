@@ -259,6 +259,9 @@ module.exports = {
         let net = 0;
         if (state === 'win') {
           net = Math.round(bet * 0.90);
+          if (hasItem(inventory, 'krolewskie_insygnia')) {
+            net = Math.floor(net * 1.10);
+          }
           user.balance += net;
         } else if (state === 'lose') {
           net = -bet;

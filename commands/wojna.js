@@ -198,10 +198,18 @@ module.exports = {
 
           const resolution = await withData(store => {
             const winnerUser = createUser(winnerId, store.users);
-            winnerUser.balance += potAfterTax;
-
-            const net = potAfterTax - active.bet;
             const winnerInv = ensureInventoryRecord(store.inventory, winnerId);
+            const { hasItem } = require('../utils/economy');
+            let finalPot = potAfterTax;
+            if (hasItem(winnerInv, 'krolewskie_insygnia')) {
+              const profit = potAfterTax - active.bet;
+              if (profit > 0) {
+                finalPot += Math.floor(profit * 0.10);
+              }
+            }
+            winnerUser.balance += finalPot;
+
+            const net = finalPot - active.bet;
             const xpResult = recordGame(winnerUser, net, 25, winnerInv);
             refreshBadges(winnerUser, winnerInv);
 

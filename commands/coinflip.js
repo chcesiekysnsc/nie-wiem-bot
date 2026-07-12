@@ -119,6 +119,10 @@ module.exports = {
       if (won && !kosciRefunded && user.badges && user.badges.includes(config.badges.uzalezniony)) {
         payout += Math.round(bet * 0.03);
       }
+      if (won && !kosciRefunded && hasItem(inventory, 'krolewskie_insygnia')) {
+        const profit = payout - bet;
+        payout += Math.floor(profit * 0.10);
+      }
 
       let talizmanBonus = 0;
       if (won && !kosciRefunded) {

@@ -246,6 +246,12 @@ module.exports = {
           payout += Math.round(profit * 0.03);
         }
       }
+      if (won && !kosciRefunded && hasItem(inventory, 'krolewskie_insygnia')) {
+        const profit = payout - bet;
+        if (profit > 0) {
+          payout += Math.floor(profit * 0.10);
+        }
+      }
       user.balance += payout;
 
       const net = payout - bet;

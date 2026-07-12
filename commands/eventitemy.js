@@ -75,7 +75,7 @@ const eventItems = {
     id: 'krolewskie_insygnia',
     name: 'Królewskie Insygnia',
     emoji: '👑',
-    desc: 'Zwiększają zyski ze wszystkich źródeł (!work, !crime, !daily, !firma, !rob) o stałe 10%. Stackuje się z innymi bonusami.',
+    desc: 'Zwiększają zyski ze wszystkich źródeł (work, crime, daily, rob, firmy, kasyno, napady gangu, loteria itp.) o stałe 10%. Stackuje się z innymi bonusami.',
     award: 'TOP 1 sezonu 3'
   },
   12: {
@@ -89,7 +89,7 @@ const eventItems = {
     id: 'licencja_monopolisty',
     name: 'Licencja Monopolisty',
     emoji: '🏢',
-    desc: 'Pozwala posiadać drugą firmę jednocześnie. Druga firma musi być zawsze o jeden tier niższa niż pierwsza. Komenda !firma zbierz odbiera zysk z obu firm naraz.',
+    desc: 'Pozwala posiadać drugą firmę jednocześnie. Druga firma musi być zawsze o jeden tier niższa niż pierwsza. Zarządzanie drugą firmą odbywa się przez komendy: !firma2 [kup <nr/ID> | sprzedaj | napraw | status]. Zysk z obu firm zbierasz komendą: !firma zbierz.',
     award: 'TOP 3 sezonu 3'
   },
   14: {

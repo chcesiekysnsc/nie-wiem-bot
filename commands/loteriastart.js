@@ -37,7 +37,13 @@ module.exports = {
         const totalPrize = Math.floor(totalTickets * 50000 * ticketMultiplier);
 
         const winnerUser = createUser(winnerId, store.users);
-        winnerUser.balance = (winnerUser.balance || 0) + totalPrize;
+        const { hasItem } = require('../utils/economy');
+        const winnerInv = store.inventory[winnerId] || {};
+        let finalPrize = totalPrize;
+        if (hasItem(winnerInv, 'krolewskie_insygnia')) {
+          finalPrize = Math.floor(finalPrize * 1.10);
+        }
+        winnerUser.balance = (winnerUser.balance || 0) + finalPrize;
 
         for (const inv of Object.values(store.inventory || {})) {
           if (inv.ticket) {
@@ -48,22 +54,24 @@ module.exports = {
         return {
           winnerId,
           totalTickets,
-          totalPrize
+          totalPrize,
+          finalPrize
         };
       });
 
       if (drawResult) {
         client.lastLotteryDraw = Date.now();
         const winnerName = await client.resolveUserName(client.api, drawResult.winnerId);
+        const bonusText = drawResult.finalPrize > drawResult.totalPrize ? ' (w tym +10% z Królewskich Insygniów!)' : '';
         const announceMsg = 
           `🎟️ **LOSOWANIE LOTERII**\n` +
           `Łączna liczba biletów w grze: **${drawResult.totalTickets}**\n` +
           `Wygrywa: **${winnerName}**! 🎉\n` +
-          `Nagroda główna: **+${drawResult.totalPrize.toLocaleString()} viccoinów** została dodana do portfela!\n` +
+          `Nagroda główna: **+${drawResult.finalPrize.toLocaleString()} viccoinów** została dodana do portfela!${bonusText}\n` +
           `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą **!sklep 3**.`;
 
         client.api.sendMessage(announceMsg, client.lastThreadId);
-        await message.reply(`✅ Losowanie wykonane!\n🎉 Zwycięzca: **${winnerName}**\n💰 Wygrana: **${drawResult.totalPrize.toLocaleString()} viccoinów**`);
+        await message.reply(`✅ Losowanie wykonane!\n🎉 Zwycięzca: **${winnerName}**\n💰 Wygrana: **${drawResult.finalPrize.toLocaleString()} viccoinów**${bonusText}`);
       } else {
         await message.reply('⚠️ Brak biletów w grze. Niemożliwe przeprowadzenie losowania.');
       }

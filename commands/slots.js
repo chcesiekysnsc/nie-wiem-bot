@@ -168,6 +168,10 @@ module.exports = {
         const profit = payout - bet;
         payout += Math.round(profit * 0.03);
       }
+      if (payout > bet && hasItem(inventory, 'krolewskie_insygnia')) {
+        const profit = payout - bet;
+        payout += Math.floor(profit * 0.10);
+      }
       user.balance += payout;
 
       const net = payout - bet;

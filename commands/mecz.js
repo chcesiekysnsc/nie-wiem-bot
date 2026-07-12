@@ -402,6 +402,13 @@ module.exports = {
           if (won) {
             taxApplied = Math.round(potentialWin * taxRate);
             payoutApplied = potentialWin - taxApplied;
+            const { hasItem } = require('../utils/economy');
+            if (hasItem(inventory, 'krolewskie_insygnia')) {
+              const profit = payoutApplied - bet;
+              if (profit > 0) {
+                payoutApplied += Math.floor(profit * 0.10);
+              }
+            }
             net = payoutApplied - bet;
             user.balance += payoutApplied; // Dodajemy wygraną po odliczeniu podatku
           } else {

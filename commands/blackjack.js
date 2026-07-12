@@ -597,6 +597,12 @@ module.exports = {
           const profit = finalPayout - game.bet;
           finalPayout = game.bet + Math.round(profit * evMul);
         }
+        if (hasItem(inventory, 'krolewskie_insygnia')) {
+          const profit = finalPayout - game.bet;
+          if (profit > 0) {
+            finalPayout += Math.floor(profit * 0.10);
+          }
+        }
         const profit = finalPayout - game.bet;
         const { applyTalizmanBonus } = require('../utils/economy');
         talizmanBonus = applyTalizmanBonus(user, inventory, profit);

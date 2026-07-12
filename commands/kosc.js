@@ -80,7 +80,10 @@ module.exports = {
       let netChange = 0;
       if (won) {
         const evMul = getActiveEventMultiplier('casino');
-        const finalStake = evMul > 1 ? Math.round(stake * evMul) : stake;
+        let finalStake = evMul > 1 ? Math.round(stake * evMul) : stake;
+        if (hasItem(inventory, 'krolewskie_insygnia')) {
+          finalStake = Math.floor(finalStake * 1.10);
+        }
         user.balance += finalStake;
         netChange = finalStake;
       } else {

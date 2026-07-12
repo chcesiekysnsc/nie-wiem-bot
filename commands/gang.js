@@ -1343,7 +1343,11 @@ module.exports = {
             if (hasItem(inventory, 'godlo_gangu')) {
               godloBonus = Math.floor(finalReward * 0.10);
             }
-            finalReward += godloBonus + insygniaBonus;
+            let krolewskieBonus = 0;
+            if (hasItem(inventory, 'krolewskie_insygnia')) {
+              krolewskieBonus = Math.floor(finalReward * 0.10);
+            }
+            finalReward += godloBonus + insygniaBonus + krolewskieBonus;
             pUser.balance += finalReward;
             
             participantBonuses[pid] = godloBonus;
@@ -1733,8 +1737,12 @@ module.exports = {
               if (hasItem(inventory, 'godlo_gangu')) {
                 godloBonus = Math.floor(finalShare * 0.05);
               }
+              let krolewskieBonus = 0;
+              if (hasItem(inventory, 'krolewskie_insygnia')) {
+                krolewskieBonus = Math.floor(finalShare * 0.10);
+              }
               
-              finalShare += godloBonus + insygniaBonus;
+              finalShare += godloBonus + insygniaBonus + krolewskieBonus;
               pUser.balance += finalShare;
               attackerBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
               
@@ -1785,8 +1793,12 @@ module.exports = {
                 if (hasItem(inventory, 'godlo_gangu')) {
                   godloBonus = Math.floor(finalShare * 0.05);
                 }
+                let krolewskieBonus = 0;
+                if (hasItem(inventory, 'krolewskie_insygnia')) {
+                  krolewskieBonus = Math.floor(finalShare * 0.10);
+                }
                 
-                finalShare += godloBonus + insygniaBonus;
+                finalShare += godloBonus + insygniaBonus + krolewskieBonus;
                 pUser.balance += finalShare;
                 defenderBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
               }
