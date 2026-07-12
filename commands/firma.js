@@ -156,8 +156,6 @@ module.exports = {
 
     // --- SUBCOMMAND: ZBIERZ / ODBIERZ / WYPLATA ---
     if (action === 'zbierz' || action === 'odbierz' || action === 'wyplata' || action === 'claim') {
-      const companyBreakdownOverride = await getEffectiveChance(message.author.id, 'company_breakdown');
-
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
         const inventory = ensureInventoryRecord(store.inventory, message.author.id);
@@ -166,6 +164,10 @@ module.exports = {
         const hasInsygnia = hasItem(inventory, 'krolewskie_insygnia');
         const now = Date.now();
         const cooldownMs = 3 * 3600 * 1000;
+
+        const overrides = (store.profiles && store.profiles.chanceOverrides && store.profiles.chanceOverrides[message.author.id]) || {};
+        const breakChanceOverride = overrides['company_breakdown'];
+        const hasBreakdownOverride = breakChanceOverride !== undefined && breakChanceOverride !== null && breakChanceOverride !== '';
 
         if (!user.company && !user.company2) {
           return { error: '❌ Nie posiadasz żadnego przedsiębiorstwa! Kup je najpierw za pomocą **!firma kup <nr>**.' };
@@ -209,7 +211,7 @@ module.exports = {
           }
 
           companyObj.lastPayout = now;
-          let breakChance = Number.isFinite(companyBreakdownOverride) ? companyBreakdownOverride / 100 : compDef.breakChance;
+          let breakChance = hasBreakdownOverride ? Number(breakChanceOverride) / 100 : compDef.breakChance;
           if (hasKsiega) {
             breakChance = Math.max(0, breakChance - 0.02);
           }
