@@ -1,8 +1,12 @@
 {
   "blacklist": [
-    "100081902020596",
-    "100058754040769",
-    "100077231122056"
+    "61587917025132",
+    "61568591880516",
+    "61583610843927",
+    "100058279567414",
+    "61564492711890",
+    "100057815070720",
+    "61560227271099"
   ],
   "showIds": [],
   "blacklistedGroups": [],
@@ -13,48 +17,52 @@
       "deputies": [
         "61571684725864",
         "100088863765243",
-        "61573024537463"
+        "61573024537463",
+        "100012709246650",
+        "100014929176652"
       ],
       "members": [
         "100060812419294",
         "61571684725864",
         "100088863765243",
-        "100080008517632",
         "100014929176652",
-        "100012858159027",
-        "100083841624670",
-        "100046279354282",
-        "61579212392235",
-        "61562475523609",
-        "61573024537463"
+        "61573024537463",
+        "100012709246650",
+        "61569567502615",
+        "100012858159027"
       ],
-      "vault": 481748,
-      "levelDziupla": 0,
+      "vault": 64348,
+      "levelDziupla": 3,
       "levelBiznesy": 3,
-      "levelFach": 2,
-      "lastHeistTime": 1780676606857,
+      "levelFach": 3,
+      "lastHeistTime": 1783443148821,
       "deposits": {
-        "100060812419294": 78991012,
+        "100060812419294": 81196012,
         "61573024537463": 92000,
         "100011378042556": 85956,
-        "100088863765243": 100000,
+        "100088863765243": 150000,
         "61562475523609": 62778,
         "61579212392235": 63832,
-        "100046279354282": 63945
+        "100046279354282": 63945,
+        "100014929176652": 100000,
+        "100012709246650": 50000,
+        "61569567502615": 70000,
+        "100012858159027": 250000
       },
-      "tributePercent": 50,
-      "lastAttackTime": 0
+      "tributePercent": 10,
+      "lastAttackTime": 0,
+      "alliances": [
+        "taksiczuj"
+      ],
+      "allianceRequests": [],
+      "lastSupportTime": 1783638159296
     },
     "sympatycylarego": {
       "name": "sympatycy larego",
       "bossId": "61554894353095",
-      "deputies": [
-        "100012709246650"
-      ],
+      "deputies": [],
       "members": [
         "61554894353095",
-        "100012709246650",
-        "100045093158537",
         "100028592110425",
         "61563456404665",
         "61573228601016",
@@ -62,62 +70,75 @@
         "100071703912091",
         "100077231122056"
       ],
-      "vault": 20656,
-      "levelDziupla": 0,
-      "levelBiznesy": 0,
-      "levelFach": 0,
-      "tributePercent": 25,
-      "lastHeistTime": 1781100992380,
-      "lastAttackTime": 0,
-      "shieldUntil": 1779726322665,
-      "deposits": {
-        "61554894353095": 8772751,
-        "100012709246650": 1310001,
-        "61564076458500": 16661
-      }
-    },
-    "taksiczuj": {
-      "name": "Tak Się Czuję",
-      "bossId": "100011378042556",
-      "deputies": [
-        "100012870817390"
-      ],
-      "members": [
-        "100011378042556",
-        "100012870817390",
-        "100016685764834"
-      ],
-      "vault": 0,
-      "levelDziupla": 0,
-      "levelBiznesy": 3,
-      "levelFach": 0,
-      "tributePercent": 0,
-      "lastHeistTime": 1781431860188,
-      "lastAttackTime": 0,
-      "shieldUntil": 0,
-      "deposits": {
-        "100011378042556": 525000,
-        "100012870817390": 725000
-      }
-    },
-    "nowohuckieswiry": {
-      "name": "NowohuckieSwiry",
-      "bossId": "100058279567414",
-      "deputies": [],
-      "members": [
-        "100058279567414"
-      ],
-      "vault": 0,
+      "vault": 36313,
       "levelDziupla": 0,
       "levelBiznesy": 0,
       "levelFach": 0,
       "tributePercent": 0,
       "lastHeistTime": 0,
       "lastAttackTime": 0,
-      "shieldUntil": 0
+      "shieldUntil": 1779726322665,
+      "deposits": {
+        "61554894353095": 8772751,
+        "100012709246650": 1310001,
+        "61564076458500": 16661
+      },
+      "lastSupportTime": 0
+    },
+    "taksiczuj": {
+      "name": "Tak Się Czuję",
+      "bossId": "100011378042556",
+      "deputies": [
+        "100012870817390",
+        "100055028388595"
+      ],
+      "members": [
+        "100011378042556",
+        "100012870817390",
+        "100016685764834",
+        "100055028388595",
+        "61572761931589"
+      ],
+      "vault": 103146,
+      "levelDziupla": 3,
+      "levelBiznesy": 3,
+      "levelFach": 0,
+      "tributePercent": 0,
+      "lastHeistTime": 1783808590104,
+      "lastAttackTime": 0,
+      "shieldUntil": 0,
+      "deposits": {
+        "100011378042556": 1775000,
+        "100012870817390": 1225000
+      },
+      "alliances": [
+        "wkf"
+      ],
+      "allianceRequests": [],
+      "lastSupportTime": 1783267032868
+    },
+    "nowohuckieswiry": {
+      "name": "NowohuckieSwiry",
+      "bossId": "100058279567414",
+      "deputies": [
+        "61583610843927"
+      ],
+      "members": [
+        "100058279567414",
+        "61583610843927"
+      ],
+      "vault": 0,
+      "levelDziupla": 0,
+      "levelBiznesy": 0,
+      "levelFach": 0,
+      "tributePercent": 100,
+      "lastHeistTime": 0,
+      "lastAttackTime": 0,
+      "shieldUntil": 0,
+      "lastSupportTime": 0
     }
   },
-  "lastInterestPayout": 1781417522607,
+  "lastInterestPayout": 1783836722607,
   "marriageBanks": {
     "100012709246650-100028592110425": {
       "balance": 0,
@@ -132,23 +153,25 @@
         "100060812419294": 100000
       }
     },
-    "100078222663292-100080008517632": {
-      "balance": 0,
-      "contributions": {
-        "100080008517632": 0
-      }
-    },
     "61554894353095-61573024537463": {
-      "balance": 10000,
+      "balance": 14000,
       "contributions": {
-        "61573024537463": 10000
+        "61573024537463": 14000
       }
     }
   },
   "trueBlacklist": [],
-  "market": [],
+  "market": [
+    {
+      "listingId": "1783465981992-wp0s",
+      "sellerId": "61572761931589",
+      "itemId": "podrecznik_praktykanta",
+      "price": 1000000,
+      "listedAt": 1783465981992
+    }
+  ],
   "lastResetYear": 2026,
-  "lastResetMonth": 5,
+  "lastResetMonth": 6,
   "lastfmConnections": {
     "100088863765243": {
       "username": "oklamaa",
@@ -159,7 +182,7 @@
       "incognito": false
     },
     "100011378042556": {
-      "username": "eryczeki",
+      "username": "Eryczeki",
       "incognito": false
     },
     "100058754040769": {
@@ -185,6 +208,30 @@
     "100021697509898": {
       "username": "D1trox",
       "incognito": false
+    },
+    "61576144913501": {
+      "username": "xxnqjc",
+      "incognito": false
+    },
+    "100010412470964": {
+      "username": "igoority",
+      "incognito": false
+    },
+    "61563456404665": {
+      "username": "Szyszka",
+      "incognito": false
+    },
+    "61583486648347": {
+      "username": "xxnqjc",
+      "incognito": false
+    },
+    "100025484978157": {
+      "username": "Yves",
+      "incognito": false
+    },
+    "61573877521067": {
+      "username": "Amelka",
+      "incognito": false
     }
   },
   "threadSettings": {
@@ -193,31 +240,618 @@
         "100093902840911",
         "61564076458500",
         "61573024537463",
-        "100060812419294"
+        "100060812419294",
+        "100088863765243"
       ],
       "nicknameGuards": {
         "100060812419294": "najlepsza lisandra na swiecie",
         "61564076458500": "kapus 60 placzek",
         "100023508980414": "moja mala slodka cureczka tatusia",
         "61554894353095": "najbrzydszy czlowiek na swiecie i najgorszy viktor",
-        "61573024537463": "pedofil gnuj cfel gnida smierdziel"
+        "61573024537463": "pedofil gnuj cfel gnida smierdziel",
+        "100088863765243": "naplet"
+      },
+      "prefix": "!",
+      "prefixSetByCreator": false,
+      "unsendLoggingEnabled": true
+    },
+    "5277347745703557": {
+      "nicknameGuards": {
+        "61571684725864": "alan zjomeczku co z urodzinami"
       },
       "prefix": "!",
       "prefixSetByCreator": false
     },
-    "5277347745703557": {
+    "8323944560972046": {
       "nicknameGuards": {
-        "61571684725864": "najlepszy talon na swiecie"
+        "100028013243047": "naplet"
+      }
+    },
+    "9229737607061285": {
+      "prefix": "!",
+      "prefixSetByCreator": false,
+      "nicknameGuards": {
+        "61573877521067": "Pstrąg Ciporowski",
+        "61554894353095": "bydlak manipulant klamca rasista zbok",
+        "100060812419294": "przystojny mlody mily wrazliwy mezczyzna",
+        "61587656458423": "lukasz",
+        "61552550549856": "elblącki mitoman",
+        "61568591880516": "beomgyu team rafal",
+        "100015436500509": "madzja team rafal",
+        "100079292222757": "jaja",
+        "61558258121306": "mila slotka ladna grzeczna dziefczynka oliwia"
       }
     }
   },
   "dynamicAdmins": [
     "61571684725864",
     "61560227271099",
-    "61562475523609"
+    "61562475523609",
+    "100011378042556",
+    "100093902840911"
   ],
-  "spamWarnings": {},
+  "spamWarnings": {
+    "100055896746869": 1,
+    "61560227271099": 8
+  },
   "addedGroupsCount": {
-    "100060812419294": 1
+    "100060812419294": 4,
+    "100047631864167": 1
+  },
+  "activeBlackjackGames": {
+    "100014929176652": {
+      "bet": 20000,
+      "playerCards": [
+        {
+          "rank": "K",
+          "suit": "♠️"
+        },
+        {
+          "rank": "2",
+          "suit": "♠️"
+        }
+      ],
+      "dealerCards": [
+        {
+          "rank": "9",
+          "suit": "♥️"
+        },
+        {
+          "rank": "Q",
+          "suit": "♠️"
+        }
+      ],
+      "deck": [
+        {
+          "rank": "7",
+          "suit": "♥️"
+        },
+        {
+          "rank": "K",
+          "suit": "♣️"
+        },
+        {
+          "rank": "6",
+          "suit": "♦️"
+        },
+        {
+          "rank": "6",
+          "suit": "♥️"
+        },
+        {
+          "rank": "A",
+          "suit": "♠️"
+        },
+        {
+          "rank": "10",
+          "suit": "♦️"
+        },
+        {
+          "rank": "9",
+          "suit": "♣️"
+        },
+        {
+          "rank": "10",
+          "suit": "♣️"
+        },
+        {
+          "rank": "A",
+          "suit": "♥️"
+        },
+        {
+          "rank": "5",
+          "suit": "♠️"
+        },
+        {
+          "rank": "J",
+          "suit": "♦️"
+        },
+        {
+          "rank": "8",
+          "suit": "♣️"
+        },
+        {
+          "rank": "2",
+          "suit": "♥️"
+        },
+        {
+          "rank": "8",
+          "suit": "♥️"
+        },
+        {
+          "rank": "J",
+          "suit": "♣️"
+        },
+        {
+          "rank": "K",
+          "suit": "♥️"
+        },
+        {
+          "rank": "A",
+          "suit": "♦️"
+        },
+        {
+          "rank": "4",
+          "suit": "♠️"
+        },
+        {
+          "rank": "2",
+          "suit": "♣️"
+        },
+        {
+          "rank": "3",
+          "suit": "♥️"
+        },
+        {
+          "rank": "Q",
+          "suit": "♦️"
+        },
+        {
+          "rank": "2",
+          "suit": "♦️"
+        },
+        {
+          "rank": "4",
+          "suit": "♥️"
+        },
+        {
+          "rank": "9",
+          "suit": "♠️"
+        },
+        {
+          "rank": "7",
+          "suit": "♦️"
+        },
+        {
+          "rank": "3",
+          "suit": "♦️"
+        },
+        {
+          "rank": "A",
+          "suit": "♣️"
+        },
+        {
+          "rank": "5",
+          "suit": "♥️"
+        },
+        {
+          "rank": "5",
+          "suit": "♣️"
+        },
+        {
+          "rank": "4",
+          "suit": "♦️"
+        },
+        {
+          "rank": "6",
+          "suit": "♣️"
+        },
+        {
+          "rank": "Q",
+          "suit": "♥️"
+        },
+        {
+          "rank": "Q",
+          "suit": "♣️"
+        },
+        {
+          "rank": "J",
+          "suit": "♥️"
+        },
+        {
+          "rank": "8",
+          "suit": "♦️"
+        },
+        {
+          "rank": "8",
+          "suit": "♠️"
+        },
+        {
+          "rank": "J",
+          "suit": "♠️"
+        },
+        {
+          "rank": "7",
+          "suit": "♣️"
+        },
+        {
+          "rank": "10",
+          "suit": "♠️"
+        },
+        {
+          "rank": "9",
+          "suit": "♦️"
+        },
+        {
+          "rank": "3",
+          "suit": "♣️"
+        },
+        {
+          "rank": "K",
+          "suit": "♦️"
+        },
+        {
+          "rank": "10",
+          "suit": "♥️"
+        },
+        {
+          "rank": "3",
+          "suit": "♠️"
+        },
+        {
+          "rank": "4",
+          "suit": "♣️"
+        },
+        {
+          "rank": "6",
+          "suit": "♠️"
+        },
+        {
+          "rank": "5",
+          "suit": "♦️"
+        },
+        {
+          "rank": "7",
+          "suit": "♠️"
+        }
+      ],
+      "threadId": "7596572000383742"
+    }
+  },
+  "lastCzarnaKartaPayout": 1783833430012,
+  "allowedAI": [
+    "61573228601016",
+    {
+      "id": "100011378042556",
+      "dailyLimit": 15,
+      "addedAt": 1783095128820
+    },
+    {
+      "id": "61571684725864",
+      "dailyLimit": 15,
+      "addedAt": 1783095141249
+    },
+    "100053875564339",
+    "61554894353095",
+    "100014929176652",
+    "100012709246650",
+    "100088863765243",
+    "100048600512399",
+    "61560227271099",
+    "61562475523609",
+    "100046279354282",
+    {
+      "id": "100093902840911",
+      "dailyLimit": 50,
+      "addedAt": 1783095114083
+    },
+    {
+      "id": "100012870817390",
+      "dailyLimit": 10,
+      "addedAt": 1783095176129
+    },
+    {
+      "id": "100012870817390",
+      "dailyLimit": 11,
+      "addedAt": 1783095296681
+    },
+    {
+      "id": "61573877521067",
+      "dailyLimit": 1,
+      "addedAt": 1783446818358
+    },
+    {
+      "id": "61573877521067",
+      "dailyLimit": 4,
+      "addedAt": 1783447550932
+    }
+  ],
+  "danegrpProgress": {
+    "totalGroups": 74,
+    "processedGroups": 25,
+    "startTime": 1782691406657,
+    "isActive": true,
+    "messageCount": 10000,
+    "totalMessagesAnalyzed": 264
+  },
+  "lastResetWinners": [
+    {
+      "userId": "100060812419294",
+      "total": 17091329,
+      "item": "ananas_na_pizzy"
+    },
+    {
+      "userId": "100012709246650",
+      "total": 7585257,
+      "item": "czarna_bandera"
+    },
+    {
+      "userId": "100012870817390",
+      "total": 3525000,
+      "item": "kosci_oszusta"
+    },
+    {
+      "userId": "100011378042556",
+      "total": 2159000,
+      "item": "czterolistna_moneta"
+    },
+    {
+      "userId": "100056878188995",
+      "total": 1349939,
+      "item": "czarna_karta"
+    }
+  ],
+  "justReset": false,
+  "playerLoans": [],
+  "botStatus": {
+    "loggedIn": true,
+    "botId": "61560227271099",
+    "activeThreads": 78,
+    "lastHeartbeat": 1783850322122
+  },
+  "pendingAdminBroadcasts": [],
+  "pendingAdminRestart": false,
+  "activeEvents": [],
+  "groupPrefixes": {
+    "9229737607061285": "!"
+  },
+  "balanceTaxRate": 15,
+  "transferTaxRate": 5,
+  "marketTaxRate": 10,
+  "gangTributeRate": 0,
+  "casinoTaxRate": 15,
+  "meczTaxRate": 15,
+  "events": [
+    {
+      "id": "evt_1783711136666_kdyu",
+      "type": "casino",
+      "multiplier": 1.1,
+      "endTime": 1783883936666,
+      "description": "",
+      "createdAt": 1783711136666
+    },
+    {
+      "id": "evt_1783711139253_ukny",
+      "type": "xp",
+      "multiplier": 1.1,
+      "endTime": 1783883939253,
+      "description": "",
+      "createdAt": 1783711139253
+    },
+    {
+      "id": "evt_1783711143653_otyy",
+      "type": "items",
+      "multiplier": 1.1,
+      "endTime": 1783883943653,
+      "description": "",
+      "createdAt": 1783711143653
+    },
+    {
+      "id": "evt_1783711150795_bwoc",
+      "type": "cooldowns",
+      "multiplier": 1.1111111111111112,
+      "reductionPercent": 10,
+      "endTime": 1783883950795,
+      "description": "",
+      "createdAt": 1783711150795
+    },
+    {
+      "id": "evt_1783711155369_u88u",
+      "type": "shop_discount",
+      "multiplier": 0.85,
+      "reductionPercent": 15,
+      "endTime": 1783883955369,
+      "description": "",
+      "createdAt": 1783711155369
+    },
+    {
+      "id": "evt_1783711162975_i8ev",
+      "type": "bank_interest",
+      "multiplier": 1.1,
+      "endTime": 1783883962975,
+      "description": "",
+      "createdAt": 1783711162975
+    }
+  ],
+  "customCooldowns": {},
+  "afk": {
+    "100081864906521": {
+      "reason": "h-heh...Ki-Ki-Kim Jong Un... mój jedyny władca.. *wzdycha, uśmiecha się lekko próbując ukryć bilet w jedną stronę do Korei północnej*",
+      "time": 1783086453022
+    },
+    "100060812419294": {
+      "reason": "s•am",
+      "time": 1783095899430,
+      "enabled": true
+    },
+    "100078222663292": {
+      "reason": "nagrywam po*n*la",
+      "time": 1783092338442,
+      "enabled": true
+    },
+    "100012709246650": {
+      "reason": "cr*cku**e t*rt*",
+      "time": 1783095396455,
+      "enabled": true
+    },
+    "100080008517632": {
+      "reason": "j***c te plomby",
+      "time": 1783092368644,
+      "enabled": true
+    },
+    "61573877521067": {
+      "reason": "biba co niedziele",
+      "time": 1783261008451,
+      "enabled": true
+    },
+    "100054768210540": {
+      "reason": "g•ono•anie",
+      "time": 1783169523677,
+      "enabled": true
+    },
+    "100038146508702": {
+      "reason": "palę de•ili na stosie",
+      "time": 1783274171907,
+      "enabled": true
+    },
+    "61579412930068": {
+      "reason": "Anetka chodz na r•re :P",
+      "time": 1783717979595,
+      "enabled": true
+    },
+    "100056936956080": {
+      "reason": "Brak podanego powodu",
+      "time": 1783787666375,
+      "enabled": true
+    },
+    "61573024537463": {
+      "reason": "💤 **Rafał Oleksy** jest obecnie AFK: **s•am** (od: 195h 47m 6s)",
+      "time": 1783800749854,
+      "enabled": true
+    }
+  },
+  "chanceOverrides": {
+    "100060812419294": {
+      "crime_success": 0,
+      "rob_success": 60,
+      "work_luck": 1,
+      "box_drop_luck": 1,
+      "company_breakdown": 50,
+      "gang_heist_success": 50,
+      "lottery_ticket_mult": 1,
+      "gielda_luck": 1,
+      "coinflip_win": 49,
+      "roulette_win_luck": 0,
+      "slots_win_luck": 0,
+      "rr_solo_survive": 66.67,
+      "rr_duel_bullet": 16.67,
+      "blackjack_save_luck": 0,
+      "bet_win_luck": 0
+    },
+    "100011378042556": {
+      "crime_success": 50,
+      "rob_success": 60,
+      "work_luck": 1,
+      "box_drop_luck": 1,
+      "company_breakdown": 50,
+      "gang_heist_success": 50,
+      "lottery_ticket_mult": 1,
+      "gielda_luck": 1,
+      "coinflip_win": 48.5,
+      "roulette_win_luck": 0,
+      "slots_win_luck": 0,
+      "rr_solo_survive": 66.67,
+      "rr_duel_bullet": 16.67,
+      "blackjack_save_luck": 0,
+      "bet_win_luck": 0
+    },
+    "100012870817390": {
+      "crime_success": 50,
+      "rob_success": 60,
+      "work_luck": 1,
+      "box_drop_luck": 1,
+      "company_breakdown": 50,
+      "gang_heist_success": 50,
+      "lottery_ticket_mult": 1,
+      "gielda_luck": 1,
+      "coinflip_win": 48.5,
+      "roulette_win_luck": 0,
+      "slots_win_luck": 0,
+      "rr_solo_survive": 66.67,
+      "rr_duel_bullet": 16.67,
+      "blackjack_save_luck": 0,
+      "bet_win_luck": 0
+    },
+    "100093902840911": {
+      "crime_success": 1,
+      "rob_success": 60,
+      "work_luck": 1,
+      "box_drop_luck": 1,
+      "company_breakdown": 50,
+      "gang_heist_success": 50,
+      "lottery_ticket_mult": 1,
+      "gielda_luck": 1
+    }
+  },
+  "eventCasinoMultiBetUsage": {
+    "100012870817390": 100,
+    "100011378042556": 100
+  },
+  "disabledCommands": [
+    "kot",
+    "krolik",
+    "firma"
+  ],
+  "pendingLoanNotifications": [],
+  "nextTaxCollectionAt": 1783856478394,
+  "proposalModeration": {
+    "100060812419294": {
+      "warnings": 3,
+      "banned": true
+    },
+    "61577775725598": {
+      "warnings": 2,
+      "banned": false
+    },
+    "100012870817390": {
+      "warnings": 1,
+      "banned": false
+    },
+    "100011378042556": {
+      "warnings": 1,
+      "banned": false
+    },
+    "100043529272941": {
+      "warnings": 1,
+      "banned": false
+    },
+    "100018042197356": {
+      "warnings": 1,
+      "banned": false
+    },
+    "100034845288032": {
+      "warnings": 1,
+      "banned": false
+    },
+    "61571684725864": {
+      "warnings": 2,
+      "banned": false
+    }
+  },
+  "aiGroupCooldowns": {
+    "24956371943963938": 1783719985787,
+    "1570904464682906": 1783757631968,
+    "7596572000383742": 1783762942671,
+    "858923717298756": 1783776470223,
+    "1339768834716771": 1783775521967,
+    "1534432205000155": 1783776641297
+  },
+  "userCommandPermissions": {
+    "100093902840911": {
+      "bl": true,
+      "podatki": false,
+      "bal": false,
+      "help": false
+    }
   }
 }
