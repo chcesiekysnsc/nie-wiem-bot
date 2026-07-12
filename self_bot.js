@@ -3052,6 +3052,23 @@ login({ appState }, (loginErr, api) => {
         return;
       }
 
+      const JAILED_COMMANDS = ['crime', 'rob', 'work', 'daily', 'slots', 'blackjack', 'coinflip', 'ruletka', 'bet'];
+      if (JAILED_COMMANDS.includes(command.name)) {
+        const jailState = await withData(store => {
+          const user = createUser(senderId, store.users);
+          if (user.jailUntil && user.jailUntil > Date.now()) {
+            return user.jailUntil;
+          }
+          return null;
+        });
+        if (jailState) {
+          const leftMs = jailState - Date.now();
+          const leftMin = Math.max(1, Math.ceil(leftMs / 60000));
+          await messageContext.reply(`🔒 Jesteś w więzieniu jeszcze przez **${leftMin} min**.`);
+          return;
+        }
+      }
+
       await command.execute(client, messageContext, args);
 
       withData(store => {

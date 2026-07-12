@@ -160,7 +160,8 @@ module.exports = {
     bankPrestigeBonus: 25000,
     goldenCardBonus: 50000,
     xpPerLevelBase: 180,
-    xpPerLevelGrowth: 55
+    xpPerLevelGrowth: 55,
+    jailDurationMinutes: 30
   },
   shopItems: {
     klodka: {
@@ -556,6 +557,26 @@ module.exports = {
       type: 'permanent',
       buyable: false,
       shopNote: 'Dostępna tylko z Tytanowej Paczki (0.75%).'
+    },
+    odznaka_komendanta: {
+      name: 'Odznaka Komendanta',
+      emoji: '🎖️',
+      price: 0,
+      shortDesc: 'Pasywnie: -12.5 pkt % szansy na przyłapanie w !crime.',
+      description: 'Permanentny przedmiot pasywny. Zmniejsza szansę na przyłapanie podczas !crime o 12.5 punktu procentowego. Gdy odznaka Cię uratuje przed aresztowaniem, otrzymujesz o tym powiadomienie. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko z 🩶 Tytanowej Paczki (1.5%).'
+    },
+    klucz_wiezienny: {
+      name: 'Klucz Więzienny',
+      emoji: '🔑',
+      price: 0,
+      shortDesc: 'Odblokowuje !wiezienie <osoba> — wsadza gracza do więzienia.',
+      description: 'Rzadki przedmiot zużywalny. Pozwala jednorazowo użyć komendy !wiezienie <osoba>, wsadzając wskazanego gracza do więzienia na czas określony w ustawieniach ekonomii — podczas którego traci dostęp do komend ekonomicznych. Zużywa się po użyciu.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🩶 Tytanowej Paczki (0.5%).'
     }
   },
   badges: {

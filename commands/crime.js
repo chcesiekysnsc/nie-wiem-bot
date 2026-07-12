@@ -134,10 +134,21 @@ module.exports = {
           baseSuccessChance += 0.015;
         }
       }
-      let success = Math.random() < Math.min(baseSuccessChance, 1);
+      const roll = Math.random();
+      let success = roll < Math.min(baseSuccessChance, 1);
       let amount = randomInt(5000, 30000);
       if (hasItem(inventory, 'krolewskie_insygnia')) {
         amount = Math.floor(amount * 1.10);
+      }
+
+      const hasOdznakaKomendanta = hasItem(inventory, 'odznaka_komendanta');
+      let savedByBadge = false;
+      if (hasOdznakaKomendanta && !success) {
+        const finalChance = Math.min(baseSuccessChance + 0.125, 1);
+        if (roll < finalChance) {
+          success = true;
+          savedByBadge = true;
+        }
       }
 
       // Gang bonus
@@ -180,7 +191,8 @@ module.exports = {
           tribute,
           gangBonus,
           xpResult,
-          text: successLines[Math.floor(Math.random() * successLines.length)]
+          text: successLines[Math.floor(Math.random() * successLines.length)],
+          savedByBadge
         };
       } else {
         // Check if user has enough balance to cover a bribe (2 * amount)
@@ -201,6 +213,10 @@ module.exports = {
         replyText = `🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}**${bonusText} (pobrano **${formatCurrency(result.tribute)}** haraczu dla Bossa)`;
       } else {
         replyText = `🎭 Napad: ${result.text} Zysk: **+${formatCurrency(result.amount)}**${bonusText}`;
+      }
+
+      if (result.savedByBadge) {
+        replyText += `\n🎖️ Odznaka Komendanta uratowała Cię przed aresztowaniem!`;
       }
 
       if (result.xpResult && result.xpResult.leveledUp) {
