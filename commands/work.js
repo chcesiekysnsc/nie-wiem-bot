@@ -12,6 +12,7 @@ const {
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
+const { getGangBossShopMultiplier } = require('../utils/gangBossShop');
 
 const jobs = [
   'Ogarnales nocna zmiane przy stolach pokerowych.',
@@ -95,6 +96,11 @@ module.exports = {
           gangBonus = [0, 10, 20, 30][idxBiz] || 0;
         }
         reward = Math.floor(reward * multiplier);
+
+        const workshopBonus = getGangBossShopMultiplier(gang, 'work');
+        if (workshopBonus > 0) {
+          reward = Math.floor(reward * (1 + workshopBonus));
+        }
       }
 
       // Oblicz haracza, jeśli gracz należy do gangu

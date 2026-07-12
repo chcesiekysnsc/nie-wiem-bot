@@ -607,14 +607,14 @@ module.exports = {
   gangAI: {
     enabled: true,
     maxAIGangs: 5,
-    maxVault: 2000000,
+    maxVault: 5000000,
     minVaultAfterAttack: 100000,
     actionIntervalMinutesMin: 30,
     actionIntervalMinutesMax: 120,
     actionsPerTickMin: 1,
     actionsPerTickMax: 3,
     repeatActionRerollChance: 0.7,
-    actionWeights: { earn: 35, upgrade: 22, recruit: 13, attack: 10, alliance: 8, event: 5 },
+    actionWeights: { earn: 35, upgrade: 22, recruit: 13, attack: 10, alliance: 8, event: 5, buyBossCrate: 15 },
     attackTimeStartHour: 8,
     attackTimeEndHour: 22,
     aiToAiAllianceWeight: 3,
@@ -642,6 +642,47 @@ module.exports = {
     nameParts: {
       adjectives: ['Cienie', 'Żmije', 'Czarna', 'Krwawa', 'Stalowa', 'Złota', 'Srebrna', 'Wściekła', 'Niewidzialna', 'Podziemna', 'Mroczna', 'Płomienna', 'Lodowa', 'Szara', 'Błękitna'],
       nouns: ['Gwardia', 'Bractwo', 'Kartel', 'Legion', 'Sfora', 'Banda', 'Syndykat', 'Klan', 'Horda', 'Wataha', 'Grom', 'Straż', 'Firma', 'Zespół', 'Ród']
+    }
+  },
+  bossShopCrates: {
+    dailyLimit: 10,
+    crates: {
+      skrzynia_zwykla: {
+        name: 'Zwykła Skrzynka',
+        emoji: '📦',
+        price: 1000000,
+        moneyMin: 750000,
+        moneyMax: 1100000,
+        items: {
+          van_opancerzony: { name: 'Opancerzony Van', emoji: '🛻', chance: 1.5, description: '+15% łupu z okradania innych gangów (atak).' },
+          siec_informatorow: { name: 'Sieć Informatorów', emoji: '📡', chance: 1.5, description: '+10% szans na udany gang skok.' },
+          falszywe_dokumenty: { name: 'Fałszywe Dokumenty', emoji: '💼', chance: 1.5, description: 'Skraca cooldown napadów gangu o 10%.' }
+        }
+      },
+      skrzynia_pozlacana: {
+        name: 'Pozłacana Skrzynka',
+        emoji: '🥇',
+        price: 1500000,
+        moneyMin: 1100000,
+        moneyMax: 1700000,
+        items: {
+          szkolenie_bojowe: { name: 'Szkolenie Bojowe', emoji: '🪖', chance: 1.25, description: '+5% siły podczas ataków na gangi.' },
+          mobilna_barykada: { name: 'Mobilna Barykada', emoji: '🛡️', chance: 1.25, description: '+6% obrony przed atakiem innego gangu.' },
+          warsztat: { name: 'Warsztat', emoji: '🧰', chance: 1.25, description: '+10% pieniędzy z !work dla wszystkich członków gangu.' }
+        }
+      },
+      skrzynia_opancerzona: {
+        name: 'Opancerzona Skrzynka',
+        emoji: '🛡️',
+        price: 2000000,
+        moneyMin: 1600000,
+        moneyMax: 2200000,
+        items: {
+          celowniki_laserowe: { name: 'Celowniki Laserowe', emoji: '🎯', chance: 1.2, description: '+10% skuteczności podczas ataku na gang (kumuluje się ze Szkoleniem Bojowym).' },
+          ksiegowy_gangu: { name: 'Księgowy Gangu', emoji: '🧑‍💼', chance: 1.2, description: '+5% do wszystkich źródeł dochodu gangu.' },
+          sztab_dowodzenia: { name: 'Sztab Dowodzenia', emoji: '👑', chance: 0.5, description: '+5% siły, +5% obrony ORAZ +10% zarobków z napadów.' }
+        }
+      }
     }
   }
 };

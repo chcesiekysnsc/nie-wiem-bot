@@ -1,6 +1,7 @@
 const config = require('../config/config');
 const { withData, createUser, loadData } = require('./storage');
 const { randomInt, formatCurrency } = require('./economy');
+const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getAllCrateDefinitions, processBossShopPurchase, ensureDailyLimit } = require('./gangBossShop');
 
 function getPolandHour(date) {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -151,7 +152,7 @@ function getAttackWeight(gang) {
 }
 
 function getVaultCap() {
-  return (config.gangAI && config.gangAI.maxVault) || 2000000;
+  return (config.gangAI && config.gangAI.maxVault) || 5000000;
 }
 
 function getMinVaultAfterAttack() {
@@ -188,8 +189,10 @@ function calcPower(participantCount, levelFach) {
 }
 
 function resolveWar(attackerGang, defenderGang, attackerParticipants, defenderParticipants) {
-  const attackPower = calcPower(attackerParticipants, attackerGang.levelFach);
-  const defensePower = defenderParticipants > 0 ? calcPower(defenderParticipants, defenderGang.levelFach) : 0;
+  const attBonus = getGangBossShopMultiplier(attackerGang, 'attack');
+  const defBonus = getGangBossShopMultiplier(defenderGang, 'defense');
+  const attackPower = calcPower(attackerParticipants, attackerGang.levelFach) * (1 + attBonus);
+  const defensePower = defenderParticipants > 0 ? calcPower(defenderParticipants, defenderGang.levelFach) * (1 + defBonus) : 0;
   const winChance = defensePower > 0 ? attackPower / (attackPower + defensePower) : 0.95;
   const success = Math.random() < winChance;
 
@@ -203,13 +206,17 @@ function resolveWar(attackerGang, defenderGang, attackerParticipants, defenderPa
   let penaltyDefenders = 0;
   let sharePerDefender = 0;
   let totalPenalty = 0;
+  let stolenItemId = null;
 
   if (success) {
     const pct = randomInt(15, 35) / 100;
     stolenTotal = Math.floor(defenderVaultBefore * pct);
-    vaultShare = Math.floor(stolenTotal * 0.30);
+    const lootMult = 1 + getGangBossShopMultiplier(attackerGang, 'loot');
+    vaultShare = Math.floor(stolenTotal * 0.30 * lootMult);
     const membersTotalShare = stolenTotal - vaultShare;
     sharePerPerson = attackerParticipants > 0 ? Math.floor(membersTotalShare / attackerParticipants) : 0;
+
+    stolenItemId = attemptStealBossItem(attackerGang, defenderGang);
   } else {
     penaltyVault = Math.floor(attackerVaultBefore * 0.20);
     penaltyDefenders = Math.floor(attackerVaultBefore * 0.15);
@@ -217,12 +224,14 @@ function resolveWar(attackerGang, defenderGang, attackerParticipants, defenderPa
     if (defenderParticipants > 0) {
       sharePerDefender = Math.floor(penaltyDefenders / defenderParticipants);
     }
+
+    stolenItemId = attemptStealBossItem(defenderGang, attackerGang);
   }
 
   return {
     success,
-    attackPower,
-    defensePower,
+    attackPower: Math.floor(attackPower),
+    defensePower: Math.floor(defensePower),
     winChance,
     stolenTotal,
     vaultShare,
@@ -230,7 +239,8 @@ function resolveWar(attackerGang, defenderGang, attackerParticipants, defenderPa
     penaltyVault,
     penaltyDefenders,
     sharePerDefender,
-    totalPenalty
+    totalPenalty,
+    stolenItemId
   };
 }
 
@@ -533,7 +543,8 @@ async function executeAttack(gang, cfg, client) {
 
       if (result.success) {
         defender.vault = Math.max(0, (defender.vault || 0) - result.stolenTotal);
-        attacker.vault = Math.min(getVaultCap(), (attacker.vault || 0) + result.vaultShare);
+        const incomeBonus = getGangBossShopMultiplier(attacker, 'income');
+        attacker.vault = Math.min(getVaultCap(), (attacker.vault || 0) + Math.floor(result.vaultShare * (1 + incomeBonus)));
 
         const membersTotalShare = result.stolenTotal - result.vaultShare;
         const sharePerPerson = attCount > 0 ? Math.floor(membersTotalShare / attCount) : 0;
@@ -551,7 +562,8 @@ async function executeAttack(gang, cfg, client) {
         const penaltyDefenders = Math.floor((attacker.vault || 0) * 0.15);
         const totalPenalty = penaltyVault + penaltyDefenders;
         attacker.vault = Math.max(0, (attacker.vault || 0) - totalPenalty);
-        defender.vault = (defender.vault || 0) + penaltyVault;
+        const defenderIncomeBonus = getGangBossShopMultiplier(defender, 'income');
+        defender.vault = (defender.vault || 0) + Math.floor(penaltyVault * (1 + defenderIncomeBonus));
 
         let sharePerDefender = 0;
         const defenderBonuses = {};
@@ -564,7 +576,7 @@ async function executeAttack(gang, cfg, client) {
             defenderBonuses[pid] = { godlo: 0, insygnia: 0 };
           }
         } else {
-          defender.vault += penaltyDefenders;
+          defender.vault += Math.floor(penaltyDefenders * (1 + defenderIncomeBonus));
         }
 
         return { ...result, success: false, sharePerDefender, totalPenalty, defenderBonuses };
@@ -580,7 +592,8 @@ async function executeAttack(gang, cfg, client) {
         `💰 **ŁUP WOJENNY:**\n` +
         `• Skradziono z wrogiego sejfu: **${formatCurrency(outcome.stolenTotal)}**\n` +
         `• Trafiło do sejfu Waszego gangu (30%): **+${formatCurrency(outcome.vaultShare)}**\n` +
-        `• Każdy uczestnik ataku otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!`;
+        `• Każdy uczestnik ataku otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!` +
+        (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu przeciwnika!` : '');
       if (client.api && originThreadId) {
         client.api.sendMessage(successMsg, originThreadId);
       }
@@ -596,7 +609,8 @@ async function executeAttack(gang, cfg, client) {
         `💸 **KONSEKWENCJE PORAŻKI:**\n` +
         `• Gang szturmujący traci łącznie **${formatCurrency(outcome.totalPenalty)}** ze swojego sejfu!\n` +
         `• Sejf obrońców zyskuje: **+${formatCurrency(outcome.penaltyVault)}**\n` +
-        `• ${defenderDistribution}`;
+        `• ${defenderDistribution}` +
+        (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang obrońcy przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu atakujących!` : '');
       if (client.api && originThreadId) {
         client.api.sendMessage(failMsg, originThreadId);
       }
@@ -696,6 +710,78 @@ async function executeEvent(gang, cfg) {
   return { type: 'event', eventName: ev.name, change };
 }
 
+async function executeBuyBossCrate(gang, cfg) {
+  const crates = getAllCrateDefinitions();
+  const crateIds = Object.keys(crates);
+  if (crateIds.length === 0) {
+    return { type: 'buyBossCrate', skipped: true, reason: 'no_crates' };
+  }
+
+  const quantity = Math.floor(Math.random() * 3) + 1;
+
+  const limitResult = await ensureDailyLimit(gang, quantity);
+  if (!limitResult.allowed) {
+    return { type: 'buyBossCrate', skipped: true, reason: limitResult.reason };
+  }
+
+  const weightedCrates = [];
+  for (const cid of crateIds) {
+    const def = crates[cid];
+    const weight = Math.max(1, Math.floor(1000000 / def.price));
+    weightedCrates.push({ id: cid, weight });
+  }
+  const totalWeight = weightedCrates.reduce((sum, c) => sum + c.weight, 0);
+  let roll = Math.random() * totalWeight;
+  let chosenCrateId = weightedCrates[0].id;
+  for (const c of weightedCrates) {
+    roll -= c.weight;
+    if (roll <= 0) {
+      chosenCrateId = c.id;
+      break;
+    }
+  }
+
+  const crate = crates[chosenCrateId];
+  const totalCost = crate.price * quantity;
+  if ((gang.vault || 0) < totalCost) {
+    return { type: 'buyBossCrate', skipped: true, reason: 'insufficient_vault' };
+  }
+
+  const result = await withData(store => {
+    const g = (store.profiles.gangs || {})[gang.id || gang.gangId];
+    if (!g) return { error: 'not_found' };
+
+    const purchaseResult = processBossShopPurchase(g, chosenCrateId, quantity);
+    if (purchaseResult.error) {
+      return { error: purchaseResult.error };
+    }
+
+    return {
+      success: true,
+      totalMoney: purchaseResult.totalMoney,
+      droppedItems: purchaseResult.droppedItems,
+      remainingPurchases: purchaseResult.remainingPurchases
+    };
+  });
+
+  if (result.error) {
+    return { type: 'buyBossCrate', skipped: true, reason: result.error };
+  }
+
+  const cap = getVaultCap();
+  gang.vault = Math.min(cap, (gang.vault || 0) + result.totalMoney);
+
+  return {
+    type: 'buyBossCrate',
+    success: true,
+    crateId: chosenCrateId,
+    quantity,
+    totalMoney: result.totalMoney,
+    droppedItems: result.droppedItems,
+    remainingPurchases: result.remainingPurchases
+  };
+}
+
 async function processAIGang(client, gangId, gang, cfg) {
   const now = Date.now();
   if (!gang.isAI) return;
@@ -739,6 +825,9 @@ async function processAIGang(client, gangId, gang, cfg) {
         break;
       case 'event':
         result = await executeEvent(gang, cfg);
+        break;
+      case 'buyBossCrate':
+        result = await executeBuyBossCrate(gang, cfg);
         break;
       default:
         result = await executeEarn(gang, cfg);
@@ -926,6 +1015,7 @@ module.exports = {
   executeAttack,
   executeAlliance,
   executeEvent,
+  executeBuyBossCrate,
   processAIGang,
   createAIGang,
   handleAllianceProposalToAI,

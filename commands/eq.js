@@ -6,6 +6,7 @@ const {
   refreshBadges
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { eventItems } = require('./eventitemy');
 
 function getOrderedItems() {
   let count = 0;
@@ -54,12 +55,21 @@ module.exports = {
         })
         .filter(Boolean);
 
-      return { items, balance: user.balance, bank: user.bank };
+      const eventEntries = Object.values(eventItems)
+        .map(entry => {
+          const qty = getItemQuantity(inventory, entry.id);
+          if (qty < 1) return null;
+          return `${entry.emoji} **${entry.name}** x${qty} *(Eventowy)*`;
+        })
+        .filter(Boolean);
+
+      return { items, eventEntries, balance: user.balance, bank: user.bank };
     });
 
-    const response = 
+    const allItems = [...result.items, ...result.eventEntries];
+    const response =
       `📦 **Ekwipunek — ${targetName}**\n` +
-      `${result.items.length ? result.items.join('\n') : 'Brak przedmiotów.'}\n` +
+      `${allItems.length ? allItems.join('\n') : 'Brak przedmiotów.'}\n` +
       `👛 Portfel: ${formatCurrency(result.balance)} | 🏦 Bank: ${formatCurrency(result.bank)}\n` +
       `💡 Aby użyć lub sprawdzić przedmiot, wpisz: **!use <numer>**`;
 

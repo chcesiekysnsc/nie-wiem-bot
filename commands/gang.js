@@ -1,6 +1,7 @@
 const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
+const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji } = require('../utils/gangBossShop');
 
 function notifySupportThreads(client, heist, msg) {
   if (!client.api || !heist || !Array.isArray(heist.supportThreads)) return;
@@ -1220,6 +1221,10 @@ module.exports = {
         if (evMul && evMul > 1) {
           heistCooldownMs = Math.floor(heistCooldownMs / evMul);
         }
+        const heistCdBonus = getGangBossShopMultiplier(gang, 'cooldown');
+        if (heistCdBonus > 0) {
+          heistCooldownMs = Math.floor(heistCooldownMs * (1 - heistCdBonus));
+        }
         if (now - lastTime < heistCooldownMs) {
           const diffSec = Math.ceil((heistCooldownMs - (now - lastTime)) / 1000);
           const hrs = Math.floor(diffSec / 3600);
@@ -1312,6 +1317,8 @@ module.exports = {
               successChance = Math.max(successChance, 0.525);
             }
           }
+          const heistBonus = getGangBossShopMultiplier(currentGang, 'heist_success');
+          successChance = Math.min(successChance + heistBonus, 0.95);
 
           const heistSuccess = Math.random() < successChance;
 
@@ -1381,7 +1388,8 @@ module.exports = {
             participantInsygnia[pid] = insygniaBonus;
           }
           // Dodaj haracza do sejfu gangu
-          currentGang.vault += totalTribute;
+          const incomeBonus = getGangBossShopMultiplier(currentGang, 'income');
+          currentGang.vault += Math.floor(totalTribute * (1 + incomeBonus));
 
           return {
             success: true,
@@ -1588,7 +1596,11 @@ module.exports = {
         // Check 24h attack cooldown
         const now = Date.now();
         const lastAttack = myGang.lastAttackTime || 0;
-        const cooldown = 24 * 60 * 60 * 1000;
+        let cooldown = 24 * 60 * 60 * 1000;
+        const attCdBonus = getGangBossShopMultiplier(myGang, 'cooldown');
+        if (attCdBonus > 0) {
+          cooldown = Math.floor(cooldown * (1 - attCdBonus));
+        }
         if (now - lastAttack < cooldown) {
           const diffSec = Math.ceil((cooldown - (now - lastAttack)) / 1000);
           const hrs = Math.floor(diffSec / 3600);
@@ -1715,7 +1727,8 @@ module.exports = {
             baseAttackPower += randomInt(10, 50);
           }
           const attFachLvl = attackerGang.levelFach || 0;
-          const attackPower = Math.floor(baseAttackPower * (1 + 0.15 * attFachLvl));
+          const attBossBonus = getGangBossShopMultiplier(attackerGang, 'attack');
+          const attackPower = Math.floor(baseAttackPower * (1 + 0.15 * attFachLvl + attBossBonus));
 
           // Calculate Defense Power
           let baseDefensePower = 0;
@@ -1725,7 +1738,8 @@ module.exports = {
             }
           }
           const defFachLvl = defenderGang.levelFach || 0;
-          const defensePower = listDefenders.length > 0 ? Math.floor(baseDefensePower * (1 + 0.15 * defFachLvl)) : 0;
+          const defBossBonus = getGangBossShopMultiplier(defenderGang, 'defense');
+          const defensePower = listDefenders.length > 0 ? Math.floor(baseDefensePower * (1 + 0.15 * defFachLvl + defBossBonus)) : 0;
 
           // Determine Success
           let winChance = 0.95;
@@ -1741,11 +1755,19 @@ module.exports = {
             
             defenderGang.vault = Math.max(0, defenderGang.vault - stolenTotal);
             
-            const vaultShare = Math.floor(stolenTotal * 0.30);
+            const lootMult = 1 + getGangBossShopMultiplier(attackerGang, 'loot');
+            const vaultShare = Math.floor(stolenTotal * 0.30 * lootMult);
             const membersTotalShare = stolenTotal - vaultShare;
             const sharePerPerson = Math.floor(membersTotalShare / listAttackers.length);
 
             attackerGang.vault += vaultShare;
+
+            const stolenItemId = attemptStealBossItem(attackerGang, defenderGang);
+            if (stolenItemId) {
+              defenderGang.bossShopItems = (defenderGang.bossShopItems || []).filter(id => id !== stolenItemId);
+              attackerGang.bossShopItems = attackerGang.bossShopItems || [];
+              attackerGang.bossShopItems.push(stolenItemId);
+            }
 
             const zetonWinners = [];
             const attackerBonuses = {};
@@ -1788,7 +1810,8 @@ module.exports = {
               vaultShare,
               sharePerPerson,
               zetonWinners,
-              attackerBonuses
+              attackerBonuses,
+              stolenItemId
             };
           } else {
             // Failure Penalty:
@@ -1799,7 +1822,8 @@ module.exports = {
             const totalPenalty = penaltyVault + penaltyDefenders;
 
             attackerGang.vault = Math.max(0, attackerGang.vault - totalPenalty);
-            defenderGang.vault += penaltyVault;
+            const defenderIncomeBonus = getGangBossShopMultiplier(defenderGang, 'income');
+            defenderGang.vault += Math.floor(penaltyVault * (1 + defenderIncomeBonus));
 
             let sharePerDefender = 0;
             const defenderBonuses = {};
@@ -1831,7 +1855,15 @@ module.exports = {
               }
             } else {
               // If there were no defending players checked in, the 15% goes to defender's vault
-              defenderGang.vault += penaltyDefenders;
+              const defenderIncomeBonus = getGangBossShopMultiplier(defenderGang, 'income');
+              defenderGang.vault += Math.floor(penaltyDefenders * (1 + defenderIncomeBonus));
+            }
+
+            const stolenItemId = attemptStealBossItem(defenderGang, attackerGang);
+            if (stolenItemId) {
+              attackerGang.bossShopItems = (attackerGang.bossShopItems || []).filter(id => id !== stolenItemId);
+              defenderGang.bossShopItems = defenderGang.bossShopItems || [];
+              defenderGang.bossShopItems.push(stolenItemId);
             }
 
             return {
@@ -1842,7 +1874,8 @@ module.exports = {
               penaltyDefenders,
               sharePerDefender,
               totalPenalty,
-              defenderBonuses
+              defenderBonuses,
+              stolenItemId
             };
           }
         });
@@ -1893,7 +1926,8 @@ module.exports = {
             `💰 **ŁUP WOJENNY:**\n` +
             `• Skradziono z wrogiego sejfu: **${formatCurrency(outcome.stolenTotal)}**\n` +
             `• Trafiło do sejfu Waszego gangu (30%): **+${formatCurrency(outcome.vaultShare)}**\n` +
-            `• Każdy uczestnik ataku (**${attackerNames}**) otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!${zetonNote}${godloNote}`
+            `• Każdy uczestnik ataku (**${attackerNames}**) otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!${zetonNote}${godloNote}` +
+            (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu przeciwnika!` : '')
           );
         } else {
           let godloNote = '';
@@ -1925,11 +1959,89 @@ module.exports = {
             `💸 **KONSEKWENCJE PORAŻKI:**\n` +
             `• Gang szturmujący traci łącznie **${formatCurrency(outcome.totalPenalty)}** ze swojego sejfu!\n` +
             `• Sejf obrońców zyskuje: **+${formatCurrency(outcome.penaltyVault)}**\n` +
-            `• ${defenderDistribution}${godloNote}`
+            `• ${defenderDistribution}${godloNote}` +
+            (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang obrońcy przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu atakujących!` : '')
           );
         }
       }, 120000).unref();
 
+      return;
+    }
+
+    // ==========================================
+    // 10b. GANG EQ
+    // ==========================================
+    if (sub === 'eq') {
+      const eqResult = await withData(store => {
+        store.profiles.gangs = store.profiles.gangs || {};
+        const user = createUser(message.author.id, store.users);
+
+        let targetGangId = null;
+
+        const mentioned = message.mentions.users.first();
+        let targetUserId = null;
+        if (mentioned) {
+          targetUserId = mentioned.id;
+        } else if (args[1] && /^\d+$/.test(args[1]) && args[1].length >= 8) {
+          targetUserId = args[1];
+        }
+
+        if (targetUserId) {
+          const tgtUser = store.users[targetUserId];
+          if (tgtUser && tgtUser.gangId) {
+            targetGangId = tgtUser.gangId;
+          }
+        }
+
+        if (!targetGangId) {
+          const targetParam = args.slice(1).join(' ').trim().toLowerCase();
+          if (targetParam && store.profiles.gangs[targetParam]) {
+            targetGangId = targetParam;
+          } else if (targetParam) {
+            const foundGang = Object.entries(store.profiles.gangs).find(
+              ([id, g]) => g.name.toLowerCase() === targetParam
+            );
+            if (foundGang) targetGangId = foundGang[0];
+          }
+        }
+
+        if (!targetGangId) {
+          targetGangId = user.gangId;
+        }
+
+        if (!targetGangId || !store.profiles.gangs[targetGangId]) {
+          return { notFound: true };
+        }
+
+        const gang = store.profiles.gangs[targetGangId];
+        const items = (gang.bossShopItems || []).map((itemId, idx) => {
+          const def = getItemDefinition(itemId);
+          if (def) {
+            return `${idx + 1}. ${def.emoji} **${def.name}** — ${def.description}`;
+          }
+          return `${idx + 1}. 📦 **${itemId}**`;
+        });
+
+        return {
+          notFound: false,
+          gangName: gang.name,
+          items
+        };
+      });
+
+      if (eqResult.notFound) {
+        await message.reply('❌ Nie znaleziono gangu dla podanej nazwy, osoby lub ID.');
+        return;
+      }
+
+      const itemsList = eqResult.items.length > 0
+        ? eqResult.items.join('\n')
+        : '📦 Ten gang nie posiada jeszcze żadnych przedmiotów z Bossowego Sklepu. Boss może je kupić komendą **!bosssklep**.';
+
+      await message.reply(
+        `🛒 **Przedmioty Bossowego Sklepu — Gang: ${eqResult.gangName}**\n\n` +
+        itemsList
+      );
       return;
     }
 
