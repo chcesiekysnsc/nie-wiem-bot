@@ -39,10 +39,16 @@ module.exports = {
     }
     const percentage = Math.abs(hash) % 101;
 
+    const specialPair = ['61573228601016', '61563456404665'];
+    const isSpecialPair = specialPair.includes(user1) && specialPair.includes(user2);
+
     let description = '';
     let heartEmoji = '💔';
 
-    if (percentage <= 20) {
+    if (isSpecialPair) {
+      heartEmoji = '❤️‍🔥';
+      description = 'Prawdziwa, niezniszczalna miłość. Musicie wziąć ślub i strzelić 2 dzieciaki.';
+    } else if (percentage <= 20) {
       heartEmoji = '💔';
       const descriptions = [
         'Totalna katastrofa. Nawet wasze koty syczałyby na siebie na samą myśl o waszej relacji.',
@@ -90,7 +96,7 @@ module.exports = {
     const response = 
       `💓 **KALKULATOR MIŁOŚCI** 💓\n\n` +
       `👩‍❤️‍👨 **${name1}**  &  **${name2}**\n` +
-      `📈 Dopasowanie: **${percentage}%** ${heartEmoji}\n\n` +
+      `📈 Dopasowanie: **${isSpecialPair ? '101' : percentage}%** ${heartEmoji}\n\n` +
       `🔮 **Przepowiednia:** *${description}*`;
 
     await message.reply(response);
