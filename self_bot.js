@@ -52,6 +52,11 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
+  const errMsg = String(reason?.message || reason || '');
+  if (errMsg.includes('MQTT client is not initialized') || errMsg.includes('sendMessage')) {
+    console.warn('[WARNING] Ignored non-fatal unhandled promise rejection:', reason);
+    return;
+  }
   console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
   process.exit(1);
 });
@@ -996,7 +1001,11 @@ login({ appState }, (loginErr, api) => {
           }
           if (targets.length > 0) {
             for (const tId of targets) {
-              client.api.sendMessage(announceMsg, tId);
+              client.api.sendMessage(announceMsg, tId, (err) => {
+                if (err) console.error('[LOTTERY] Błąd wysyłania powiadomienia:', err.message || err);
+              })?.catch?.(err => {
+                console.error('[LOTTERY] Błąd wysyłania powiadomienia (Promise):', err.message || err);
+              });
             }
           }
         }
@@ -1050,10 +1059,18 @@ login({ appState }, (loginErr, api) => {
           const targets = Array.from(client.activeThreadIds);
           if (targets.length > 0) {
             for (const tId of targets) {
-              client.api.sendMessage(announceMsg, tId);
+              client.api.sendMessage(announceMsg, tId, (err) => {
+                if (err) console.error('[TAX] Błąd wysyłania powiadomienia:', err.message || err);
+              })?.catch?.(err => {
+                console.error('[TAX] Błąd wysyłania powiadomienia (Promise):', err.message || err);
+              });
             }
           } else if (client.lastThreadId) {
-            client.api.sendMessage(announceMsg, client.lastThreadId);
+            client.api.sendMessage(announceMsg, client.lastThreadId, (err) => {
+              if (err) console.error('[TAX] Błąd wysyłania powiadomienia:', err.message || err);
+            })?.catch?.(err => {
+              console.error('[TAX] Błąd wysyłania powiadomienia (Promise):', err.message || err);
+            });
           }
         }
 
@@ -1153,12 +1170,11 @@ login({ appState }, (loginErr, api) => {
               `⏳ Następny pobór za: 6h\n\n` +
               `⚠️ Podatek jest progresywny i kumuluje się co 6h —\n` +
               `im dłużej trzymasz dużą gotówkę, tym bardziej się opłaca ją zainwestować (giełda, firma) albo wydać.`;
-
-            try {
-              client.api.sendMessage(msg, threadId);
-            } catch (err) {
-              console.error('[PROGRESSIVE-TAX] Błąd wysyłania powiadomienia:', err);
-            }
+             client.api.sendMessage(msg, threadId, (err) => {
+               if (err) console.error('[PROGRESSIVE-TAX] Błąd wysyłania powiadomienia:', err.message || err);
+             })?.catch?.(err => {
+               console.error('[PROGRESSIVE-TAX] Błąd wysyłania powiadomienia (Promise):', err.message || err);
+             });
           }
         }
 
