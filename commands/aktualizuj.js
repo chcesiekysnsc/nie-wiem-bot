@@ -59,17 +59,19 @@ module.exports = {
     let totalFetched = 0;
     let lastChunkIndex = 0;
     let fetchErrorOccurred = false;
+    let lastOldestTimestamp = null;
+    let stuckPageCount = 0;
 
     // Statystyki grupy do odzyskania
     let groupVisibleMessages = 0;
     let groupCommandsExecuted = 0;
     let groupMentionsCount = 0;
     let groupFirstTimestamp = null;
-    let seenMessageIds = [];
+    let seenMessageIds = new Set();
 
     await withData(store => {
       if (store.groupStats && store.groupStats[threadId] && store.groupStats[threadId].seenMessageIds) {
-        seenMessageIds = [...store.groupStats[threadId].seenMessageIds];
+        seenMessageIds = new Set(store.groupStats[threadId].seenMessageIds);
       }
     });
 
@@ -88,6 +90,7 @@ module.exports = {
         }
 
         totalFetched += history.length;
+        console.log(`[AKTUALIZUJ] Strona pobrana: ${history.length} wiadomości, totalFetched=${totalFetched}, threadId=${threadId}`);
         let pageOldest = Infinity;
 
         for (const msg of history) {
@@ -97,11 +100,11 @@ module.exports = {
           }
 
           const msgId = msg.messageID;
-          if (msgId && seenMessageIds.includes(msgId)) {
+          if (msgId && seenMessageIds.has(msgId)) {
             continue;
           }
           if (msgId) {
-            seenMessageIds.push(msgId);
+            seenMessageIds.add(msgId);
           }
 
           if (ts && (!groupFirstTimestamp || ts < groupFirstTimestamp)) {
@@ -155,6 +158,17 @@ module.exports = {
           await message.reply(`⏳ Przeanalizowano już **${totalFetched}** wiadomości z historii czatu...`);
           lastChunkIndex = chunkIndex;
         }
+
+        if (pageOldest !== Infinity && pageOldest === lastOldestTimestamp) {
+          stuckPageCount++;
+          if (stuckPageCount >= 3) {
+            console.warn(`[AKTUALIZUJ] Wykryto zapętloną paginację (ten sam timestamp 3x z rzędu) dla ${threadId} — przerywam na ${totalFetched} wiadomościach.`);
+            break;
+          }
+        } else {
+          stuckPageCount = 0;
+        }
+        lastOldestTimestamp = pageOldest;
 
         // Dodajemy opóźnienie 800ms, aby uniknąć blokady Rate Limit ze strony Facebooka
         await new Promise(resolve => setTimeout(resolve, 800));
@@ -211,9 +225,11 @@ module.exports = {
         };
 
         // Zatrzymujemy maksymalnie 2000 ostatnich widzianych wiadomości
-        if (seenMessageIds.length > 2000) {
-          seenMessageIds = seenMessageIds.slice(-2000);
+        let seenMessageIdsArray = Array.from(seenMessageIds);
+        if (seenMessageIdsArray.length > 2000) {
+          seenMessageIdsArray = seenMessageIdsArray.slice(-2000);
         }
+        seenMessageIds = seenMessageIdsArray;
 
         if (isMigration) {
           store.groupStats[threadId] = {
@@ -226,7 +242,7 @@ module.exports = {
             memberCount: existingStats.memberCount || 0,
             adminCount: existingStats.adminCount || 0,
             groupName: existingStats.groupName || 'Grupa',
-            seenMessageIds: seenMessageIds
+            seenMessageIds: seenMessageIdsArray
           };
         } else {
           store.groupStats[threadId] = {
@@ -239,7 +255,7 @@ module.exports = {
             memberCount: existingStats.memberCount || 0,
             adminCount: existingStats.adminCount || 0,
             groupName: existingStats.groupName || 'Grupa',
-            seenMessageIds: seenMessageIds
+            seenMessageIds: seenMessageIdsArray
           };
         }
       });
@@ -349,7 +365,8 @@ module.exports = {
       if (fetchErrorOccurred) {
         summaryText += `\n\n⚠️ *Uwaga: Proces został przerwany przedwcześnie z powodu limitów API Facebooka (Rate Limit).*`;
       }
-      
+
+      console.log(`[AKTUALIZUJ] Zakończono dla ${threadId}: totalFetched=${totalFetched}, keepFetching=${keepFetching}, fetchErrorOccurred=${fetchErrorOccurred}, powód zatrzymania: ${fetchErrorOccurred ? 'błąd API' : (totalFetched >= 100000 ? 'osiągnięto limit 100000' : 'naturalny koniec historii lub zapętlona paginacja')}`);
       await message.reply(summaryText);
 
     } catch (err) {
