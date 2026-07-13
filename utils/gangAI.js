@@ -425,8 +425,8 @@ async function executeRecruit(gang, cfg) {
   return { type: 'recruit', memberId: newId, memberName: fakeUser.name };
 }
 
-async function executeAttack(gang, cfg, client, forcedTargetGangId) {
-  if (!isAttackHour()) {
+async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestrictions) {
+  if (!bypassRestrictions && !isAttackHour()) {
     return { type: 'attack', skipped: true, reason: 'outside_hours' };
   }
 
@@ -434,7 +434,8 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId) {
   const minVaultAfter = getMinVaultAfterAttack();
   const costRatio = (config.gangAI && config.gangAI.attackVaultCostRatio) || 0.10;
   const cost = Math.floor((gang.vault || 0) * costRatio);
-  if ((gang.vault || 0) < 500000 || (gang.vault || 0) - cost < minVaultAfter) {
+  const minRequiredVault = bypassRestrictions ? 0 : 500000;
+  if ((gang.vault || 0) < minRequiredVault || (gang.vault || 0) - cost < minVaultAfter) {
     return { type: 'attack', skipped: true, reason: 'insufficient_vault' };
   }
 
@@ -926,7 +927,7 @@ async function processAIGang(client, gangId, gang, cfg, forcedActionType, forced
       result = await executeRecruit(gang, cfg);
       break;
     case 'attack':
-      result = await executeAttack(gang, cfg, client, forcedTargetGangId);
+      result = await executeAttack(gang, cfg, client, forcedTargetGangId, !!forcedActionType);
       break;
     case 'alliance':
       result = await executeAlliance(gang, cfg, await withData(store => store), client);

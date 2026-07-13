@@ -853,11 +853,26 @@ $('#force-action-btn').addEventListener('click', async () => {
   }
 
   try {
-    await api(`/api/ai-gangs/${encodeURIComponent(gangId)}/force-action`, {
+    const data = await api(`/api/ai-gangs/${encodeURIComponent(gangId)}/force-action`, {
       method: 'POST',
       body: JSON.stringify(body)
     });
-    toast(`Wykonano akcję "${actionType}" dla gangu.`);
+
+    if (data.result && data.result.skipped) {
+      const reasonLabels = {
+        outside_hours: 'Poza godzinami ataku (nieaktualne przy wymuszeniu — sprawdź, czy backend faktycznie ominął to ograniczenie).',
+        insufficient_vault: 'Za mało środków w sejfie gangu na przeprowadzenie ataku.',
+        shielded: 'Cel ma aktywną tarczę ochronną — nie można go teraz zaatakować.',
+        no_target: 'Nie znaleziono żadnego dostępnego celu.',
+        invalid_forced_target: 'Wybrany cel jest nieprawidłowy (np. sojusznik albo ten sam gang).',
+        limit_reached: 'Osiągnięto dzienny limit.',
+        max_alliances: 'Osiągnięto maksymalną liczbę sojuszy.'
+      };
+      const reasonText = reasonLabels[data.result.reason] || data.result.reason || 'Nieznany powód.';
+      toast(`Akcja "${actionType}" nie została wykonana: ${reasonText}`, true);
+    } else {
+      toast(`Wykonano akcję "${actionType}" dla gangu.`);
+    }
     loadDecisions();
   } catch (err) { toast(err.message, true); }
 });
