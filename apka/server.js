@@ -5,6 +5,7 @@ const path = require('path');
 
 const { loadData, withData, DATA_FILES } = require('../utils/storage');
 const { getRegistry, getUserOverrides, saveUserOverrides } = require('../utils/chances');
+const { getItemDefinition } = require('../utils/gangBossShop');
 
 function getChancesRegistry() {
   return getRegistry();
@@ -379,7 +380,11 @@ app.get('/api/gangs', (req, res) => {
     deputies: (gang.deputies || []).map(mid => ({ id: mid, name: userName(users[mid], mid) })),
     members: (gang.members || []).map(mid => ({ id: mid, name: userName(users[mid], mid) })),
     alliances: gang.alliances || [],
-    isAI: !!gang.isAI
+    isAI: !!gang.isAI,
+    bossShopItems: (gang.bossShopItems || []).map(itemId => {
+      const def = getItemDefinition(itemId);
+      return def ? { id: itemId, name: def.name, emoji: def.emoji, description: def.description } : { id: itemId, name: itemId, emoji: '📦', description: '' };
+    })
   }));
   res.json({ gangs });
 });

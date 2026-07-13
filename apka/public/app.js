@@ -539,6 +539,10 @@ async function loadGangs() {
           <summary>Członkowie (${g.members.length})</summary>
           <ul>${g.members.map(m => `<li>${esc(m.name)} <span class="muted">${esc(m.id)}</span> ${m.id !== g.boss.id ? `<button class="small danger" onclick="kickMember('${esc(g.id)}','${esc(m.id)}')">Wyrzuć</button>` : '<span class="badge warn">Szef</span>'}</li>`).join('')}</ul>
         </details>
+        <details>
+          <summary>🛒 Przedmioty Bossowego Sklepu (${g.bossShopItems.length})</summary>
+          <ul>${g.bossShopItems.length ? g.bossShopItems.map(it => `<li>${it.emoji} <strong>${esc(it.name)}</strong> <span class="muted">${esc(it.description)}</span></li>`).join('') : '<li class="muted">Brak przedmiotów</li>'}</ul>
+        </details>
       </div>`).join('') : '<p class="muted">Brak gangów.</p>';
   } catch (err) { toast(err.message, true); }
 }

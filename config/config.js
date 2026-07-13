@@ -647,7 +647,15 @@ module.exports = {
     fakeNames: {
       first: ['Jan', 'Piotr', 'Adam', 'Marek', 'Kamil', 'Tomasz', 'Jakub', 'Michał', 'Krzysztof', 'Andrzej', 'Paweł', 'Rafał', 'Grzegorz', 'Marcin', 'Łukasz', 'Dawid', 'Patryk', 'Sebastian', 'Damian', 'Konrad', 'Oskar', 'Dominik', 'Mikołaj', 'Wojciech', 'Artur', 'Mateusz', 'Adrian', 'Bartosz', 'Robert', 'Arkadiusz'],
       last: ['Nowak', 'Kowalski', 'Wiśniewski', 'Wójcik', 'Kowalczyk', 'Kamiński', 'Lewandowski', 'Zieliński', 'Szymański', 'Woźniak', 'Dąbrowski', 'Kozłowski', 'Jankowski', 'Mazur', 'Krawczyk', 'Piotrowski', 'Grabowski', 'Nowakowski', 'Pawłowski', 'Michalski', 'Adamczyk', 'Dudek', 'Zając', 'Wieczorek', 'Jabłoński', 'Król', 'Witkowski', 'Walczak', 'Stępień', 'Górski']
-    }
+    },
+    fixedGangs: [
+      { name: 'Arasaka', personality: 'agresywny' },
+      { name: 'Militech', personality: 'bogacz' },
+      { name: 'Kiramann', personality: 'bogacz' },
+      { name: 'Bar Ostatnia Kropla', personality: 'rekruter' },
+      { name: 'Chem Barons', personality: 'zbalansowany' }
+    ],
+    fixedActionIntervalMinutes: 45
   },
   bossShopCrates: {
     dailyLimit: 10,

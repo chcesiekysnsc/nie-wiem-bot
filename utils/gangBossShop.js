@@ -81,16 +81,13 @@ function rollCrateRewards(crateId) {
   let item = null;
 
   if (crate.items && Object.keys(crate.items).length > 0) {
-    const entries = Object.entries(crate.items);
-    const totalChance = entries.reduce((sum, [, def]) => sum + (def.chance || 0), 0);
-    if (totalChance > 0) {
-      let roll = Math.random() * totalChance;
-      for (const [itemId, def] of entries) {
-        roll -= (def.chance || 0);
-        if (roll <= 0) {
-          item = itemId;
-          break;
-        }
+    const roll = Math.random() * 100;
+    let cumulative = 0;
+    for (const [itemId, def] of Object.entries(crate.items)) {
+      cumulative += def.chance || 0;
+      if (roll < cumulative) {
+        item = itemId;
+        break;
       }
     }
   }

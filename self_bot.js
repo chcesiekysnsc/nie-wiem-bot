@@ -924,25 +924,25 @@ login({ appState }, (loginErr, api) => {
 
   // Centralny tick gangów AI
   if (config.gangAI && config.gangAI.enabled) {
+    setTimeout(async () => {
+      try {
+        const cfg = config.gangAI;
+        await withData(store => {
+          gangAI.ensureFixedAIGangs(store, cfg);
+        });
+        await gangAI.logAIAction('system', 'Zainicjalizowano stałe gangi AI.');
+      } catch (err) {
+        console.error('[GANG-AI] Błąd inicjalizacji stałych gangów AI:', err);
+      }
+    }, 5000);
+
     setInterval(async () => {
       try {
         const cfg = config.gangAI;
         const gangs = await gangAI.getAIGangs();
         const currentCount = gangs.length;
-        const maxAIGangs = cfg.maxAIGangs || 5;
 
-        if (currentCount < maxAIGangs) {
-          const shouldCreate = Math.random() < 0.3;
-          if (shouldCreate) {
-            const newId = await withData(store => gangAI.createAIGang(store, cfg));
-            if (newId) {
-              await gangAI.logAIAction('system', `Utworzono nowy gang AI: ${newId}`);
-            }
-          }
-        }
-
-        const updatedGangs = await gangAI.getAIGangs();
-        for (const gang of updatedGangs) {
+        for (const gang of gangs) {
           try {
             await gangAI.processAIGang(client, gang.id, gang, cfg);
           } catch (err) {

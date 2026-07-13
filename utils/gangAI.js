@@ -122,32 +122,105 @@ function pickPersonality() {
   return personalities[Math.floor(Math.random() * personalities.length)];
 }
 
-function selectAction(gang, cfg) {
-  const weights = (cfg && cfg.actionWeights) || { earn: 35, upgrade: 22, recruit: 13, attack: 10, alliance: 8, event: 5 };
-  const rerollChance = (cfg && cfg.repeatActionRerollChance) || 0.7;
-  const entries = Object.entries(weights);
-  let chosen = null;
-  let attempts = 0;
-  do {
-    const totalWeight = entries.reduce((sum, [, w]) => sum + w, 0);
-    let roll = Math.random() * totalWeight;
-    for (const [action, weight] of entries) {
-      roll -= weight;
-      if (roll <= 0) {
-        chosen = action;
-        break;
-      }
-    }
-    if (!chosen) chosen = entries[entries.length - 1][0];
-    attempts++;
-    if (chosen !== gang.aiLastActionType || attempts > 5 || Math.random() > rerollChance) {
-      break;
-    }
-    chosen = null;
-  } while (attempts < 10);
+async function scoreActions(gang, cfg, allGangs) {
+  const scores = {};
+  const gangId = gang.id || gang.gangId;
+  const vault = gang.vault || 0;
+  const cap = getVaultCap();
 
-  if (!chosen) chosen = 'earn';
-  return chosen;
+  scores.earn = 10 + (1 - vault / cap) * 15;
+
+  const priority = getUpgradePriority(gang);
+  const upgrades = {
+    dziupla: { max: 10, costs: Array.from({ length: 10 }, (_, i) => 100000 + i * 40000) },
+    biznesy: { max: 3, costs: [200000, 400000, 650000] },
+    fach: { max: 3, costs: [200000, 350000, 600000] }
+  };
+  let bestUpgradeScore = 0;
+  for (const key of priority) {
+    const levelKey = key === 'dziupla' ? 'levelDziupla' : key === 'biznesy' ? 'levelBiznesy' : 'levelFach';
+    const currentLevel = gang[levelKey] || 0;
+    const def = upgrades[key];
+    if (currentLevel >= def.max) continue;
+    const cost = def.costs[currentLevel];
+    if (vault < cost) continue;
+    const affordabilityRatio = 1 - (cost / Math.max(vault, 1));
+    const priorityBonus = key === priority[0] ? 15 : key === priority[1] ? 8 : 0;
+    const score = 20 + affordabilityRatio * 20 + priorityBonus;
+    if (score > bestUpgradeScore) bestUpgradeScore = score;
+  }
+  scores.upgrade = bestUpgradeScore;
+
+  const maxMembers = 5 + (gang.levelDziupla || 0);
+  const currentMembers = (gang.members || []).length;
+  scores.recruit = currentMembers < maxMembers && vault > 50000
+    ? 15 + (1 - currentMembers / maxMembers) * 15
+    : 0;
+
+  if (isAttackHour() && vault >= 500000) {
+    const costRatio = (cfg && cfg.attackVaultCostRatio) || 0.10;
+    const cost = Math.floor(vault * costRatio);
+    if (vault - cost >= getMinVaultAfterAttack()) {
+      const candidates = Object.entries(allGangs).filter(([id, g]) => {
+        if (id === gangId) return false;
+        if ((g.alliances || []).includes(gangId)) return false;
+        if ((g.shieldUntil || 0) > Date.now()) return false;
+        return true;
+      });
+      let bestTargetScore = 0;
+      for (const [, target] of candidates) {
+        const targetVault = target.vault || 0;
+        if (targetVault < 100000) continue;
+        const myPowerEstimate = 30 * currentMembers * (1 + 0.15 * (gang.levelFach || 0));
+        const theirDefenseEstimate = 30 * (target.members || []).length * (1 + 0.15 * (target.levelFach || 0));
+        const winOdds = theirDefenseEstimate > 0 ? myPowerEstimate / (myPowerEstimate + theirDefenseEstimate) : 0.9;
+        const potentialLoot = targetVault * 0.25 * 0.7;
+        const expectedValue = winOdds * potentialLoot - (1 - winOdds) * (vault * 0.35);
+        const attackBias = getAttackWeight(gang);
+        const targetScore = (expectedValue / 10000) * attackBias;
+        if (targetScore > bestTargetScore) bestTargetScore = targetScore;
+      }
+      scores.attack = bestTargetScore;
+    } else {
+      scores.attack = 0;
+    }
+  } else {
+    scores.attack = 0;
+  }
+
+  const maxAlliances = (cfg && cfg.maxAlliances) || 3;
+  scores.alliance = (gang.alliances || []).length < maxAlliances ? 12 : 0;
+
+  const { getAllCrateDefinitions, ensureDailyLimit } = require('./gangBossShop');
+  const crates = getAllCrateDefinitions();
+  const cheapestPrice = Math.min(...Object.values(crates).map(c => c.price));
+  if (vault >= cheapestPrice * 2) {
+    const limitCheck = await ensureDailyLimit(gang, 1);
+    scores.buyBossCrate = limitCheck.allowed ? 18 + (vault / cap) * 10 : 0;
+  } else {
+    scores.buyBossCrate = 0;
+  }
+
+  scores.event = 5;
+
+  return scores;
+}
+
+function pickBestAction(scores) {
+  let bestAction = 'earn';
+  let bestScore = -Infinity;
+  for (const [action, score] of Object.entries(scores)) {
+    if (score > bestScore) {
+      bestScore = score;
+      bestAction = action;
+    }
+  }
+  return bestAction;
+}
+
+function getFixedActionIntervalMs() {
+  const minutes = (config.gangAI && config.gangAI.fixedActionIntervalMinutes) || 45;
+  return minutes * 60 * 1000;
 }
 
 function getUpgradePriority(gang) {
@@ -170,10 +243,9 @@ function getMinVaultAfterAttack() {
   return (config.gangAI && config.gangAI.minVaultAfterAttack) || 100000;
 }
 
-function getActionIntervalMinutes() {
-  const min = (config.gangAI && config.gangAI.actionIntervalMinutesMin) || 30;
-  const max = (config.gangAI && config.gangAI.actionIntervalMinutesMax) || 120;
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+function getFixedActionIntervalMs() {
+  const minutes = (config.gangAI && config.gangAI.fixedActionIntervalMinutes) || 45;
+  return minutes * 60 * 1000;
 }
 
 function isAttackHour() {
@@ -803,61 +875,45 @@ async function processAIGang(client, gangId, gang, cfg) {
   const nextActionTime = gang.aiNextActionTime || 0;
   if (now < nextActionTime) return;
 
-  const actionsCount = Math.floor(Math.random() * ((cfg && cfg.actionsPerTickMax) || 3)) + ((cfg && cfg.actionsPerTickMin) || 1);
-  const actions = [];
+  const allGangs = await withData(store => (store.profiles.gangs || {}));
+  const scores = await scoreActions(gang, cfg, allGangs);
+  const actionType = pickBestAction(scores);
 
-  for (let i = 0; i < actionsCount; i++) {
-    let actionType = selectAction(gang, cfg);
-
-    if (actionType === 'attack' && !isAttackHour()) {
-      actionType = 'earn';
-    }
-
-    if (actionType === 'alliance') {
-      const maxAlliances = (cfg && cfg.maxAlliances) || 3;
-      if ((gang.alliances || []).length >= maxAlliances) {
-        actionType = 'earn';
-      }
-    }
-
-    let result;
-    switch (actionType) {
-      case 'earn':
-        result = await executeEarn(gang, cfg);
-        break;
-      case 'upgrade':
-        result = await executeUpgrade(gang, cfg);
-        break;
-      case 'recruit':
-        result = await executeRecruit(gang, cfg);
-        break;
-      case 'attack':
-        result = await executeAttack(gang, cfg, client);
-        break;
-      case 'alliance':
-        result = await executeAlliance(gang, cfg, await withData(store => store), client);
-        break;
-      case 'event':
-        result = await executeEvent(gang, cfg);
-        break;
-      case 'buyBossCrate':
-        result = await executeBuyBossCrate(gang, cfg);
-        break;
-      default:
-        result = await executeEarn(gang, cfg);
-    }
-
-    actions.push(result);
-    gang.aiLastActionType = actionType;
-    gang.aiActionLog = gang.aiActionLog || [];
-    gang.aiActionLog.push({ type: actionType, result, timestamp: now });
-    if (gang.aiActionLog.length > 50) {
-      gang.aiActionLog = gang.aiActionLog.slice(-50);
-    }
+  let result;
+  switch (actionType) {
+    case 'earn':
+      result = await executeEarn(gang, cfg);
+      break;
+    case 'upgrade':
+      result = await executeUpgrade(gang, cfg);
+      break;
+    case 'recruit':
+      result = await executeRecruit(gang, cfg);
+      break;
+    case 'attack':
+      result = await executeAttack(gang, cfg, client);
+      break;
+    case 'alliance':
+      result = await executeAlliance(gang, cfg, await withData(store => store), client);
+      break;
+    case 'event':
+      result = await executeEvent(gang, cfg);
+      break;
+    case 'buyBossCrate':
+      result = await executeBuyBossCrate(gang, cfg);
+      break;
+    default:
+      result = await executeEarn(gang, cfg);
   }
 
-  const interval = getActionIntervalMinutes();
-  gang.aiNextActionTime = now + interval * 60 * 1000;
+  gang.aiLastActionType = actionType;
+  gang.aiActionLog = gang.aiActionLog || [];
+  gang.aiActionLog.push({ type: actionType, result, scores, timestamp: now });
+  if (gang.aiActionLog.length > 50) {
+    gang.aiActionLog = gang.aiActionLog.slice(-50);
+  }
+
+  gang.aiNextActionTime = now + getFixedActionIntervalMs();
 
   await withData(store => {
     const g = (store.profiles.gangs || {})[gang.id];
@@ -876,64 +932,60 @@ async function processAIGang(client, gangId, gang, cfg) {
     g.aiActionLog = gang.aiActionLog || [];
   });
 
-  return actions;
+  return [result];
 }
 
-async function createAIGang(store, cfg) {
-  const maxAIGangs = (cfg && cfg.maxAIGangs) || 5;
-  const existingAI = Object.values(store.profiles.gangs || {}).filter(g => g.isAI);
-  if (existingAI.length >= maxAIGangs) return null;
+async function ensureFixedAIGangs(store, cfg) {
+  const fixedGangs = (cfg && cfg.fixedGangs) || [];
+  const createdGangIds = [];
 
-  let attempt = 0;
-  let nameResult = null;
-  do {
-    nameResult = generateGangName(cfg);
-    attempt++;
-    if (attempt > 30) {
-      nameResult.gangId = `ai_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
-      nameResult.name = `AI-${nameResult.gangId.slice(-4)}`;
-      break;
+  for (const def of fixedGangs) {
+    const gangId = def.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (store.profiles.gangs[gangId]) continue;
+
+    const startVaultMin = (cfg && cfg.startVaultMin) || 50000;
+    const startVaultMax = (cfg && cfg.startVaultMax) || 300000;
+    const startVault = Math.floor(Math.random() * (startVaultMax - startVaultMin + 1)) + startVaultMin;
+    const startMembersMin = (cfg && cfg.startMembersMin) || 1;
+    const startMembersMax = (cfg && cfg.startMembersMax) || 3;
+    const startMemberCount = Math.floor(Math.random() * (startMembersMax - startMembersMin + 1)) + startMembersMin;
+
+    const fakeUsers = generateFakeUsers(gangId, startMemberCount);
+
+    store.profiles.gangs[gangId] = {
+      id: gangId,
+      name: def.name,
+      bossId: `ai_${gangId}_boss`,
+      deputies: [],
+      members: Object.keys(fakeUsers),
+      vault: startVault,
+      levelDziupla: 0,
+      levelBiznesy: 0,
+      levelFach: 0,
+      tributePercent: 0,
+      lastHeistTime: 0,
+      lastAttackTime: 0,
+      shieldUntil: 0,
+      isAI: true,
+      aiPersonality: def.personality,
+      aiNextActionTime: Date.now() + getFixedActionIntervalMs(),
+      aiLastActionType: null,
+      aiActionLog: [],
+      alliances: [],
+      allianceRequests: [],
+      bossShopItems: [],
+      bossShopPurchasesToday: 0,
+      bossShopPurchasesDate: null
+    };
+
+    for (const [uid, uData] of Object.entries(fakeUsers)) {
+      store.users[uid] = uData;
     }
-  } while (store.profiles.gangs[nameResult.gangId]);
 
-  const gangId = nameResult.gangId;
-  const startVaultMin = (cfg && cfg.startVaultMin) || 50000;
-  const startVaultMax = (cfg && cfg.startVaultMax) || 300000;
-  const startVault = Math.floor(Math.random() * (startVaultMax - startVaultMin + 1)) + startVaultMin;
-  const startMembersMin = (cfg && cfg.startMembersMin) || 1;
-  const startMembersMax = (cfg && cfg.startMembersMax) || 3;
-  const startMemberCount = Math.floor(Math.random() * (startMembersMax - startMembersMin + 1)) + startMembersMin;
-
-  const fakeUsers = generateFakeUsers(gangId, startMemberCount);
-
-  store.profiles.gangs[gangId] = {
-    id: gangId,
-    name: nameResult.name,
-    bossId: fakeUsers[`ai_${gangId}_boss`].name,
-    deputies: [],
-    members: Object.keys(fakeUsers),
-    vault: startVault,
-    levelDziupla: 0,
-    levelBiznesy: 0,
-    levelFach: 0,
-    tributePercent: 0,
-    lastHeistTime: 0,
-    lastAttackTime: 0,
-    shieldUntil: 0,
-    isAI: true,
-    aiPersonality: pickPersonality(),
-    aiNextActionTime: Date.now() + getActionIntervalMinutes() * 60 * 1000,
-    aiLastActionType: null,
-    aiActionLog: [],
-    alliances: [],
-    allianceRequests: []
-  };
-
-  for (const [uid, uData] of Object.entries(fakeUsers)) {
-    store.users[uid] = uData;
+    createdGangIds.push(gangId);
   }
 
-  return gangId;
+  return createdGangIds;
 }
 
 async function handleAllianceProposalToAI(gangId, proposerGangId, cfg) {
@@ -1012,12 +1064,13 @@ module.exports = {
   generateGangName,
   generateFakeUsers,
   pickPersonality,
-  selectAction,
+  scoreActions,
+  pickBestAction,
   getUpgradePriority,
   getAttackWeight,
   getVaultCap,
   getMinVaultAfterAttack,
-  getActionIntervalMinutes,
+  getFixedActionIntervalMs,
   isAttackHour,
   randomParticipants,
   calcPower,
@@ -1031,7 +1084,7 @@ module.exports = {
   executeEvent,
   executeBuyBossCrate,
   processAIGang,
-  createAIGang,
+  ensureFixedAIGangs,
   handleAllianceProposalToAI,
   logAIAction,
   getAIGangs,

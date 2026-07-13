@@ -1,7 +1,9 @@
 const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
-const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getItemDefinition } = require('../utils/gangBossShop');
+const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getItemDefinition, getAllCrateDefinitions, getCrateDefinition, processBossShopPurchase, ensureDailyLimit } = require('../utils/gangBossShop');
+
+const CRATE_ORDER = Object.keys(config.bossShopCrates && config.bossShopCrates.crates ? config.bossShopCrates.crates : {});
 
 function notifySupportThreads(client, heist, msg) {
   if (!client.api || !heist || !Array.isArray(heist.supportThreads)) return;
@@ -2036,12 +2038,154 @@ module.exports = {
 
       const itemsList = eqResult.items.length > 0
         ? eqResult.items.join('\n')
-        : '📦 Ten gang nie posiada jeszcze żadnych przedmiotów z Bossowego Sklepu. Boss może je kupić komendą **!bosssklep**.';
+        : '📦 Ten gang nie posiada jeszcze żadnych przedmiotów z Bossowego Sklepu. Boss może je kupić komendą **!gang sklep**.';
 
       await message.reply(
         `🛒 **Przedmioty Bossowego Sklepu — Gang: ${eqResult.gangName}**\n\n` +
         itemsList
       );
+      return;
+    }
+
+    // ==========================================
+    // 10c. GANG SKLEP (BOSS SHOP)
+    // ==========================================
+    if (sub === 'sklep') {
+      const shopFirstArg = String(args[1] || '').toLowerCase();
+
+      if (shopFirstArg === 'help' || shopFirstArg === 'opis' || shopFirstArg === 'info') {
+        const targetNum = String(args[2] || '').toLowerCase();
+        if (!targetNum) {
+          await message.reply(
+            `ℹ️ Użyj: **!gang sklep help <numer>** aby zobaczyć szczegółowy opis skrzynki.\n` +
+            `💡 Numery znajdziesz w liście: **!gang sklep**`
+          );
+          return;
+        }
+
+        const crates = getAllCrateDefinitions();
+        const crateId = CRATE_ORDER[parseInt(targetNum, 10) - 1];
+        if (!crateId || !crates[crateId]) {
+          await message.reply(`❌ Nie znaleziono skrzynki o numerze **${targetNum}**. Wpisz **!gang sklep** aby zobaczyć listę.`);
+          return;
+        }
+
+        const crate = crates[crateId];
+        const itemsList = Object.entries(crate.items).map(([itemId, def]) => {
+          return `• ${def.emoji} **${def.name}** — ${def.chance}%\n   _${def.description}_`;
+        }).join('\n');
+
+        await message.reply(
+          `${crate.emoji} **${crate.name}** — ${formatCurrency(crate.price)}\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `💰 Drop pieniędzy: ${formatCurrency(crate.moneyMin)} – ${formatCurrency(crate.moneyMax)}\n\n` +
+          `🎁 **Przedmioty:**\n${itemsList}\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `💡 Kup: **!gang sklep kup ${parseInt(targetNum, 10)} [ilość]**`
+        );
+        return;
+      }
+
+      const readResult = await withData(store => {
+        store.profiles.gangs = store.profiles.gangs || {};
+        const user = createUser(message.author.id, store.users);
+
+        if (!user.gangId || !store.profiles.gangs[user.gangId]) {
+          return { error: '❌ Nie należysz do żadnego gangu.' };
+        }
+
+        const gang = store.profiles.gangs[user.gangId];
+        const isBoss = user.gangRole === 'boss';
+        const isDeputy = user.gangRole === 'deputy';
+        if (!isBoss && !isDeputy) {
+          return { error: '❌ Tylko Boss oraz Zastępcy mogą korzystać z Bossowego Sklepu.' };
+        }
+
+        const today = new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
+        if (gang.bossShopPurchasesDate !== today) {
+          gang.bossShopPurchasesDate = today;
+          gang.bossShopPurchasesToday = 0;
+        }
+
+        return {
+          gangId: user.gangId,
+          gangName: gang.name,
+          vault: gang.vault || 0,
+          purchasesToday: gang.bossShopPurchasesToday || 0,
+          bossShopItems: gang.bossShopItems || []
+        };
+      });
+
+      if (readResult.error) {
+        await message.reply(readResult.error);
+        return;
+      }
+
+      if (shopFirstArg === 'kup') {
+        const targetNum = String(args[2] || '').toLowerCase();
+        const crateId = CRATE_ORDER[parseInt(targetNum, 10) - 1];
+        if (!crateId) {
+          await message.reply(`❌ Nieprawidłowy numer skrzynki. Wpisz **!gang sklep** aby zobaczyć listę.`);
+          return;
+        }
+
+        const crates = getAllCrateDefinitions();
+        const crate = crates[crateId];
+        if (!crate) {
+          await message.reply(`❌ Nie znaleziono skrzynki o numerze **${targetNum}**.`);
+          return;
+        }
+
+        const qtyRaw = args[3] ? parseInt(args[3], 10) : 1;
+        const quantity = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.floor(qtyRaw) : 1;
+
+        const purchaseResult = await withData(store => {
+          const gang = store.profiles.gangs[readResult.gangId];
+          if (!gang) return { error: '❌ Gang nie istnieje.' };
+          return processBossShopPurchase(gang, crateId, quantity);
+        });
+
+        if (purchaseResult.error) {
+          await message.reply(purchaseResult.error);
+          return;
+        }
+
+        const lines = [
+          `🛒 **Bossowy Sklep — Zakup**`,
+          `📦 Skrzynka: **${crate.emoji} ${crate.name}** x${quantity}`,
+          `💰 Łączny drop pieniędzy: **+${formatCurrency(purchaseResult.totalMoney)}**`,
+        ];
+
+        if (purchaseResult.perCrateResults && purchaseResult.perCrateResults.length > 1) {
+          lines.push(`\n📋 **Szczegóły każdej skrzynki:**`);
+          purchaseResult.perCrateResults.forEach((crateResult, idx) => {
+            const moneyLine = `   💰 #${idx + 1}: **+${formatCurrency(crateResult.money)}**`;
+            const itemLine = crateResult.item
+              ? `   🎁 #${idx + 1}: ${getItemEmoji(crateResult.item)} **${getItemName(crateResult.item)}**${crateResult.gained ? '' : ' (już posiadacie — pominięto)'}`
+              : `   💨 #${idx + 1}: Brak przedmiotu`;
+            lines.push(moneyLine);
+            lines.push(itemLine);
+          });
+        }
+
+        if (purchaseResult.itemsSummary) {
+          lines.push(purchaseResult.itemsSummary);
+        }
+
+        lines.push(`📅 Pozostało zakupów dziś: **${purchaseResult.remainingPurchases}/10**`);
+
+        await message.reply(lines.join('\n'));
+        return;
+      }
+
+      const remaining = 10 - (readResult.purchasesToday || 0);
+      const response =
+        `🛒 **BOSSOWY SKLEP GANGU**\n` +
+        `${renderBossShopList(readResult.bossShopItems)}\n` +
+        `💰 Sejf: **${formatCurrency(readResult.vault)}** | 📅 Dzisiaj: **${readResult.purchasesToday}/10** (pozostało: **${remaining}**)\n\n` +
+        `💡 Kup: **!gang sklep kup <numer> [ilość]** | Szczegóły: **!gang sklep help <numer>**`;
+
+      await message.reply(response);
       return;
     }
 
@@ -2053,6 +2197,17 @@ module.exports = {
       if (client.resolvedUserNames && client.resolvedUserNames.has(id) && client.userNames.has(id)) {
         return client.userNames.get(id);
       }
+
+      try {
+        const { loadData } = require('../utils/storage');
+        const usersData = loadData('users');
+        if (usersData && usersData[id] && usersData[id].name) {
+          client.userNames.set(id, usersData[id].name);
+          if (client.resolvedUserNames) client.resolvedUserNames.add(id);
+          return usersData[id].name;
+        }
+      } catch (_) {}
+
       if (client.api && typeof client.api.getUserInfo === 'function') {
         try {
           const info = await new Promise((resolve) => {
