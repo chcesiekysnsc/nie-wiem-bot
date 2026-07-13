@@ -434,7 +434,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
   const minVaultAfter = getMinVaultAfterAttack();
   const costRatio = (config.gangAI && config.gangAI.attackVaultCostRatio) || 0.10;
   const cost = Math.floor((gang.vault || 0) * costRatio);
-  const minRequiredVault = bypassRestrictions ? 0 : 500000;
+  const minRequiredVault = 500000;
   if ((gang.vault || 0) < minRequiredVault || (gang.vault || 0) - cost < minVaultAfter) {
     return { type: 'attack', skipped: true, reason: 'insufficient_vault' };
   }
@@ -710,7 +710,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
 
     if (outcome.cancelled) return;
 
-    const sendResult = async (msg) => {
+    const sendResultSuccess = async (msg) => {
       if (!client.api) return;
       const seen = new Set();
       if (originThreadId) {
@@ -728,6 +728,11 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
       }
     };
 
+    const sendResultFail = async (msg) => {
+      if (!client.api || !originThreadId) return;
+      client.api.sendMessage(msg, originThreadId);
+    };
+
     if (outcome.success) {
       const successMsg = `⚔️ **WOJNA GANGÓW ZAKOŃCZONA SUKCESEM!** ⚔️\n` +
         `Gang **${gang.name}** zniszczył obronę gangu **${targetGang.name}**!\n\n` +
@@ -737,7 +742,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
         `• Trafiło do sejfu Waszego gangu (30%): **+${formatCurrency(outcome.vaultShare)}**\n` +
         `• Każdy uczestnik ataku otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!` +
         (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu przeciwnika!` : '');
-      await sendResult(successMsg);
+      await sendResultSuccess(successMsg);
       notifySupportThreads(client, war, successMsg);
     } else {
       const defenderDistribution = listDefenders.length > 0
@@ -752,7 +757,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
         `• Sejf obrońców zyskuje: **+${formatCurrency(outcome.penaltyVault)}**\n` +
         `• ${defenderDistribution}` +
         (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang obrońcy przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu atakujących!` : '');
-      await sendResult(failMsg);
+      await sendResultFail(failMsg);
       notifySupportThreads(client, war, failMsg);
     }
   }, 120000).unref();
