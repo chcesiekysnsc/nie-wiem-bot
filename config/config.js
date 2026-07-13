@@ -619,6 +619,8 @@ module.exports = {
     attackTimeEndHour: 22,
     aiToAiAllianceWeight: 3,
     aiToPlayerAllianceWeight: 1,
+    attackAiWeight: 1,
+    attackPlayerWeight: 1,
     allianceAcceptChanceFromAI: 0.7,
     allianceAcceptChanceFromPlayer: 0.35,
     maxAlliances: 3,

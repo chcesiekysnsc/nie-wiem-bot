@@ -788,6 +788,7 @@ async function loadDecisions() {
     const select = $('#decision-gang-select');
     select.innerHTML = currentDecisionGangs.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');
     renderSelectedGangDecisions();
+    updateDecisionTargetVisibility();
   } catch (err) { toast(err.message, true); }
 }
 
@@ -813,16 +814,48 @@ function renderSelectedGangDecisions() {
   $('#decision-log-list').innerHTML = logHtml;
 }
 
-$('#decision-gang-select').addEventListener('change', renderSelectedGangDecisions);
+$('#decision-gang-select').addEventListener('change', () => {
+  renderSelectedGangDecisions();
+  updateDecisionTargetVisibility();
+});
+
+$('#decision-action-select').addEventListener('change', updateDecisionTargetVisibility);
+
+async function updateDecisionTargetVisibility() {
+  const isAttack = $('#decision-action-select').value === 'attack';
+  $('#decision-target-group').classList.toggle('hidden', !isAttack);
+  if (isAttack) {
+    await loadDecisionTargets();
+  }
+}
+
+async function loadDecisionTargets() {
+  try {
+    const data = await api('/api/gangs');
+    const currentGangId = $('#decision-gang-select').value;
+    $('#decision-target-select').innerHTML = data.gangs
+      .filter(g => g.id !== currentGangId)
+      .map(g => `<option value="${esc(g.id)}">${esc(g.name)}${g.isAI ? ' 🤖' : ''}</option>`)
+      .join('');
+  } catch (err) { toast(err.message, true); }
+}
 
 $('#force-action-btn').addEventListener('click', async () => {
   const gangId = $('#decision-gang-select').value;
   const actionType = $('#decision-action-select').value;
   if (!gangId) return toast('Wybierz gang.', true);
+
+  const body = { actionType };
+  if (actionType === 'attack') {
+    const targetGangId = $('#decision-target-select').value;
+    if (!targetGangId) return toast('Wybierz cel ataku.', true);
+    body.targetGangId = targetGangId;
+  }
+
   try {
-    const data = await api(`/api/ai-gangs/${encodeURIComponent(gangId)}/force-action`, {
+    await api(`/api/ai-gangs/${encodeURIComponent(gangId)}/force-action`, {
       method: 'POST',
-      body: JSON.stringify({ actionType })
+      body: JSON.stringify(body)
     });
     toast(`Wykonano akcję "${actionType}" dla gangu.`);
     loadDecisions();

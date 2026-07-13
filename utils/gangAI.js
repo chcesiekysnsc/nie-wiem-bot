@@ -425,7 +425,7 @@ async function executeRecruit(gang, cfg) {
   return { type: 'recruit', memberId: newId, memberName: fakeUser.name };
 }
 
-async function executeAttack(gang, cfg, client) {
+async function executeAttack(gang, cfg, client, forcedTargetGangId) {
   if (!isAttackHour()) {
     return { type: 'attack', skipped: true, reason: 'outside_hours' };
   }
@@ -450,32 +450,41 @@ async function executeAttack(gang, cfg, client) {
   let targetGangId = null;
   let targetGang = null;
 
-  const aiGangs = possibleTargets.filter(([, g]) => g.isAI);
-  const playerGangs = possibleTargets.filter(([, g]) => !g.isAI);
-  const aiWeight = (cfg && cfg.aiToAiAllianceWeight) || 3;
-  const playerWeight = (cfg && cfg.aiToPlayerAllianceWeight) || 1;
-  const totalWeight = aiGangs.length * aiWeight + playerGangs.length * playerWeight;
+  if (forcedTargetGangId) {
+    const forced = possibleTargets.find(([id]) => id === forcedTargetGangId);
+    if (forced) {
+      [targetGangId, targetGang] = forced;
+    } else {
+      return { type: 'attack', skipped: true, reason: 'invalid_forced_target' };
+    }
+  } else {
+    const aiGangs = possibleTargets.filter(([, g]) => g.isAI);
+    const playerGangs = possibleTargets.filter(([, g]) => !g.isAI);
+    const aiWeight = (cfg && cfg.attackAiWeight) || 1;
+    const playerWeight = (cfg && cfg.attackPlayerWeight) || 1;
+    const totalWeight = aiGangs.length * aiWeight + playerGangs.length * playerWeight;
 
-  if (totalWeight > 0 && possibleTargets.length > 0) {
-    let roll = Math.random() * totalWeight;
-    const pickFrom = (arr, w) => {
-      for (const [id, g] of arr) {
-        roll -= w;
-        if (roll <= 0) return [id, g];
-      }
-      return arr[0];
-    };
+    if (totalWeight > 0 && possibleTargets.length > 0) {
+      let roll = Math.random() * totalWeight;
+      const pickFrom = (arr, w) => {
+        for (const [id, g] of arr) {
+          roll -= w;
+          if (roll <= 0) return [id, g];
+        }
+        return arr[0];
+      };
 
-    if (aiGangs.length > 0 && playerGangs.length > 0) {
-      if (roll < aiWeight * aiGangs.length) {
+      if (aiGangs.length > 0 && playerGangs.length > 0) {
+        if (roll < aiWeight * aiGangs.length) {
+          [targetGangId, targetGang] = pickFrom(aiGangs, aiWeight);
+        } else {
+          [targetGangId, targetGang] = pickFrom(playerGangs, playerWeight);
+        }
+      } else if (aiGangs.length > 0) {
         [targetGangId, targetGang] = pickFrom(aiGangs, aiWeight);
       } else {
         [targetGangId, targetGang] = pickFrom(playerGangs, playerWeight);
       }
-    } else if (aiGangs.length > 0) {
-      [targetGangId, targetGang] = pickFrom(aiGangs, aiWeight);
-    } else {
-      [targetGangId, targetGang] = pickFrom(playerGangs, playerWeight);
     }
   }
 
@@ -510,9 +519,26 @@ async function executeAttack(gang, cfg, client) {
   gang.lastAttackTime = now;
 
   const warKey = `ai_${gangId}_${Date.now()}`;
-  const originThreadId = (client.activeThreadIds && client.activeThreadIds.size > 0)
-    ? Array.from(client.activeThreadIds)[0]
-    : null;
+  const activeThreads = Array.from(client.activeThreadIds || []);
+  const defenderMembersForThread = targetGang.members || [];
+  let originThreadId = null;
+  let maxMemberCount = 0;
+
+  for (const threadId of activeThreads) {
+    let count = 0;
+    for (const mid of defenderMembersForThread) {
+      const member = await withData(store => store.users[mid]);
+      if (member && member.lastActiveThreadId === threadId) count++;
+    }
+    if (count > maxMemberCount) {
+      maxMemberCount = count;
+      originThreadId = threadId;
+    }
+  }
+
+  if (!originThreadId && activeThreads.length > 0) {
+    originThreadId = activeThreads[0];
+  }
 
   if (!client.activeGangWars) client.activeGangWars = new Map();
   client.activeGangWars.set(warKey, {
@@ -868,7 +894,7 @@ async function executeBuyBossCrate(gang, cfg) {
   };
 }
 
-async function processAIGang(client, gangId, gang, cfg, forcedActionType) {
+async function processAIGang(client, gangId, gang, cfg, forcedActionType, forcedTargetGangId) {
   const now = Date.now();
   if (!gang.isAI) return;
 
@@ -900,7 +926,7 @@ async function processAIGang(client, gangId, gang, cfg, forcedActionType) {
       result = await executeRecruit(gang, cfg);
       break;
     case 'attack':
-      result = await executeAttack(gang, cfg, client);
+      result = await executeAttack(gang, cfg, client, forcedTargetGangId);
       break;
     case 'alliance':
       result = await executeAlliance(gang, cfg, await withData(store => store), client);

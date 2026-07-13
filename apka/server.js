@@ -443,10 +443,13 @@ app.get('/api/ai-gangs', (req, res) => {
 });
 
 app.post('/api/ai-gangs/:id/force-action', async (req, res) => {
-  const { actionType } = req.body || {};
+  const { actionType, targetGangId } = req.body || {};
   const validActions = ['earn', 'upgrade', 'recruit', 'attack', 'alliance', 'event', 'buyBossCrate'];
   if (!validActions.includes(actionType)) {
     return res.status(400).json({ error: 'Nieznany typ akcji.' });
+  }
+  if (actionType === 'attack' && !targetGangId) {
+    return res.status(400).json({ error: 'Wybierz gang docelowy ataku.' });
   }
   if (!global.gangAIClient) {
     return res.status(503).json({ error: 'Bot jeszcze się nie zainicjalizował (brak połączenia).' });
@@ -459,7 +462,14 @@ app.post('/api/ai-gangs/:id/force-action', async (req, res) => {
       return res.status(404).json({ error: 'Nie znaleziono gangu AI.' });
     }
     gang.id = req.params.id;
-    const results = await gangAI.processAIGang(global.gangAIClient, req.params.id, gang, config.gangAI, actionType);
+    const results = await gangAI.processAIGang(
+      global.gangAIClient,
+      req.params.id,
+      gang,
+      config.gangAI,
+      actionType,
+      actionType === 'attack' ? targetGangId : undefined
+    );
     res.json({ ok: true, result: (results && results[0]) || null });
   } catch (err) {
     res.status(500).json({ error: err.message });
