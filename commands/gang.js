@@ -1467,7 +1467,7 @@ module.exports = {
     // ==========================================
     // 10. GANG WAR / ATTACK (!gang atak / !gang wojna)
     // ==========================================
-    if (sub === 'atak' || sub === 'wojna') {
+    if (sub === 'atak' || sub === 'wojna' || sub === 'obrona') {
       if (!client.activeGangWars) {
         client.activeGangWars = new Map();
       }
@@ -1537,7 +1537,7 @@ module.exports = {
       // Starting an attack
       const targetParam = args.slice(1).join(' ').trim();
       if (!targetParam) {
-        await message.reply('❌ Użyj: **!gang atak @osoba** lub **!gang atak <ID>** lub **!gang atak dolacz**');
+        await message.reply('❌ Użyj: **!gang atak @osoba** lub **!gang atak <ID>** lub **!gang atak dolacz** / **!gang obrona dolacz**');
         return;
       }
 
@@ -1702,7 +1702,7 @@ module.exports = {
           `⚔️ **Atakujący (${startResult.attackerGangName}):** ${attackerTagsString}\n` +
           `🛡️ **Obrońcy (${startResult.defenderGangName}):** ${defenderTagsString}\n\n` +
           `🚗 Członkowie obu gangów mają **2 minuty**, aby dołączyć do walki!\n` +
-          `Wpisz: **!gang atak dolacz**, aby wesprzeć swój gang!`,
+          `Wpisz: **!gang atak dolacz** / **!gang obrona dolacz**, aby wesprzeć swój gang!`,
         mentions: [...attackerMentions, ...defenderMentions]
       };
 

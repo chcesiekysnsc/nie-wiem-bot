@@ -590,7 +590,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
       `⚔️ **Atakujący (${gang.name}):** ${attackerTagsString}\n` +
       `🛡️ **Obrońcy (${targetGang.name}):** ${defenderTagsString}\n\n` +
       `🚗 Członkowie obu gangów mają **2 minuty**, aby dołączyć do walki!\n` +
-      `Wpisz: **!gang atak dolacz**, aby wesprzeć swój gang!` +
+      `Wpisz: **!gang atak dolacz** / **!gang obrona dolacz**, aby wesprzeć swój gang!` +
       allySupportBlock,
     mentions: [...attackerMentions, ...defenderMentions]
   };
