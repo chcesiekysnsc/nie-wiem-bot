@@ -390,7 +390,7 @@ app.get('/api/gangs', (req, res) => {
 });
 
 app.post('/api/gangs/:id', async (req, res) => {
-  const { vault, tributePercent, removeMember, deleteGang } = req.body || {};
+  const { vault, tributePercent, removeMember, deleteGang, removeItem } = req.body || {};
   try {
     const result = await withData(store => {
       const gang = (store.profiles.gangs || {})[req.params.id];
@@ -410,10 +410,57 @@ app.post('/api/gangs/:id', async (req, res) => {
         gang.members = (gang.members || []).filter(m => m !== removeMember);
         gang.deputies = (gang.deputies || []).filter(m => m !== removeMember);
       }
+      if (removeItem) {
+        const before = (gang.bossShopItems || []).length;
+        gang.bossShopItems = (gang.bossShopItems || []).filter(itemId => itemId !== removeItem);
+        if (gang.bossShopItems.length === before) {
+          return { error: 'Gang nie posiada tego przedmiotu.' };
+        }
+      }
       return { ok: true };
     });
     if (result.error) return res.status(404).json(result);
     res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/ai-gangs', (req, res) => {
+  const profiles = loadData('profiles');
+  const gangs = Object.entries(profiles.gangs || {})
+    .filter(([, g]) => g.isAI)
+    .map(([id, g]) => ({
+      id,
+      name: g.name,
+      vault: g.vault || 0,
+      aiPersonality: g.aiPersonality || null,
+      aiLastActionType: g.aiLastActionType || null,
+      aiNextActionTime: g.aiNextActionTime || 0,
+      aiActionLog: (g.aiActionLog || []).slice(-50).reverse()
+    }));
+  res.json({ gangs });
+});
+
+app.post('/api/ai-gangs/:id/force-action', async (req, res) => {
+  const { actionType } = req.body || {};
+  const validActions = ['earn', 'upgrade', 'recruit', 'attack', 'alliance', 'event', 'buyBossCrate'];
+  if (!validActions.includes(actionType)) {
+    return res.status(400).json({ error: 'Nieznany typ akcji.' });
+  }
+  if (!global.gangAIClient) {
+    return res.status(503).json({ error: 'Bot jeszcze się nie zainicjalizował (brak połączenia).' });
+  }
+  try {
+    const gangAI = require('../utils/gangAI');
+    const config = require('../config/config');
+    const gang = await withData(store => (store.profiles.gangs || {})[req.params.id]);
+    if (!gang || !gang.isAI) {
+      return res.status(404).json({ error: 'Nie znaleziono gangu AI.' });
+    }
+    gang.id = req.params.id;
+    const results = await gangAI.processAIGang(global.gangAIClient, req.params.id, gang, config.gangAI, actionType);
+    res.json({ ok: true, result: (results && results[0]) || null });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

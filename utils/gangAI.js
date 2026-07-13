@@ -868,16 +868,25 @@ async function executeBuyBossCrate(gang, cfg) {
   };
 }
 
-async function processAIGang(client, gangId, gang, cfg) {
+async function processAIGang(client, gangId, gang, cfg, forcedActionType) {
   const now = Date.now();
   if (!gang.isAI) return;
 
-  const nextActionTime = gang.aiNextActionTime || 0;
-  if (now < nextActionTime) return;
+  if (!forcedActionType) {
+    const nextActionTime = gang.aiNextActionTime || 0;
+    if (now < nextActionTime) return;
+  }
 
   const allGangs = await withData(store => (store.profiles.gangs || {}));
-  const scores = await scoreActions(gang, cfg, allGangs);
-  const actionType = pickBestAction(scores);
+  let actionType;
+  let scores;
+  if (forcedActionType) {
+    actionType = forcedActionType;
+    scores = { forced: true };
+  } else {
+    scores = await scoreActions(gang, cfg, allGangs);
+    actionType = pickBestAction(scores);
+  }
 
   let result;
   switch (actionType) {
@@ -937,6 +946,25 @@ async function processAIGang(client, gangId, gang, cfg) {
 
 async function ensureFixedAIGangs(store, cfg) {
   const fixedGangs = (cfg && cfg.fixedGangs) || [];
+  const validIds = new Set(fixedGangs.map(def => def.name.toLowerCase().replace(/[^a-z0-9]/g, '')));
+  const gangs = store.profiles.gangs || {};
+
+  let staleCount = 0;
+  for (const [gangId, gang] of Object.entries(gangs)) {
+    if (gang.isAI && !validIds.has(gangId)) {
+      delete gangs[gangId];
+      for (const userId of Object.keys(store.users || {})) {
+        if (String(userId).startsWith(`ai_${gangId}_`)) {
+          delete store.users[userId];
+        }
+      }
+      staleCount++;
+    }
+  }
+  if (staleCount > 0) {
+    console.log(`[GANG-AI] Wyczyszczono ${staleCount} nieaktualnych gangów AI spoza fixedGangs.`);
+  }
+
   const createdGangIds = [];
 
   for (const def of fixedGangs) {

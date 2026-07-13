@@ -82,6 +82,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'live') loadLive();
     if (btn.dataset.tab === 'commands') loadCommands();
     if (btn.dataset.tab === 'mody') loadMody();
+    if (btn.dataset.tab === 'decisions') loadDecisions();
   });
 });
 
@@ -541,7 +542,7 @@ async function loadGangs() {
         </details>
         <details>
           <summary>🛒 Przedmioty Bossowego Sklepu (${g.bossShopItems.length})</summary>
-          <ul>${g.bossShopItems.length ? g.bossShopItems.map(it => `<li>${it.emoji} <strong>${esc(it.name)}</strong> <span class="muted">${esc(it.description)}</span></li>`).join('') : '<li class="muted">Brak przedmiotów</li>'}</ul>
+          <ul>${g.bossShopItems.length ? g.bossShopItems.map(it => `<li>${it.emoji} <strong>${esc(it.name)}</strong> <span class="muted">${esc(it.description)}</span> <button class="small danger" onclick="removeGangItem('${esc(g.id)}','${esc(it.id)}','${esc(it.name)}')">Usuń</button></li>`).join('') : '<li class="muted">Brak przedmiotów</li>'}</ul>
         </details>
       </div>`).join('') : '<p class="muted">Brak gangów.</p>';
   } catch (err) { toast(err.message, true); }
@@ -575,6 +576,15 @@ window.deleteGang = async function (gangId, name) {
   try {
     await api(`/api/gangs/${encodeURIComponent(gangId)}`, { method: 'POST', body: JSON.stringify({ deleteGang: true }) });
     toast('Gang usunięty.');
+    loadGangs();
+  } catch (err) { toast(err.message, true); }
+};
+
+window.removeGangItem = async function (gangId, itemId, itemName) {
+  if (!confirm(`Usunąć przedmiot "${itemName}" z gangu?`)) return;
+  try {
+    await api(`/api/gangs/${encodeURIComponent(gangId)}`, { method: 'POST', body: JSON.stringify({ removeItem: itemId }) });
+    toast('Przedmiot usunięty.');
     loadGangs();
   } catch (err) { toast(err.message, true); }
 };
@@ -768,3 +778,53 @@ window.openModPermissions = async function (id, name) {
     });
   } catch (err) { toast(err.message, true); }
 };
+
+let currentDecisionGangs = [];
+
+async function loadDecisions() {
+  try {
+    const data = await api('/api/ai-gangs');
+    currentDecisionGangs = data.gangs || [];
+    const select = $('#decision-gang-select');
+    select.innerHTML = currentDecisionGangs.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');
+    renderSelectedGangDecisions();
+  } catch (err) { toast(err.message, true); }
+}
+
+function renderSelectedGangDecisions() {
+  const selectedId = $('#decision-gang-select').value;
+  const gang = currentDecisionGangs.find(g => g.id === selectedId);
+  if (!gang) return;
+
+  const nextIn = gang.aiNextActionTime > Date.now()
+    ? `${Math.ceil((gang.aiNextActionTime - Date.now()) / 60000)} min`
+    : 'gotowy teraz';
+
+  $('#decision-gang-info').innerHTML = `
+    <p>💰 Sejf: <b>${fmt(gang.vault)}</b> | 🎭 Osobowość: <b>${esc(gang.aiPersonality || '—')}</b></p>
+    <p>🕐 Ostatnia akcja: <b>${esc(gang.aiLastActionType || '—')}</b> | ⏳ Następna naturalna akcja: <b>${nextIn}</b></p>
+  `;
+
+  const logHtml = (gang.aiActionLog || []).map(entry => {
+    const time = new Date(entry.timestamp).toLocaleString('pl-PL');
+    const resultStr = JSON.stringify(entry.result || {});
+    return `<div class="list-item"><span>${time} — <b>${esc(entry.type)}</b></span><span class="muted">${esc(resultStr)}</span></div>`;
+  }).join('') || '<p class="muted">Brak wpisów.</p>';
+  $('#decision-log-list').innerHTML = logHtml;
+}
+
+$('#decision-gang-select').addEventListener('change', renderSelectedGangDecisions);
+
+$('#force-action-btn').addEventListener('click', async () => {
+  const gangId = $('#decision-gang-select').value;
+  const actionType = $('#decision-action-select').value;
+  if (!gangId) return toast('Wybierz gang.', true);
+  try {
+    const data = await api(`/api/ai-gangs/${encodeURIComponent(gangId)}/force-action`, {
+      method: 'POST',
+      body: JSON.stringify({ actionType })
+    });
+    toast(`Wykonano akcję "${actionType}" dla gangu.`);
+    loadDecisions();
+  } catch (err) { toast(err.message, true); }
+});

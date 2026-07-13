@@ -811,6 +811,7 @@ login({ appState }, (loginErr, api) => {
 
   client.api = api;
   global.botApi = api;
+  global.gangAIClient = client;
 
   // Globally patch api.getThreadInfo with cache, rate limiting, and backoff
   _originalGetThreadInfo = api.getThreadInfo;

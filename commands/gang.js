@@ -6,6 +6,14 @@ const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmo
 
 const CRATE_ORDER = Object.keys(config.bossShopCrates && config.bossShopCrates.crates ? config.bossShopCrates.crates : {});
 
+function renderBossShopList() {
+  const crates = getAllCrateDefinitions();
+  return CRATE_ORDER.map((crateId, idx) => {
+    const c = crates[crateId];
+    return `${idx + 1}. ${c.emoji} **${c.name}** — ${formatCurrency(c.price)}`;
+  }).join('\n');
+}
+
 function notifySupportThreads(client, heist, msg) {
   if (!client.api || !heist || !Array.isArray(heist.supportThreads)) return;
   for (const threadId of heist.supportThreads) {
@@ -2140,10 +2148,14 @@ module.exports = {
         const qtyRaw = args[3] ? parseInt(args[3], 10) : 1;
         const quantity = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.floor(qtyRaw) : 1;
 
-        const purchaseResult = await withData(store => {
+        const purchaseResult = await withData(async store => {
           const gang = store.profiles.gangs[readResult.gangId];
           if (!gang) return { error: '❌ Gang nie istnieje.' };
-          return processBossShopPurchase(gang, crateId, quantity);
+          const result = await processBossShopPurchase(gang, crateId, quantity);
+          if (result.error) return result;
+          const maxVault = (config.gangAI && config.gangAI.maxVault) || 5000000;
+          gang.vault = Math.min(maxVault, (gang.vault || 0) + result.totalMoney);
+          return result;
         });
 
         if (purchaseResult.error) {
@@ -2182,7 +2194,7 @@ module.exports = {
       const remaining = 10 - (readResult.purchasesToday || 0);
       const response =
         `🛒 **BOSSOWY SKLEP GANGU**\n` +
-        `${renderBossShopList(readResult.bossShopItems)}\n` +
+        `${renderBossShopList()}\n` +
         `💰 Sejf: **${formatCurrency(readResult.vault)}** | 📅 Dzisiaj: **${readResult.purchasesToday}/10** (pozostało: **${remaining}**)\n\n` +
         `💡 Kup: **!gang sklep kup <numer> [ilość]** | Szczegóły: **!gang sklep help <numer>**`;
 
