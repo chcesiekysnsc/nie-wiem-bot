@@ -561,17 +561,26 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
     attackerNames.push(name);
   }
 
-  const defenderNames = [];
-  for (const pid of defenderParticipants) {
+  const allDefenderMembers = targetGang.members || [];
+  const allDefenderNames = [];
+  for (const pid of allDefenderMembers) {
     const user = await withData(store => store.users[pid]);
     const name = (user && user.name) || `Użytkownik_${String(pid).slice(-6)}`;
-    defenderNames.push(name);
+    allDefenderNames.push(name);
   }
 
   const attackerTagsString = attackerNames.map(n => `@${n}`).join(' ') || 'Brak';
-  const defenderTagsString = defenderNames.map(n => `@${n}`).join(' ') || 'Brak';
+  const defenderTagsString = allDefenderNames.map(n => `@${n}`).join(' ') || 'Brak';
   const attackerMentions = attackerParticipants.map((pid, i) => ({ tag: `@${attackerNames[i]}`, id: pid }));
-  const defenderMentions = defenderParticipants.map((pid, i) => ({ tag: `@${defenderNames[i]}`, id: pid }));
+  const defenderMentions = allDefenderMembers.map((pid, i) => ({ tag: `@${allDefenderNames[i]}`, id: pid }));
+
+  const targetAllyIds = (targetGang.alliances || []).filter(a => a !== gangId);
+  const allySupportBlock = targetAllyIds.length > 0
+    ? `\n🤝 **WSPARCIE SOJUSZNIKÓW:**\n` +
+      `Gang **${targetGang.name}** może poprosić o wsparcie swoich sojuszników:\n` +
+      `Wpisz: **!gang wsparcie ${targetGang.name}**\n` +
+      `(każdy sojusznik musi mieć min. 100 komend)\n`
+    : '';
 
   const msgPayload = {
     body: `⚔️ **WOJNA GANGÓW: NAPAD NA SEJF!** ⚔️\n` +
@@ -581,7 +590,8 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
       `⚔️ **Atakujący (${gang.name}):** ${attackerTagsString}\n` +
       `🛡️ **Obrońcy (${targetGang.name}):** ${defenderTagsString}\n\n` +
       `🚗 Członkowie obu gangów mają **2 minuty**, aby dołączyć do walki!\n` +
-      `Wpisz: **!gang atak dolacz**, aby wesprzeć swój gang!`,
+      `Wpisz: **!gang atak dolacz**, aby wesprzeć swój gang!` +
+      allySupportBlock,
     mentions: [...attackerMentions, ...defenderMentions]
   };
 
@@ -698,6 +708,24 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
 
     if (outcome.cancelled) return;
 
+    const sendResult = async (msg) => {
+      if (!client.api) return;
+      const seen = new Set();
+      if (originThreadId) {
+        client.api.sendMessage(msg, originThreadId);
+        seen.add(originThreadId);
+      }
+      const users = loadData('users');
+      for (const pid of [...listAttackers, ...listDefenders]) {
+        const user = users[pid];
+        const tid = user && user.lastActiveThreadId;
+        if (tid && !seen.has(tid)) {
+          seen.add(tid);
+          client.api.sendMessage(msg, tid);
+        }
+      }
+    };
+
     if (outcome.success) {
       const successMsg = `⚔️ **WOJNA GANGÓW ZAKOŃCZONA SUKCESEM!** ⚔️\n` +
         `Gang **${gang.name}** zniszczył obronę gangu **${targetGang.name}**!\n\n` +
@@ -707,9 +735,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
         `• Trafiło do sejfu Waszego gangu (30%): **+${formatCurrency(outcome.vaultShare)}**\n` +
         `• Każdy uczestnik ataku otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!` +
         (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu przeciwnika!` : '');
-      if (client.api && originThreadId) {
-        client.api.sendMessage(successMsg, originThreadId);
-      }
+      await sendResult(successMsg);
       notifySupportThreads(client, war, successMsg);
     } else {
       const defenderDistribution = listDefenders.length > 0
@@ -724,9 +750,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
         `• Sejf obrońców zyskuje: **+${formatCurrency(outcome.penaltyVault)}**\n` +
         `• ${defenderDistribution}` +
         (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang obrońcy przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu atakujących!` : '');
-      if (client.api && originThreadId) {
-        client.api.sendMessage(failMsg, originThreadId);
-      }
+      await sendResult(failMsg);
       notifySupportThreads(client, war, failMsg);
     }
   }, 120000).unref();

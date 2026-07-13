@@ -1483,7 +1483,7 @@ module.exports = {
             return { error: '❌ Nie należysz do żadnego gangu.' };
           }
 
-          const myGangId = user.gangId;
+          const myGangId = String(user.gangId);
 
           // Find if there is an active war involving this gang
           let foundWar = null;
@@ -1491,12 +1491,14 @@ module.exports = {
           let isAttackingSide = false;
 
           for (const [attId, war] of client.activeGangWars.entries()) {
-            if (attId === myGangId) {
+            const isAttackerKey = String(attId) === myGangId || String(war.aiAttackerGangId || '') === myGangId;
+            const isDefenderTarget = String(war.defenderGangId || '') === myGangId;
+            if (isAttackerKey) {
               foundWar = war;
               foundAttackerId = attId;
               isAttackingSide = true;
               break;
-            } else if (war.defenderGangId === myGangId) {
+            } else if (isDefenderTarget) {
               foundWar = war;
               foundAttackerId = attId;
               isAttackingSide = false;
