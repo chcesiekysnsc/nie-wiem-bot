@@ -562,17 +562,19 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
   }
 
   const allDefenderMembers = targetGang.members || [];
-  const allDefenderNames = [];
-  for (const pid of allDefenderMembers) {
-    const user = await withData(store => store.users[pid]);
-    const name = (user && user.name) || `Użytkownik_${String(pid).slice(-6)}`;
-    allDefenderNames.push(name);
+  const validDefenderMentions = [];
+  for (const memberId of allDefenderMembers) {
+    try {
+      const memberName = await client.resolveUserName(memberId);
+      validDefenderMentions.push({ tag: `@${memberName}`, id: memberId });
+    } catch {}
   }
 
+  const allDefenderNames = validDefenderMentions.map(m => m.tag.replace('@', ''));
   const attackerTagsString = attackerNames.map(n => `@${n}`).join(' ') || 'Brak';
   const defenderTagsString = allDefenderNames.map(n => `@${n}`).join(' ') || 'Brak';
   const attackerMentions = attackerParticipants.map((pid, i) => ({ tag: `@${attackerNames[i]}`, id: pid }));
-  const defenderMentions = allDefenderMembers.map((pid, i) => ({ tag: `@${allDefenderNames[i]}`, id: pid }));
+  const defenderMentions = validDefenderMentions;
 
   const targetAllyIds = (targetGang.alliances || []).filter(a => a !== gangId);
   const allySupportBlock = targetAllyIds.length > 0
