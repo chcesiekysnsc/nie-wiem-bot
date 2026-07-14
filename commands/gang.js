@@ -2019,7 +2019,7 @@ module.exports = {
             `• Gang **${startResult.attackerGangName}** stracił łącznie: **${formatCurrency(outcome.totalPenalty)}** ze swojego sejfu!\n` +
             `• Do Waszego sejfu trafiło: **${formatCurrency(outcome.penaltyVault)}**\n` +
             `• ${listDefenders.length > 0 ? `Każdy z Was, kto bronił (**${defenderNames}**), otrzymuje: **${formatCurrency(outcome.sharePerDefender)}**` : `Nikt z Was nie bronił się osobiście — całe **${formatCurrency(outcome.penaltyDefenders)}** trafiło do sejfu gangu.`}` +
-            (outcome.stolenItemId ? `\n\n🎒 **ŁUP OBRONNY:** Przejęliście przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu gangu **${startResult.attackerGangName}**!` : ''));
+             (outcome.stolenItemId ? `\n\n🎒 **ŁUP OBRONNY:** Przejęliście przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu gangu **${startResult.attackerGangName}**!` : '');
 
           if (client.api && threadIdVal) {
             client.api.sendMessage(attackerMsg, threadIdVal);
