@@ -748,25 +748,25 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
         `Gang **${gang.name}** zniszczył obronę gangu **${targetGang.name}**!\n\n` +
         `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
         `💰 **ŁUP WOJENNY:**\n` +
-        `• Skradziono z wrogiego sejfu: **${formatCurrency(outcome.stolenTotal)}**\n` +
-        `• Trafiło do sejfu Waszego gangu (30%): **+${formatCurrency(outcome.vaultShare)}**\n` +
-        `• Każdy uczestnik ataku otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!` +
+        `• Skradziono z sejfu broniącego: **${formatCurrency(outcome.stolenTotal)}**\n` +
+        `• Trafiło do sejfu atakujących: **${formatCurrency(outcome.vaultShare)}**\n` +
+        `• Każdy z atakujących otrzymuje: **${formatCurrency(outcome.sharePerPerson)}**` +
         (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu przeciwnika!` : '');
       await sendResultSuccess(successMsg);
       notifySupportThreads(client, war, successMsg);
     } else {
       const defenderDistribution = listDefenders.length > 0
-        ? `Każdy obrońca otrzymuje: **+${formatCurrency(outcome.sharePerDefender)}** do portfela!`
+        ? `Każdy uczestnik broniących otrzymuje: **${formatCurrency(outcome.sharePerDefender)}**`
         : `Ponieważ nikt nie bronił gangu osobiście, całe **${formatCurrency(outcome.totalPenalty)}** zasiliło sejf broniących!`;
 
       const failMsg = `🛡️ **ATAK ODPARTY! OBRONA GÓRĄ!** 🛡️\n` +
         `Gang **${targetGang.name}** skutecznie obronił swój skarbiec przed gangiem **${gang.name}**!\n\n` +
         `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
         `💸 **KONSEKWENCJE PORAŻKI:**\n` +
-        `• Gang szturmujący traci łącznie **${formatCurrency(outcome.totalPenalty)}** ze swojego sejfu!\n` +
-        `• Sejf obrońców zyskuje: **+${formatCurrency(outcome.penaltyVault)}**\n` +
+        `• Skradziono z sejfu atakujących: **${formatCurrency(outcome.totalPenalty)}**\n` +
+        `• Trafiło do sejfu broniących: **${formatCurrency(outcome.penaltyVault)}**\n` +
         `• ${defenderDistribution}` +
-        (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang obrońcy przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu atakujących!` : '');
+        (outcome.stolenItemId ? `\n\n🎒 **ŁUP OBRONNY:** Gang obrońcy przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu atakujących!` : '');
       await sendResultFail(failMsg);
       notifySupportThreads(client, war, failMsg);
     }
