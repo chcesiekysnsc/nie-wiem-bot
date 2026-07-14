@@ -129,8 +129,8 @@ module.exports = {
         stealableBalance = Math.max(0, victim.balance - victim.activeLoan.originalAmount);
       }
 
-      if (stealableBalance < 1000) {
-        return { error: `❌ ${targetName} ma za mało kasy (min. ${formatCurrency(1000)} w portfelu).` };
+      if (victim.balance < 50000) {
+        return { error: `❌ ${targetName} ma za mało kasy (min. ${formatCurrency(50000)} w portfelu).` };
       }
 
       // Bomba (musi być ręcznie aktywowana przez ofiarę - user.bombaActive)

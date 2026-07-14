@@ -120,6 +120,11 @@ module.exports = {
         return { error: '❌ Nie możesz przelać pieniędzy na to konto, ponieważ jest ono zablokowane.' };
       }
 
+      const receiverTotalCmds = Object.values(receiver.commandCounts || {}).reduce((a, b) => a + b, 0);
+      if (receiverTotalCmds < 1) {
+        return { error: '❌ Odbiorca musi mieć użyte minimum 1 komendę, abyś mógł mu wysłać pieniądze.' };
+      }
+
       const isAll = ['all', 'max'].includes(String(rawAmount || '').toLowerCase());
       let amount = 0;
       if (isAll) {
