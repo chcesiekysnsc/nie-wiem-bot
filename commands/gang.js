@@ -1972,7 +1972,9 @@ module.exports = {
             `• Każdy z atakujących (**${attackerNames}**) zarobił (70%): **${formatCurrency(outcome.sharePerPerson)}** na osobę!` +
             (outcome.stolenItemId ? `\n\n🎒 **UTRACONY ŁUP:** Gang **${startResult.attackerGangName}** przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Waszego Bossowego Sklepu!` : '');
 
-          await message.reply(attackerMsg);
+          if (client.api && threadIdVal) {
+            client.api.sendMessage(attackerMsg, threadIdVal);
+          }
           if (client.api && defenderThreadId && defenderThreadId !== threadIdVal) {
             client.api.sendMessage(defenderMsg, defenderThreadId);
           }
@@ -2017,9 +2019,11 @@ module.exports = {
             `• Gang **${startResult.attackerGangName}** stracił łącznie: **${formatCurrency(outcome.totalPenalty)}** ze swojego sejfu!\n` +
             `• Do Waszego sejfu trafiło: **${formatCurrency(outcome.penaltyVault)}**\n` +
             `• ${listDefenders.length > 0 ? `Każdy z Was, kto bronił (**${defenderNames}**), otrzymuje: **${formatCurrency(outcome.sharePerDefender)}**` : `Nikt z Was nie bronił się osobiście — całe **${formatCurrency(outcome.penaltyDefenders)}** trafiło do sejfu gangu.`}` +
-            (outcome.stolenItemId ? `\n\n🎒 **ŁUP OBRONNY:** Przejęliście przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu gangu **${startResult.attackerGangName}**!` : '');
+            (outcome.stolenItemId ? `\n\n🎒 **ŁUP OBRONNY:** Przejęliście przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu gangu **${startResult.attackerGangName}**!` : ''));
 
-          await message.reply(attackerMsg);
+          if (client.api && threadIdVal) {
+            client.api.sendMessage(attackerMsg, threadIdVal);
+          }
           if (client.api && defenderThreadId && defenderThreadId !== threadIdVal) {
             client.api.sendMessage(defenderMsg, defenderThreadId);
           }
