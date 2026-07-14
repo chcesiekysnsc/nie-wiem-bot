@@ -342,7 +342,12 @@ function notifySupportThreads(client, heist, msg) {
 
 async function executeEarn(gang, cfg) {
   const cap = getVaultCap();
-  const earnAmount = Math.floor(Math.random() * 150000) + 20000;
+  const memberCount = Math.max(1, (gang.members || []).length);
+  const baseMin = 20000;
+  const baseMax = 170000;
+  const perMemberBonus = 15000;
+  const scaledMax = Math.min(350000, baseMax + (memberCount - 1) * perMemberBonus);
+  const earnAmount = Math.floor(Math.random() * (scaledMax - baseMin + 1)) + baseMin;
   gang.vault = Math.min(cap, gang.vault + earnAmount);
   return { type: 'earn', amount: Math.min(earnAmount, cap - (gang.vault - earnAmount)) };
 }
@@ -414,12 +419,17 @@ async function executeRecruit(gang, cfg) {
     lastPackageOpenDate: null
   };
 
+  // NAPRAWKA: zaktualizuj lokalny obiekt gang, żeby processAIGang go nie nadpisał
+  gang.members = gang.members || [];
+  gang.members.push(newId);
+
   await withData(store => {
-    const g = (store.profiles.gangs || {})[gang.id || gang.gangId];
-    if (!g) return;
-    g.members = g.members || [];
-    g.members.push(newId);
     store.users[newId] = fakeUser;
+    const g = (store.profiles.gangs || {})[gang.id || gang.gangId];
+    if (g) {
+      g.members = g.members || [];
+      if (!g.members.includes(newId)) g.members.push(newId);
+    }
   });
 
   return { type: 'recruit', memberId: newId, memberName: fakeUser.name };

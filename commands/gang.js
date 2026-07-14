@@ -1660,6 +1660,22 @@ module.exports = {
         return;
       }
 
+      // Znajdź grupę z największą liczbą członków gangu obrońcy
+      const activeThreadsForDefender = Array.from(client.activeThreadIds || []);
+      let defenderThreadId = null;
+      let maxDefenderCount = 0;
+      for (const tId of activeThreadsForDefender) {
+        let count = 0;
+        for (const mid of (startResult.defenderMembers || [])) {
+          const member = await withData(store => store.users[mid]);
+          if (member && member.lastActiveThreadId === tId) count++;
+        }
+        if (count > maxDefenderCount) {
+          maxDefenderCount = count;
+          defenderThreadId = tId;
+        }
+      }
+
       // Initialize the war
       client.activeGangWars.set(startResult.attackerGangId, {
         initiatorId: message.author.id,
@@ -1708,7 +1724,11 @@ module.exports = {
 
       if (client.api && threadIdVal) {
         client.api.sendMessage(msgPayload, threadIdVal);
-      } else {
+      }
+      if (client.api && defenderThreadId && defenderThreadId !== threadIdVal) {
+        client.api.sendMessage(msgPayload, defenderThreadId);
+      }
+      if (!client.api) {
         await message.reply(msgPayload.body);
       }
 
@@ -1932,7 +1952,7 @@ module.exports = {
             godloNote = `\n\n✨ **Bonusy z przedmiotów:**\n` + godloPlayers.join('\n');
           }
 
-          await message.reply(
+          const attackerMsg =
             `⚔️ **WOJNA GANGÓW ZAKOŃCZONA SUKCESEM!** ⚔️\n` +
             `Gang **${startResult.attackerGangName}** zniszczył obronę gangu **${startResult.defenderGangName}**!\n\n` +
             `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
@@ -1940,8 +1960,22 @@ module.exports = {
             `• Skradziono z wrogiego sejfu: **${formatCurrency(outcome.stolenTotal)}**\n` +
             `• Trafiło do sejfu Waszego gangu (30%): **+${formatCurrency(outcome.vaultShare)}**\n` +
             `• Każdy uczestnik ataku (**${attackerNames}**) otrzymuje (70%): **+${formatCurrency(outcome.sharePerPerson)}** do portfela!${zetonNote}${godloNote}` +
-            (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu przeciwnika!` : '')
-          );
+            (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu przeciwnika!` : '');
+
+          const defenderMsg =
+            `🚨 **WASZ SEJF ZOSTAŁ ZAATAKOWANY!** 🚨\n` +
+            `Gang **${startResult.attackerGangName}** przełamał obronę Waszego gangu **${startResult.defenderGangName}**!\n\n` +
+            `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
+            `💸 **STRATY WASZEGO GANGU:**\n` +
+            `• Skradziono z Waszego sejfu: **${formatCurrency(outcome.stolenTotal)}**\n` +
+            `• Trafiło do sejfu przeciwnika (30%): **${formatCurrency(outcome.vaultShare)}**\n` +
+            `• Każdy z atakujących (**${attackerNames}**) zarobił (70%): **${formatCurrency(outcome.sharePerPerson)}** na osobę!` +
+            (outcome.stolenItemId ? `\n\n🎒 **UTRACONY ŁUP:** Gang **${startResult.attackerGangName}** przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Waszego Bossowego Sklepu!` : '');
+
+          await message.reply(attackerMsg);
+          if (client.api && defenderThreadId && defenderThreadId !== threadIdVal) {
+            client.api.sendMessage(defenderMsg, defenderThreadId);
+          }
         } else {
           let godloNote = '';
           const godloPlayers = [];
@@ -1961,20 +1995,34 @@ module.exports = {
             godloNote = `\n\n✨ **Bonusy z przedmiotów:**\n` + godloPlayers.join('\n');
           }
 
-          const defenderDistribution = listDefenders.length > 0 
+          const defenderDistributionAttackerView = listDefenders.length > 0
             ? `Każdy obrońca (**${defenderNames}**) otrzymuje: **+${formatCurrency(outcome.sharePerDefender)}** do portfela!`
             : `Ponieważ nikt nie bronił gangu osobiście, całe **${formatCurrency(outcome.totalPenalty)}** zasiliło sejf broniących!`;
 
-          await message.reply(
+          const attackerMsg =
             `🛡️ **ATAK ODPARTY! OBRONA GÓRĄ!** 🛡️\n` +
             `Gang **${startResult.defenderGangName}** skutecznie obronił swój skarbiec przed gangiem **${startResult.attackerGangName}**!\n\n` +
             `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
             `💸 **KONSEKWENCJE PORAŻKI:**\n` +
             `• Gang szturmujący traci łącznie **${formatCurrency(outcome.totalPenalty)}** ze swojego sejfu!\n` +
             `• Sejf obrońców zyskuje: **+${formatCurrency(outcome.penaltyVault)}**\n` +
-            `• ${defenderDistribution}${godloNote}` +
-            (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang obrońcy przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu atakujących!` : '')
-          );
+            `• ${defenderDistributionAttackerView}${godloNote}` +
+            (outcome.stolenItemId ? `\n\n🎒 **ŁUP SPECJALNY:** Gang obrońcy przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu atakujących!` : '');
+
+          const defenderMsg =
+            `🛡️ **OBRONILIŚCIE SIĘ!** 🛡️\n` +
+            `Gang **${startResult.attackerGangName}** próbował zaatakować Wasz sejf, ale poniósł porażkę!\n\n` +
+            `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
+            `💰 **ZYSKI Z OBRONY:**\n` +
+            `• Gang **${startResult.attackerGangName}** stracił łącznie: **${formatCurrency(outcome.totalPenalty)}** ze swojego sejfu!\n` +
+            `• Do Waszego sejfu trafiło: **${formatCurrency(outcome.penaltyVault)}**\n` +
+            `• ${listDefenders.length > 0 ? `Każdy z Was, kto bronił (**${defenderNames}**), otrzymuje: **${formatCurrency(outcome.sharePerDefender)}**` : `Nikt z Was nie bronił się osobiście — całe **${formatCurrency(outcome.penaltyDefenders)}** trafiło do sejfu gangu.`}` +
+            (outcome.stolenItemId ? `\n\n🎒 **ŁUP OBRONNY:** Przejęliście przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu gangu **${startResult.attackerGangName}**!` : '');
+
+          await message.reply(attackerMsg);
+          if (client.api && defenderThreadId && defenderThreadId !== threadIdVal) {
+            client.api.sendMessage(defenderMsg, defenderThreadId);
+          }
         }
       }, 120000).unref();
 
