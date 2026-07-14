@@ -954,6 +954,19 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: ["dlugi", "debts", "debtors"],
     additionalInfo: ["Bilans netto pokazuje różnicę między tym co jesteś winien a tym co Ci są winni."]
+  },
+  {
+    id: 999,
+    name: "podziekowania",
+    category: "UTILITY_ADMIN",
+    shortDescription: "lista osób które pomogły w tworzeniu bota",
+    description: "Wyświetla listę osób, które pomogły w tworzeniu i testowaniu bota, podzieloną na kategorie.",
+    usage: "!podziekowania",
+    examples: ["!podziekowania"],
+    cooldown: "Brak",
+    requirements: "Brak.",
+    aliases: ["thanks", "credits", "podziekowanie"],
+    additionalInfo: ["Tylko twórca bota może dodawać/usuwać osoby komendą !thx."]
   }
 ];
 
