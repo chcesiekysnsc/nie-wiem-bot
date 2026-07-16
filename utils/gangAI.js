@@ -535,10 +535,27 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
   let originThreadId = null;
   let maxMemberCount = 0;
 
+  const allNeededUserIds = new Set([
+    ...defenderMembersForThread,
+    ...attackerParticipants,
+    ...(targetGang.alliances || []).flatMap(allyId => {
+      const allyGang = allGangs[allyId];
+      return allyGang ? (allyGang.members || []) : [];
+    })
+  ]);
+
+  const allUsers = await withData(store => {
+    const map = {};
+    for (const uid of allNeededUserIds) {
+      map[uid] = store.users[uid];
+    }
+    return map;
+  });
+
   for (const threadId of activeThreads) {
     let count = 0;
     for (const mid of defenderMembersForThread) {
-      const member = await withData(store => store.users[mid]);
+      const member = allUsers[mid];
       if (member && member.lastActiveThreadId === threadId) count++;
     }
     if (count > maxMemberCount) {
@@ -566,7 +583,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
 
   const attackerNames = [];
   for (const pid of attackerParticipants) {
-    const user = await withData(store => store.users[pid]);
+    const user = allUsers[pid];
     const name = (user && user.name) || `Użytkownik_${String(pid).slice(-6)}`;
     attackerNames.push(name);
   }
@@ -612,19 +629,19 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
   }
 
   if (gang.alliances && gang.alliances.length > 0) {
+    const allyThreads = Array.from(client.activeThreadIds || []);
     for (const allyId of gang.alliances) {
       const allyGang = allGangs[allyId];
       if (!allyGang) continue;
       const allyMembers = allyGang.members || [];
       if (allyMembers.length === 0) continue;
 
-      const allyThreads = Array.from(client.activeThreadIds || []);
       let bestThread = null;
       let maxCount = 0;
       for (const threadId of allyThreads) {
         let count = 0;
         for (const mid of allyMembers) {
-          const member = await withData(store => store.users[mid]);
+          const member = allUsers[mid];
           if (member && member.lastActiveThreadId === threadId) count++;
         }
         if (count > maxCount) {
@@ -636,7 +653,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
       if (bestThread) {
         const mentionLine = [];
         for (const mid of allyMembers) {
-          const member = await withData(store => store.users[mid]);
+          const member = allUsers[mid];
           if (member && member.name) {
             mentionLine.push(`@${member.name}`);
           }

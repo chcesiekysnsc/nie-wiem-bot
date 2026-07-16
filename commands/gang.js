@@ -1664,10 +1664,20 @@ module.exports = {
       const activeThreadsForDefender = Array.from(client.activeThreadIds || []);
       let defenderThreadId = null;
       let maxDefenderCount = 0;
+
+      const defenderMemberIds = new Set(startResult.defenderMembers || []);
+      const defenderUsers = await withData(store => {
+        const map = {};
+        for (const uid of defenderMemberIds) {
+          map[uid] = store.users[uid];
+        }
+        return map;
+      });
+
       for (const tId of activeThreadsForDefender) {
         let count = 0;
-        for (const mid of (startResult.defenderMembers || [])) {
-          const member = await withData(store => store.users[mid]);
+        for (const mid of startResult.defenderMembers || []) {
+          const member = defenderUsers[mid];
           if (member && member.lastActiveThreadId === tId) count++;
         }
         if (count > maxDefenderCount) {
