@@ -7,12 +7,11 @@ const gangAI = require('./utils/gangAI');
 require('dotenv').config();
 
 // Auto-seed data directory if empty (used for migration/Railway Volume setup)
-// Wyłączono synchronizację appstate - używamy hardcoded cookies
 function ensureSeededData() {
   const dataDir = path.join(__dirname, 'data');
   const seedDir = path.join(__dirname, 'data_seed');
   
-  // appstate jest hardcoded w kodzie, pomijamy synchronizację
+  // appstate jest wczytywane z pliku appstate.json w katalogu glownym
   
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
@@ -438,7 +437,7 @@ if (!client.processedNewGroups) {
   client.processedNewGroups = new Set();
 }
 
-// appstate.json nie jest już potrzebny — cookies wgrane na stałe w kodzie
+// appstate jest wczytywany z pliku appstate.json w katalogu glownym
 
 function getPolandOffsetMs(date) {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -695,111 +694,17 @@ function getMsUntilNextProgressiveTax() {
   return Math.max(0, nextAt - now);
 }
 
-// ===== HARDCODED APPSTATE (cookies wgrane na stałe) =====
+// ===== APPSTATE WCZYTYWANY Z PLIKU =====
 
-const appState = [
-    {
-        "key": "dbln",
-        "value": "%7B%2261562475523609%22%3A%22AX6WwYPo%22%7D",
-        "domain": "facebook.com",
-        "path": "/login/device-based/",
-        "hostOnly": false,
-        "creation": "2026-07-16T05:39:00.395Z",
-        "lastAccessed": "2026-07-16T05:39:00.395Z"
-    },
-    {
-        "key": "sb",
-        "value": "oZ-mZmUkSi-ORxWZSYx0LUyc",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-16T05:39:00.395Z",
-        "lastAccessed": "2026-07-16T05:39:00.395Z"
-    },
-    {
-        "key": "oo",
-        "value": "v1",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-16T05:39:00.395Z",
-        "lastAccessed": "2026-07-16T05:39:00.395Z"
-    },
-    {
-        "key": "datr",
-        "value": "vWo9aRvRclEH-d95BN9Q5ptx",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-16T05:39:00.395Z",
-        "lastAccessed": "2026-07-16T05:39:00.395Z"
-    },
-    {
-        "key": "ps_l",
-        "value": "1",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-16T05:39:00.395Z",
-        "lastAccessed": "2026-07-16T05:39:00.395Z"
-    },
-    {
-        "key": "ps_n",
-        "value": "1",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-16T05:39:00.395Z",
-        "lastAccessed": "2026-07-16T05:39:00.395Z"
-    },
-    {
-        "key": "wd",
-        "value": "1366x641",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-16T05:39:00.395Z",
-        "lastAccessed": "2026-07-16T05:39:00.395Z"
-    },
-    {
-        "key": "c_user",
-        "value": "61560227271099",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-16T05:39:00.395Z",
-        "lastAccessed": "2026-07-16T05:39:00.395Z"
-    },
-    {
-        "key": "xs",
-        "value": "34%3ANfKerXQs3q966A%3A2%3A1784048853%3A-1%3A-1%3A%3AAcwdJJbxEDWmfqXuqMObbfllU085ZcdTvIquhL17iQ",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-14T17:08:44.501Z",
-        "lastAccessed": "2026-07-14T17:08:44.501Z"
-    },
-    {
-        "key": "fr",
-        "value": "0cI4LVcXg53640HbU.AWcQK9KiAE6hp4KXP_J7a8TEA5ZEkzqfzzYnI-WfkQP0wHv64mE.BqVmzu..AAA.0.0.BqVmzu.AWdhzqZepd92PbxHPxYfBpY4HqI",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-14T17:08:44.501Z",
-        "lastAccessed": "2026-07-14T17:08:44.501Z"
-    },
-    {
-        "key": "presence",
-        "value": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1784048908872%2C%22v%22%3A1%7D",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-07-14T17:08:44.501Z",
-        "lastAccessed": "2026-07-14T17:08:44.501Z"
-    }
-];
+let appState;
+try {
+  appState = JSON.parse(fs.readFileSync(path.join(__dirname, 'appstate.json'), 'utf8'));
+} catch (err) {
+  console.error('[SELF-BOT] Blad odczytu appstate.json:', err.message);
+  process.exit(1);
+}
 
-// ===== KONIEC HARDCODED APPSTATE =====
+// ===== KONIEC APPSTATE =====
 
 console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
 
