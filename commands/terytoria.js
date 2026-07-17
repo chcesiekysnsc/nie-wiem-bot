@@ -43,6 +43,10 @@ function getTerritoryBonusText(gangId) {
   const nextRotation = territories.nextRotationAt || 0;
   const lines = [];
 
+  if (!activeIds.length) {
+    return null;
+  }
+
   const owned = [];
   const free = [];
   for (const def of definitions) {
@@ -102,6 +106,37 @@ module.exports = {
     }
 
     const sub = (args[0] || '').toLowerCase();
+    if (sub !== 'odbij' && sub !== 'odbic') {
+      const text = getTerritoryBonusText(gang.id);
+      if (!text) {
+        const config = require('../config/config');
+        const definitions = (config.territories && config.territories.definitions) || [];
+        if (definitions.length === 0) {
+          await message.reply('❌ Brak zdefiniowanych terytoriów w konfiguracji.');
+          return;
+        }
+        await require('../utils/storage').withData(store => {
+          const allIds = definitions.map(d => d.id);
+          const shuffled = allIds.sort(() => Math.random() - 0.5);
+          const initialActive = shuffled.slice(0, 5);
+          const owners = {};
+          for (const id of allIds) {
+            owners[id] = null;
+          }
+          store.profiles.territories = { activeIds: initialActive, owners, nextRotationAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
+        }).catch(() => {});
+        const retryText = getTerritoryBonusText(gang.id);
+        if (!retryText) {
+          await message.reply('❌ Nie udało się zainicjować terytoriów. Spróbuj ponownie później.');
+          return;
+        }
+        await message.reply(retryText);
+        return;
+      }
+      await message.reply(text);
+      return;
+    }
+
     if (sub === 'odbij' || sub === 'odbic') {
       const idx = parseInt(args[1], 10);
       if (!Number.isFinite(idx) || idx < 1) {

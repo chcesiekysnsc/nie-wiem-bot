@@ -62,7 +62,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 const config = require('./config/config');
-const { ensureDataFiles, withData, createUser, appendLog, loadData } = require('./utils/storage');
+const { ensureDataFiles, withData, createUser, appendLog, loadData, saveData } = require('./utils/storage');
 const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
@@ -1281,10 +1281,11 @@ login({ appState }, (loginErr, api) => {
     }, delay);
   }
 
-  withData(store => {
-    const needsInit = !store.profiles.territories || !Array.isArray(store.profiles.territories.activeIds) || store.profiles.territories.activeIds.length === 0;
+  try {
+    const profiles = loadData('profiles');
+    const needsInit = !profiles.territories || !Array.isArray(profiles.territories.activeIds) || profiles.territories.activeIds.length === 0;
     if (needsInit) {
-      const definitions = (require('../config/config').territories && require('../config/config').territories.definitions) || [];
+      const definitions = (config.territories && config.territories.definitions) || [];
       const allIds = definitions.map(d => d.id);
       const shuffled = allIds.sort(() => Math.random() - 0.5);
       const initialActive = shuffled.slice(0, 5);
@@ -1292,11 +1293,13 @@ login({ appState }, (loginErr, api) => {
       for (const id of allIds) {
         owners[id] = null;
       }
-      store.profiles.territories = { activeIds: initialActive, owners, nextRotationAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
-    } else if (!store.profiles.territories.nextRotationAt) {
-      store.profiles.territories.nextRotationAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      profiles.territories = { activeIds: initialActive, owners, nextRotationAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
+      saveData('profiles', profiles);
+      console.log('[TERRITORIES] Inicjalizacja: ' + initialActive.length + ' aktywnych obszarow.');
     }
-  }).catch(() => {});
+  } catch (err) {
+    console.error('[TERRITORIES] Blad inicjalizacji:', err);
+  }
 
   startTerritoryRotation();
 
