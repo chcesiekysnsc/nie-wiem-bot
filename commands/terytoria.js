@@ -91,7 +91,8 @@ module.exports = {
   aliases: ['territory', 'territories'],
   async execute(client, message, args) {
     const profiles = loadData('profiles');
-    const user = createUser(message.author.id, profiles.users || {});
+    const users = loadData('users');
+    const user = createUser(message.author.id, users);
     const gangId = user.gangId;
     const gang = (profiles.gangs || {})[gangId];
 

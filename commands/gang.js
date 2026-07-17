@@ -16,6 +16,7 @@ const MERCENARY_TYPES = {
   szpiedzy: { name: 'Szpiedzy', price: 2000000, attack: 0, defense: 0, intel: 0, desc: '+10% szansy na udany gang skok' },
   elitarni: { name: 'Elitarni Najemnicy', price: 10000000, attack: 5, defense: 5, intel: 2, desc: '+5 atak, +5 obrona, +2 wywiad (wymaga 3000 REP)', minRep: 3000 }
 };
+const MERCENARY_TYPES_ORDER = ['zwykli', 'zolnierze', 'ochroniarze', 'szpiedzy', 'elitarni'];
 
 function renderBossShopList() {
   const crates = getAllCrateDefinitions();
@@ -286,6 +287,7 @@ module.exports = {
         user.gangRole = 'boss';
 
         store.profiles.gangs[gangId] = {
+          id: gangId,
           name: gangName,
           bossId: message.author.id,
           deputies: [],
@@ -2288,17 +2290,17 @@ module.exports = {
         const crates = getAllCrateDefinitions();
         const targetNumInt = parseInt(targetNum, 10);
         if (targetNumInt === MERCENARIES_SHOP_NUMBER) {
-          const typesLines = Object.entries(MERCENARY_TYPES).map(([key, def]) => {
+          const typesLines = MERCENARY_TYPES_ORDER.map((key, idx) => {
+            const def = MERCENARY_TYPES[key];
             const repReq = def.minRep ? ` (wymaga **${def.minRep} REP** gangu)` : '';
-            return `• ${def.name} — ${formatCurrency(def.price)}${repReq}\n   _${def.desc}_`;
+            return `${idx + 1}. ${def.name} — ${formatCurrency(def.price)}${repReq}\n   _${def.desc}_`;
           }).join('\n\n');
           await message.reply(
             `🪖 **Najemnicy — Kontrakty 24h**\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `${typesLines}\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
-            `💡 Kup: **!gang sklep kup ${MERCENARIES_SHOP_NUMBER} <typ>**\n` +
-            `_Dostępne typy: zwykli / zolnierze / ochroniarze / szpiedzy / elitarni_`
+            `💡 Kup: **!gang sklep kup ${MERCENARIES_SHOP_NUMBER} <numer kontraktu 1-5>**`
           );
           return;
         }
@@ -2365,14 +2367,18 @@ module.exports = {
         const targetNumInt = parseInt(targetNum, 10);
 
         if (targetNumInt === MERCENARIES_SHOP_NUMBER) {
-          const contractType = String(args[3] || '').toLowerCase().trim();
+          const contractNumRaw = String(args[3] || '').trim();
+          const contractNumInt = parseInt(contractNumRaw, 10);
+          const contractType = Number.isFinite(contractNumInt) ? MERCENARY_TYPES_ORDER[contractNumInt - 1] : null;
+
           if (!contractType || !MERCENARY_TYPES[contractType]) {
+            const typesHelp = MERCENARY_TYPES_ORDER.map((key, idx) => `${idx + 1}. ${MERCENARY_TYPES[key].name}`).join('\n');
             await message.reply(
-              `❌ Podaj typ kontraktu: **!gang sklep kup ${MERCENARIES_SHOP_NUMBER} <typ>**\n` +
-              `Dostępne typy: zwykli, zolnierze, ochroniarze, szpiedzy, elitarni`
+              `❌ Podaj numer kontraktu: **!gang sklep kup ${MERCENARIES_SHOP_NUMBER} <numer 1-5>**\n\n${typesHelp}`
             );
             return;
           }
+
           const contractDef = MERCENARY_TYPES[contractType];
           const purchaseResult = await withData(store => {
             const gang = store.profiles.gangs[readResult.gangId];
