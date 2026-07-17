@@ -226,7 +226,7 @@ window.openChances = async function (id, name) {
               </span>
               <span class="badge" style="background:#151722; color:#8a90a4; font-size:11px;" ${statusClass}>${statusLabel} ${isOverridden ? '(' + esc(c.current) + c.unit + ')' : ''}</span>
             </span>
-            <input type="number" data-chance="${esc(c.id)}" value="${c.current}" min="${c.min}" max="${c.max}" step="${c.step}" style="margin-top:8px;">
+            <input type="number" data-chance="${esc(c.id)}" data-original="${esc(c.current)}" value="${c.current}" min="${c.min}" max="${c.max}" step="${c.step}" style="margin-top:8px;">
             <span class="field-desc">Zakres: ${c.min}–${c.max}${c.unit} | Domyślnie: ${c.default}${c.unit}</span>
           </label>
         </div>`;
@@ -251,7 +251,9 @@ window.saveChances = async function (id) {
     const chances = {};
     document.querySelectorAll('#modal input[data-chance]').forEach(inp => {
       const key = inp.dataset.chance;
+      const original = inp.dataset.original;
       const raw = inp.value.trim();
+      if (raw === original) return; // nie zmienione — pomiń, nie twórz overridu
       if (raw === '' || raw === null || raw === undefined) {
         chances[key] = null;
       } else {

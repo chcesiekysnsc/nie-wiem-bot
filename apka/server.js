@@ -282,6 +282,29 @@ app.post('/api/chances/:id', async (req, res) => {
   }
 });
 
+app.get('/api/maintenance/reset-breakdown', async (req, res) => {
+  try {
+    const result = await withData(store => {
+      const overrides = store.profiles.chanceOverrides || {};
+      let removed = 0;
+      for (const uid of Object.keys(overrides)) {
+        if (overrides[uid].company_breakdown === 50) {
+          delete overrides[uid].company_breakdown;
+          removed++;
+          if (Object.keys(overrides[uid]).length === 0) {
+            delete overrides[uid];
+          }
+        }
+      }
+      store.profiles.chanceOverrides = overrides;
+      return { removed };
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===== BANY =====
 app.get('/api/bans', (req, res) => {
   const users = loadData('users');

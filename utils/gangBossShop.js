@@ -15,9 +15,11 @@ function getGangBossShopMultiplier(gang, effectType) {
     if (items.includes('szkolenie_bojowe')) mult += 0.05;
     if (items.includes('celowniki_laserowe')) mult += 0.10;
     if (items.includes('sztab_dowodzenia')) mult += 0.05;
+    if (items.includes('centrum_treningowe')) mult += 0.02;
   } else if (effectType === 'defense') {
     if (items.includes('mobilna_barykada')) mult += 0.06;
     if (items.includes('sztab_dowodzenia')) mult += 0.05;
+    if (items.includes('monitoring')) mult += 0.02;
   } else if (effectType === 'loot') {
     if (items.includes('van_opancerzony')) mult += 0.15;
     if (items.includes('sztab_dowodzenia')) mult += 0.10;
@@ -28,6 +30,7 @@ function getGangBossShopMultiplier(gang, effectType) {
   } else if (effectType === 'income') {
     if (items.includes('ksiegowy_gangu')) mult += 0.05;
     if (items.includes('sztab_dowodzenia')) mult += 0.10;
+    if (items.includes('pralnia_pieniedzy')) mult += 0.05;
   } else if (effectType === 'work') {
     if (items.includes('warsztat')) mult += 0.10;
   }
@@ -36,7 +39,11 @@ function getGangBossShopMultiplier(gang, effectType) {
 }
 
 function attemptStealBossItem(sourceGang, targetGang) {
-  if (Math.random() > 0.10) return null;
+  let stealChance = 0.10;
+  if (hasGangBossItem(targetGang, 'tajny_sejf')) {
+    stealChance = Math.max(0, stealChance - 0.03);
+  }
+  if (Math.random() > stealChance) return null;
   const targetItems = Array.isArray(targetGang.bossShopItems) ? targetGang.bossShopItems : [];
   if (targetItems.length === 0) return null;
 

@@ -606,7 +606,7 @@ module.exports = {
   },
   gangAI: {
     enabled: true,
-    maxAIGangs: 5,
+    maxAIGangs: 6,
     maxVault: 5000000,
     minVaultAfterAttack: 100000,
     actionIntervalMinutesMin: 30,
@@ -639,7 +639,8 @@ module.exports = {
       defensywny: { upgradePriority: ['dziupla', 'fach', 'biznesy'], attackWeight: 0.4 },
       bogacz: { upgradePriority: ['biznesy', 'dziupla', 'fach'], attackWeight: 0.5 },
       rekruter: { upgradePriority: ['dziupla', 'biznesy', 'fach'], attackWeight: 0.7 },
-      zbalansowany: { upgradePriority: ['dziupla', 'biznesy', 'fach'], attackWeight: 1.0 }
+      zbalansowany: { upgradePriority: ['dziupla', 'biznesy', 'fach'], attackWeight: 1.0 },
+      agresywny_izraelici: { upgradePriority: ['fach', 'dziupla', 'biznesy'], attackWeight: 1.1 }
     },
     nameParts: {
       adjectives: ['Cienie', 'Żmije', 'Czarna', 'Krwawa', 'Stalowa', 'Złota', 'Srebrna', 'Wściekła', 'Niewidzialna', 'Podziemna', 'Mroczna', 'Płomienna', 'Lodowa', 'Szara', 'Błękitna', 'Zatruty', 'Zbrodniczy', 'Diabli', 'Kosmiczny', 'Posępny'],
@@ -655,7 +656,8 @@ module.exports = {
       { name: 'Militech', personality: 'bogacz' },
       { name: 'Kiramann', personality: 'bogacz' },
       { name: 'Bar Ostatnia Kropla', personality: 'rekruter' },
-      { name: 'Chem Barons', personality: 'zbalansowany' }
+      { name: 'Chem Barons', personality: 'zbalansowany' },
+      { name: 'Izraelici', personality: 'agresywny_izraelici' }
     ],
     fixedActionIntervalMinutes: 45
   },
@@ -671,7 +673,10 @@ module.exports = {
         items: {
           van_opancerzony: { name: 'Opancerzony Van', emoji: '🛻', chance: 1.5, description: '+15% łupu z okradania innych gangów (atak).' },
           siec_informatorow: { name: 'Sieć Informatorów', emoji: '📡', chance: 1.5, description: '+10% szans na udany gang skok.' },
-          falszywe_dokumenty: { name: 'Fałszywe Dokumenty', emoji: '💼', chance: 1.5, description: 'Skraca cooldown napadów gangu o 10%.' }
+          falszywe_dokumenty: { name: 'Fałszywe Dokumenty', emoji: '💼', chance: 1.5, description: 'Skraca cooldown napadów gangu o 10%.' },
+          monitoring: { name: 'Monitoring', emoji: '📹', chance: 1.5, description: 'Efekt stały: +2% obrony gangu.' },
+          centrum_treningowe: { name: 'Centrum treningowe', emoji: '🏋️', chance: 1.5, description: 'Efekt stały: +2% ataku.' },
+          warsztat_gang: { name: 'Warsztat', emoji: '🔧', chance: 1.5, description: 'Efekt stały: -5% kosztów ulepszeń gangu.' }
         }
       },
       skrzynia_pozlacana: {
@@ -695,9 +700,46 @@ module.exports = {
         items: {
           celowniki_laserowe: { name: 'Celowniki Laserowe', emoji: '🎯', chance: 1.2, description: '+10% skuteczności podczas ataku na gang (kumuluje się ze Szkoleniem Bojowym).' },
           ksiegowy_gangu: { name: 'Księgowy Gangu', emoji: '🧑‍💼', chance: 1.2, description: '+5% do wszystkich źródeł dochodu gangu.' },
-          sztab_dowodzenia: { name: 'Sztab Dowodzenia', emoji: '👑', chance: 0.5, description: '+5% siły, +5% obrony ORAZ +10% zarobków z napadów.' }
+          sztab_dowodzenia: { name: 'Sztab Dowodzenia', emoji: '👑', chance: 0.5, description: '+5% siły, +5% obrony ORAZ +10% zarobków z napadów.' },
+          pralnia_pieniedzy: { name: 'Pralnia pieniędzy', emoji: '🧺', chance: 0.5, description: '+5% zarobków gangu.' },
+          tajny_sejf: { name: 'Tajny sejf', emoji: '🗝️', chance: 0.5, description: 'Zmniejsza szansę na kradzież itemów podczas obrony o 3%.' }
         }
       }
     }
+  },
+  gangReputation: {
+    ranks: [
+      { min: 0, name: 'Początkujący' },
+      { min: 100, name: 'Uliczny Gang' },
+      { min: 300, name: 'Znany Gang' },
+      { min: 700, name: 'Organizacja' },
+      { min: 1500, name: 'Syndykat' },
+      { min: 3000, name: 'Imperium' },
+      { min: 6000, name: 'Legenda' }
+    ]
+  },
+  territories: {
+    definitions: [
+      { id: 'strefa_przemyslowa', name: 'Strefa Przemysłowa', emoji: '🏭', bonusType: 'work', bonusValue: 0.05, description: '+5% do nagród z komendy work' },
+      { id: 'dzielnica_kasyn', name: 'Dzielnica Kasyn', emoji: '🎰', bonusType: 'crime_reward', bonusValue: 0.05, description: '+5% do nagród z crime' },
+      { id: 'port', name: 'Port', emoji: '🚢', bonusType: 'npc_raid', bonusValue: 0.10, description: '+10% do nagród za napady na NPC' },
+      { id: 'centrum_finansowe', name: 'Centrum Finansowe', emoji: '💎', bonusType: 'daily', bonusValue: 0.05, description: '+5% do daily' },
+      { id: 'twierdza', name: 'Twierdza', emoji: '🛡️', bonusType: 'gang_defense', bonusValue: 0.05, description: '+5% do całkowitej obrony gangu' },
+      { id: 'fabryka_broni', name: 'Fabryka Broni', emoji: '⚔️', bonusType: 'gang_attack', bonusValue: 0.05, description: '+5% do całkowitego ataku gangu' },
+      { id: 'centrum_wywiadu', name: 'Centrum Wywiadu', emoji: '📡', bonusType: 'intel', bonusValue: 0.10, description: '+10% do skuteczności wywiadu' },
+      { id: 'magazyny', name: 'Magazyny', emoji: '🚚', bonusType: 'bank_deposit', bonusValue: 0.05, description: '+5% do wszystkich zarobków wpłacanych do banku gangu' },
+      { id: 'slumsy', name: 'Slumsy', emoji: '🏚️', bonusType: 'crime_chance', bonusValue: 0.05, description: '+5% szansy na udany crime' },
+      { id: 'szlaki_przemytnicze', name: 'Szlaki Przemytnicze', emoji: '🛣️', bonusType: 'crime_cooldown', bonusValue: -0.10, description: '-10% czasu cooldown komendy crime' },
+      { id: 'bank_centralny', name: 'Bank Centralny', emoji: '🏦', bonusType: 'bank_capacity', bonusValue: 0.10, description: '+10% pojemności banku gangu' },
+      { id: 'warsztat_terytorium', name: 'Warsztat', emoji: '🔧', bonusType: 'upgrade_cost', bonusValue: -0.10, description: '-10% kosztów ulepszeń gangu' },
+      { id: 'centrum_dowodzenia', name: 'Centrum Dowodzenia', emoji: '🛰️', bonusType: 'war_both', bonusValue: 0.05, description: '+5% ataku oraz +5% obrony podczas wojen gangów' },
+      { id: 'posterunek_policji', name: 'Posterunek Policji', emoji: '🚔', bonusType: 'war_loss_reduction', bonusValue: 0.10, description: 'Zmniejsza utratę pieniędzy po przegranej wojnie o 10%' },
+      { id: 'szpital_polowy', name: 'Szpital Polowy', emoji: '🏥', bonusType: 'shield_reduction', bonusValue: 3600000, description: 'Skraca czas ochrony po wojnie o 1 godzinę' },
+      { id: 'sklad_zaopatrzenia', name: 'Skład Zaopatrzenia', emoji: '📦', bonusType: 'mercenary_effectiveness', bonusValue: 0.05, description: '+5% skuteczności najemników' },
+      { id: 'rafineria', name: 'Rafineria', emoji: '⛽', bonusType: 'all_economy', bonusValue: 0.05, description: '+5% do wszystkich nagród ekonomicznych (work, crime, napady NPC)' },
+      { id: 'centrum_miasta', name: 'Centrum Miasta', emoji: '🏙️', bonusType: 'reputation_gain', bonusValue: 0.05, description: '+5% zdobywanej reputacji gangu' },
+      { id: 'dworzec_towarowy', name: 'Dworzec Towarowy', emoji: '🚂', bonusType: 'npc_raid', bonusValue: 0.10, description: '+10% do nagród za napady NPC' },
+      { id: 'rezydencja_bossa', name: 'Rezydencja Bossa', emoji: '👑', bonusType: 'all_stats', bonusValue: 0.03, description: '+3% do wszystkich statystyk gangu: ataku, obrony, wywiadu' }
+    ]
   }
 };

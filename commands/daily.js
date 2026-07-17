@@ -97,6 +97,15 @@ module.exports = {
         reward = Math.floor(reward * 1.10);
       }
 
+      const userGangId = user.gangId;
+      if (userGangId && store.profiles.gangs && store.profiles.gangs[userGangId]) {
+        const { getTerritoryBonus } = require('../utils/territories');
+        const territoryBonus = getTerritoryBonus(userGangId, 'daily');
+        if (territoryBonus > 0) {
+          reward = Math.floor(reward * (1 + territoryBonus));
+        }
+      }
+
       user.balance += reward;
       const tomorrowMidnight = getPolishMidnight(new Date(todayMidnight + 26 * 60 * 60 * 1000));
       user.dailyCooldown = tomorrowMidnight;

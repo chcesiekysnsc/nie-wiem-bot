@@ -2,13 +2,20 @@ const config = require('../config/config');
 const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
-const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getItemDefinition, getAllCrateDefinitions, getCrateDefinition, processBossShopPurchase, ensureDailyLimit } = require('../utils/gangBossShop');
-const { getWeaponMultiplier, getDefenseUpgradeMultiplier, areMercenariesActive } = require('../utils/gangAI');
+const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getItemDefinition, getAllCrateDefinitions, getCrateDefinition, processBossShopPurchase, ensureDailyLimit, hasGangBossItem } = require('../utils/gangBossShop');
+const { getWeaponMultiplier, getDefenseUpgradeMultiplier, getSpecialGangMultiplier, getMercenaryPowerBonus, getReputationRank, hasReputationBonus } = require('../utils/gangAI');
 
 const CRATE_ORDER = Object.keys(config.bossShopCrates && config.bossShopCrates.crates ? config.bossShopCrates.crates : {});
 const MERCENARIES_PRICE = 2000000;
 const MERCENARIES_DURATION_MS = 24 * 60 * 60 * 1000;
 const MERCENARIES_SHOP_NUMBER = CRATE_ORDER.length + 1;
+const MERCENARY_TYPES = {
+  zwykli: { name: 'Zwykli Najemnicy', price: 2000000, attack: 2, defense: 2, intel: 1, desc: '+2 atak, +2 obrona, +1 wywiad' },
+  zolnierze: { name: 'Żołnierze', price: 2000000, attack: 5, defense: 0, intel: 0, desc: '+5 ataku' },
+  ochroniarze: { name: 'Ochroniarze', price: 2000000, attack: 0, defense: 5, intel: 0, desc: '+5 obrony' },
+  szpiedzy: { name: 'Szpiedzy', price: 2000000, attack: 0, defense: 0, intel: 0, desc: '+10% szansy na udany gang skok' },
+  elitarni: { name: 'Elitarni Najemnicy', price: 10000000, attack: 5, defense: 5, intel: 2, desc: '+5 atak, +5 obrona, +2 wywiad (wymaga 3000 REP)', minRep: 3000 }
+};
 
 function renderBossShopList() {
   const crates = getAllCrateDefinitions();
@@ -16,7 +23,7 @@ function renderBossShopList() {
     const c = crates[crateId];
     return `${idx + 1}. ${c.emoji} **${c.name}** — ${formatCurrency(c.price)}`;
   });
-  const mercenaryLine = `${MERCENARIES_SHOP_NUMBER}. 🪖 **Najemnicy** — ${formatCurrency(MERCENARIES_PRICE)} (efekt na 24h)`;
+  const mercenaryLine = `${MERCENARIES_SHOP_NUMBER}. 🪖 **Najemnicy** — od ${formatCurrency(2000000)} (kontrakty 24h)`;
   return [...crateLines, mercenaryLine].join('\n');
 }
 
@@ -289,7 +296,9 @@ module.exports = {
           levelFach: 0,
           levelUzbrojenie: 0,
           levelObrona: 0,
-          mercenariesUntil: 0,
+          mercenaryContract: null,
+          reputation: 0,
+          lastActivityAt: Date.now(),
           tributePercent: 0,
           lastHeistTime: 0,
           lastAttackTime: 0,
@@ -655,9 +664,13 @@ module.exports = {
 
         user.balance -= amount;
         const gangObj = store.profiles.gangs[user.gangId];
-        gangObj.vault += amount;
+        const { getTerritoryBonus } = require('../utils/territories');
+        const bankDepositBonus = getTerritoryBonus(gangObj.id, 'bank_deposit');
+        const finalAmount = Math.floor(amount * (1 + bankDepositBonus));
+        gangObj.vault += finalAmount;
         gangObj.deposits = gangObj.deposits || {};
-        gangObj.deposits[message.author.id] = (gangObj.deposits[message.author.id] || 0) + amount;
+        gangObj.deposits[message.author.id] = (gangObj.deposits[message.author.id] || 0) + finalAmount;
+        gangObj.lastActivityAt = Date.now();
 
         return { success: true, amount, gangName: gangObj.name };
       });
@@ -723,6 +736,7 @@ module.exports = {
 
         gang.vault -= amount;
         user.balance += netAmount;
+        gang.lastActivityAt = Date.now();
 
         return { success: true, amount, netAmount, tax, gangName: gang.name };
       });
@@ -927,6 +941,15 @@ module.exports = {
           upgradeLabel = `Lepsza strategia obronna (Obrona gangu bonus: ${bonuses[currentLevel]})`;
         }
 
+        if (hasGangBossItem(gang, 'warsztat_gang')) {
+          cost = Math.floor(cost * 0.95);
+        }
+        const { getTerritoryBonus } = require('../utils/territories');
+        const upgradeCostBonus = getTerritoryBonus(gang.id, 'upgrade_cost');
+        if (upgradeCostBonus < 0) {
+          cost = Math.floor(cost * (1 + upgradeCostBonus));
+        }
+
         if (gang.vault < cost) {
           return { error: `❌ Ulepszenie kosztuje ${formatCurrency(cost)} z sejfu gangu. Posiadacie: ${formatCurrency(gang.vault)}.` };
         }
@@ -937,6 +960,7 @@ module.exports = {
         else if (targetUpgrade === 'fach') gang.levelFach = newLevel;
         else if (targetUpgrade === 'uzbrojenie') gang.levelUzbrojenie = newLevel;
         else if (targetUpgrade === 'obrona') gang.levelObrona = newLevel;
+        gang.lastActivityAt = Date.now();
 
         return { success: true, cost, upgradeLabel, newLevel, gangName: gang.name };
       });
@@ -1289,6 +1313,7 @@ module.exports = {
           return { error: '❌ Przygotowania do skoku już trwają!' };
         }
 
+        gang.lastActivityAt = Date.now();
         return { success: true, gangId: user.gangId, gangName: gang.name, members: gang.members || [] };
       });
 
@@ -1370,11 +1395,21 @@ module.exports = {
           }
           const heistBonus = getGangBossShopMultiplier(currentGang, 'heist_success');
           successChance = Math.min(successChance + heistBonus, 0.95);
+          const mercContract = currentGang.mercenaryContract;
+          if (mercContract && mercContract.until > Date.now() && mercContract.type === 'szpiedzy') {
+            successChance = Math.min(successChance + 0.10, 0.95);
+          }
 
           const heistSuccess = Math.random() < successChance;
 
           if (!heistSuccess) {
             return { success: false };
+          }
+
+          currentGang.reputation = Math.max(0, (currentGang.reputation || 0) + 2);
+          const repGainBonus = getTerritoryBonus(currentGang.id, 'reputation_gain');
+          if (repGainBonus > 0) {
+            currentGang.reputation = Math.max(0, currentGang.reputation + Math.floor(2 * repGainBonus));
           }
 
           // Wygrana w przedziale zależnym od liczby uczestników
@@ -1402,7 +1437,9 @@ module.exports = {
           }
 
           const totalReward = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
-          const rewardPerPerson = Math.floor(totalReward / listParticipants.length);
+          const npcRaidBonus = getTerritoryBonus(currentGang.id, 'npc_raid');
+          const finalTotalReward = Math.floor(totalReward * (1 + npcRaidBonus));
+          const rewardPerPerson = Math.floor(finalTotalReward / listParticipants.length);
 
           // Rozdaj pieniądze każdemu uczestnikowi, obliczając haracza
           const tributePercent = currentGang.tributePercent || 0;
@@ -1445,7 +1482,7 @@ module.exports = {
           return {
             success: true,
             heistType,
-            totalReward,
+            totalReward: finalTotalReward,
             rewardPerPerson,
             tributePercent,
             participantBonuses,
@@ -1555,12 +1592,16 @@ module.exports = {
               return { error: '❌ Już dołączyłeś do ataku swojego gangu.' };
             }
             foundWar.attackers.add(message.author.id);
+            const myGang = store.profiles.gangs[myGangId];
+            if (myGang) myGang.lastActivityAt = Date.now();
             return { success: true, side: 'atakujących', count: foundWar.attackers.size };
           } else {
             if (foundWar.defenders.has(message.author.id)) {
               return { error: '❌ Już dołączyłeś do obrony swojego gangu.' };
             }
             foundWar.defenders.add(message.author.id);
+            const myGang = store.profiles.gangs[myGangId];
+            if (myGang) myGang.lastActivityAt = Date.now();
             return { success: true, side: 'obrońców', count: foundWar.defenders.size };
           }
         });
@@ -1692,9 +1733,17 @@ module.exports = {
         const cost = Math.floor(myGang.vault * 0.10);
         myGang.vault -= cost;
         myGang.lastAttackTime = now;
+        myGang.lastActivityAt = Date.now();
 
-        // Active defender's shield immediately upon initiation
-        defenderGang.shieldUntil = now + 6 * 60 * 60 * 1000;
+        let shieldDuration = 6 * 60 * 60 * 1000;
+        if (hasReputationBonus(defenderGang, 1500)) {
+          shieldDuration -= 1 * 60 * 60 * 1000;
+        }
+        const shieldReduction = getTerritoryBonus(defenderGang.id, 'shield_reduction');
+        if (shieldReduction > 0) {
+          shieldDuration = Math.max(0, shieldDuration - shieldReduction);
+        }
+        defenderGang.shieldUntil = now + shieldDuration;
 
         return {
           success: true,
@@ -1819,8 +1868,12 @@ module.exports = {
           }
 
           // Calculate Attack Power
-          const effectiveAttackerCount = listAttackers.length + (areMercenariesActive(attackerGang) ? 5 : 0);
-          const effectiveDefenderCount = listDefenders.length + (areMercenariesActive(defenderGang) ? 5 : 0);
+          const membersForPower = attackerGang.members.length;
+          const membersForReward = listAttackers.length;
+          const membersForPowerDef = defenderGang.members.length;
+          const membersForRewardDef = listDefenders.length;
+          const effectiveAttackerCount = membersForPower + getMercenaryPowerBonus(attackerGang, 'attack');
+          const effectiveDefenderCount = membersForPowerDef + getMercenaryPowerBonus(defenderGang, 'defense');
 
           let baseAttackPower = 0;
           for (let i = 0; i < effectiveAttackerCount; i++) {
@@ -1828,8 +1881,9 @@ module.exports = {
           }
           const attFachLvl = attackerGang.levelFach || 0;
           const attBossBonus = getGangBossShopMultiplier(attackerGang, 'attack');
-          const rawAttackPower = Math.floor(baseAttackPower * (1 + 0.15 * attFachLvl + attBossBonus));
-          const attackPower = Math.floor(rawAttackPower * (1 + getWeaponMultiplier(attackerGang)));
+          const territoryAttBonus = getTerritoryBonus(attackerGang.id, 'gang_attack') + getTerritoryBonus(attackerGang.id, 'war_both');
+          const rawAttackPower = Math.floor(baseAttackPower * (1 + 0.15 * attFachLvl + attBossBonus + territoryAttBonus));
+          const attackPower = Math.floor(rawAttackPower * (1 + getWeaponMultiplier(attackerGang) + getSpecialGangMultiplier(attackerGang, 'attack')));
 
           // Calculate Defense Power
           let baseDefensePower = 0;
@@ -1840,8 +1894,9 @@ module.exports = {
           }
           const defFachLvl = defenderGang.levelFach || 0;
           const defBossBonus = getGangBossShopMultiplier(defenderGang, 'defense');
-          const rawDefensePower = effectiveDefenderCount > 0 ? Math.floor(baseDefensePower * (1 + 0.15 * defFachLvl + defBossBonus)) : 0;
-          const defensePower = Math.floor(rawDefensePower * (1 + getDefenseUpgradeMultiplier(defenderGang)));
+          const territoryDefBonus = getTerritoryBonus(defenderGang.id, 'gang_defense') + getTerritoryBonus(defenderGang.id, 'war_both');
+          const rawDefensePower = effectiveDefenderCount > 0 ? Math.floor(baseDefensePower * (1 + 0.15 * defFachLvl + defBossBonus + territoryDefBonus)) : 0;
+          const defensePower = Math.floor(rawDefensePower * (1 + getDefenseUpgradeMultiplier(defenderGang) + getSpecialGangMultiplier(defenderGang, 'defense')));
 
           // Determine Success
           let winChance = 0.95;
@@ -1849,6 +1904,37 @@ module.exports = {
             winChance = attackPower / (attackPower + defensePower);
           }
           const success = Math.random() < winChance;
+
+          const attackerRepBefore = Math.max(0, Math.floor(attackerGang.reputation || 0));
+          const defenderRepBefore = Math.max(0, Math.floor(defenderGang.reputation || 0));
+          let attackerRepChange = 0;
+          let defenderRepChange = 0;
+
+          if (success) {
+            attackerRepChange += 10;
+            defenderRepChange -= 5;
+            if (defenderRepBefore > attackerRepBefore || (defenderGang.levelFach || 0) > (attackerGang.levelFach || 0)) {
+              attackerRepChange += 10;
+            }
+          } else {
+            attackerRepChange -= 5;
+            defenderRepChange += 5;
+            if (attackerRepBefore > defenderRepBefore || (attackerGang.levelFach || 0) > (defenderGang.levelFach || 0)) {
+              defenderRepChange += 10;
+            }
+          }
+
+          const attackerRepGainBonus = getTerritoryBonus(attackerGang.id, 'reputation_gain');
+          const defenderRepGainBonus = getTerritoryBonus(defenderGang.id, 'reputation_gain');
+          if (attackerRepGainBonus > 0) {
+            attackerRepChange = Math.floor(attackerRepChange * (1 + attackerRepGainBonus));
+          }
+          if (defenderRepGainBonus > 0) {
+            defenderRepChange = Math.floor(defenderRepChange * (1 + defenderRepGainBonus));
+          }
+
+          attackerGang.reputation = Math.max(0, attackerRepBefore + attackerRepChange);
+          defenderGang.reputation = Math.max(0, defenderRepBefore + defenderRepChange);
 
           if (success) {
             // Success Loot: 15% to 35% of defender's vault
@@ -1860,7 +1946,7 @@ module.exports = {
             const lootMult = 1 + getGangBossShopMultiplier(attackerGang, 'loot');
             const vaultShare = Math.floor(stolenTotal * 0.30 * lootMult);
             const membersTotalShare = stolenTotal - vaultShare;
-            const sharePerPerson = Math.floor(membersTotalShare / listAttackers.length);
+            const sharePerPerson = membersForReward > 0 ? Math.floor(membersTotalShare / membersForReward) : 0;
 
             attackerGang.vault += vaultShare;
 
@@ -1921,16 +2007,19 @@ module.exports = {
             // 15% divided equally among defending players' wallets
             const penaltyVault = Math.floor(attackerGang.vault * 0.20);
             const penaltyDefenders = Math.floor(attackerGang.vault * 0.15);
-            const totalPenalty = penaltyVault + penaltyDefenders;
+            const warLossReduction = getTerritoryBonus(attackerGang.id, 'war_loss_reduction');
+            const reducedPenaltyVault = Math.floor(penaltyVault * (1 - warLossReduction));
+            const reducedPenaltyDefenders = Math.floor(penaltyDefenders * (1 - warLossReduction));
+            const totalPenalty = reducedPenaltyVault + reducedPenaltyDefenders;
 
             attackerGang.vault = Math.max(0, attackerGang.vault - totalPenalty);
             const defenderIncomeBonus = getGangBossShopMultiplier(defenderGang, 'income');
-            defenderGang.vault += Math.floor(penaltyVault * (1 + defenderIncomeBonus));
+            defenderGang.vault += Math.floor(reducedPenaltyVault * (1 + defenderIncomeBonus));
 
             let sharePerDefender = 0;
             const defenderBonuses = {};
-            if (listDefenders.length > 0) {
-              sharePerDefender = Math.floor(penaltyDefenders / listDefenders.length);
+            if (membersForRewardDef > 0) {
+              sharePerDefender = Math.floor(penaltyDefenders / membersForRewardDef);
               for (const pid of listDefenders) {
                 const pUser = createUser(pid, store.users);
                 let finalShare = sharePerDefender;
@@ -2199,12 +2288,17 @@ module.exports = {
         const crates = getAllCrateDefinitions();
         const targetNumInt = parseInt(targetNum, 10);
         if (targetNumInt === MERCENARIES_SHOP_NUMBER) {
+          const typesLines = Object.entries(MERCENARY_TYPES).map(([key, def]) => {
+            const repReq = def.minRep ? ` (wymaga **${def.minRep} REP** gangu)` : '';
+            return `• ${def.name} — ${formatCurrency(def.price)}${repReq}\n   _${def.desc}_`;
+          }).join('\n\n');
           await message.reply(
-            `🪖 **Najemnicy** — ${formatCurrency(MERCENARIES_PRICE)}\n` +
+            `🪖 **Najemnicy — Kontrakty 24h**\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
-            `⚔️ Efekt na **24 godziny**: każdy atak i obrona liczy się jakby gang miał **+5 dodatkowych graczy**.\n` +
-            `⏳ Czas trwania: **24h**.\n` +
-            `💡 Kup: **!gang sklep kup ${MERCENARIES_SHOP_NUMBER}**`
+            `${typesLines}\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `💡 Kup: **!gang sklep kup ${MERCENARIES_SHOP_NUMBER} <typ>**\n` +
+            `_Dostępne typy: zwykli / zolnierze / ochroniarze / szpiedzy / elitarni_`
           );
           return;
         }
@@ -2271,22 +2365,34 @@ module.exports = {
         const targetNumInt = parseInt(targetNum, 10);
 
         if (targetNumInt === MERCENARIES_SHOP_NUMBER) {
+          const contractType = String(args[3] || '').toLowerCase().trim();
+          if (!contractType || !MERCENARY_TYPES[contractType]) {
+            await message.reply(
+              `❌ Podaj typ kontraktu: **!gang sklep kup ${MERCENARIES_SHOP_NUMBER} <typ>**\n` +
+              `Dostępne typy: zwykli, zolnierze, ochroniarze, szpiedzy, elitarni`
+            );
+            return;
+          }
+          const contractDef = MERCENARY_TYPES[contractType];
           const purchaseResult = await withData(store => {
             const gang = store.profiles.gangs[readResult.gangId];
             if (!gang) {
               return { error: '❌ Gang nie istnieje.' };
             }
-            if (gang.mercenariesUntil && gang.mercenariesUntil > Date.now()) {
-              const leftMs = gang.mercenariesUntil - Date.now();
+            if (gang.mercenaryContract && gang.mercenaryContract.until > Date.now()) {
+              const leftMs = gang.mercenaryContract.until - Date.now();
               const leftMin = Math.ceil(leftMs / 60000);
-              return { error: `❌ Macie już aktywnych najemników! Pozostało: **${leftMin} min**. Nie można kupić kolejnych, dopóki efekt trwa.` };
+              return { error: `❌ Macie już aktywny kontrakt najemników! Pozostało: **${leftMin} min**. Nie można kupić kolejnego, dopóki efekt trwa.` };
             }
-            if ((gang.vault || 0) < MERCENARIES_PRICE) {
-              return { error: `❌ Brak środków w sejfie gangu. Potrzeba: **${formatCurrency(MERCENARIES_PRICE)}**, posiadacie: **${formatCurrency(gang.vault || 0)}**.` };
+            if (contractDef.minRep && (gang.reputation || 0) < contractDef.minRep) {
+              return { error: `❌ Aby kupić **${contractDef.name}**, gang potrzebuje co najmniej **${contractDef.minRep} REP**. Obecnie: **${gang.reputation || 0} REP**.` };
             }
-            gang.vault -= MERCENARIES_PRICE;
-            gang.mercenariesUntil = Date.now() + MERCENARIES_DURATION_MS;
-            return { ok: true, until: gang.mercenariesUntil };
+            if ((gang.vault || 0) < contractDef.price) {
+              return { error: `❌ Brak środków w sejfie gangu. Potrzeba: **${formatCurrency(contractDef.price)}**, posiadacie: **${formatCurrency(gang.vault || 0)}**.` };
+            }
+            gang.vault -= contractDef.price;
+            gang.mercenaryContract = { type: contractType, until: Date.now() + MERCENARIES_DURATION_MS };
+            return { ok: true, type: contractType, until: gang.mercenaryContract.until };
           });
 
           if (purchaseResult.error) {
@@ -2295,9 +2401,9 @@ module.exports = {
           }
 
           await message.reply(
-            `🪖 **Wynajęto najemników!**\n` +
-            `💰 Koszt: **-${formatCurrency(MERCENARIES_PRICE)}** z sejfu gangu.\n` +
-            `⚔️ Najemnicy dodają siłę odpowiadającą ok. **5 dodatkowym graczom** w atakach i obronach przez najbliższe **24 godziny**.`
+            `🪖 **Wynajęto ${contractDef.name}!**\n` +
+            `💰 Koszt: **-${formatCurrency(contractDef.price)}** z sejfu gangu.\n` +
+            `⚔️ Efekt na **24 godziny**: ${contractDef.desc}`
           );
           return;
         }
@@ -2323,7 +2429,8 @@ module.exports = {
           if (!gang) return { error: '❌ Gang nie istnieje.' };
           const result = await processBossShopPurchase(gang, crateId, quantity);
           if (result.error) return result;
-          const maxVault = (config.gangAI && config.gangAI.maxVault) || 5000000;
+          const { getVaultCap } = require('../utils/gangAI');
+          const maxVault = getVaultCap(gang);
           gang.vault = Math.min(maxVault, (gang.vault || 0) + result.totalMoney);
           return result;
         });
@@ -2488,7 +2595,9 @@ module.exports = {
         lastAttackTime: gang.lastAttackTime || 0,
         shieldUntil: gang.shieldUntil || 0,
         alliances: gang.alliances || [],
-        mercenariesUntil: gang.mercenariesUntil || 0
+        reputation: gang.reputation || 0,
+        lastActivityAt: gang.lastActivityAt || 0,
+        mercenaryContract: gang.mercenaryContract || null
       };
     });
 
@@ -2552,6 +2661,9 @@ module.exports = {
     bonusesStr += `5. 🛡️ Lepsza strategia obronna (Obrona): **+${obronaPerc}%** (Lvl ${infoResult.levelObrona}/5)${costObrona}`;
 
     let statusStr = '';
+    const rep = Math.max(0, Math.floor(infoResult.reputation || 0));
+    const repRank = getReputationRank(rep);
+    statusStr += `⭐ Reputacja: **${rep} REP** (${repRank.name})\n`;
     const now = Date.now();
     if (infoResult.shieldUntil && now < infoResult.shieldUntil) {
       const leftSec = Math.ceil((infoResult.shieldUntil - now) / 1000);
@@ -2561,12 +2673,19 @@ module.exports = {
       const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null, `${secs}s`].filter(Boolean).join(' ');
       statusStr += `🛡️ Tarcza ochronna: **Aktywna (${leftStr})**\n`;
     }
-    if (infoResult.mercenariesUntil && now < infoResult.mercenariesUntil) {
-      const leftSec = Math.ceil((infoResult.mercenariesUntil - now) / 1000);
+    if (infoResult.mercenaryContract && infoResult.mercenaryContract.until > now) {
+      const leftSec = Math.ceil((infoResult.mercenaryContract.until - now) / 1000);
       const hrs = Math.floor(leftSec / 3600);
       const mins = Math.floor((leftSec % 3600) / 60);
       const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null].filter(Boolean).join(' ');
-      statusStr += `🪖 Najemnicy: **Aktywni (${leftStr})**\n`;
+      const typeName = (MERCENARY_TYPES && MERCENARY_TYPES[infoResult.mercenaryContract.type]) ? MERCENARY_TYPES[infoResult.mercenaryContract.type].name : infoResult.mercenaryContract.type;
+      statusStr += `🪖 Najemnicy (${typeName}): **Aktywni (${leftStr})**\n`;
+    }
+    const { getActiveTerritoriesForGang } = require('../utils/territories');
+    const ownedTerritories = getActiveTerritoriesForGang(infoResult.id || infoResult.name);
+    if (ownedTerritories.length > 0) {
+      const territoryNames = ownedTerritories.map(t => `${t.emoji} ${t.name}`).join(', ');
+      statusStr += `🌍 Terytoria: **${territoryNames}**\n`;
     }
     if (infoResult.lastAttackTime && now - infoResult.lastAttackTime < 24 * 60 * 60 * 1000) {
       const leftSec = Math.ceil((24 * 60 * 60 * 1000 - (now - infoResult.lastAttackTime)) / 1000);

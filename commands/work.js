@@ -13,6 +13,7 @@ const {
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { getGangBossShopMultiplier } = require('../utils/gangBossShop');
+const { hasReputationBonus } = require('../utils/gangAI');
 
 const jobs = [
   'Ogarnales nocna zmiane przy stolach pokerowych.',
@@ -100,6 +101,16 @@ module.exports = {
         const workshopBonus = getGangBossShopMultiplier(gang, 'work');
         if (workshopBonus > 0) {
           reward = Math.floor(reward * (1 + workshopBonus));
+        }
+
+        if (hasReputationBonus(gang, 100)) {
+          reward = Math.floor(reward * 1.05);
+        }
+
+        const { getTerritoryBonus } = require('../utils/territories');
+        const territoryBonus = getTerritoryBonus(gang.id, 'work');
+        if (territoryBonus > 0) {
+          reward = Math.floor(reward * (1 + territoryBonus));
         }
       }
 

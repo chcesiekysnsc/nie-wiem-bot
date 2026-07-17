@@ -2,6 +2,7 @@ const config = require('../config/config');
 const { withData, createUser, loadData } = require('./storage');
 const { randomInt, formatCurrency } = require('./economy');
 const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getAllCrateDefinitions, processBossShopPurchase, ensureDailyLimit } = require('./gangBossShop');
+const { getTerritoryBonus } = require('./territories');
 
 function getPolandHour(date) {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -126,7 +127,7 @@ async function scoreActions(gang, cfg, allGangs) {
   const scores = {};
   const gangId = gang.id || gang.gangId;
   const vault = gang.vault || 0;
-  const cap = getVaultCap();
+  const cap = getVaultCap(gang);
 
   scores.earn = 10 + (1 - vault / cap) * 15;
 
@@ -235,8 +236,12 @@ function getAttackWeight(gang) {
   return p.attackWeight || 1.0;
 }
 
-function getVaultCap() {
-  return (config.gangAI && config.gangAI.maxVault) || 5000000;
+function getVaultCap(gang) {
+  const base = (config.gangAI && config.gangAI.maxVault) || 5000000;
+  if (!gang) return base;
+  const { getTerritoryBonus } = require('./territories');
+  const territoryBonus = getTerritoryBonus(gang.id, 'bank_capacity');
+  return Math.floor(base * (1 + territoryBonus));
 }
 
 function getMinVaultAfterAttack() {
@@ -265,8 +270,45 @@ function getDefenseUpgradeMultiplier(gang) {
   return bonuses[gang.levelObrona || 0] || 0;
 }
 
-function areMercenariesActive(gang) {
-  return !!(gang.mercenariesUntil && gang.mercenariesUntil > Date.now());
+function getSpecialGangMultiplier(gang, type) {
+  if (gang.id === 'izraelici' || gang.name === 'Izraelici') {
+    if (type === 'attack') return 0.25;
+    if (type === 'defense') return 0.15;
+  }
+  return 0;
+}
+
+function getMercenaryPowerBonus(gang, type) {
+  const contract = gang.mercenaryContract;
+  if (!contract || contract.until <= Date.now()) return 0;
+  const bonuses = {
+    zwykli: { attack: 2, defense: 2, intel: 1 },
+    zolnierze: { attack: 5, defense: 0, intel: 0 },
+    ochroniarze: { attack: 0, defense: 5, intel: 0 },
+    szpiedzy: { attack: 0, defense: 0, intel: 0 },
+    elitarni: { attack: 5, defense: 5, intel: 2 }
+  };
+  const base = (bonuses[contract.type] && bonuses[contract.type][type]) || 0;
+  const territoryBonus = getTerritoryBonus(gang.id, 'mercenary_effectiveness');
+  return Math.floor(base * (1 + territoryBonus));
+}
+
+function getReputationRank(reputation) {
+  const rep = Math.max(0, Math.floor(reputation || 0));
+  const ranks = (config.gangReputation && config.gangReputation.ranks) || [];
+  let current = { min: 0, name: 'Początkujący' };
+  for (const rank of ranks) {
+    if (rep >= rank.min) current = rank;
+    else break;
+  }
+  return current;
+}
+
+function hasReputationBonus(gang, threshold) {
+  if (!gang) return false;
+  const rep = Math.max(0, Math.floor(gang.reputation || 0));
+  const rank = getReputationRank(rep);
+  return rank.min >= threshold;
 }
 
 function randomParticipants(members) {
@@ -285,20 +327,54 @@ function calcPower(participantCount, levelFach) {
   return Math.floor(base * (1 + 0.15 * (levelFach || 0)));
 }
 
-function resolveWar(attackerGang, defenderGang, attackerParticipants, defenderParticipants) {
-  const effectiveAttackers = attackerParticipants + (areMercenariesActive(attackerGang) ? 5 : 0);
-  const effectiveDefenders = defenderParticipants + (areMercenariesActive(defenderGang) ? 5 : 0);
+function resolveWar(attackerGang, defenderGang, attackerPowerCount, defenderPowerCount, attackerRewardCount, defenderRewardCount) {
+  const effectiveAttackers = attackerPowerCount + getMercenaryPowerBonus(attackerGang, 'attack');
+  const effectiveDefenders = defenderPowerCount + getMercenaryPowerBonus(defenderGang, 'defense');
 
   const attBonus = getGangBossShopMultiplier(attackerGang, 'attack');
   const defBonus = getGangBossShopMultiplier(defenderGang, 'defense');
-  const rawAttackPower = calcPower(effectiveAttackers, attackerGang.levelFach) * (1 + attBonus);
-  const rawDefensePower = effectiveDefenders > 0 ? calcPower(effectiveDefenders, defenderGang.levelFach) * (1 + defBonus) : 0;
+  const territoryAttBonus = getTerritoryBonus(attackerGang.id, 'gang_attack') + getTerritoryBonus(attackerGang.id, 'war_both');
+  const territoryDefBonus = getTerritoryBonus(defenderGang.id, 'gang_defense') + getTerritoryBonus(defenderGang.id, 'war_both');
+  const rawAttackPower = calcPower(effectiveAttackers, attackerGang.levelFach) * (1 + attBonus + territoryAttBonus);
+  const rawDefensePower = effectiveDefenders > 0 ? calcPower(effectiveDefenders, defenderGang.levelFach) * (1 + defBonus + territoryDefBonus) : 0;
 
-  const attackPower = rawAttackPower * (1 + getWeaponMultiplier(attackerGang));
-  const defensePower = rawDefensePower * (1 + getDefenseUpgradeMultiplier(defenderGang));
+  const attackPower = Math.floor(rawAttackPower * (1 + getWeaponMultiplier(attackerGang) + getSpecialGangMultiplier(attackerGang, 'attack')));
+  const defensePower = Math.floor(rawDefensePower * (1 + getDefenseUpgradeMultiplier(defenderGang) + getSpecialGangMultiplier(defenderGang, 'defense')));
 
   const winChance = defensePower > 0 ? attackPower / (attackPower + defensePower) : 0.95;
   const success = Math.random() < winChance;
+
+  const attackerRepBefore = Math.max(0, Math.floor(attackerGang.reputation || 0));
+  const defenderRepBefore = Math.max(0, Math.floor(defenderGang.reputation || 0));
+
+  let attackerRepChange = 0;
+  let defenderRepChange = 0;
+
+  if (success) {
+    attackerRepChange += 10;
+    defenderRepChange -= 5;
+    if (defenderRepBefore > attackerRepBefore || (defenderGang.levelFach || 0) > (attackerGang.levelFach || 0)) {
+      attackerRepChange += 10;
+    }
+  } else {
+    attackerRepChange -= 5;
+    defenderRepChange += 5;
+    if (attackerRepBefore > defenderRepBefore || (attackerGang.levelFach || 0) > (defenderGang.levelFach || 0)) {
+      defenderRepChange += 10;
+    }
+  }
+
+  const attackerRepGainBonus = getTerritoryBonus(attackerGang.id, 'reputation_gain');
+  const defenderRepGainBonus = getTerritoryBonus(defenderGang.id, 'reputation_gain');
+  if (attackerRepGainBonus > 0) {
+    attackerRepChange = Math.floor(attackerRepChange * (1 + attackerRepGainBonus));
+  }
+  if (defenderRepGainBonus > 0) {
+    defenderRepChange = Math.floor(defenderRepChange * (1 + defenderRepGainBonus));
+  }
+
+  attackerGang.reputation = Math.max(0, attackerRepBefore + attackerRepChange);
+  defenderGang.reputation = Math.max(0, defenderRepBefore + defenderRepChange);
 
   const attackerVaultBefore = attackerGang.vault || 0;
   const defenderVaultBefore = defenderGang.vault || 0;
@@ -314,19 +390,28 @@ function resolveWar(attackerGang, defenderGang, attackerParticipants, defenderPa
 
   if (success) {
     const pct = randomInt(15, 35) / 100;
-    stolenTotal = Math.floor(defenderVaultBefore * pct);
+    let stolenTotal = Math.floor(defenderVaultBefore * pct);
+    const warLossReduction = getTerritoryBonus(defenderGang.id, 'war_loss_reduction');
+    if (warLossReduction > 0) {
+      stolenTotal = Math.floor(stolenTotal * (1 - warLossReduction));
+    }
     const lootMult = 1 + getGangBossShopMultiplier(attackerGang, 'loot');
     vaultShare = Math.floor(stolenTotal * 0.30 * lootMult);
     const membersTotalShare = stolenTotal - vaultShare;
-    sharePerPerson = attackerParticipants > 0 ? Math.floor(membersTotalShare / attackerParticipants) : 0;
+    sharePerPerson = attackerRewardCount > 0 ? Math.floor(membersTotalShare / attackerRewardCount) : 0;
 
     stolenItemId = attemptStealBossItem(attackerGang, defenderGang);
   } else {
-    penaltyVault = Math.floor(attackerVaultBefore * 0.20);
-    penaltyDefenders = Math.floor(attackerVaultBefore * 0.15);
+    let penaltyVault = Math.floor(attackerVaultBefore * 0.20);
+    let penaltyDefenders = Math.floor(attackerVaultBefore * 0.15);
+    const warLossReduction = getTerritoryBonus(attackerGang.id, 'war_loss_reduction');
+    if (warLossReduction > 0) {
+      penaltyVault = Math.floor(penaltyVault * (1 - warLossReduction));
+      penaltyDefenders = Math.floor(penaltyDefenders * (1 - warLossReduction));
+    }
     totalPenalty = penaltyVault + penaltyDefenders;
-    if (defenderParticipants > 0) {
-      sharePerDefender = Math.floor(penaltyDefenders / defenderParticipants);
+    if (defenderRewardCount > 0) {
+      sharePerDefender = Math.floor(penaltyDefenders / defenderRewardCount);
     }
 
     stolenItemId = attemptStealBossItem(defenderGang, attackerGang);
@@ -344,7 +429,67 @@ function resolveWar(attackerGang, defenderGang, attackerParticipants, defenderPa
     penaltyDefenders,
     sharePerDefender,
     totalPenalty,
-    stolenItemId
+    stolenItemId,
+    attackerRepChange,
+    defenderRepChange
+  };
+}
+
+function resolveTerritoryConflict(attackerGang, defenderGang, attackerPowerCount, defenderPowerCount, attackerRewardCount, defenderRewardCount) {
+  const effectiveAttackers = attackerPowerCount + getMercenaryPowerBonus(attackerGang, 'attack');
+  const effectiveDefenders = defenderPowerCount + getMercenaryPowerBonus(defenderGang, 'defense');
+
+  const attBonus = getGangBossShopMultiplier(attackerGang, 'attack');
+  const defBonus = getGangBossShopMultiplier(defenderGang, 'defense');
+  const territoryAttBonus = getTerritoryBonus(attackerGang.id, 'gang_attack') + getTerritoryBonus(attackerGang.id, 'war_both');
+  const territoryDefBonus = getTerritoryBonus(defenderGang.id, 'gang_defense') + getTerritoryBonus(defenderGang.id, 'war_both');
+  const rawAttackPower = calcPower(effectiveAttackers, attackerGang.levelFach) * (1 + attBonus + territoryAttBonus);
+  const rawDefensePower = effectiveDefenders > 0 ? calcPower(effectiveDefenders, defenderGang.levelFach) * (1 + defBonus + territoryDefBonus) : 0;
+
+  const attackPower = Math.floor(rawAttackPower * (1 + getWeaponMultiplier(attackerGang) + getSpecialGangMultiplier(attackerGang, 'attack')));
+  const defensePower = Math.floor(rawDefensePower * (1 + getDefenseUpgradeMultiplier(defenderGang) + getSpecialGangMultiplier(defenderGang, 'defense')));
+
+  const winChance = defensePower > 0 ? attackPower / (attackPower + defensePower) : 0.95;
+  const success = Math.random() < winChance;
+
+  const attackerRepBefore = Math.max(0, Math.floor(attackerGang.reputation || 0));
+  const defenderRepBefore = Math.max(0, Math.floor(defenderGang.reputation || 0));
+  let attackerRepChange = 0;
+  let defenderRepChange = 0;
+
+  if (success) {
+    attackerRepChange += 10;
+    defenderRepChange -= 5;
+    if (defenderRepBefore > attackerRepBefore || (defenderGang.levelFach || 0) > (attackerGang.levelFach || 0)) {
+      attackerRepChange += 10;
+    }
+  } else {
+    attackerRepChange -= 5;
+    defenderRepChange += 5;
+    if (attackerRepBefore > defenderRepBefore || (attackerGang.levelFach || 0) > (defenderGang.levelFach || 0)) {
+      defenderRepChange += 10;
+    }
+  }
+
+  const attackerRepGainBonus = getTerritoryBonus(attackerGang.id, 'reputation_gain');
+  const defenderRepGainBonus = getTerritoryBonus(defenderGang.id, 'reputation_gain');
+  if (attackerRepGainBonus > 0) {
+    attackerRepChange = Math.floor(attackerRepChange * (1 + attackerRepGainBonus));
+  }
+  if (defenderRepGainBonus > 0) {
+    defenderRepChange = Math.floor(defenderRepChange * (1 + defenderRepGainBonus));
+  }
+
+  attackerGang.reputation = Math.max(0, attackerRepBefore + attackerRepChange);
+  defenderGang.reputation = Math.max(0, defenderRepBefore + defenderRepChange);
+
+  return {
+    success,
+    attackPower: Math.floor(attackPower),
+    defensePower: Math.floor(defensePower),
+    winChance,
+    attackerRepChange,
+    defenderRepChange
   };
 }
 
@@ -362,15 +507,18 @@ function notifySupportThreads(client, heist, msg) {
 }
 
 async function executeEarn(gang, cfg) {
-  const cap = getVaultCap();
+  const cap = getVaultCap(gang);
   const memberCount = Math.max(1, (gang.members || []).length);
   const baseMin = 20000;
   const baseMax = 170000;
   const perMemberBonus = 15000;
   const scaledMax = Math.min(350000, baseMax + (memberCount - 1) * perMemberBonus);
   const earnAmount = Math.floor(Math.random() * (scaledMax - baseMin + 1)) + baseMin;
-  gang.vault = Math.min(cap, gang.vault + earnAmount);
-  return { type: 'earn', amount: Math.min(earnAmount, cap - (gang.vault - earnAmount)) };
+  const incomeBonus = getGangBossShopMultiplier(gang, 'income');
+  const territoryBonus = getTerritoryBonus(gang.id, 'npc_raid') + getTerritoryBonus(gang.id, 'all_economy');
+  const finalEarn = Math.floor(earnAmount * (1 + incomeBonus + territoryBonus));
+  gang.vault = Math.min(cap, gang.vault + finalEarn);
+  return { type: 'earn', amount: Math.min(finalEarn, cap - (gang.vault - finalEarn)) };
 }
 
 async function executeUpgrade(gang, cfg) {
@@ -461,7 +609,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
     return { type: 'attack', skipped: true, reason: 'outside_hours' };
   }
 
-  const cap = getVaultCap();
+  const cap = getVaultCap(gang);
   const minVaultAfter = getMinVaultAfterAttack();
   const costRatio = (config.gangAI && config.gangAI.attackVaultCostRatio) || 0.10;
   const cost = Math.floor((gang.vault || 0) * costRatio);
@@ -544,7 +692,11 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
 
     attacker.vault = Math.max(0, (attacker.vault || 0) - cost);
     attacker.lastAttackTime = now;
-    defender.shieldUntil = now + 6 * 60 * 60 * 1000;
+    let shieldDuration = 6 * 60 * 60 * 1000;
+    if (hasReputationBonus(defender, 1500)) {
+      shieldDuration -= 1 * 60 * 60 * 1000;
+    }
+    defender.shieldUntil = now + shieldDuration;
   });
 
   gang.vault = Math.max(0, (gang.vault || 0) - cost);
@@ -712,7 +864,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
 
       const attCount = listAttackers.length;
       const defCount = listDefenders.length;
-      const result = resolveWar(attacker, defender, attCount, defCount);
+      const result = resolveWar(attacker, defender, attacker.members.length, defender.members.length, attCount, defCount);
 
       if (result.success) {
         defender.vault = Math.max(0, (defender.vault || 0) - result.stolenTotal);
@@ -895,7 +1047,7 @@ async function executeEvent(gang, cfg) {
   ];
 
   const ev = events[Math.floor(Math.random() * events.length)];
-  const cap = getVaultCap();
+  const cap = getVaultCap(gang);
   const change = randomInt(Math.min(ev.vaultMin, 0), Math.max(ev.vaultMax, 0));
   gang.vault = Math.max(0, Math.min(cap, (gang.vault || 0) + change));
 
@@ -960,7 +1112,7 @@ async function executeBuyBossCrate(gang, cfg) {
     return { type: 'buyBossCrate', skipped: true, reason: result.error };
   }
 
-  const cap = getVaultCap();
+  const cap = getVaultCap(gang);
   gang.vault = Math.min(cap, (gang.vault || 0) + result.totalMoney);
 
   return {
@@ -1098,7 +1250,9 @@ async function ensureFixedAIGangs(store, cfg) {
       levelFach: 0,
       levelUzbrojenie: 0,
       levelObrona: 0,
-      mercenariesUntil: 0,
+      mercenaryContract: null,
+      reputation: 0,
+      lastActivityAt: Date.now(),
       tributePercent: 0,
       lastHeistTime: 0,
       lastAttackTime: 0,
@@ -1228,5 +1382,9 @@ module.exports = {
   countAIGangs,
   getWeaponMultiplier,
   getDefenseUpgradeMultiplier,
-  areMercenariesActive
+  getSpecialGangMultiplier,
+  getMercenaryPowerBonus,
+  resolveTerritoryConflict,
+  getReputationRank,
+  hasReputationBonus
 };

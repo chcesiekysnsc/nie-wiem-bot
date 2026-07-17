@@ -694,6 +694,23 @@ function getMsUntilNextProgressiveTax() {
   return Math.max(0, nextAt - now);
 }
 
+function getMsUntilNextGangReputationDecay() {
+  const now = Date.now();
+  const profiles = loadData('profiles') || {};
+  const nextAt = Number(profiles.nextGangReputationDecayAt || 0);
+  if (!nextAt) return 0;
+  return Math.max(0, nextAt - now);
+}
+
+function getMsUntilNextTerritoryRotation() {
+  const now = Date.now();
+  const profiles = loadData('profiles') || {};
+  const territories = profiles.territories || {};
+  const nextAt = Number(territories.nextRotationAt || 0);
+  if (!nextAt) return 0;
+  return Math.max(0, nextAt - now);
+}
+
 // ===== APPSTATE WCZYTYWANY Z PLIKU =====
 
 let appState;
@@ -1179,6 +1196,100 @@ login({ appState }, (loginErr, api) => {
       } catch (err) {
         console.error('[PROGRESSIVE-TAX] Błąd podczas poboru:', err);
       }
+
+  function startGangReputationDecay() {
+    const delay = getMsUntilNextGangReputationDecay();
+    setTimeout(async () => {
+      try {
+        const result = await withData(store => {
+          const profiles = store.profiles || {};
+          const nextAt = Number(profiles.nextGangReputationDecayAt || 0);
+          if (Date.now() < nextAt) {
+            return { decayed: 0 };
+          }
+
+          const gangs = profiles.gangs || {};
+          let decayed = 0;
+          const now = Date.now();
+          for (const gang of Object.values(gangs)) {
+            if (!gang.lastActivityAt || now - gang.lastActivityAt >= 7 * 24 * 60 * 60 * 1000) {
+              gang.reputation = Math.max(0, (gang.reputation || 0) - 10);
+              decayed++;
+            }
+          }
+          profiles.nextGangReputationDecayAt = now + 7 * 24 * 60 * 60 * 1000;
+          return { decayed };
+        });
+
+        if (result.decayed > 0) {
+          console.log(`[GANG-REP] Zastosowano spadek reputacji dla ${result.decayed} nieaktywnych gangów.`);
+        }
+      } catch (err) {
+        console.error('[GANG-REP] Błąd podczas sprawdzania spadku reputacji:', err);
+      }
+
+      startGangReputationDecay();
+    }, delay);
+  }
+
+  withData(store => {
+    if (!store.profiles.nextGangReputationDecayAt) {
+      store.profiles.nextGangReputationDecayAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    }
+  }).catch(() => {});
+
+  startGangReputationDecay();
+
+  function startTerritoryRotation() {
+    const delay = getMsUntilNextTerritoryRotation();
+    setTimeout(async () => {
+      try {
+        const result = await withData(store => {
+          const profiles = store.profiles || {};
+          const territories = profiles.territories || {};
+          const nextAt = Number(territories.nextRotationAt || 0);
+          if (Date.now() < nextAt) {
+            return { rotated: 0 };
+          }
+
+          const definitions = (require('../config/config').territories && require('../config/config').territories.definitions) || [];
+          const allIds = definitions.map(d => d.id);
+          const shuffled = allIds.sort(() => Math.random() - 0.5);
+          const newActive = shuffled.slice(0, 5);
+          const owners = territories.owners || {};
+
+          for (const id of allIds) {
+            if (!owners[id]) {
+              owners[id] = null;
+            }
+          }
+
+          territories.activeIds = newActive;
+          territories.owners = owners;
+          territories.nextRotationAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+          return { rotated: newActive.length };
+        });
+
+        if (result.rotated > 0) {
+          console.log(`[TERRITORIES] Rotacja terytoriów: aktywne ${result.rotated} obszarów.`);
+        }
+      } catch (err) {
+        console.error('[TERRITORIES] Błąd podczas rotacji terytoriów:', err);
+      }
+
+      startTerritoryRotation();
+    }, delay);
+  }
+
+  withData(store => {
+    if (!store.profiles.territories) {
+      store.profiles.territories = { activeIds: [], owners: {}, nextRotationAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
+    } else if (!store.profiles.territories.nextRotationAt) {
+      store.profiles.territories.nextRotationAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    }
+  }).catch(() => {});
+
+  startTerritoryRotation();
 
       startProgressiveTaxCollection();
     }, delay);
