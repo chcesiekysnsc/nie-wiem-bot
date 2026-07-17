@@ -181,6 +181,8 @@ module.exports = {
           return { error: `⏳ Odwiedzenie terytorium zbyt szybko! Pozostało: **${leftStr}**` };
         }
 
+        myGang.lastTerritoryCaptureAt = now;
+
         if (currentOwner) {
           const defendingGang = store.profiles.gangs[currentOwner];
           if (defendingGang) {
@@ -188,19 +190,22 @@ module.exports = {
             const defPower = defendingGang.members.length + require('../utils/gangAI').getMercenaryPowerBonus(defendingGang, 'defense');
             const winChance = myPower > 0 ? myPower / (myPower + defPower) : 0;
             if (Math.random() > winChance) {
-              return { error: `❌ Próba odbicia **${targetDef.emoji} ${targetDef.name}** zakończyła się niepowodzeniem!` };
+              return { error: `❌ Próba odbicia **${targetDef.emoji} ${targetDef.name}** zakończyła się niepowodzeniem!`, cooldown: true };
             }
           }
         }
 
         owners[targetDef.id] = gangId;
-        myGang.lastTerritoryCaptureAt = now;
         store.profiles.territories = territories;
-        return { success: true, name: targetDef.name, emoji: targetDef.emoji };
+        return { success: true, name: targetDef.name, emoji: targetDef.emoji, cooldown: true };
       });
 
       if (result.error) {
-        await message.reply(result.error);
+        if (result.cooldown) {
+          await message.reply(`💀 ${result.error}\n⏳ Masz **1 godzinę** przerwy przed kolejną próbą.`);
+        } else {
+          await message.reply(result.error);
+        }
         return;
       }
 
