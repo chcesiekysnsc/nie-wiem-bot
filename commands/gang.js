@@ -1577,7 +1577,7 @@ module.exports = {
       // Starting an attack
       const targetParam = args.slice(1).join(' ').trim();
       if (!targetParam) {
-        await message.reply('❌ Użyj: **!gang atak @osoba** lub **!gang atak <ID>** lub **!gang atak dolacz** / **!gang obrona dolacz**');
+        await message.reply('❌ Użyj: **!gang atak @osoba**, **!gang atak <ID gracza>**, **!gang atak <nazwa gangu>** lub **!gang atak dolacz** / **!gang obrona dolacz**');
         return;
       }
 
@@ -1602,8 +1602,10 @@ module.exports = {
           return { error: `❌ Twój gang musi mieć minimum ${formatCurrency(500000)} w sejfie, aby rozpocząć wojnę.` };
         }
 
-        // Resolve target user
+        // Resolve target gang: po oznaczeniu/ID gracza, po ID gangu, lub po nazwie gangu
+        let targetGangId = null;
         let targetId = null;
+
         const mentioned = message.mentions.users.first();
         if (mentioned) {
           targetId = mentioned.id;
@@ -1611,16 +1613,28 @@ module.exports = {
           targetId = targetParam;
         }
 
-        if (!targetId) {
-          return { error: '❌ Musisz oznaczyć osobę (@osoba) lub podać jej ID, aby zaatakować jej gang.' };
+        if (targetId) {
+          const targetUser = store.users[targetId];
+          if (targetUser && targetUser.gangId) {
+            targetGangId = targetUser.gangId;
+          }
         }
 
-        const targetUser = store.users[targetId];
-        if (!targetUser || !targetUser.gangId) {
-          return { error: '❌ Ta osoba nie należy do żadnego gangu.' };
+        if (!targetGangId && targetParam) {
+          const cleanParam = targetParam.toLowerCase();
+          if (store.profiles.gangs[cleanParam]) {
+            targetGangId = cleanParam;
+          } else {
+            const foundGang = Object.entries(store.profiles.gangs).find(
+              ([id, g]) => g.name.toLowerCase() === cleanParam
+            );
+            if (foundGang) targetGangId = foundGang[0];
+          }
         }
 
-        const targetGangId = targetUser.gangId;
+        if (!targetGangId) {
+          return { error: '❌ Musisz oznaczyć osobę (@osoba), podać jej ID, lub podać nazwę/ID gangu, aby go zaatakować.' };
+        }
 
         if (targetGangId === myGangId) {
           return { error: '❌ Nie możesz zaatakować własnego gangu.' };
