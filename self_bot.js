@@ -1283,7 +1283,15 @@ login({ appState }, (loginErr, api) => {
 
   withData(store => {
     if (!store.profiles.territories) {
-      store.profiles.territories = { activeIds: [], owners: {}, nextRotationAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
+      const definitions = (require('../config/config').territories && require('../config/config').territories.definitions) || [];
+      const allIds = definitions.map(d => d.id);
+      const shuffled = allIds.sort(() => Math.random() - 0.5);
+      const initialActive = shuffled.slice(0, 5);
+      const owners = {};
+      for (const id of allIds) {
+        owners[id] = null;
+      }
+      store.profiles.territories = { activeIds: initialActive, owners, nextRotationAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
     } else if (!store.profiles.territories.nextRotationAt) {
       store.profiles.territories.nextRotationAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
     }
