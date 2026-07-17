@@ -3,15 +3,21 @@ const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, 
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getItemDefinition, getAllCrateDefinitions, getCrateDefinition, processBossShopPurchase, ensureDailyLimit } = require('../utils/gangBossShop');
+const { getWeaponMultiplier, getDefenseUpgradeMultiplier, areMercenariesActive } = require('../utils/gangAI');
 
 const CRATE_ORDER = Object.keys(config.bossShopCrates && config.bossShopCrates.crates ? config.bossShopCrates.crates : {});
+const MERCENARIES_PRICE = 2000000;
+const MERCENARIES_DURATION_MS = 24 * 60 * 60 * 1000;
+const MERCENARIES_SHOP_NUMBER = CRATE_ORDER.length + 1;
 
 function renderBossShopList() {
   const crates = getAllCrateDefinitions();
-  return CRATE_ORDER.map((crateId, idx) => {
+  const crateLines = CRATE_ORDER.map((crateId, idx) => {
     const c = crates[crateId];
     return `${idx + 1}. ${c.emoji} **${c.name}** — ${formatCurrency(c.price)}`;
-  }).join('\n');
+  });
+  const mercenaryLine = `${MERCENARIES_SHOP_NUMBER}. 🪖 **Najemnicy** — ${formatCurrency(MERCENARIES_PRICE)} (efekt na 24h)`;
+  return [...crateLines, mercenaryLine].join('\n');
 }
 
 function notifySupportThreads(client, heist, msg) {
@@ -281,6 +287,9 @@ module.exports = {
           levelDziupla: 0,
           levelBiznesy: 0,
           levelFach: 0,
+          levelUzbrojenie: 0,
+          levelObrona: 0,
+          mercenariesUntil: 0,
           tributePercent: 0,
           lastHeistTime: 0,
           lastAttackTime: 0,
@@ -793,9 +802,10 @@ module.exports = {
       if (targetUpgrade === '1') targetUpgrade = 'dziupla';
       else if (targetUpgrade === '2') targetUpgrade = 'biznesy';
       else if (targetUpgrade === '3') targetUpgrade = 'fach';
+      else if (targetUpgrade === '4') targetUpgrade = 'uzbrojenie';
+      else if (targetUpgrade === '5') targetUpgrade = 'obrona';
 
-      if (!['dziupla', 'biznesy', 'fach'].includes(targetUpgrade)) {
-        // Fetch current levels to show upgrade costs
+      if (!['dziupla', 'biznesy', 'fach', 'uzbrojenie', 'obrona'].includes(targetUpgrade)) {
         const levels = await withData(store => {
           const user = createUser(message.author.id, store.users);
           if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
@@ -803,7 +813,9 @@ module.exports = {
             return {
               levelDziupla: gang.levelDziupla || 0,
               levelBiznesy: gang.levelBiznesy || 0,
-              levelFach: gang.levelFach || 0
+              levelFach: gang.levelFach || 0,
+              levelUzbrojenie: gang.levelUzbrojenie || 0,
+              levelObrona: gang.levelObrona || 0
             };
           }
           return null;
@@ -814,19 +826,25 @@ module.exports = {
           const costDziupla = levels.levelDziupla < 10 ? formatCurrency(100000 + levels.levelDziupla * 40000) : 'Maksymalny poziom';
           const costBiznesy = levels.levelBiznesy < 3 ? formatCurrency([200000, 400000, 650000][levels.levelBiznesy]) : 'Maksymalny poziom';
           const costFach = levels.levelFach < 3 ? formatCurrency([200000, 350000, 600000][levels.levelFach]) : 'Maksymalny poziom';
+          const costUzbrojenie = levels.levelUzbrojenie < 5 ? formatCurrency([500000, 1000000, 2000000, 4000000, 8000000][levels.levelUzbrojenie]) : 'Maksymalny poziom';
+          const costObrona = levels.levelObrona < 5 ? formatCurrency([500000, 1000000, 2000000, 4000000, 8000000][levels.levelObrona]) : 'Maksymalny poziom';
 
           costsMsg = `\n\n🛠️ **Koszt kolejnych ulepszeń dla Twojego gangu:**\n` +
                      `• 📦 **Dziupla** (Lvl ${levels.levelDziupla} -> ${levels.levelDziupla + 1}): **${costDziupla}**\n` +
                      `• 📈 **Legalne Biznesy** (Lvl ${levels.levelBiznesy} -> ${levels.levelBiznesy + 1}): **${costBiznesy}**\n` +
-                     `• 🥷 **Złodziejski Fach** (Lvl ${levels.levelFach} -> ${levels.levelFach + 1}): **${costFach}**`;
+                     `• 🥷 **Złodziejski Fach** (Lvl ${levels.levelFach} -> ${levels.levelFach + 1}): **${costFach}**\n` +
+                     `• ⚔️ **Lepsze uzbrojenie** (Lvl ${levels.levelUzbrojenie} -> ${levels.levelUzbrojenie + 1}): **${costUzbrojenie}**\n` +
+                     `• 🛡️ **Lepsza strategia obronna** (Lvl ${levels.levelObrona} -> ${levels.levelObrona + 1}): **${costObrona}**`;
         } else {
           costsMsg = `\n\n🛠️ **Cennik ulepszeń gangów:**\n` +
                      `• 📦 **Dziupla**: **100 000 💰** (każdy kolejny poziom +40 000 💰)\n` +
                      `• 📈 **Legalne Biznesy**: Lvl 1: **200 000 💰** | Lvl 2: **400 000 💰** | Lvl 3: **650 000 💰**\n` +
-                     `• 🥷 **Złodziejski Fach**: Lvl 1: **200 000 💰** | Lvl 2: **350 000 💰** | Lvl 3: **600 000 💰**`;
+                     `• 🥷 **Złodziejski Fach**: Lvl 1: **200 000 💰** | Lvl 2: **350 000 💰** | Lvl 3: **600 000 💰**\n` +
+                     `• ⚔️ **Lepsze uzbrojenie**: Lvl 1: **500 000 💰** | Lvl 2: **1 000 000 💰** | Lvl 3: **2 000 000 💰** | Lvl 4: **4 000 000 💰** | Lvl 5: **8 000 000 💰**\n` +
+                     `• 🛡️ **Lepsza strategia obronna**: Lvl 1: **500 000 💰** | Lvl 2: **1 000 000 💰** | Lvl 3: **2 000 000 💰** | Lvl 4: **4 000 000 💰** | Lvl 5: **8 000 000 💰**`;
         }
 
-        await message.reply(`❌ Użyj: **!gang ulepsz <dziupla/biznesy/fach>** lub **!gang ulepsz <1/2/3>**${costsMsg}`);
+        await message.reply(`❌ Użyj: **!gang ulepsz <dziupla/biznesy/fach/uzbrojenie/obrona>** lub **!gang ulepsz <1/2/3/4/5>**${costsMsg}`);
         return;
       }
 
@@ -887,6 +905,26 @@ module.exports = {
           newLevel = currentLevel + 1;
           const bonuses = ['+4%', '+8%', '+12%'];
           upgradeLabel = `Złodziejski Fach (Kradzieże bonus: ${bonuses[currentLevel]})`;
+        } else if (targetUpgrade === 'uzbrojenie') {
+          const currentLevel = gang.levelUzbrojenie || 0;
+          if (currentLevel >= 5) {
+            return { error: '❌ Lepsze uzbrojenie jest już na maksymalnym poziomie (5).' };
+          }
+          const costs = [500000, 1000000, 2000000, 4000000, 8000000];
+          cost = costs[currentLevel];
+          newLevel = currentLevel + 1;
+          const bonuses = ['+2%', '+4%', '+8%', '+12%', '+16%'];
+          upgradeLabel = `Lepsze uzbrojenie (Atak gangu bonus: ${bonuses[currentLevel]})`;
+        } else if (targetUpgrade === 'obrona') {
+          const currentLevel = gang.levelObrona || 0;
+          if (currentLevel >= 5) {
+            return { error: '❌ Lepsza strategia obronna jest już na maksymalnym poziomie (5).' };
+          }
+          const costs = [500000, 1000000, 2000000, 4000000, 8000000];
+          cost = costs[currentLevel];
+          newLevel = currentLevel + 1;
+          const bonuses = ['+2%', '+4%', '+8%', '+12%', '+16%'];
+          upgradeLabel = `Lepsza strategia obronna (Obrona gangu bonus: ${bonuses[currentLevel]})`;
         }
 
         if (gang.vault < cost) {
@@ -897,6 +935,8 @@ module.exports = {
         if (targetUpgrade === 'dziupla') gang.levelDziupla = newLevel;
         else if (targetUpgrade === 'biznesy') gang.levelBiznesy = newLevel;
         else if (targetUpgrade === 'fach') gang.levelFach = newLevel;
+        else if (targetUpgrade === 'uzbrojenie') gang.levelUzbrojenie = newLevel;
+        else if (targetUpgrade === 'obrona') gang.levelObrona = newLevel;
 
         return { success: true, cost, upgradeLabel, newLevel, gangName: gang.name };
       });
@@ -1765,24 +1805,29 @@ module.exports = {
           }
 
           // Calculate Attack Power
+          const effectiveAttackerCount = listAttackers.length + (areMercenariesActive(attackerGang) ? 5 : 0);
+          const effectiveDefenderCount = listDefenders.length + (areMercenariesActive(defenderGang) ? 5 : 0);
+
           let baseAttackPower = 0;
-          for (let i = 0; i < listAttackers.length; i++) {
+          for (let i = 0; i < effectiveAttackerCount; i++) {
             baseAttackPower += randomInt(10, 50);
           }
           const attFachLvl = attackerGang.levelFach || 0;
           const attBossBonus = getGangBossShopMultiplier(attackerGang, 'attack');
-          const attackPower = Math.floor(baseAttackPower * (1 + 0.15 * attFachLvl + attBossBonus));
+          const rawAttackPower = Math.floor(baseAttackPower * (1 + 0.15 * attFachLvl + attBossBonus));
+          const attackPower = Math.floor(rawAttackPower * (1 + getWeaponMultiplier(attackerGang)));
 
           // Calculate Defense Power
           let baseDefensePower = 0;
-          if (listDefenders.length > 0) {
-            for (let i = 0; i < listDefenders.length; i++) {
+          if (effectiveDefenderCount > 0) {
+            for (let i = 0; i < effectiveDefenderCount; i++) {
               baseDefensePower += randomInt(10, 50);
             }
           }
           const defFachLvl = defenderGang.levelFach || 0;
           const defBossBonus = getGangBossShopMultiplier(defenderGang, 'defense');
-          const defensePower = listDefenders.length > 0 ? Math.floor(baseDefensePower * (1 + 0.15 * defFachLvl + defBossBonus)) : 0;
+          const rawDefensePower = effectiveDefenderCount > 0 ? Math.floor(baseDefensePower * (1 + 0.15 * defFachLvl + defBossBonus)) : 0;
+          const defensePower = Math.floor(rawDefensePower * (1 + getDefenseUpgradeMultiplier(defenderGang)));
 
           // Determine Success
           let winChance = 0.95;
@@ -2131,16 +2176,28 @@ module.exports = {
         const targetNum = String(args[2] || '').toLowerCase();
         if (!targetNum) {
           await message.reply(
-            `ℹ️ Użyj: **!gang sklep help <numer>** aby zobaczyć szczegółowy opis skrzynki.\n` +
+            `ℹ️ Użyj: **!gang sklep help <numer>** aby zobaczyć szczegółowy opis.\n` +
             `💡 Numery znajdziesz w liście: **!gang sklep**`
           );
           return;
         }
 
         const crates = getAllCrateDefinitions();
-        const crateId = CRATE_ORDER[parseInt(targetNum, 10) - 1];
+        const targetNumInt = parseInt(targetNum, 10);
+        if (targetNumInt === MERCENARIES_SHOP_NUMBER) {
+          await message.reply(
+            `🪖 **Najemnicy** — ${formatCurrency(MERCENARIES_PRICE)}\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `⚔️ Efekt na **24 godziny**: każdy atak i obrona liczy się jakby gang miał **+5 dodatkowych graczy**.\n` +
+            `⏳ Czas trwania: **24h**.\n` +
+            `💡 Kup: **!gang sklep kup ${MERCENARIES_SHOP_NUMBER}**`
+          );
+          return;
+        }
+
+        const crateId = CRATE_ORDER[targetNumInt - 1];
         if (!crateId || !crates[crateId]) {
-          await message.reply(`❌ Nie znaleziono skrzynki o numerze **${targetNum}**. Wpisz **!gang sklep** aby zobaczyć listę.`);
+          await message.reply(`❌ Nie znaleziono pozycji o numerze **${targetNum}**. Wpisz **!gang sklep** aby zobaczyć listę.`);
           return;
         }
 
@@ -2155,7 +2212,7 @@ module.exports = {
           `💰 Drop pieniędzy: ${formatCurrency(crate.moneyMin)} – ${formatCurrency(crate.moneyMax)}\n\n` +
           `🎁 **Przedmioty:**\n${itemsList}\n` +
           `━━━━━━━━━━━━━━━━━━━━\n` +
-          `💡 Kup: **!gang sklep kup ${parseInt(targetNum, 10)} [ilość]**`
+          `💡 Kup: **!gang sklep kup ${targetNumInt} [ilość]**`
         );
         return;
       }
@@ -2197,16 +2254,50 @@ module.exports = {
 
       if (shopFirstArg === 'kup') {
         const targetNum = String(args[2] || '').toLowerCase();
-        const crateId = CRATE_ORDER[parseInt(targetNum, 10) - 1];
+        const targetNumInt = parseInt(targetNum, 10);
+
+        if (targetNumInt === MERCENARIES_SHOP_NUMBER) {
+          const purchaseResult = await withData(store => {
+            const gang = store.profiles.gangs[readResult.gangId];
+            if (!gang) {
+              return { error: '❌ Gang nie istnieje.' };
+            }
+            if (gang.mercenariesUntil && gang.mercenariesUntil > Date.now()) {
+              const leftMs = gang.mercenariesUntil - Date.now();
+              const leftMin = Math.ceil(leftMs / 60000);
+              return { error: `❌ Macie już aktywnych najemników! Pozostało: **${leftMin} min**. Nie można kupić kolejnych, dopóki efekt trwa.` };
+            }
+            if ((gang.vault || 0) < MERCENARIES_PRICE) {
+              return { error: `❌ Brak środków w sejfie gangu. Potrzeba: **${formatCurrency(MERCENARIES_PRICE)}**, posiadacie: **${formatCurrency(gang.vault || 0)}**.` };
+            }
+            gang.vault -= MERCENARIES_PRICE;
+            gang.mercenariesUntil = Date.now() + MERCENARIES_DURATION_MS;
+            return { ok: true, until: gang.mercenariesUntil };
+          });
+
+          if (purchaseResult.error) {
+            await message.reply(purchaseResult.error);
+            return;
+          }
+
+          await message.reply(
+            `🪖 **Wynajęto najemników!**\n` +
+            `💰 Koszt: **-${formatCurrency(MERCENARIES_PRICE)}** z sejfu gangu.\n` +
+            `⚔️ Najemnicy dodają siłę odpowiadającą ok. **5 dodatkowym graczom** w atakach i obronach przez najbliższe **24 godziny**.`
+          );
+          return;
+        }
+
+        const crateId = CRATE_ORDER[targetNumInt - 1];
         if (!crateId) {
-          await message.reply(`❌ Nieprawidłowy numer skrzynki. Wpisz **!gang sklep** aby zobaczyć listę.`);
+          await message.reply(`❌ Nieprawidłowy numer pozycji. Wpisz **!gang sklep** aby zobaczyć listę.`);
           return;
         }
 
         const crates = getAllCrateDefinitions();
         const crate = crates[crateId];
         if (!crate) {
-          await message.reply(`❌ Nie znaleziono skrzynki o numerze **${targetNum}**.`);
+          await message.reply(`❌ Nie znaleziono pozycji o numerze **${targetNum}**.`);
           return;
         }
 
@@ -2376,11 +2467,14 @@ module.exports = {
         levelDziupla: gang.levelDziupla || 0,
         levelBiznesy: gang.levelBiznesy || 0,
         levelFach: gang.levelFach || 0,
+        levelUzbrojenie: gang.levelUzbrojenie || 0,
+        levelObrona: gang.levelObrona || 0,
         tributePercent: gang.tributePercent || 0,
         deposits: gang.deposits || {},
         lastAttackTime: gang.lastAttackTime || 0,
         shieldUntil: gang.shieldUntil || 0,
-        alliances: gang.alliances || []
+        alliances: gang.alliances || [],
+        mercenariesUntil: gang.mercenariesUntil || 0
       };
     });
 
@@ -2418,6 +2512,8 @@ module.exports = {
     let bonusesStr = '';
     const bizPerc = [0, 10, 20, 30][infoResult.levelBiznesy];
     const fachPerc = [0, 4, 8, 12][infoResult.levelFach];
+    const uzbrojeniePerc = [0, 2, 4, 8, 12, 16][infoResult.levelUzbrojenie || 0];
+    const obronaPerc = [0, 2, 4, 8, 12, 16][infoResult.levelObrona || 0];
 
     const costDziupla = infoResult.levelDziupla < 10 
       ? ` — Koszt ulepszenia: **${formatCurrency(100000 + infoResult.levelDziupla * 40000)}**` 
@@ -2428,10 +2524,18 @@ module.exports = {
     const costFach = infoResult.levelFach < 3 
       ? ` — Koszt ulepszenia: **${formatCurrency([200000, 350000, 600000][infoResult.levelFach])}**` 
       : ' (Maks. poziom)';
+    const costUzbrojenie = (infoResult.levelUzbrojenie || 0) < 5
+      ? ` — Koszt ulepszenia: **${formatCurrency([500000, 1000000, 2000000, 4000000, 8000000][infoResult.levelUzbrojenie || 0])}**`
+      : ' (Maks. poziom)';
+    const costObrona = (infoResult.levelObrona || 0) < 5
+      ? ` — Koszt ulepszenia: **${formatCurrency([500000, 1000000, 2000000, 4000000, 8000000][infoResult.levelObrona || 0])}**`
+      : ' (Maks. poziom)';
 
     bonusesStr += `1. 📦 Dziupla (Pojemność): **${infoResult.members.length}/${maxMembers}** (Lvl ${infoResult.levelDziupla}/10)${costDziupla}\n`;
     bonusesStr += `2. 📈 Biznesy (Praca): **+${bizPerc}%** (Lvl ${infoResult.levelBiznesy}/3)${costBiznesy}\n`;
-    bonusesStr += `3. 🥷 Fach (Kradzieże): **+${fachPerc}%** (Lvl ${infoResult.levelFach}/3)${costFach}`;
+    bonusesStr += `3. 🥷 Fach (Kradzieże): **+${fachPerc}%** (Lvl ${infoResult.levelFach}/3)${costFach}\n`;
+    bonusesStr += `4. ⚔️ Lepsze uzbrojenie (Atak): **+${uzbrojeniePerc}%** (Lvl ${infoResult.levelUzbrojenie}/5)${costUzbrojenie}\n`;
+    bonusesStr += `5. 🛡️ Lepsza strategia obronna (Obrona): **+${obronaPerc}%** (Lvl ${infoResult.levelObrona}/5)${costObrona}`;
 
     let statusStr = '';
     const now = Date.now();
@@ -2442,6 +2546,13 @@ module.exports = {
       const secs = leftSec % 60;
       const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null, `${secs}s`].filter(Boolean).join(' ');
       statusStr += `🛡️ Tarcza ochronna: **Aktywna (${leftStr})**\n`;
+    }
+    if (infoResult.mercenariesUntil && now < infoResult.mercenariesUntil) {
+      const leftSec = Math.ceil((infoResult.mercenariesUntil - now) / 1000);
+      const hrs = Math.floor(leftSec / 3600);
+      const mins = Math.floor((leftSec % 3600) / 60);
+      const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null].filter(Boolean).join(' ');
+      statusStr += `🪖 Najemnicy: **Aktywni (${leftStr})**\n`;
     }
     if (infoResult.lastAttackTime && now - infoResult.lastAttackTime < 24 * 60 * 60 * 1000) {
       const leftSec = Math.ceil((24 * 60 * 60 * 1000 - (now - infoResult.lastAttackTime)) / 1000);

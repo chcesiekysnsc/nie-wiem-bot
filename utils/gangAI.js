@@ -255,6 +255,20 @@ function isAttackHour() {
   return hour >= start && hour < end;
 }
 
+function getWeaponMultiplier(gang) {
+  const bonuses = [0, 0.02, 0.04, 0.08, 0.12, 0.16];
+  return bonuses[gang.levelUzbrojenie || 0] || 0;
+}
+
+function getDefenseUpgradeMultiplier(gang) {
+  const bonuses = [0, 0.02, 0.04, 0.08, 0.12, 0.16];
+  return bonuses[gang.levelObrona || 0] || 0;
+}
+
+function areMercenariesActive(gang) {
+  return !!(gang.mercenariesUntil && gang.mercenariesUntil > Date.now());
+}
+
 function randomParticipants(members) {
   const arr = Array.isArray(members) ? members : [];
   if (arr.length === 0) return 0;
@@ -272,10 +286,17 @@ function calcPower(participantCount, levelFach) {
 }
 
 function resolveWar(attackerGang, defenderGang, attackerParticipants, defenderParticipants) {
+  const effectiveAttackers = attackerParticipants + (areMercenariesActive(attackerGang) ? 5 : 0);
+  const effectiveDefenders = defenderParticipants + (areMercenariesActive(defenderGang) ? 5 : 0);
+
   const attBonus = getGangBossShopMultiplier(attackerGang, 'attack');
   const defBonus = getGangBossShopMultiplier(defenderGang, 'defense');
-  const attackPower = calcPower(attackerParticipants, attackerGang.levelFach) * (1 + attBonus);
-  const defensePower = defenderParticipants > 0 ? calcPower(defenderParticipants, defenderGang.levelFach) * (1 + defBonus) : 0;
+  const rawAttackPower = calcPower(effectiveAttackers, attackerGang.levelFach) * (1 + attBonus);
+  const rawDefensePower = effectiveDefenders > 0 ? calcPower(effectiveDefenders, defenderGang.levelFach) * (1 + defBonus) : 0;
+
+  const attackPower = rawAttackPower * (1 + getWeaponMultiplier(attackerGang));
+  const defensePower = rawDefensePower * (1 + getDefenseUpgradeMultiplier(defenderGang));
+
   const winChance = defensePower > 0 ? attackPower / (attackPower + defensePower) : 0.95;
   const success = Math.random() < winChance;
 
@@ -1075,6 +1096,9 @@ async function ensureFixedAIGangs(store, cfg) {
       levelDziupla: 0,
       levelBiznesy: 0,
       levelFach: 0,
+      levelUzbrojenie: 0,
+      levelObrona: 0,
+      mercenariesUntil: 0,
       tributePercent: 0,
       lastHeistTime: 0,
       lastAttackTime: 0,
@@ -1201,5 +1225,8 @@ module.exports = {
   handleAllianceProposalToAI,
   logAIAction,
   getAIGangs,
-  countAIGangs
+  countAIGangs,
+  getWeaponMultiplier,
+  getDefenseUpgradeMultiplier,
+  areMercenariesActive
 };
