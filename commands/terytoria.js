@@ -171,6 +171,16 @@ module.exports = {
           return { error: '❌ Już posiadasz to terytorium.' };
         }
 
+        const now = Date.now();
+        const lastCapture = myGang.lastTerritoryCaptureAt || 0;
+        if (lastCapture && now - lastCapture < 60 * 60 * 1000) {
+          const leftSec = Math.ceil((60 * 60 * 1000 - (now - lastCapture)) / 1000);
+          const mins = Math.floor(leftSec / 60);
+          const secs = leftSec % 60;
+          const leftStr = [mins ? `${mins} min` : null, secs ? `${secs}s` : null].filter(Boolean).join(' ');
+          return { error: `⏳ Odwiedzenie terytorium zbyt szybko! Pozostało: **${leftStr}**` };
+        }
+
         if (currentOwner) {
           const defendingGang = store.profiles.gangs[currentOwner];
           if (defendingGang) {
@@ -184,6 +194,7 @@ module.exports = {
         }
 
         owners[targetDef.id] = gangId;
+        myGang.lastTerritoryCaptureAt = now;
         store.profiles.territories = territories;
         return { success: true, name: targetDef.name, emoji: targetDef.emoji };
       });

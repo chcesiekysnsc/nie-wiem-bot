@@ -461,6 +461,19 @@ const helpCommands = [
   },
   {
     id: 35,
+    name: "terytoria",
+    category: "SOCIAL_GANGS",
+    shortDescription: "zarzadzanie terytoriami gangu",
+    description: "Przegląda listę aktywnych terytoriów, ich właścicieli oraz bonusy. Możesz zajmować wolne terytoria lub odbijać terytoria od innych gangów. Po każdym odbiciu terytorium Twój gang ma 1 godzinę cooldownu na kolejne odbicie.",
+    usage: "!terytoria | !terytoria odbij <numer>",
+    examples: ["!terytoria","!terytoria odbij 1"],
+    cooldown: "1 godzina po odbiciu",
+    requirements: "Musisz należeć do gangu.",
+    aliases: ["territory", "territories"],
+    additionalInfo: ["Terytoria dają różne bonusy: do pracy, kradzieży, ataku, obrony, reputacji i więcej.","Rotacja terytoriów następuje co 7 dni."]
+  },
+  {
+    id: 35,
     name: "awans",
     category: "SOCIAL_GANGS",
     shortDescription: "awansuj czlonka gangu",
