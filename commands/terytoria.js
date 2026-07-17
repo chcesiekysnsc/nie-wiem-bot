@@ -49,6 +49,7 @@ function getTerritoryBonusText(gangId) {
 
   const owned = [];
   const free = [];
+  const others = [];
   for (const def of definitions) {
     if (!activeIds.includes(def.id)) continue;
     const ownerId = owners[def.id] || null;
@@ -58,6 +59,8 @@ function getTerritoryBonusText(gangId) {
       owned.push(entry);
     } else if (!ownerId) {
       free.push(entry);
+    } else {
+      others.push(entry);
     }
   }
 
@@ -73,7 +76,7 @@ function getTerritoryBonusText(gangId) {
   }
 
   let idx = 1;
-  for (const entry of [...owned, ...free]) {
+  for (const entry of [...owned, ...free, ...others]) {
     const prefix = entry.ownerId === gangId ? '👑 ' : '';
     lines.push(`${idx}. ${prefix}${entry.def.emoji} **${entry.def.name}**`);
     lines.push(`   Właściciel: ${entry.ownerName}`);
