@@ -1282,7 +1282,8 @@ login({ appState }, (loginErr, api) => {
   }
 
   withData(store => {
-    if (!store.profiles.territories) {
+    const needsInit = !store.profiles.territories || !Array.isArray(store.profiles.territories.activeIds) || store.profiles.territories.activeIds.length === 0;
+    if (needsInit) {
       const definitions = (require('../config/config').territories && require('../config/config').territories.definitions) || [];
       const allIds = definitions.map(d => d.id);
       const shuffled = allIds.sort(() => Math.random() - 0.5);
