@@ -18,19 +18,6 @@ const creatorCommands = [
   { num: 15, cmd: '!gangreset', opis: 'Reset cooldownów gangów dla wszystkich. (Tylko twórca)' }
 ];
 
-const adminCommands = [
-  { num: 1, cmd: '!ublgrp', opis: 'Odbanowywanie grupy.' },
-  { num: 2, cmd: '!ubl', opis: 'Odbanowywanie gracza.' },
-  { num: 3, cmd: '!reakcja', opis: 'Ręczne wywołanie gry Szybkie Palce.' },
-  { num: 4, cmd: '!group', opis: 'Informacje o grupie.' },
-  { num: 5, cmd: '!flaga', opis: 'Ręczne wywołanie gry Zgadnij Kraj (flagi).' },
-  { num: 6, cmd: '!blgrp', opis: 'Banowanie grupy.' },
-  { num: 7, cmd: '!bl', opis: 'Banowanie gracza.' },
-  { num: 8, cmd: '!aktualizuj', opis: 'Aktualizacja bota.' },
-  { num: 9, cmd: '!loop', opis: 'Pętla komend.' },
-  { num: 10, cmd: '!afkdel', opis: 'Usuwanie nieaktywnych członków z grupy.' }
-];
-
 module.exports = {
   name: 'hosthelp',
   aliases: ['hostpomoc'],
@@ -42,18 +29,10 @@ module.exports = {
       return;
     }
 
-    const creatorLines = creatorCommands.map(c => {
+    const lines = creatorCommands.map(c => {
       return `👑 **${c.num}.** **${c.cmd}** — ${c.opis}`;
     }).join('\n');
 
-    const adminLines = adminCommands.map(c => {
-      return `🛡️ **${c.num}.** **${c.cmd}** — ${c.opis}`;
-    }).join('\n');
-
-    await message.reply(
-      `👑 **KOMENDY TWÓRCY BOTA**\n${creatorLines}\n\n` +
-      `🛡️ **KOMENDY ADMINISTRATORÓW BOTA**\n${adminLines}\n\n` +
-      `💡 Użyj \`!admhelp\` aby zobaczyć starsze komendy admina.`
-    );
+    await message.reply(`👑 **KOMENDY TWÓRCY BOTA**\n${lines}`);
   }
 };

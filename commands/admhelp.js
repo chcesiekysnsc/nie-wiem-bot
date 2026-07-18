@@ -27,8 +27,8 @@ module.exports = {
 
     const lines = adminCommands.map(c => {
       const limitText = c.limit ? ` (Limit: ${c.limit}/dzień)` : '';
-      return `👑 **${c.num}.** **${c.cmd}** — ${c.opis}${limitText}`;
+      return `🛡️ **${c.num}.** **${c.cmd}** — ${c.opis}${limitText}`;
     }).join('\n');
-    await message.reply(`👑 **KOMENDY ADMINISTRACYJNE**\n${lines}`);
+    await message.reply(`🛡️ **KOMENDY ADMINISTRACYJNE**\n${lines}`);
   }
 };
