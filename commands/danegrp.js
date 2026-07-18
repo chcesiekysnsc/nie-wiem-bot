@@ -53,21 +53,20 @@ module.exports = {
     });
 
     let processedCount = 0;
-    const batchSize = 10; // Przetwarzamy po 10 grup naraz (tylko zapytania o info o grupie)
+    const batchSize = 1;
 
     for (let i = 0; i < threadIds.length; i += batchSize) {
       const batch = threadIds.slice(i, i + batchSize);
-      
-      const batchPromises = batch.map(async (tId) => {
+
+      for (const tId of batch) {
         let memberCount = 0;
         let adminCount = 0;
         let groupName = 'Grupa';
 
-        // Próba pobrania aktualnych danych o członkach i nazwie grupy z API Messengera
         try {
           if (client.api && typeof client.api.getThreadInfo === 'function') {
             const info = await new Promise((resolve) => {
-              const timer = setTimeout(() => resolve(null), 3000); // 3s timeout
+              const timer = setTimeout(() => resolve(null), 3000);
               client.api.getThreadInfo(tId, (err, ret) => {
                 clearTimeout(timer);
                 if (err) resolve(null);
@@ -87,10 +86,9 @@ module.exports = {
 
         const calculatedMsgs = threadNormalMessages[tId] || 0;
 
-        // Zapisanie przeliczonych danych bezpośrednio do groupStats
         await withData(store => {
           if (!store.groupStats) store.groupStats = {};
-          
+
           const existingStats = store.groupStats[tId] || {
             visibleMessages: 0,
             processedMessages: 0,
@@ -100,10 +98,8 @@ module.exports = {
           };
 
           store.groupStats[tId] = {
-            // Używamy wyliczonej sumy wiadomości z bazy lub dotychczasowych statystyk (wybieramy większą)
             visibleMessages: Math.max(existingStats.visibleMessages, calculatedMsgs),
             processedMessages: Math.max(existingStats.processedMessages, calculatedMsgs),
-            // Szacujemy komendy (12%) i oznaczenia (5%) jeśli dotychczasowe statystyki są puste
             commandsExecuted: Math.max(existingStats.commandsExecuted || 0, Math.round(calculatedMsgs * 0.12)),
             mentionsCount: Math.max(existingStats.mentionsCount || 0, Math.round(calculatedMsgs * 0.05)),
             firstUse: existingStats.firstUse || Date.now(),
@@ -114,30 +110,31 @@ module.exports = {
           };
         });
 
-        return true;
-      });
+        processedCount++;
 
-      await Promise.all(batchPromises);
-      processedCount += batch.length;
-
-      const shouldStop = await withData(store => {
-        const progress = store.profiles.danegrpProgress;
-        if (progress && progress.isActive) {
-          progress.processedGroups = processedCount;
-          return progress.shouldStop || false;
-        }
-        return false;
-      });
-
-      if (shouldStop) {
-        stoppedEarly = true;
-        await withData(store => {
+        const shouldStop = await withData(store => {
           const progress = store.profiles.danegrpProgress;
-          if (progress) {
-            progress.isActive = false;
-            progress.endTime = Date.now();
+          if (progress && progress.isActive) {
+            progress.processedGroups = processedCount;
+            return progress.shouldStop || false;
           }
+          return true;
         });
+
+        if (shouldStop) {
+          stoppedEarly = true;
+          await withData(store => {
+            const progress = store.profiles.danegrpProgress;
+            if (progress) {
+              progress.isActive = false;
+              progress.endTime = Date.now();
+            }
+          });
+          break;
+        }
+      }
+
+      if (stoppedEarly) {
         break;
       }
     }
