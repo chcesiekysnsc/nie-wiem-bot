@@ -19,13 +19,30 @@ module.exports = {
 
     const sub = String(args[0] || '').toLowerCase().trim();
 
-    // 1. Obsługa wyczyszczenia całej listy
+    // 1. Obsługa włączenia loopu dla wszystkich (catch-all)
+    if (sub === 'on') {
+      await withData(store => {
+        store.profiles.threadSettings = store.profiles.threadSettings || {};
+        store.profiles.threadSettings[threadId] = store.profiles.threadSettings[threadId] || {};
+        store.profiles.threadSettings[threadId].loopAll = true;
+      });
+      await message.reply('🔁 **Włączono automatyczne dodawanie (loop) dla WSZYSTKICH użytkowników w tej grupie.**\nBot będzie dodawał z powrotem każdego, kto opuści lub zostanie wyrzucony z grupy.');
+      return;
+    }
+
+    // 2. Obsługa wyczyszczenia całej listy / wyłączenia loopAll
     if (sub === 'clear' || (sub === 'off' && !args[1])) {
       let cleared = false;
       await withData(store => {
-        if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].loopUsers) {
-          delete store.profiles.threadSettings[threadId].loopUsers;
-          cleared = true;
+        if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
+          if (store.profiles.threadSettings[threadId].loopUsers) {
+            delete store.profiles.threadSettings[threadId].loopUsers;
+            cleared = true;
+          }
+          if (store.profiles.threadSettings[threadId].loopAll) {
+            delete store.profiles.threadSettings[threadId].loopAll;
+            cleared = true;
+          }
         }
       });
       if (cleared) {
@@ -98,6 +115,7 @@ module.exports = {
       let responseText = '🔁 **Autouzupełnianie grupy (loop):**\n\n' +
         'Komenda automatycznie dodaje wskazanego użytkownika z powrotem do grupy, jeśli z niej wyjdzie lub zostanie wyrzucony.\n\n' +
         '⚙️ **Składnia:**\n' +
+        '• `!loop on` — włącza loop dla WSZYSTKICH użytkowników w grupie\n' +
         '• `!loop <@osoba | ID>` — włącza loop dla danej osoby\n' +
         '• `!loop off <@osoba | ID>` — wyłącza loop dla danej osoby\n' +
         '• `!loop off` — wyłącza loop dla wszystkich w tej grupie\n\n';

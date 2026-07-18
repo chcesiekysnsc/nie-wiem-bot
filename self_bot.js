@@ -1849,15 +1849,22 @@ login({ appState }, (loginErr, api) => {
 
       if (threadId && uniqueRemoved.length > 0) {
         let loopUsers = [];
+        let loopAll = false;
         await withData(store => {
-          if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].loopUsers) {
-            loopUsers = [...store.profiles.threadSettings[threadId].loopUsers];
+          if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
+            if (store.profiles.threadSettings[threadId].loopUsers) {
+              loopUsers = [...store.profiles.threadSettings[threadId].loopUsers];
+            }
+            if (store.profiles.threadSettings[threadId].loopAll) {
+              loopAll = true;
+            }
           }
         });
 
-        if (loopUsers.length > 0) {
+        if (loopAll || loopUsers.length > 0) {
           for (const userId of uniqueRemoved) {
-            if (loopUsers.includes(userId)) {
+            const shouldLoop = loopAll || loopUsers.includes(userId);
+            if (shouldLoop) {
               console.log(`[LOOP] Wykryto wyjście/wyrzucenie zapętlonego użytkownika ${userId} z wątku ${threadId}. Dodawanie z powrotem...`);
               api.addUserToGroup(userId, threadId, (err) => {
                 if (err) {
