@@ -734,6 +734,7 @@ login({ appState }, (loginErr, api) => {
   client.api = api;
   global.botApi = api;
   global.gangAIClient = client;
+  global.danegrpAbort = global.danegrpAbort || { aborted: false };
 
   // Globally patch api.getThreadInfo with cache, rate limiting, and backoff
   _originalGetThreadInfo = api.getThreadInfo;

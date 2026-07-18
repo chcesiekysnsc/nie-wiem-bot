@@ -53,90 +53,66 @@ module.exports = {
     });
 
     let processedCount = 0;
-    const batchSize = 1;
 
-    for (let i = 0; i < threadIds.length; i += batchSize) {
-      const batch = threadIds.slice(i, i + batchSize);
+    for (let i = 0; i < threadIds.length; i++) {
+      const tId = threadIds[i];
 
-      for (const tId of batch) {
-        let memberCount = 0;
-        let adminCount = 0;
-        let groupName = 'Grupa';
-
-        try {
-          if (client.api && typeof client.api.getThreadInfo === 'function') {
-            const info = await new Promise((resolve) => {
-              const timer = setTimeout(() => resolve(null), 3000);
-              client.api.getThreadInfo(tId, (err, ret) => {
-                clearTimeout(timer);
-                if (err) resolve(null);
-                else resolve(ret);
-              });
-            });
-
-            if (info) {
-              memberCount = (info.participantIDs || []).length;
-              adminCount = (info.adminIDs || []).length;
-              groupName = info.threadName || info.name || 'Grupa';
-            }
-          }
-        } catch (err) {
-          console.error(`[danegrp] Błąd pobierania info dla grupy ${tId}:`, err.message);
-        }
-
-        const calculatedMsgs = threadNormalMessages[tId] || 0;
-
-        await withData(store => {
-          if (!store.groupStats) store.groupStats = {};
-
-          const existingStats = store.groupStats[tId] || {
-            visibleMessages: 0,
-            processedMessages: 0,
-            commandsExecuted: 0,
-            mentionsCount: 0,
-            firstUse: Date.now()
-          };
-
-          store.groupStats[tId] = {
-            visibleMessages: Math.max(existingStats.visibleMessages, calculatedMsgs),
-            processedMessages: Math.max(existingStats.processedMessages, calculatedMsgs),
-            commandsExecuted: Math.max(existingStats.commandsExecuted || 0, Math.round(calculatedMsgs * 0.12)),
-            mentionsCount: Math.max(existingStats.mentionsCount || 0, Math.round(calculatedMsgs * 0.05)),
-            firstUse: existingStats.firstUse || Date.now(),
-            lastUpdated: Date.now(),
-            memberCount: memberCount || existingStats.memberCount || 0,
-            adminCount: adminCount || existingStats.adminCount || 0,
-            groupName: groupName || existingStats.groupName || 'Grupa'
-          };
-        });
-
-        processedCount++;
-
-        const shouldStop = await withData(store => {
-          const progress = store.profiles.danegrpProgress;
-          if (progress && progress.isActive) {
-            progress.processedGroups = processedCount;
-            return progress.shouldStop || false;
-          }
-          return true;
-        });
-
-        if (shouldStop) {
-          stoppedEarly = true;
-          await withData(store => {
-            const progress = store.profiles.danegrpProgress;
-            if (progress) {
-              progress.isActive = false;
-              progress.endTime = Date.now();
-            }
-          });
-          break;
-        }
-      }
-
-      if (stoppedEarly) {
+      if (global.danegrpAbort && global.danegrpAbort.aborted) {
         break;
       }
+
+      let memberCount = 0;
+      let adminCount = 0;
+      let groupName = 'Grupa';
+
+      try {
+        if (client.api && typeof client.api.getThreadInfo === 'function') {
+          const info = await new Promise((resolve) => {
+            const timer = setTimeout(() => resolve(null), 3000);
+            client.api.getThreadInfo(tId, (err, ret) => {
+              clearTimeout(timer);
+              if (err) resolve(null);
+              else resolve(ret);
+            });
+          });
+
+          if (info) {
+            memberCount = (info.participantIDs || []).length;
+            adminCount = (info.adminIDs || []).length;
+            groupName = info.threadName || info.name || 'Grupa';
+          }
+        }
+      } catch (err) {
+        console.error(`[danegrp] Błąd pobierania info dla grupy ${tId}:`, err.message);
+      }
+
+      const calculatedMsgs = threadNormalMessages[tId] || 0;
+
+      await withData(store => {
+        if (!store.groupStats) store.groupStats = {};
+
+        const existingStats = store.groupStats[tId] || {
+          visibleMessages: 0,
+          processedMessages: 0,
+          commandsExecuted: 0,
+          mentionsCount: 0,
+          firstUse: Date.now()
+        };
+
+        store.groupStats[tId] = {
+          visibleMessages: Math.max(existingStats.visibleMessages, calculatedMsgs),
+          processedMessages: Math.max(existingStats.processedMessages, calculatedMsgs),
+          commandsExecuted: Math.max(existingStats.commandsExecuted || 0, Math.round(calculatedMsgs * 0.12)),
+          mentionsCount: Math.max(existingStats.mentionsCount || 0, Math.round(calculatedMsgs * 0.05)),
+          firstUse: existingStats.firstUse || Date.now(),
+          lastUpdated: Date.now(),
+          memberCount: memberCount || existingStats.memberCount || 0,
+          adminCount: adminCount || existingStats.adminCount || 0,
+          groupName: groupName || existingStats.groupName || 'Grupa'
+        };
+      });
+
+      processedCount++;
     }
 
     await withData(store => {

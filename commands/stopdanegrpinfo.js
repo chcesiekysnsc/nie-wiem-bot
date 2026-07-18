@@ -17,11 +17,15 @@ module.exports = {
         return { stopped: false, reason: 'Brak aktywnej analizy danych grup.' };
       }
       progress.shouldStop = true;
+      progress.isActive = false;
+      progress.endTime = Date.now();
       return { stopped: true };
     });
 
     if (result.stopped) {
-      await message.reply('🛑 Wysłano sygnał zatrzymania analizy. Proces zakończy się po aktualnej partii grup.');
+      global.danegrpAbort = global.danegrpAbort || { aborted: false };
+      global.danegrpAbort.aborted = true;
+      await message.reply('🛑 Wysłano natychmiastowe zatrzymanie analizy.');
     } else {
       await message.reply(`ℹ️ ${result.reason}`);
     }
