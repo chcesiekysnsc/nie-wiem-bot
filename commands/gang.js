@@ -1946,7 +1946,8 @@ module.exports = {
             defenderGang.vault = Math.max(0, defenderGang.vault - stolenTotal);
             
             const lootMult = 1 + getGangBossShopMultiplier(attackerGang, 'loot');
-            const vaultShare = Math.floor(stolenTotal * 0.30 * lootMult);
+            const rawVaultShare = Math.floor(stolenTotal * 0.30 * lootMult);
+            const vaultShare = Math.min(stolenTotal, rawVaultShare);
             const membersTotalShare = stolenTotal - vaultShare;
             const sharePerPerson = membersForReward > 0 ? Math.floor(membersTotalShare / membersForReward) : 0;
 
