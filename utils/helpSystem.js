@@ -473,6 +473,19 @@ const helpCommands = [
     additionalInfo: ["Terytoria dają różne bonusy: do pracy, kradzieży, ataku, obrony, reputacji i więcej.","Rotacja terytoriów następuje co 7 dni."]
   },
   {
+    id: 36,
+    name: "reputacja",
+    category: "SOCIAL_GANGS",
+    shortDescription: "system reputacji gangu i rangi",
+    description: "Pokazuje aktualną reputację Twojego gangu, osiągniętą rangę oraz wszystkie dostępne progi rang z ich bonusami. Wyświetla również zasady zdobywania i utraty reputacji.",
+    usage: "!reputacja",
+    examples: ["!reputacja","!rep"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["rep", "ranking_gangu"],
+    additionalInfo: ["Rangi: Początkujący (0), Uliczny Gang (100), Znany Gang (300), Organizacja (700), Syndykat (1500), Imperium (3000), Legenda (6000).","Wyższe rangi odblokowują bonusy: +5% do work, +2% szansy na udany crime, +5% nagrody z crime, -1h ochrony po wojnie, dostęp do Elitarnych Najemników."]
+  },
+  {
     id: 35,
     name: "awans",
     category: "SOCIAL_GANGS",
