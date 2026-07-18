@@ -67,6 +67,7 @@ const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
 const { formatCurrency, msToReadable } = require('./utils/economy');
+const { getCommandsByCategory } = require('./utils/helpSystem');
 const { extractTikTokLink, getTikTokVideoData, downloadFile } = require('./utils/tiktok');
 
 // ========== THREAD INFO CACHE + RATE LIMITER + BACKOFF ==========
@@ -836,7 +837,11 @@ login({ appState }, (loginErr, api) => {
         const sendApi = client.api || global.botApi;
         if (!sendApi) continue;
         const targets = Array.from(client.activeThreadIds);
+        const profiles = loadData('profiles');
+        const threadSettings = profiles.threadSettings || {};
         for (const t of targets) {
+          const settings = threadSettings[t] || {};
+          if (settings.blockNotifications) continue;
           try { sendApi.sendMessage(msg, t); } catch (err) {
             console.error('[ADMIN-PANEL] Błąd wysyłania ogłoszenia:', err);
           }
@@ -3164,10 +3169,23 @@ login({ appState }, (loginErr, api) => {
           const leftMin = Math.max(1, Math.ceil(leftMs / 60000));
           await messageContext.reply(`🔒 Jesteś w więzieniu jeszcze przez **${leftMin} min**.`);
           return;
-        }
-      }
+         }
+       }
 
-      await command.execute(client, messageContext, args);
+       if (messageContext && messageContext.threadID) {
+         const profiles = loadData('profiles');
+         const threadSettings = profiles.threadSettings || {};
+         const settings = threadSettings[messageContext.threadID] || {};
+         if (settings.blockEconomy) {
+           const economyCommands = getCommandsByCategory('ECONOMY_GAMBLING').map(c => c.name);
+           if (economyCommands.includes(commandName)) {
+             await messageContext.reply('❌ Wszystkie komendy ekonomiczne są zablokowane na tej grupie przez administrację.');
+             return;
+           }
+         }
+       }
+
+       await command.execute(client, messageContext, args);
 
       withData(store => {
         appendLog(store.logs, {
