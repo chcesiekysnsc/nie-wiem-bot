@@ -6,6 +6,28 @@ const axios = require('axios');
  * @returns {Promise<string|null>} - Direct image URL or null
  */
 async function fetchRedditImage(subreddit) {
+  if (subreddit === 'cats') {
+    try {
+      const response = await axios.get('https://api.thecatapi.com/v1/images/search', { timeout: 10000 });
+      if (response.data && response.data[0] && response.data[0].url) {
+        return response.data[0].url;
+      }
+    } catch (err) {
+      console.error('[REDDIT API] Cat API failed, trying Reddit:', err.message);
+    }
+  }
+
+  if (subreddit === 'rabbits') {
+    try {
+      const response = await axios.get('https://animals.maxz.dev/api/rabbit/random', { timeout: 10000 });
+      if (response.data && response.data.image) {
+        return response.data.image;
+      }
+    } catch (err) {
+      console.error('[REDDIT API] Rabbit API failed, trying Reddit:', err.message);
+    }
+  }
+
   const maxAttempts = 10;
   let badStatusCount = 0;
   let emptyPostsCount = 0;

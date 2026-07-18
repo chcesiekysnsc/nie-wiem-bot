@@ -1,4 +1,6 @@
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 const { checkCooldown } = require('../utils/cooldowns');
 const { fetchRedditImage } = require('../utils/reddit');
 
@@ -33,11 +35,31 @@ module.exports = {
 
       const threadId = message.guild?.id || message.rawEvent?.threadID;
       if (client.api && threadId) {
-        const response = await axios.get(imageUrl, { responseType: 'stream' });
-        await client.api.sendMessage({
-          body: '🐱',
-          attachment: response.data
-        }, threadId);
+        const urlPart = imageUrl.split('?')[0];
+        const extMatch = urlPart.match(/\.([a-zA-Z0-9]+)$/);
+        const ext = extMatch ? extMatch[1] : 'jpg';
+        const tempFile = path.join(__dirname, `temp_kot_${Date.now()}.${ext}`);
+
+        try {
+          const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+          fs.writeFileSync(tempFile, response.data);
+
+          await new Promise((resolve, reject) => {
+            client.api.sendMessage({
+              body: '🐱',
+              attachment: fs.createReadStream(tempFile)
+            }, threadId, (err) => {
+              fs.unlink(tempFile, () => {});
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+        } catch (err) {
+          if (fs.existsSync(tempFile)) {
+            fs.unlinkSync(tempFile);
+          }
+          throw err;
+        }
       } else {
         await message.reply('🐱').catch(() => null);
       }
