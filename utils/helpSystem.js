@@ -9,6 +9,40 @@ const CATEGORY_META = {
   UTILITY_ADMIN: { label: '⚙️ INNE I NARZĘDZIA' }
 };
 
+const CATEGORY_SELECT_LABELS = {
+  ECONOMY_GAMBLING: '💰 Ekonomiczne',
+  SOCIAL_GANGS: '👥 Społeczne',
+  UTILITY_ADMIN: '🛠️ Narzędzia / Inne'
+};
+
+const CATEGORY_ARG_NAMES = {
+  ECONOMY_GAMBLING: 'ekonomiczne',
+  SOCIAL_GANGS: 'spoleczne',
+  UTILITY_ADMIN: 'narzedzia'
+};
+
+const CATEGORY_INPUT_ALIASES = {
+  '1': 'ECONOMY_GAMBLING',
+  'ekonomiczne': 'ECONOMY_GAMBLING',
+  'ekonomia': 'ECONOMY_GAMBLING',
+  'ekonomiczna': 'ECONOMY_GAMBLING',
+  'hazard': 'ECONOMY_GAMBLING',
+  '2': 'SOCIAL_GANGS',
+  'spoleczne': 'SOCIAL_GANGS',
+  'społeczne': 'SOCIAL_GANGS',
+  'socjalne': 'SOCIAL_GANGS',
+  'gangi': 'SOCIAL_GANGS',
+  '3': 'UTILITY_ADMIN',
+  'narzedzia': 'UTILITY_ADMIN',
+  'narzędzia': 'UTILITY_ADMIN',
+  'inne': 'UTILITY_ADMIN',
+  'admin': 'UTILITY_ADMIN',
+  '4': 'ALL',
+  'wszystkie': 'ALL',
+  'wszystko': 'ALL',
+  'all': 'ALL'
+};
+
 const helpCommands = [
   // --- KATEGORIA 1: EKONOMIA I HAZARD (1 - 24) ---
   {
@@ -108,12 +142,12 @@ const helpCommands = [
     category: "ECONOMY_GAMBLING",
     shortDescription: "twoj ekwipunek",
     description: "Pokazuje posiadane przedmioty.",
-    usage: "!eq [@osoba | id]",
-    examples: ["!eq","!eq @Rafal"],
+    usage: "!eq [@osoba | id] | !eq help <numer>",
+    examples: ["!eq","!eq @Rafal","!eq help 3"],
     cooldown: "3 sekundy",
     requirements: "Brak.",
     aliases: ["inv","ekwipunek","inventory"],
-    additionalInfo: ["Wyświetla kupione przedmioty."]
+    additionalInfo: ["Wyświetla kupione przedmioty.","!eq help <numer> pokazuje szczegółowy opis danego przedmiotu."]
   },
   {
     id: 9,
@@ -486,7 +520,7 @@ const helpCommands = [
     additionalInfo: ["Rangi: Początkujący (0), Uliczny Gang (100), Znany Gang (300), Organizacja (700), Syndykat (1500), Imperium (3000), Legenda (6000).","Wyższe rangi odblokowują bonusy: +5% do work, +2% szansy na udany crime, +5% nagrody z crime, -1h ochrony po wojnie, dostęp do Elitarnych Najemników."]
   },
   {
-    id: 35,
+    id: 37,
     name: "awans",
     category: "SOCIAL_GANGS",
     shortDescription: "awansuj czlonka gangu",
@@ -499,7 +533,7 @@ const helpCommands = [
     additionalInfo: ["Zastępcy mogą zapraszać i wyrzucać zwykłych członków."]
   },
   {
-    id: 36,
+    id: 38,
     name: "haracz",
     category: "SOCIAL_GANGS",
     shortDescription: "ustawia haracz w gangu",
@@ -512,7 +546,7 @@ const helpCommands = [
     additionalInfo: ["Tribute pobierany jest ze zwycięskich komend !rob i !crime zwykłych członków (z wyłączeniem zastępców).","Wartość must być liczbą całkowitą od 0 do 100."]
   },
   {
-    id: 37,
+    id: 39,
     name: "atak",
     category: "SOCIAL_GANGS",
     shortDescription: "wojna gangow o sejf",
@@ -525,7 +559,7 @@ const helpCommands = [
     additionalInfo: ["Po ataku gang broniący otrzymuje 6h tarczy ochronnej.","Wydarzenie trwa 2 minuty i zależy od siły graczy oraz poziomu ulepszenia Fach."]
   },
   {
-    id: 38,
+    id: 40,
     name: "milosc",
     category: "SOCIAL_GANGS",
     shortDescription: "kalkulator miłości",
@@ -538,7 +572,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 39,
+    id: 41,
     name: "swataj",
     category: "SOCIAL_GANGS",
     shortDescription: "dobiera parę dnia",
@@ -551,7 +585,7 @@ const helpCommands = [
     additionalInfo: ["Para jest deterministyczna i zmienia się tylko raz na dobę."]
   },
   {
-    id: 40,
+    id: 42,
     name: "wyzwanie",
     category: "SOCIAL_GANGS",
     shortDescription: "wirtualna prawda czy wyzwanie",
@@ -564,22 +598,22 @@ const helpCommands = [
     additionalInfo: ["Po 3 minutach bot przypomni grupie o głosowaniu nad zaliczeniem odpowiedzi/wyzwania."]
   },
 
-  // --- KATEGORIA 3: INNE I NARZĘDZIA (41 - 53) ---
+  // --- KATEGORIA 3: INNE I NARZĘDZIA (43 - 55) ---
   {
-    id: 41,
+    id: 43,
     name: "help",
     category: "UTILITY_ADMIN",
     shortDescription: "wyswietla pomoc",
-    description: "Wyświetla listę wszystkich dostępnych komend lub szczegółowy opis wybranej komendy.",
-    usage: "!help [numer/nazwa]",
-    examples: ["!help","!help 2","!help bal"],
+    description: "Wyświetla listę wszystkich dostępnych komend lub szczegółowy opis wybranej komendy. Bez argumentu pyta o wybór kategorii.",
+    usage: "!help [numer/nazwa] | !help <kategoria> [numer]",
+    examples: ["!help","!help 2","!help bal","!help spoleczne","!help spoleczne 3"],
     cooldown: "Brak.",
     requirements: "Brak.",
     aliases: ["pomoc","commands"],
-    additionalInfo: []
+    additionalInfo: ["Kategorie: ekonomiczne, spoleczne, narzedzia, wszystkie."]
   },
   {
-    id: 42,
+    id: 44,
     name: "lvl",
     category: "UTILITY_ADMIN",
     shortDescription: "nagrody za kamienie milowe",
@@ -592,7 +626,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 43,
+    id: 45,
     name: "odznaki",
     category: "UTILITY_ADMIN",
     shortDescription: "lista odznak i ich opisy",
@@ -605,7 +639,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 44,
+    id: 46,
     name: "cd",
     category: "UTILITY_ADMIN",
     shortDescription: "pokazuje czasy oczekiwania (cooldowny)",
@@ -618,7 +652,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 45,
+    id: 47,
     name: "pogoda",
     category: "UTILITY_ADMIN",
     shortDescription: "prognoza pogody",
@@ -631,7 +665,7 @@ const helpCommands = [
     additionalInfo: ["Domyślnie sprawdza dla zapisanego miasta lub Warszawy."]
   },
   {
-    id: 46,
+    id: 48,
     name: "shamewall",
     category: "UTILITY_ADMIN",
     shortDescription: "ściana wstydu",
@@ -644,7 +678,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 47,
+    id: 49,
     name: "zasady",
     category: "UTILITY_ADMIN",
     shortDescription: "wyswietla zasady korzystania z bota",
@@ -657,7 +691,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 48,
+    id: 50,
     name: "wiadomosci",
     category: "UTILITY_ADMIN",
     shortDescription: "wlacza/wylacza logowanie usunietych wiadomosci",
@@ -670,7 +704,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 49,
+    id: 51,
     name: "afkdel",
     category: "UTILITY_ADMIN",
     shortDescription: "usuwa nieaktywnych czlonkow grupy (30 dni)",
@@ -682,7 +716,7 @@ const helpCommands = [
     aliases: []
   },
   {
-    id: 50,
+    id: 52,
     name: "fm",
     category: "UTILITY_ADMIN",
     shortDescription: "integracja z muzyka Last.fm",
@@ -695,7 +729,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 51,
+    id: 53,
     name: "reakcja",
     category: "UTILITY_ADMIN",
     shortDescription: "informacje o szybkich palcach",
@@ -708,7 +742,7 @@ const helpCommands = [
     additionalInfo: ["Nagroda za poprawny kod wynosi od 20 000 do 200 000 viccoinów.","Wygenerowany kod wygasa po upływie 2 minut."]
   },
   {
-    id: 52,
+    id: 54,
     name: "gangreset",
     category: "UTILITY_ADMIN",
     shortDescription: "resetuje cooldowny gangow (admin)",
@@ -721,7 +755,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 53,
+    id: 55,
     name: "guardnick",
     category: "UTILITY_ADMIN",
     shortDescription: "blokuje pseudonim wybranego gracza",
@@ -734,7 +768,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 54,
+    id: 56,
     name: "prefix",
     category: "UTILITY_ADMIN",
     shortDescription: "zmienia prefix bota na grupie",
@@ -747,7 +781,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 55,
+    id: 57,
     name: "pkn",
     category: "ECONOMY_GAMBLING",
     shortDescription: "gra w papier kamień nożyce (z botem lub graczem)",
@@ -760,7 +794,7 @@ const helpCommands = [
     additionalInfo: ["Wygrana solo daje 1.90x stawki (zysk netto 90%).", "Remis zwraca stawkę.", "W pojedynku PvP wygrany zgarnia całą pulę minus 5% podatku.", "Odznaki i Szkarłatne Oko mogą uratować Cię przed przegraną solo."]
   },
   {
-    id: 56,
+    id: 58,
     name: "mecz",
     category: "ECONOMY_GAMBLING",
     shortDescription: "wirtualne zaklady bukmacherskie",
@@ -773,7 +807,7 @@ const helpCommands = [
     additionalInfo: ["Wywołanie !mecz bez argumentów losuje nowe spotkanie i generuje kursy.", "Wygrana wypłaca stawkę pomnożoną przez kurs danego typu.", "Obsługuje typy: 1 (wygrana gospodarzy), X (remis), 2 (wygrana gości).", "Kolejność stawki i typu jest dowolna."]
   },
   {
-    id: 57,
+    id: 59,
     name: "multimecz",
     category: "ECONOMY_GAMBLING",
     shortDescription: "oferta wielu meczow w jednym kuponie",
@@ -786,7 +820,7 @@ const helpCommands = [
     additionalInfo: ["Wpisanie !multimecz przy aktywnej już propozycji wyświetla tę samą ofertę.", "Maksymalnie 10 meczów na raz."]
   },
   {
-    id: 58,
+    id: 60,
     name: "multiobstaw",
     category: "ECONOMY_GAMBLING",
     shortDescription: "obstawianie kuponow laczonych (AKO)",
@@ -799,7 +833,7 @@ const helpCommands = [
     additionalInfo: ["Kupon jest wygrany tylko wtedy, gdy wszystkie wybrane typy są trafione.", "Czas symulacji wynosi 15 sekund.", "Można podać stawkę wspólną na końcu lub stawkę dla każdego meczu osobno (zostaną zsumowane do całkowitej stawki kuponu)."]
   },
   {
-    id: 59,
+    id: 61,
     name: "admin",
     category: "UTILITY_ADMIN",
     shortDescription: "zarzadzanie administratorami grupy",
@@ -812,7 +846,7 @@ const helpCommands = [
     additionalInfo: ["Zarządza uprawnieniami bezpośrednio w czacie grupowym Messengera."]
   },
   {
-    id: 60,
+    id: 62,
     name: "milionerzy",
     category: "ECONOMY_GAMBLING",
     shortDescription: "quiz wiedzy milionerzy z pula nagrod",
@@ -825,7 +859,7 @@ const helpCommands = [
     additionalInfo: ["Czas na odpowiedź to 15 sekund. Jeśli nikt nie odpowie poprawnie, pula organizatora przepada."]
   },
   {
-    id: 61,
+    id: 63,
     name: "wisielec",
     category: "SOCIAL_GANGS",
     shortDescription: "klasyczna gra w wisielca z grupa",
@@ -838,7 +872,7 @@ const helpCommands = [
     additionalInfo: ["Gracze po kolei zgadują po jednej literze. W swojej turze można również spróbować odgadnąć całe hasło."]
   },
   {
-    id: 62,
+    id: 64,
     name: "panstwamiasta",
     category: "SOCIAL_GANGS",
     shortDescription: "gra w panstwa-miasta",
@@ -851,7 +885,7 @@ const helpCommands = [
     additionalInfo: ["Odpowiedzi wysyła się w formacie: Kraj Miasto (np. Kanada Kraków). Słowa nie mogą się powtarzać między graczami w tej samej turze."]
   },
   {
-    id: 63,
+    id: 65,
     name: "femboy",
     category: "SOCIAL_GANGS",
     shortDescription: "sprawdza poziom bycia femboyem",
@@ -864,7 +898,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 64,
+    id: 66,
     name: "toplvl",
     category: "SOCIAL_GANGS",
     shortDescription: "ranking top 5 graczy wg poziomu (lvl)",
@@ -877,24 +911,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 65,
-    name: "pozyczka miedzy graczami",
-    category: "ECONOMY_GAMBLING",
-    shortDescription: "pozyczka bezpośrednio od innego gracza",
-    description: "Pozwala zaproponować i wziąć pożyczkę od innego gracza na ustalonych warunkach (liczba rat, raty automatycznie ściągane przez bota o północy, kwota raty, procent kary za brak środków, częstotliwość pobierania oraz łączna kwota do spłaty).",
-    usage: "!pozyczka @osoba <kwota> <ilosc_rat> <ile_bot_pobiera_rat> <kwota_raty> <oprocentowanie_spoznienia> <co_ile_dni> <ile_do_splaty> | !pozyczka acc/dec @lender | !pozyczka gracz splac <kwota>",
-    examples: ["!pozyczka @Kowalski 10000 5 5 2500 20 2 12500", "!pozyczka acc @Nowak", "!pozyczka gracz splac 2500"],
-    cooldown: "Brak.",
-    requirements: "Odpowiedni wiek konta (>100 komend i >100 wiadomości).",
-    aliases: [],
-    additionalInfo: [
-      "Raty pobierane są automatycznie o 00:00 czasu polskiego do momentu osiągnięcia wybranej liczby pobrań przez bota.",
-      "Brak środków o 00:00 zeruje konto dłużnika, dodaje zdefiniowaną karę % do długu oraz włącza windykację komorniczą ze wszystkich zysków dłużnika.",
-      "Przedwczesna spłata: komendą !pozyczka gracz splac <kwota>. Minimalna wpłata to 1 rata, a przy większej wpłacie musi to być minimum równowartość 2 rat."
-    ]
-  },
-  {
-    id: 66,
+    id: 67,
     name: "losuj",
     category: "SOCIAL_GANGS",
     shortDescription: "losuje i oznacza osobe na grupie",
@@ -907,7 +924,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 67,
+    id: 68,
     name: "afk",
     category: "SOCIAL_GANGS",
     shortDescription: "ustawia status nieobecnosci (AFK)",
@@ -920,7 +937,7 @@ const helpCommands = [
     additionalInfo: ["Każda kolejna wysłana przez Ciebie wiadomość automatycznie anuluje status AFK. Powód jest cenzurowany automatycznie pod kątem słów niedozwolonych na FB."]
   },
   {
-    id: 68,
+    id: 69,
     name: "krolik",
     category: "SOCIAL_GANGS",
     shortDescription: "wysyla losowe zdjecie krolika z Reddita",
@@ -933,7 +950,7 @@ const helpCommands = [
     additionalInfo: ["Właściciel bota nie ma cooldownu.", "Jeśli Reddit nie odpowiada, bot wyświetli komunikat o błędzie."]
   },
   {
-    id: 69,
+    id: 70,
     name: "kotek",
     category: "SOCIAL_GANGS",
     shortDescription: "wysyla losowe zdjecie malego kotka z Reddita",
@@ -1098,6 +1115,50 @@ function buildHelpButtons() {
   return [];
 }
 
+function resolveCategoryInput(input) {
+  const normalized = String(input || '').toLowerCase().trim();
+  return CATEGORY_INPUT_ALIASES[normalized] || null;
+}
+
+function getCommandsByCategory(categoryKey) {
+  const all = getActiveHelpCommands();
+  const filtered = all.filter(c => c.category === categoryKey);
+  return filtered.map((cmd, idx) => ({ ...cmd, categoryId: idx + 1 }));
+}
+
+function getHelpCommandByCategoryAndNumber(categoryKey, num) {
+  const list = getCommandsByCategory(categoryKey);
+  return list.find(c => c.categoryId === num) || null;
+}
+
+function buildCategoryPromptEmbed(prefix = '!') {
+  return buildHelpShell()
+    .setTitle('📖 Centrum Pomocy')
+    .setDescription(
+      `Wybierz kategorię, którą chcesz zobaczyć:\n\n` +
+      `1️⃣ 💰 Ekonomiczne\n` +
+      `2️⃣ 👥 Społeczne\n` +
+      `3️⃣ 🛠️ Narzędzia / Inne\n` +
+      `4️⃣ 📋 Wszystkie na raz\n\n` +
+      `👉 Odpowiedz numerem (1-4) lub nazwą kategorii (np. "społeczne").\n` +
+      `⏳ Masz 60 sekund na odpowiedź — tylko Ty możesz odpowiedzieć na to pytanie.`
+    );
+}
+
+function buildCategoryListEmbed(categoryKey, prefix = '!') {
+  const label = CATEGORY_SELECT_LABELS[categoryKey] || categoryKey;
+  const cmds = getCommandsByCategory(categoryKey);
+  const catArg = CATEGORY_ARG_NAMES[categoryKey] || '';
+
+  const listText = cmds.map(c => `${c.categoryId}. ${prefix}${c.name} — ${c.shortDescription}`).join('\n');
+
+  return buildHelpShell()
+    .setTitle(label)
+    .setDescription(
+      `${listText}\n\n💡 Szczegóły komendy: \`${prefix}help ${catArg} <numer>\``
+    );
+}
+
 module.exports = {
   HELP_PAGE_SIZE,
   helpCommands,
@@ -1107,5 +1168,10 @@ module.exports = {
   buildHelpDetailEmbed,
   buildHelpErrorEmbed,
   buildHelpButtons,
-  getTotalPages
+  getTotalPages,
+  resolveCategoryInput,
+  getCommandsByCategory,
+  getHelpCommandByCategoryAndNumber,
+  buildCategoryPromptEmbed,
+  buildCategoryListEmbed
 };

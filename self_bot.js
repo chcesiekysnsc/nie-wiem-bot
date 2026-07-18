@@ -2708,6 +2708,27 @@ login({ appState }, (loginErr, api) => {
       }
     }
 
+    if (!client.pendingHelpCategory) client.pendingHelpCategory = new Map();
+    const pendingHelp = client.pendingHelpCategory.get(senderId);
+    if (pendingHelp && pendingHelp.threadId === threadId) {
+      const { resolveCategoryInput, buildCategoryListEmbed, buildHelpListEmbed } = require('./utils/helpSystem');
+      const categoryKey = resolveCategoryInput(text.trim());
+      if (categoryKey) {
+        clearTimeout(pendingHelp.timeout);
+        client.pendingHelpCategory.delete(senderId);
+
+        const embed = categoryKey === 'ALL'
+          ? buildHelpListEmbed(client, pendingHelp.prefix)
+          : buildCategoryListEmbed(categoryKey, pendingHelp.prefix);
+
+        const replyText = renderPayloadToText({ embeds: [embed] });
+        if (replyText) {
+          api.sendMessage(replyText, threadId, () => {}, messageId);
+        }
+        return;
+      }
+    }
+
     if (!text.startsWith(currentPrefix)) {
       console.log(`[MQTT-MSG] Message ignored (does not start with prefix ${currentPrefix}): "${text}"`);
       return;
