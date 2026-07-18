@@ -27,6 +27,19 @@ module.exports = {
 
     await message.reply(`🔄 Rozpoczynam błyskawiczną analizę bazodanową dla **${threadIds.length}** grup...`);
 
+    await withData(store => {
+      store.profiles.danegrpProgress = store.profiles.danegrpProgress || {};
+      store.profiles.danegrpProgress.totalGroups = threadIds.length;
+      store.profiles.danegrpProgress.processedGroups = 0;
+      store.profiles.danegrpProgress.startTime = Date.now();
+      store.profiles.danegrpProgress.isActive = true;
+      store.profiles.danegrpProgress.shouldStop = false;
+      store.profiles.danegrpProgress.messageCount = 0;
+      store.profiles.danegrpProgress.totalMessagesAnalyzed = 0;
+    });
+
+    let stoppedEarly = false;
+
     // 1. Wyciągamy sumy wiadomości z bazy danych dla wszystkich grup
     const threadNormalMessages = {};
     await withData(store => {
@@ -106,12 +119,49 @@ module.exports = {
 
       await Promise.all(batchPromises);
       processedCount += batch.length;
+
+      const shouldStop = await withData(store => {
+        const progress = store.profiles.danegrpProgress;
+        if (progress && progress.isActive) {
+          progress.processedGroups = processedCount;
+          return progress.shouldStop || false;
+        }
+        return false;
+      });
+
+      if (shouldStop) {
+        stoppedEarly = true;
+        await withData(store => {
+          const progress = store.profiles.danegrpProgress;
+          if (progress) {
+            progress.isActive = false;
+            progress.endTime = Date.now();
+          }
+        });
+        break;
+      }
     }
 
-    await message.reply(
-      `✅ **Zakończono analizę bazodanową!**\n\n` +
-      `📊 Przetworzono: **${processedCount}/${threadIds.length}** grup.\n` +
-      `💾 Zsumowano statystyki wiadomości wszystkich użytkowników z bazy danych i zsynchronizowano je z komendą **!grp**.`
-    );
+    await withData(store => {
+      const progress = store.profiles.danegrpProgress;
+      if (progress) {
+        progress.isActive = false;
+        progress.endTime = Date.now();
+      }
+    });
+
+    if (stoppedEarly) {
+      await message.reply(
+        `🛑 **Analiza zatrzymana!**\n\n` +
+        `📊 Przetworzono: **${processedCount}/${threadIds.length}** grup.\n` +
+        `💾 Dane z przetworzonych grup zostały zapisane.`
+      );
+    } else {
+      await message.reply(
+        `✅ **Zakończono analizę bazodanową!**\n\n` +
+        `📊 Przetworzono: **${processedCount}/${threadIds.length}** grup.\n` +
+        `💾 Zsumowano statystyki wiadomości wszystkich użytkowników z bazy danych i zsynchronizowano je z komendą **!grp**.`
+      );
+    }
   }
 };
