@@ -782,6 +782,19 @@ const helpCommands = [
   },
   {
     id: 57,
+    name: "zakaz",
+    category: "UTILITY_ADMIN",
+    shortDescription: "blokuje komendy lub powiadomienia na grupie",
+    description: "Pozwala administratorowi grupy lub bota zablokować wszystkie komendy ekonomiczne lub globalne powiadomienia z panelu admina na bieżącej grupie. Działa jako przełącznik (toggle).",
+    usage: "!zakaz economia | !zakaz powiadomienia",
+    examples: ["!zakaz economia", "!zakaz powiadomienia"],
+    cooldown: "Brak.",
+    requirements: "Musisz być administratorem grupy lub bota.",
+    aliases: [],
+    additionalInfo: ["!zakaz economia — blokuje wszystkie komendy z kategorii ekonomicznej.", "!zakaz powiadomienia — blokuje ogłoszenia z panelu administratora."]
+  },
+  {
+    id: 57,
     name: "pkn",
     category: "ECONOMY_GAMBLING",
     shortDescription: "gra w papier kamień nożyce (z botem lub graczem)",
