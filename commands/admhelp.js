@@ -1,19 +1,16 @@
 const config = require('../config/config');
 
 const adminCommands = [
-  { num: 1, cmd: '!admadd <kwota>', opis: 'Dodaj monety do swojego portfela. (Tylko dla twórcy)' },
-  { num: 2, cmd: '!admgiv <kwota>', opis: 'Daj monety wszystkim graczom w grupie. (Tylko dla twórcy)' },
-  { num: 3, cmd: '!agg <kwota>', opis: 'Daj monety wszystkim graczom globalnie (alias: !admgivglobal). (Tylko dla twórcy)' },
-  { num: '3b', cmd: '!aggi <nr_itema> <ilość>', opis: 'Daj item wszystkim graczom globalnie. (Tylko dla twórcy)' },
-  { num: 6, cmd: '!reset <procent>', opis: 'Usuwa dany % monet z konta każdego gracza. (Tylko dla twórcy)' },
-  { num: 7, cmd: '!del <kwota> @osoba / ID', opis: 'Usuwa daną kwotę monet z portfela gracza. (Tylko dla twórcy)' },
-  { num: 8, cmd: '!global <id_konta> on/off', opis: 'Włącz/wyłącz pokazywanie ID konta w rankingu. (Tylko dla twórcy)' },
-  { num: 9, cmd: '!say <treść>', opis: 'Wysyła podaną treść na wszystkie aktywne grupy. (Tylko dla twórcy)' },
-  { num: 13, cmd: '!reakcja', opis: 'Ręcznie wywołuje grę Szybkie Palce na obecnej grupie. Limit: 5 użyć/dzień.', limit: 5 },
-  { num: 14, cmd: '!loteriastart', opis: 'Ręcznie uruchamia losowanie loterii. (Tylko dla twórcy)' },
-  { num: 15, cmd: '!flaga', opis: 'Ręcznie wywołuje grę Zgadnij Kraj (flagi) na obecnej grupie. Limit: 5 użyć/dzień.', limit: 5 },
-  { num: 16, cmd: '!dlug lista', opis: 'Pokazuje wszystkich dłużników i ich długi.' },
-  { num: 17, cmd: '!admhelp', opis: 'Wyświetla tę pomoc.' }
+  { cmd: '!afkdel', opis: 'Usuwa nieaktywnych członków z grupy.' },
+  { cmd: '!aktualizuj', opis: 'Aktualizuje bota.' },
+  { cmd: '!bl', opis: 'Banuje gracza.' },
+  { cmd: '!blgrp', opis: 'Banuje grupę.' },
+  { cmd: '!flaga', opis: 'Ręcznie wywołuje grę Zgadnij Kraj (flagi) na obecnej grupie.' },
+  { cmd: '!group', opis: 'Pokazuje informacje o grupie.' },
+  { cmd: '!loop', opis: 'Wykonuje pętlę komend.' },
+  { cmd: '!reakcja', opis: 'Ręcznie wywołuje grę Szybkie Palce na obecnej grupie. Limit: 5 użyć/dzień.', limit: 5 },
+  { cmd: '!ubl', opis: 'Odbanowuje gracza.' },
+  { cmd: '!ublgrp', opis: 'Odbanowuje grupę.' }
 ];
 
 module.exports = {
@@ -25,10 +22,13 @@ module.exports = {
       return;
     }
 
-    const lines = adminCommands.map(c => {
+    const sorted = [...adminCommands].sort((a, b) => a.cmd.localeCompare(b.cmd));
+
+    const lines = sorted.map((c, idx) => {
       const limitText = c.limit ? ` (Limit: ${c.limit}/dzień)` : '';
-      return `🛡️ **${c.num}.** **${c.cmd}** — ${c.opis}${limitText}`;
+      return `🛡️ **${idx + 1}.** **${c.cmd}** — ${c.opis}${limitText}`;
     }).join('\n');
-    await message.reply(`🛡️ **KOMENDY ADMINISTRACYJNE**\n${lines}`);
+
+    await message.reply(`🛡️ **KOMENDY ADMINISTRATORSKIE**\n${lines}`);
   }
 };
