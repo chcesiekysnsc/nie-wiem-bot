@@ -832,8 +832,11 @@ login({ appState }, (loginErr, api) => {
 
       for (const b of broadcasts) {
         const msg = `📢 **OGŁOSZENIE ADMINISTRACJI:**\n\n${b.message}`;
-        for (const t of recentTargets) {
-          try { api.sendMessage(msg, t); } catch (err) {
+        const sendApi = client.api || global.botApi;
+        if (!sendApi) continue;
+        const targets = Array.from(client.activeThreadIds);
+        for (const t of targets) {
+          try { sendApi.sendMessage(msg, t); } catch (err) {
             console.error('[ADMIN-PANEL] Błąd wysyłania ogłoszenia:', err);
           }
         }
