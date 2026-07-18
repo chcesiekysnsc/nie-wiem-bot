@@ -392,7 +392,7 @@ module.exports = {
     const isCreatorOrWhitelisted = message.author.id === creatorId || skipGroupCooldown;
     if (msgCount === null && !isCreatorOrWhitelisted) {
       await safeReply(message,
-        '❌ Zwykłe pytania do AI (bez podania liczby wiadomości) są dostępne tylko dla twórcy bota oraz osób z nadanym dostępem.\n\n' +
+        '❌ Zwykłe pytania (bez podania liczby wiadomości) są dostępne tylko dla twórcy bota oraz osób z nadanym dostępem.\n\n' +
         'Możesz użyć: **!analiza <liczba wiadomości> <pytanie>**, np. **!analiza 500 przeanalizuj kto ma rację w sporze**.'
       );
       return;
