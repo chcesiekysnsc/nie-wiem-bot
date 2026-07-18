@@ -143,7 +143,8 @@ async function checkCooldown(commandName, userId) {
   }
   return withData(store => {
     const now = Date.now();
-    let duration = (config.cooldowns[commandName] || config.cooldowns.default) * 1000;
+    const rawDuration = config.cooldowns[commandName];
+    let duration = (rawDuration !== undefined ? rawDuration : config.cooldowns.default) * 1000;
     
     // Stary Zegar cooldown reduction
     if (commandName === 'crime' || commandName === 'work') {
