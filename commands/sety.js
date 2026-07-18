@@ -39,13 +39,14 @@ module.exports = {
       const complete = isSetComplete(set, inventory);
       const ownedCount = set.requiredItems.filter(id => (inventory[id] || 0) > 0).length;
       const status = complete ? '🟢 Kompletny' : `🔴 ${ownedCount}/${set.requiredItems.length}`;
-      return `${idx + 1}. ${set.emoji} **${set.name}** — ${status}`;
+      const bonusText = set.bonuses.map(b => `${b.label}`).join(' ');
+      return `${idx + 1}. ${set.emoji} **${set.name}** — ${status}\n❗️${bonusText}❗️`;
     });
 
     await message.reply(
       `🧩 **SETY PRZEDMIOTÓW**\n` +
       `Skompletuj zestawy istniejących przedmiotów, aby otrzymać dodatkowe bonusy!\n\n` +
-      lines.join('\n') + `\n\n` +
+      lines.join('\n\n') + `\n\n` +
       `💡 Szczegóły i wymagane przedmioty: **!sety <numer>**`
     );
   }

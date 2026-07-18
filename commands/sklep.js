@@ -30,7 +30,7 @@ const ALL_SHOP_ITEMS = Object.entries(config.shopItems).map(([id, item]) => {
 });
 
 // Lista sklepu — krótkie opisy, paczki jako lootbox
-function renderShopList() {
+function renderShopList(inventory) {
   const discount = getShopDiscount();
   return SHOP_ITEMS_ORDERED
     .map(item => {
@@ -41,7 +41,9 @@ function renderShopList() {
       const priceLabel = discount > 0
         ? `~~${formatCurrency(originalPrice)}~~ **${formatCurrency(discountedPrice)}** (-${discount}%)`
         : formatCurrency(originalPrice);
-      return `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${priceLabel}\n_${desc}_`;
+      const owned = inventory ? (inventory[item.id] || 0) : 0;
+      const ownedLabel = owned > 0 ? ` (posiadasz: ${owned})` : '';
+      return `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${priceLabel}${ownedLabel}\n_${desc}_`;
     })
     .join('\n');
 }
@@ -95,9 +97,10 @@ module.exports = {
 
     // !sklep (bez argumentów lub "list") — lista z krótkimi opisami
     if (!firstArg || firstArg === 'list') {
+      const inventory = await withData(store => ensureInventoryRecord(store.inventory, message.author.id));
       const response =
         `🛒 **SKLEP KASYNOWY**\n` +
-        `${renderShopList()}\n` +
+        `${renderShopList(inventory)}\n` +
         `💡 Kup: **!sklep <numer> [ilość]** | Szczegóły: **!sklep help <numer>**`;
       await message.reply(response);
       return;
