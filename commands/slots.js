@@ -7,7 +7,8 @@ const {
   refreshBadges,
   resolveAmount,
   getPassiveMultiplier,
-  getActiveEventMultiplier
+  getActiveEventMultiplier,
+  getCasinoWinMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -171,6 +172,11 @@ module.exports = {
       if (payout > bet && hasItem(inventory, 'krolewskie_insygnia')) {
         const profit = payout - bet;
         payout += Math.floor(profit * 0.10);
+      }
+      const casinoWinBonus = getCasinoWinMultiplier(inventory);
+      if (casinoWinBonus > 0 && payout > bet) {
+        const profit = payout - bet;
+        payout += Math.floor(profit * casinoWinBonus);
       }
       user.balance += payout;
 

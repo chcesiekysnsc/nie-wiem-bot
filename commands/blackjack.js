@@ -8,7 +8,8 @@ const {
   ensureInventoryRecord,
   hasItem,
   getPassiveMultiplier,
-  getActiveEventMultiplier
+  getActiveEventMultiplier,
+  getCasinoWinMultiplier
 } = require('../utils/economy');
 const { createUser, withData, loadData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -587,6 +588,13 @@ module.exports = {
       if (finalPayout > game.bet && user.badges && user.badges.includes(config.badges.uzalezniony)) {
         const profit = finalPayout - game.bet;
         finalPayout += Math.round(profit * 0.03);
+        finalNet = finalPayout - game.bet;
+      }
+
+      const casinoWinBonus = getCasinoWinMultiplier(inventory);
+      if (casinoWinBonus > 0 && finalPayout > game.bet) {
+        const profit = finalPayout - game.bet;
+        finalPayout += Math.floor(profit * casinoWinBonus);
         finalNet = finalPayout - game.bet;
       }
 

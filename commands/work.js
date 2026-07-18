@@ -8,12 +8,16 @@ const {
   randomInt,
   refreshBadges,
   getPassiveMultiplier,
-  getActiveEventMultiplier
+  getActiveEventMultiplier,
+  getGlobalIncomeMultiplier,
+  getGlobalCooldownReduction,
+  getCasinoWinMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { getGangBossShopMultiplier } = require('../utils/gangBossShop');
 const { hasReputationBonus } = require('../utils/gangAI');
+const { getItemSetBonus } = require('../utils/itemSets');
 
 const jobs = [
   'Ogarnales nocna zmiane przy stolach pokerowych.',
@@ -43,6 +47,10 @@ module.exports = {
       let actualCd = baseCd;
       if (hasZegar) actualCd *= 0.90;
       if (hasSzwajcar) actualCd *= 0.85;
+      const cdReduction = getGlobalCooldownReduction(inventory);
+      if (cdReduction > 0) {
+        actualCd = Math.floor(actualCd * (1 - cdReduction));
+      }
 
       const evMul = getActiveEventMultiplier('cooldowns');
       if (evMul && evMul > 1) {
@@ -66,9 +74,31 @@ module.exports = {
         reward = Math.floor(reward * workLuckOverride);
       }
 
+      const mocnaKawaBonus = getPassiveMultiplier(inventory, 'mocna_kawa', 0.08);
+      if (mocnaKawaBonus > 0) {
+        reward = Math.floor(reward * (1 + mocnaKawaBonus));
+      }
+
       const walizkaBonus = getPassiveMultiplier(inventory, 'walizka', 0.05);
       if (walizkaBonus > 0) {
         reward = Math.floor(reward * (1 + walizkaBonus));
+      }
+
+      const globalIncomeBonus = getGlobalIncomeMultiplier(inventory);
+      if (globalIncomeBonus > 0) {
+        reward = Math.floor(reward * (1 + globalIncomeBonus));
+      }
+
+      const setWorkBonus = getItemSetBonus(inventory, 'work_xp');
+      if (setWorkBonus > 0) {
+        reward = Math.floor(reward * (1 + setWorkBonus));
+      }
+
+      const tripleChance = getItemSetBonus(inventory, 'work_triple_chance');
+      if (tripleChance > 0 && Math.random() < tripleChance) {
+        reward = reward * 3;
+      } else if (hasItem(inventory, 'rekawice_robotnika') && Math.random() < 0.10) {
+        reward = reward * 2;
       }
 
       if (user.badges && user.badges.includes(config.badges.krolSpamu)) {

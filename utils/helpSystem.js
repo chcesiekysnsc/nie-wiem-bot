@@ -597,6 +597,19 @@ const helpCommands = [
     aliases: ["dare", "wyzywam"],
     additionalInfo: ["Po 3 minutach bot przypomni grupie o głosowaniu nad zaliczeniem odpowiedzi/wyzwania."]
   },
+  {
+    id: 100,
+    name: "sety",
+    category: "SOCIAL_GANGS",
+    shortDescription: "przegladaj zestawy przedmiotow",
+    description: "Przegląda listę zestawów przedmiotów (item sets) i pokazuje, które skompletowałeś. Wpisz !sety <numer>, aby zobaczyć szczegóły zestawu i wymagane przedmioty.",
+    usage: "!sety | !sety <numer>",
+    examples: ["!sety","!sety 1"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["sets","zestawy","zestaw"],
+    additionalInfo: ["Skompletowane zestawy dają dodatkowe bonusy pasywne."]
+  },
 
   // --- KATEGORIA 3: INNE I NARZĘDZIA (43 - 55) ---
   {

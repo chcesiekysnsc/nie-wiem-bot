@@ -8,7 +8,8 @@ const {
   refreshBadges,
   resolveAmount,
   getPassiveMultiplier,
-  getActiveEventMultiplier
+  getActiveEventMultiplier,
+  getCasinoWinMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -250,6 +251,13 @@ module.exports = {
         const profit = payout - bet;
         if (profit > 0) {
           payout += Math.floor(profit * 0.10);
+        }
+      }
+      const casinoWinBonus = getCasinoWinMultiplier(inventory);
+      if (casinoWinBonus > 0 && won && !kosciRefunded) {
+        const profit = payout - bet;
+        if (profit > 0) {
+          payout += Math.floor(profit * casinoWinBonus);
         }
       }
       user.balance += payout;

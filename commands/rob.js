@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem, getPassiveMultiplier } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem, getPassiveMultiplier, getItemSetBonus } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 
@@ -51,11 +51,14 @@ module.exports = {
     }
 
     // Sprawdź cooldown 30min (lub 22.5min dla Cień Nocy, 25.5min dla Szwajcarskiego Zegarka)
-    const { hasCienNocy, hasSzwajcar } = await withData(store => {
+    const { hasCienNocy, hasSzwajcar, hasZDrive, cooldownReduction } = await withData(store => {
       const inv = ensureInventoryRecord(store.inventory, authorId);
+      const { getGlobalCooldownReduction } = require('../utils/economy');
       return {
         hasCienNocy: hasItem(inv, 'cien_nocy'),
-        hasSzwajcar: hasItem(inv, 'szwajcarski_zegarek')
+        hasSzwajcar: hasItem(inv, 'szwajcarski_zegarek'),
+        hasZDrive: hasItem(inv, 'z_drive'),
+        cooldownReduction: getGlobalCooldownReduction(inv)
       };
     });
     let robCooldownDuration = 30 * 60 * 1000;
@@ -64,6 +67,9 @@ module.exports = {
     }
     if (hasSzwajcar) {
       robCooldownDuration = Math.floor(robCooldownDuration * 0.85);
+    }
+    if (cooldownReduction > 0) {
+      robCooldownDuration = Math.floor(robCooldownDuration * (1 - cooldownReduction));
     }
 
     const coolUntil = robCooldowns.get(authorId) || 0;
@@ -173,6 +179,11 @@ module.exports = {
 
       const alarmBonus = getPassiveMultiplier(victimInv, 'alarm', 0.04);
       baseSuccessChance -= alarmBonus;
+
+      const catchChanceBonus = getItemSetBonus(victimInv, 'catch_chance');
+      if (catchChanceBonus > 0) {
+        baseSuccessChance -= catchChanceBonus;
+      }
 
       const success = Math.random() < Math.min(baseSuccessChance, 1);
 
@@ -317,6 +328,10 @@ module.exports = {
               if (kominiarkaBonusPct > 0) {
                 secondFine = Math.floor(secondFine * (1 - kominiarkaBonusPct));
               }
+              const secondCatchPenaltyBonus = getItemSetBonus(victimInv, 'catch_penalty');
+              if (secondCatchPenaltyBonus > 0) {
+                secondFine = Math.floor(secondFine * (1 + secondCatchPenaltyBonus));
+              }
               let secondPies = 0;
               if (piesBonusPct > 0) {
                 secondPies = Math.floor(secondFine * piesBonusPct);
@@ -324,6 +339,10 @@ module.exports = {
               const victimHasKamera = hasItem(victimInv, 'kamera');
               let secondPayout = victimHasKamera ? Math.floor(secondFine * 1.05) : secondFine;
               secondPayout += secondPies;
+              const victimHasPatrol = hasItem(victimInv, 'patrol_policji');
+              if (victimHasPatrol) {
+                secondPayout += Math.floor(secondFine * 0.15);
+              }
 
               robber.balance -= secondFine;
               victim.balance += secondPayout;
@@ -363,6 +382,11 @@ module.exports = {
           fine = Math.floor(fine * (1 - kominiarkaBonusPct));
         }
 
+        const catchPenaltyBonus = getItemSetBonus(victimInv, 'catch_penalty');
+        if (catchPenaltyBonus > 0) {
+          fine = Math.floor(fine * (1 + catchPenaltyBonus));
+        }
+
         let piesBonus = 0;
         if (piesBonusPct > 0) {
           piesBonus = Math.floor(fine * piesBonusPct);
@@ -371,6 +395,11 @@ module.exports = {
         const victimHasKamera = hasItem(victimInv, 'kamera');
         let payout = victimHasKamera ? Math.floor(fine * 1.05) : fine;
         payout += piesBonus;
+
+        const victimHasPatrol = hasItem(victimInv, 'patrol_policji');
+        if (victimHasPatrol) {
+          payout += Math.floor(fine * 0.15);
+        }
 
         robber.balance -= fine;
         victim.balance += payout;

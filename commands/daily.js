@@ -5,7 +5,9 @@ const {
   formatCurrency,
   hasItem,
   msToReadable,
-  refreshBadges
+  refreshBadges,
+  getGlobalIncomeMultiplier,
+  getItemSetBonus
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -95,6 +97,11 @@ module.exports = {
 
       if (hasItem(inventory, 'krolewskie_insygnia')) {
         reward = Math.floor(reward * 1.10);
+      }
+
+      const globalIncomeBonus = getGlobalIncomeMultiplier(inventory);
+      if (globalIncomeBonus > 0) {
+        reward = Math.floor(reward * (1 + globalIncomeBonus));
       }
 
       const userGangId = user.gangId;

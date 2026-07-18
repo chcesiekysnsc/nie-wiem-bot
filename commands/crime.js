@@ -1,8 +1,9 @@
 const config = require('../config/config');
-const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable, getCrimeSuccessMultiplier, hasItem } = require('../utils/economy');
+const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable, getCrimeSuccessMultiplier, hasItem, getGlobalIncomeMultiplier, getGlobalCooldownReduction } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { hasReputationBonus } = require('../utils/gangAI');
+const { getItemSetBonus } = require('../utils/itemSets');
 
 const successLines = [
   'Uciekłeś z sejfem bez zostawienia śladów.',
@@ -138,6 +139,10 @@ module.exports = {
       if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId] && hasReputationBonus(store.profiles.gangs[user.gangId], 300)) {
         baseSuccessChance += 0.02;
       }
+      const crimeCatchReduction = getItemSetBonus(inventory, 'crime_catch_reduction');
+      if (crimeCatchReduction > 0) {
+        baseSuccessChance += crimeCatchReduction;
+      }
       const { getTerritoryBonus } = require('../utils/territories');
       if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
         const crimeChanceBonus = getTerritoryBonus(user.gangId, 'crime_chance');
@@ -178,6 +183,11 @@ module.exports = {
         if (crimeRewardBonus > 0) {
           amount = Math.floor(amount * (1 + crimeRewardBonus));
         }
+      }
+
+      const globalIncomeBonus = getGlobalIncomeMultiplier(inventory);
+      if (globalIncomeBonus > 0 && success) {
+        amount = Math.floor(amount * (1 + globalIncomeBonus));
       }
 
       // Tribute

@@ -43,9 +43,33 @@ function getTerritoryBonus(gangId, bonusType) {
   return totalBonus;
 }
 
+function getOrderedActiveTerritories(gangId) {
+  const state = getTerritoryState();
+  const activeIds = state.activeIds || [];
+  const owners = state.owners || {};
+  const definitions = getDefinitions();
+
+  const owned = [];
+  const free = [];
+  const others = [];
+
+  for (const id of activeIds) {
+    const def = definitions.find(d => d.id === id);
+    if (!def) continue;
+    const ownerId = owners[id] || null;
+    const entry = { def, ownerId };
+    if (ownerId === gangId) owned.push(entry);
+    else if (!ownerId) free.push(entry);
+    else others.push(entry);
+  }
+
+  return [...owned, ...free, ...others];
+}
+
 module.exports = {
   getDefinitions,
   getTerritoryState,
   getActiveTerritoriesForGang,
-  getTerritoryBonus
+  getTerritoryBonus,
+  getOrderedActiveTerritories
 };

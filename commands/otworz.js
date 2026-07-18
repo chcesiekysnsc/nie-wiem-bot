@@ -71,7 +71,9 @@ const PACZKI = {
       { chance: 30, items: [{ id: 'garnitur', qty: 1, label: '👔 Garnitur', permanent: true }] },
       { chance: 20, items: [{ id: 'alarm', qty: 1, label: '🚨 Alarm', permanent: true }] }, // 2.0%
       { chance: 20, items: [{ id: 'pies_strozujacy', qty: 1, label: '🐕 Pies Stróżujący', permanent: true }] }, // 2.0%
-      { chance: 15, items: [{ id: 'kaczka_biznesu', qty: 1, label: '🦆 Kaczka Biznesu', permanent: true }] } // 1.5%
+      { chance: 15, items: [{ id: 'kaczka_biznesu', qty: 1, label: '🦆 Kaczka Biznesu', permanent: true }] }, // 1.5%
+      { chance: 15, items: [{ id: 'patrol_policji', qty: 1, label: '🚔 Patrol Policji', permanent: true }] }, // 1.5%
+      { chance: 10, items: [{ id: 'mocna_kawa', qty: 1, label: '☕ Mocna Kawa', permanent: true }] } // 1.0%
     ]
   },
   tytanowa: {
@@ -89,7 +91,10 @@ const PACZKI = {
       { chance: 30, items: [{ id: 'insygnia_gang', qty: 1, label: '🏴‍☠️ Insygnia Gangu', permanent: true }] }, // 3.0%
       { chance: 7.5, items: [{ id: 'dobra_ksiegowa', qty: 1, label: '👩‍💼 Dobra Księgowa', permanent: true }] }, // 0.75%
       { chance: 15, items: [{ id: 'odznaka_komendanta', qty: 1, label: '🎖️ Odznaka Komendanta', permanent: true }] }, // 1.5%
-      { chance: 5, items: [{ id: 'klucz_wiezienny', qty: 1, label: '🔑 Klucz Więzienny' }] } // 0.5%
+      { chance: 5, items: [{ id: 'klucz_wiezienny', qty: 1, label: '🔑 Klucz Więzienny' }] }, // 0.5%
+      { chance: 7.5, items: [{ id: 'sakiewka_kolekcjonera', qty: 1, label: '💰 Sakiewka Kolekcjonera', permanent: true }] }, // 0.75%
+      { chance: 10, items: [{ id: 'z_drive', qty: 1, label: '⏳ Z-drive', permanent: true }] }, // 1.0%
+      { chance: 10, items: [{ id: 'rekawice_robotnika', qty: 1, label: '🧤 Rękawice Robotnika', permanent: true }] } // 1.0%
     ]
   }
 };
@@ -113,7 +118,12 @@ const FALLBACKS = {
   kaczka_biznesu:   [{ id: 'bomba', qty: 1, label: '💣 Bomba' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }],
   insygnia_gang:    [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }],
   dobra_ksiegowa:   [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }],
-  odznaka_komendanta: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }]
+  odznaka_komendanta: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }],
+  sakiewka_kolekcjonera: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }, { id: 'piwo', qty: 1, label: '🍺 Piwo' }],
+  z_drive: [{ id: 'klodka', qty: 2, label: '🔒 Kłódka x2' }],
+  rekawice_robotnika: [{ id: 'piwo', qty: 1, label: '🍺 Piwo' }],
+  patrol_policji: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }],
+  mocna_kawa: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }]
 };
 
 // Losuje drop na podstawie tabeli szans (1-1000)

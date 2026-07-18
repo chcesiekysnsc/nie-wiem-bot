@@ -558,6 +558,56 @@ module.exports = {
       buyable: false,
       shopNote: 'Dostępna tylko z Tytanowej Paczki (0.75%).'
     },
+    sakiewka_kolekcjonera: {
+      name: 'Sakiewka Kolekcjonera',
+      emoji: '💰',
+      price: 0,
+      shortDesc: '+3% monet z każdej aktywności.',
+      description: 'Pasywny przedmiot. Zwiększa wszystkie zarobki (praca, przestępstwa, kasyno, firmy, gang) o 3%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko z Tytanowej Paczki (0.75%).'
+    },
+    z_drive: {
+      name: 'Z-drive',
+      emoji: '⏳',
+      price: 0,
+      shortDesc: 'Skraca wszystkie cooldowny o 15%.',
+      description: 'Pasywny przedmiot. Skraca czas oczekiwania (cooldown) wszystkich komend o 15%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Tytanowej Paczki (1.0%).'
+    },
+    rekawice_robotnika: {
+      name: 'Rękawice Robotnika',
+      emoji: '🧤',
+      price: 0,
+      shortDesc: '10% szans na podwójną wypłatę z !work.',
+      description: 'Pasywny przedmiot. Daje 10% szans, że wypłata z komendy !work zostanie podwojona. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępne tylko z Tytanowej Paczki (1.0%).'
+    },
+    patrol_policji: {
+      name: 'Patrol Policji',
+      emoji: '🚔',
+      price: 0,
+      shortDesc: 'Złodziej po wpadce płaci dodatkowe 15% kary.',
+      description: 'Defensywny przedmiot pasywny. Gdy ktoś próbuje Cię okraść (!rob) i zostanie przyłapany, płaci dodatkowe 15% kary ponad standardową stawkę. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Diamentowej Paczki (1.5%).'
+    },
+    mocna_kawa: {
+      name: 'Mocna Kawa',
+      emoji: '☕',
+      price: 0,
+      shortDesc: '+8% monet z !work.',
+      description: 'Pasywny przedmiot. Zwiększa bazowe zarobki z komendy !work o 8%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko z Diamentowej Paczki (1.0%).'
+    },
     odznaka_komendanta: {
       name: 'Odznaka Komendanta',
       emoji: '🎖️',

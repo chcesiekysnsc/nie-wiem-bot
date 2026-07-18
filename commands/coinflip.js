@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { ensureInventoryRecord, formatCurrency, hasItem, recordGame, refreshBadges, resolveAmount, getPassiveMultiplier, getActiveEventMultiplier } = require('../utils/economy');
+const { ensureInventoryRecord, formatCurrency, hasItem, recordGame, refreshBadges, resolveAmount, getPassiveMultiplier, getActiveEventMultiplier, getCasinoWinMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 
@@ -122,6 +122,11 @@ module.exports = {
       if (won && !kosciRefunded && hasItem(inventory, 'krolewskie_insygnia')) {
         const profit = payout - bet;
         payout += Math.floor(profit * 0.10);
+      }
+      const casinoWinBonus = getCasinoWinMultiplier(inventory);
+      if (casinoWinBonus > 0 && won && !kosciRefunded) {
+        const profit = payout - bet;
+        payout += Math.floor(profit * casinoWinBonus);
       }
 
       let talizmanBonus = 0;

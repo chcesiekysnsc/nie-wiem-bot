@@ -130,6 +130,9 @@ function addXp(user, amount, inventoryRecord = null) {
     if (hasItem(inventoryRecord, 'podrecznik_praktykanta')) {
       xpMultiplier += hasCzterolistna ? 0.06 : 0.05;
     }
+    const { getItemSetBonus } = require('./itemSets');
+    const setXpBonus = getItemSetBonus(inventoryRecord, 'xp_gain');
+    xpMultiplier += setXpBonus;
     finalAmount = Math.round(finalAmount * xpMultiplier);
   }
 
@@ -496,6 +499,31 @@ function getShopDiscount() {
   }
 }
 
+function getCasinoWinMultiplier(inventoryRecord) {
+  if (!inventoryRecord) return 0;
+  const { getItemSetBonus } = require('./itemSets');
+  return getItemSetBonus(inventoryRecord, 'casino_win');
+}
+
+function getGlobalIncomeMultiplier(inventoryRecord) {
+  if (!inventoryRecord) return 0;
+  if (hasItem(inventoryRecord, 'sakiewka_kolekcjonera')) {
+    return 0.03;
+  }
+  return 0;
+}
+
+function getGlobalCooldownReduction(inventoryRecord) {
+  if (!inventoryRecord) return 0;
+  let reduction = 0;
+  if (hasItem(inventoryRecord, 'z_drive')) {
+    reduction += 0.15;
+  }
+  const { getItemSetBonus } = require('./itemSets');
+  reduction += getItemSetBonus(inventoryRecord, 'cooldown_reduction');
+  return Math.min(reduction, 0.50);
+}
+
 module.exports = {
   randomInt,
   formatNumber,
@@ -521,5 +549,8 @@ module.exports = {
   getShopDiscount,
   getBankInterestMultiplier,
   getCrimeSuccessMultiplier,
-  getCompanyPayoutMultiplier
+  getCompanyPayoutMultiplier,
+  getCasinoWinMultiplier,
+  getGlobalIncomeMultiplier,
+  getGlobalCooldownReduction
 };

@@ -1,7 +1,8 @@
 const config = require('../config/config');
-const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier } = require('../utils/economy');
+const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier, getGlobalIncomeMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
+const { getItemSetBonus } = require('../utils/itemSets');
 
 module.exports = {
   name: 'firma',
@@ -203,6 +204,14 @@ module.exports = {
           let ksiegaBonus = hasKsiega ? Math.floor(compDef.payout * 0.15) : 0;
           payout += garniturBonus + kaczkaBonus + ksiegaBonus;
 
+          const globalIncomeBonus = getGlobalIncomeMultiplier(inventory);
+          let globalBonus = globalIncomeBonus > 0 ? Math.floor(compDef.payout * globalIncomeBonus) : 0;
+          payout += globalBonus;
+
+          const setBonusPct = getItemSetBonus(inventory, 'firm_income');
+          let setBonus = setBonusPct > 0 ? Math.floor(compDef.payout * setBonusPct) : 0;
+          payout += setBonus;
+
           // Królewskie Insygnia: +10% do zysku z firmy
           let insygniaBonus = 0;
           if (hasInsygnia) {
@@ -220,7 +229,7 @@ module.exports = {
             companyObj.isBroken = true;
           }
 
-          return { compDef, payout, garniturBonus, kaczkaBonus, ksiegaBonus, insygniaBonus, broke };
+          return { compDef, payout, garniturBonus, kaczkaBonus, ksiegaBonus, insygniaBonus, globalBonus, setBonus, broke };
         };
 
         // Check company 1
@@ -270,7 +279,7 @@ module.exports = {
       
       const formatFirmaPayout = (col, label) => {
         let txt = `💰 Zebrałeś wypłatę z ${label} **${col.compDef.emoji} ${col.compDef.name}**!\n`;
-        if (col.garniturBonus > 0 || col.kaczkaBonus > 0 || col.ksiegaBonus > 0 || col.insygniaBonus > 0) {
+        if (col.garniturBonus > 0 || col.kaczkaBonus > 0 || col.ksiegaBonus > 0 || col.insygniaBonus > 0 || col.globalBonus > 0 || col.setBonus > 0) {
           txt += `   ➕ Zysk nominalny: **+${formatCurrency(col.compDef.payout)}**\n`;
           if (col.garniturBonus > 0) {
             txt += `   👔 **Garnitur (+10%):** **+${formatCurrency(col.garniturBonus)}**\n`;
@@ -283,6 +292,12 @@ module.exports = {
           }
           if (col.insygniaBonus > 0) {
             txt += `   👑 **Królewskie Insygnia (+10%):** **+${formatCurrency(col.insygniaBonus)}**\n`;
+          }
+          if (col.globalBonus > 0) {
+            txt += `   💰 **Sakiewka Kolekcjonera (+3%):** **+${formatCurrency(col.globalBonus)}**\n`;
+          }
+          if (col.setBonus > 0) {
+            txt += `   🧩 **Zestaw Biznesmena (+4%):** **+${formatCurrency(col.setBonus)}**\n`;
           }
           txt += `   ➕ Zysk z firmy: **+${formatCurrency(col.payout)}**\n`;
         } else {

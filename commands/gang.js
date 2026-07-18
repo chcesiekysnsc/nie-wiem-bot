@@ -4,6 +4,8 @@ const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getItemDefinition, getAllCrateDefinitions, getCrateDefinition, processBossShopPurchase, ensureDailyLimit, hasGangBossItem } = require('../utils/gangBossShop');
 const { getWeaponMultiplier, getDefenseUpgradeMultiplier, getSpecialGangMultiplier, getMercenaryPowerBonus, getReputationRank, hasReputationBonus } = require('../utils/gangAI');
+const { getTerritoryBonus } = require('../utils/territories');
+const { getItemSetBonus } = require('../utils/itemSets');
 
 const CRATE_ORDER = Object.keys(config.bossShopCrates && config.bossShopCrates.crates ? config.bossShopCrates.crates : {});
 const MERCENARIES_PRICE = 2000000;
@@ -1269,6 +1271,7 @@ module.exports = {
       const startResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
         const user = createUser(message.author.id, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
         if (user.jailUntil && user.jailUntil > Date.now()) {
           return { error: '❌ Jesteś w więzieniu i nie możesz zaplanować skoku gangu!' };
@@ -1301,6 +1304,11 @@ module.exports = {
         const heistCdBonus = getGangBossShopMultiplier(gang, 'cooldown');
         if (heistCdBonus > 0) {
           heistCooldownMs = Math.floor(heistCooldownMs * (1 - heistCdBonus));
+        }
+        const { getGlobalCooldownReduction } = require('../utils/economy');
+        const heistGlobalCdReduction = getGlobalCooldownReduction(inventory);
+        if (heistGlobalCdReduction > 0) {
+          heistCooldownMs = Math.floor(heistCooldownMs * (1 - heistGlobalCdReduction));
         }
         if (now - lastTime < heistCooldownMs) {
           const diffSec = Math.ceil((heistCooldownMs - (now - lastTime)) / 1000);
@@ -1471,7 +1479,12 @@ module.exports = {
             if (hasItem(inventory, 'krolewskie_insygnia')) {
               krolewskieBonus = Math.floor(finalReward * 0.10);
             }
-            finalReward += godloBonus + insygniaBonus + krolewskieBonus;
+            const gangRewardsBonus = getItemSetBonus(inventory, 'gang_rewards');
+            let gangRewardsBonusAmt = 0;
+            if (gangRewardsBonus > 0) {
+              gangRewardsBonusAmt = Math.floor(finalReward * gangRewardsBonus);
+            }
+            finalReward += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt;
             pUser.balance += finalReward;
             
             participantBonuses[pid] = godloBonus;
@@ -1627,6 +1640,7 @@ module.exports = {
       const startResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
         const user = createUser(message.author.id, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -1710,6 +1724,11 @@ module.exports = {
         const attCdBonus = getGangBossShopMultiplier(myGang, 'cooldown');
         if (attCdBonus > 0) {
           cooldown = Math.floor(cooldown * (1 - attCdBonus));
+        }
+        const { getGlobalCooldownReduction } = require('../utils/economy');
+        const attGlobalCdReduction = getGlobalCooldownReduction(inventory);
+        if (attGlobalCdReduction > 0) {
+          cooldown = Math.floor(cooldown * (1 - attGlobalCdReduction));
         }
         if (now - lastAttack < cooldown) {
           const diffSec = Math.ceil((cooldown - (now - lastAttack)) / 1000);
@@ -1964,25 +1983,30 @@ module.exports = {
             const attackerBonuses = {};
             for (const pid of listAttackers) {
               const pUser = createUser(pid, store.users);
-              let finalShare = sharePerPerson;
-              const inventory = ensureInventoryRecord(store.inventory, pid);
-              
-              const insygniaMultiplier = getPassiveMultiplier(inventory, 'insygnia_gang', 0.08);
-              let insygniaBonus = 0;
-              if (insygniaMultiplier > 0) {
-                insygniaBonus = Math.floor(finalShare * insygniaMultiplier);
-              }
+               let finalShare = sharePerPerson;
+               const inventory = ensureInventoryRecord(store.inventory, pid);
+               
+               const insygniaMultiplier = getPassiveMultiplier(inventory, 'insygnia_gang', 0.08);
+               let insygniaBonus = 0;
+               if (insygniaMultiplier > 0) {
+                 insygniaBonus = Math.floor(finalShare * insygniaMultiplier);
+               }
 
-              let godloBonus = 0;
-              if (hasItem(inventory, 'godlo_gangu')) {
-                godloBonus = Math.floor(finalShare * 0.05);
-              }
-              let krolewskieBonus = 0;
-              if (hasItem(inventory, 'krolewskie_insygnia')) {
-                krolewskieBonus = Math.floor(finalShare * 0.10);
-              }
-              
-              finalShare += godloBonus + insygniaBonus + krolewskieBonus;
+               let godloBonus = 0;
+               if (hasItem(inventory, 'godlo_gangu')) {
+                 godloBonus = Math.floor(finalShare * 0.05);
+               }
+               let krolewskieBonus = 0;
+               if (hasItem(inventory, 'krolewskie_insygnia')) {
+                 krolewskieBonus = Math.floor(finalShare * 0.10);
+               }
+               const gangRewardsBonus = getItemSetBonus(inventory, 'gang_rewards');
+               let gangRewardsBonusAmt = 0;
+               if (gangRewardsBonus > 0) {
+                 gangRewardsBonusAmt = Math.floor(finalShare * gangRewardsBonus);
+               }
+               
+               finalShare += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt;
               pUser.balance += finalShare;
               attackerBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
               
@@ -2025,25 +2049,30 @@ module.exports = {
               sharePerDefender = Math.floor(penaltyDefenders / membersForRewardDef);
               for (const pid of listDefenders) {
                 const pUser = createUser(pid, store.users);
-                let finalShare = sharePerDefender;
-                const inventory = ensureInventoryRecord(store.inventory, pid);
-                
-                const insygniaMultiplier = getPassiveMultiplier(inventory, 'insygnia_gang', 0.08);
-                let insygniaBonus = 0;
-                if (insygniaMultiplier > 0) {
-                  insygniaBonus = Math.floor(finalShare * insygniaMultiplier);
-                }
+                 let finalShare = sharePerDefender;
+                 const inventory = ensureInventoryRecord(store.inventory, pid);
+                 
+                 const insygniaMultiplier = getPassiveMultiplier(inventory, 'insygnia_gang', 0.08);
+                 let insygniaBonus = 0;
+                 if (insygniaMultiplier > 0) {
+                   insygniaBonus = Math.floor(finalShare * insygniaMultiplier);
+                 }
 
-                let godloBonus = 0;
-                if (hasItem(inventory, 'godlo_gangu')) {
-                  godloBonus = Math.floor(finalShare * 0.05);
-                }
-                let krolewskieBonus = 0;
-                if (hasItem(inventory, 'krolewskie_insygnia')) {
-                  krolewskieBonus = Math.floor(finalShare * 0.10);
-                }
-                
-                finalShare += godloBonus + insygniaBonus + krolewskieBonus;
+                 let godloBonus = 0;
+                 if (hasItem(inventory, 'godlo_gangu')) {
+                   godloBonus = Math.floor(finalShare * 0.05);
+                 }
+                 let krolewskieBonus = 0;
+                 if (hasItem(inventory, 'krolewskie_insygnia')) {
+                   krolewskieBonus = Math.floor(finalShare * 0.10);
+                 }
+                 const gangRewardsBonus = getItemSetBonus(inventory, 'gang_rewards');
+                 let gangRewardsBonusAmt = 0;
+                 if (gangRewardsBonus > 0) {
+                   gangRewardsBonusAmt = Math.floor(finalShare * gangRewardsBonus);
+                 }
+                 
+                 finalShare += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt;
                 pUser.balance += finalShare;
                 defenderBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
               }
@@ -2268,6 +2297,94 @@ module.exports = {
       await message.reply(
         `🛒 **Przedmioty Bossowego Sklepu — Gang: ${eqResult.gangName}**\n\n` +
         itemsList
+      );
+      return;
+    }
+
+    // ==========================================
+    // 10d. GANG ARTEFAKTY
+    // ==========================================
+    if (sub === 'artefakty' || sub === 'artf') {
+      const secondArg = String(args[1] || '').toLowerCase();
+
+      const crates = getAllCrateDefinitions();
+      const allGangItems = [];
+      let num = 0;
+      for (const crateId of CRATE_ORDER) {
+        const crate = crates[crateId];
+        for (const [itemId, def] of Object.entries(crate.items || {})) {
+          num++;
+          allGangItems.push({
+            num,
+            id: itemId,
+            name: def.name,
+            emoji: def.emoji,
+            description: def.description,
+            crateName: crate.name,
+            crateEmoji: crate.emoji
+          });
+        }
+      }
+
+      if (secondArg === 'help' || secondArg === 'info') {
+        const targetNum = parseInt(args[2], 10);
+        const art = allGangItems.find(a => a.num === targetNum);
+        if (!art) {
+          await message.reply(`❌ Nie znaleziono przedmiotu gangowego o numerze **${args[2] || ''}**. Wpisz **!gang artefakty** aby zobaczyć listę (1-${allGangItems.length}).`);
+          return;
+        }
+
+        const ownResult = await withData(store => {
+          const user = createUser(message.author.id, store.users);
+          if (!user.gangId || !store.profiles.gangs[user.gangId]) return { notInGang: true };
+          const gang = store.profiles.gangs[user.gangId];
+          const owned = (gang.bossShopItems || []).includes(art.id);
+          return { notInGang: false, owned, gangName: gang.name };
+        });
+
+        let ownedLine = 'ℹ️ Nie należysz do gangu, więc nie mogę sprawdzić posiadania.';
+        if (!ownResult.notInGang) {
+          ownedLine = ownResult.owned
+            ? `🟢 Twój gang (**${ownResult.gangName}**) posiada ten przedmiot.`
+            : `🔴 Twój gang (**${ownResult.gangName}**) nie posiada tego przedmiotu.`;
+        }
+
+        await message.reply(
+          `✨ **PRZEDMIOT GANGOWY: ${art.name.toUpperCase()}** ${art.emoji} ✨\n` +
+          `• **Skrzynka:** ${art.crateEmoji} ${art.crateName}\n` +
+          `• **Status:** ${ownedLine}\n\n` +
+          `ℹ️ **Opis działania:**\n${art.description}`
+        );
+        return;
+      }
+
+      const listResult = await withData(store => {
+        const user = createUser(message.author.id, store.users);
+        if (!user.gangId || !store.profiles.gangs[user.gangId]) return { notInGang: true };
+        const gang = store.profiles.gangs[user.gangId];
+        return {
+          notInGang: false,
+          gangName: gang.name,
+          ownedIds: gang.bossShopItems || []
+        };
+      });
+
+      if (listResult.notInGang) {
+        await message.reply('❌ Nie należysz do żadnego gangu, więc nie mogę pokazać przedmiotów gangowych. Wpisz **!gang stworz <nazwa>** lub dołącz do istniejącego gangu.');
+        return;
+      }
+
+      const lines = allGangItems.map(art => {
+        const owned = listResult.ownedIds.includes(art.id);
+        const status = owned ? '🟢 (posiadacie)' : '🔴 (brak)';
+        return `${art.num}. ${art.emoji} *${art.name}* — ${art.description} ${status}`;
+      });
+
+      await message.reply(
+        `✨ **Kolekcja Przedmiotów Gangowych — ${listResult.gangName}** ✨\n` +
+        `Oto wszystkie przedmioty dostępne w Bossowym Sklepie (ze wszystkich skrzynek):\n\n` +
+        lines.join('\n') + `\n\n` +
+        `💡 Aby sprawdzić szczegóły danego przedmiotu, wpisz: **!gang artefakty help <numer>**`
       );
       return;
     }
@@ -2530,7 +2647,7 @@ module.exports = {
     let targetParam = null;
     if (sub === 'info') {
       targetParam = args.slice(1).join(' ').trim() || null;
-    } else if (!['stworz', 'zapros', 'dolacz', 'akceptuj', 'awans', 'wyrzuc', 'opusc', 'wplac', 'wyplac', 'ulepsz', 'skok', 'haracz', 'atak', 'wojna', 'wsparcie', 'wesprzyj'].includes(sub)) {
+    } else if (!['stworz', 'zapros', 'dolacz', 'akceptuj', 'awans', 'wyrzuc', 'opusc', 'wplac', 'wyplac', 'ulepsz', 'skok', 'haracz', 'atak', 'wojna', 'wsparcie', 'wesprzyj', 'artefakty', 'artf', 'eq', 'sklep'].includes(sub)) {
       targetParam = args.join(' ').trim() || null;
     }
 
