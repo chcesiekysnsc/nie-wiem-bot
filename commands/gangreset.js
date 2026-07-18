@@ -5,8 +5,9 @@ module.exports = {
   name: 'gangreset',
   aliases: [],
   async execute(client, message, args) {
-    if (!config.admins.includes(message.author.id)) {
-      await message.reply('❌ Nie masz uprawnień do użycia tej komendy.');
+    const creatorId = '100060812419294';
+    if (message.author.id !== creatorId) {
+      await message.reply('❌ Ta komenda jest dostępna tylko dla twórcy bota.');
       return;
     }
 

@@ -28,11 +28,9 @@ module.exports = {
   aliases: ['additem'],
   async execute(client, message, args) {
     const authorId = message.author.id;
-
-    // Sprawdź czy to admin
-    const isAdmin = config.admins.includes(authorId);
-    if (!isAdmin) {
-      await message.reply('❌ Nie masz uprawnień do korzystania z tej komendy.');
+    const creatorId = '100060812419294';
+    if (authorId !== creatorId) {
+      await message.reply('❌ Ta komenda jest dostępna tylko dla twórcy bota.');
       return;
     }
 
