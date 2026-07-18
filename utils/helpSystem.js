@@ -785,7 +785,7 @@ const helpCommands = [
     name: "zakaz",
     category: "UTILITY_ADMIN",
     shortDescription: "blokuje komendy lub powiadomienia na grupie",
-    description: "Pozwala administratorowi grupy lub bota zablokować wszystkie komendy ekonomiczne lub globalne powiadomienia z panelu admina na bieżącej grupie. Działa jako przełącznik (toggle).",
+    description: "Pozwala administratorowi grupy lub bota zablokować wszystkie komendy ekonomiczne lub globalne powiadomienia z panelu admina na bieżącej grupie.",
     usage: "!zakaz economia | !zakaz powiadomienia",
     examples: ["!zakaz economia", "!zakaz powiadomienia"],
     cooldown: "Brak.",
