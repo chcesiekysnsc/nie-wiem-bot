@@ -32,6 +32,14 @@ const ALL_SHOP_ITEMS = Object.entries(config.shopItems).map(([id, item]) => {
 // Lista sklepu — krótkie opisy, paczki jako lootbox
 function renderShopList(inventory) {
   const discount = getShopDiscount();
+  const packKeys = {
+    paczka_brazowa: 'brazowa',
+    paczka_srebrna: 'srebrna',
+    paczka_zlota: 'zlota',
+    paczka_diamentowa: 'diamentowa',
+    paczka_tytanowa: 'tytanowa'
+  };
+
   return SHOP_ITEMS_ORDERED
     .map(item => {
       const isPackage = item.id.startsWith('paczka_');
@@ -43,7 +51,29 @@ function renderShopList(inventory) {
         : formatCurrency(originalPrice);
       const owned = inventory ? (inventory[item.id] || 0) : 0;
       const ownedLabel = owned > 0 ? ` (posiadasz: ${owned})` : '';
-      return `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${priceLabel}${ownedLabel}\n_${desc}_`;
+
+      let packOwnedLabel = '';
+      if (isPackage && packKeys[item.id]) {
+        try {
+          const { PACZKI } = require('./otworz');
+          const pack = PACZKI[packKeys[item.id]];
+          if (pack && pack.drops) {
+            const uniqueItemIds = [];
+            for (const drop of pack.drops) {
+              for (const it of drop.items) {
+                if (!uniqueItemIds.includes(it.id)) {
+                  uniqueItemIds.push(it.id);
+                }
+              }
+            }
+            const Y = uniqueItemIds.length;
+            const X = inventory ? uniqueItemIds.filter(id => (inventory[id] || 0) > 0).length : 0;
+            packOwnedLabel = ` (posiadasz ${X}/${Y})`;
+          }
+        } catch (_) {}
+      }
+
+      return `🛒 **${item.num}. ${item.emoji} ${item.name}** — ${priceLabel}${ownedLabel}\n_${desc}_${packOwnedLabel}`;
     })
     .join('\n');
 }

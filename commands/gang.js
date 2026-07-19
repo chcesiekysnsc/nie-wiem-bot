@@ -20,11 +20,18 @@ const MERCENARY_TYPES = {
 };
 const MERCENARY_TYPES_ORDER = ['zwykli', 'zolnierze', 'ochroniarze', 'szpiedzy', 'elitarni'];
 
-function renderBossShopList() {
+function renderBossShopList(ownedIds = []) {
   const crates = getAllCrateDefinitions();
   const crateLines = CRATE_ORDER.map((crateId, idx) => {
     const c = crates[crateId];
-    return `${idx + 1}. ${c.emoji} **${c.name}** — ${formatCurrency(c.price)}`;
+    let Y = 0;
+    let X = 0;
+    if (c.items) {
+      const itemIds = Object.keys(c.items);
+      Y = itemIds.length;
+      X = itemIds.filter(id => ownedIds.includes(id)).length;
+    }
+    return `${idx + 1}. ${c.emoji} **${c.name}** — ${formatCurrency(c.price)} (posiadacie ${X}/${Y})`;
   });
   const mercenaryLine = `${MERCENARIES_SHOP_NUMBER}. 🪖 **Najemnicy** — od ${formatCurrency(2000000)} (kontrakty 24h)`;
   return [...crateLines, mercenaryLine].join('\n');
@@ -2595,7 +2602,7 @@ module.exports = {
       const remaining = 10 - (readResult.purchasesToday || 0);
       const response =
         `🛒 **BOSSOWY SKLEP GANGU**\n` +
-        `${renderBossShopList()}\n` +
+        `${renderBossShopList(readResult.bossShopItems)}\n` +
         `💰 Sejf: **${formatCurrency(readResult.vault)}** | 📅 Dzisiaj: **${readResult.purchasesToday}/10** (pozostało: **${remaining}**)\n\n` +
         `💡 Kup: **!gang sklep kup <numer> [ilość]** | Szczegóły: **!gang sklep help <numer>**`;
 

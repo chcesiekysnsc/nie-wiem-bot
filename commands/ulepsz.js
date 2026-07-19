@@ -65,11 +65,36 @@ module.exports = {
         `💡 Użycie:\n` +
         `• **!ulepsz <przedmiot>** — pokaż szczegóły ulepszenia\n` +
         `• **!ulepsz <przedmiot> potwierdz** — ulepsz przedmiot\n` +
-        `• **!ulepsz lista** — lista ulepszalnych przedmiotów w ekwipunku\n\n` +
+        `• **!ulepsz lista** — lista ulepszalnych przedmiotów w ekwipunku\n` +
+        `• **!ulepsz materialy** — stan posiadanych materiałów ulepszeniowych\n\n` +
         `📦 Materiały ulepszeniowe dropują z paczek:\n` +
         `  Żelazo → Miedź → Tytan → Karbid → Inżelit\n\n` +
         `⚠️ Event przedmioty (top sezonu) nie mogą być ulepszane.`
       );
+      return;
+    }
+
+    if (input === 'materialy' || input === 'materiały' || input === 'mats') {
+      const result = await withData(store => {
+        const inventory = ensureInventoryRecord(store.inventory, userId);
+        const mats = [
+          { id: 'material_upgrade_1', name: 'Żelazo', emoji: '🔩' },
+          { id: 'material_upgrade_2', name: 'Miedź', emoji: '🔧' },
+          { id: 'material_upgrade_3', name: 'Tytan', emoji: '⚙️' },
+          { id: 'material_upgrade_4', name: 'Karbid', emoji: '💎' },
+          { id: 'material_upgrade_5', name: 'Inżelit', emoji: '⚛️' }
+        ];
+        const lines = mats.map(m => {
+          const qty = getItemQuantity(inventory, m.id);
+          return `${m.emoji} **${m.name}:** ${qty} szt.`;
+        });
+        return { lines };
+      });
+
+      await message.reply(
+        `🔧 **TWOJE MATERIAŁY ULEPSZENIOWE**\n\n` +
+        result.lines.join('\n')
+      ).catch(() => null);
       return;
     }
 
@@ -85,10 +110,33 @@ module.exports = {
             const def = config.shopItems[id];
             if (!def) return null;
             const lvl = getItemUpgradeLevel(inventory, id);
-            const bonus = getUpgradeBonus(id, lvl);
-            const bonusText = bonus ? ` — ${formatBonusText(id, bonus)}` : '';
             const numLabel = getItemNumberLabel(id);
-            return `${numLabel}${def.emoji} **${def.name}** +${lvl}${bonusText}`;
+
+            let reqText = '';
+            if (lvl >= MAX_LEVEL) {
+              reqText = ' — 🏆 MAKS';
+            } else {
+              const reqs = getUpgradeRequirements(id, lvl);
+              if (reqs) {
+                const hasMaterial = getItemQuantity(inventory, reqs.materialId) >= 1;
+                const balance = createUser(userId, store.users).balance || 0;
+                const hasCoins = balance >= reqs.coins;
+
+                const MATERIAL_EMOJIS = {
+                  material_upgrade_1: '🔩',
+                  material_upgrade_2: '🔧',
+                  material_upgrade_3: '⚙️',
+                  material_upgrade_4: '💎',
+                  material_upgrade_5: '⚛️'
+                };
+                const matEmoji = MATERIAL_EMOJIS[reqs.materialId] || '📦';
+                const matStatus = hasMaterial ? '✅' : '❌';
+                const coinStatus = hasCoins ? '✅' : '❌';
+
+                reqText = ` — potrzeba: ${matEmoji} ${reqs.material} ${matStatus} + 💰 ${formatCurrency(reqs.coins)} ${coinStatus}`;
+              }
+            }
+            return `${numLabel}${def.emoji} **${def.name}** +${lvl}${reqText}`;
           })
           .filter(Boolean);
 

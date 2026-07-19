@@ -156,6 +156,7 @@ function rollDrop(drops, luckMultiplier = 1) {
 module.exports = {
   name: 'otworz',
   aliases: ['open', 'otwórz', 'paczka'],
+  PACZKI,
   async execute(client, message, args) {
     const input = normalizePack(args[0]);
 
