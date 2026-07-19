@@ -141,9 +141,9 @@ module.exports = {
         name: 'Prywatny Bank',
         price: 10000000,
         payout: 340000,
-        breakChance: 0.11,
+        breakChance: 0.12,
         emoji: '🏦',
-        description: 'Najwyższe zyski przy najwyższym ryzyku. Zwrot kosztów w około 13 dni.'
+        description: 'Najwyższe zyski przy najwyższym ryzyku. 12% szans na awarię. Zwrot kosztów w około 13 dni.'
       }
     },
     maxBet: 100000,
