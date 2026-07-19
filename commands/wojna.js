@@ -57,12 +57,12 @@ module.exports = {
       });
 
       if (joinResult.error) {
-        await message.reply(joinResult.error);
+        await message.reply(joinResult.error).catch(() => null);
         return;
       }
 
       session.participants.push(message.author.id);
-      await message.reply(`✅ Dołączyłeś do wojny karcianej! Gracze: **${session.participants.length}/12**.`);
+      await message.reply(`✅ Dołączyłeś do wojny karcianej! Gracze: **${session.participants.length}/12**.`).catch(() => null);
       return;
     }
 
@@ -99,14 +99,14 @@ module.exports = {
           `Uczestnicy: ${listNames.join(', ')}\n` +
           `Pozostały czas na dołączenie: **${remaining}s**\n\n` +
           `👉 Wpisz **!wojna dolacz**, aby wejść do gry ze stawką **${formatCurrency(session.bet)}**!`
-        );
+        ).catch(() => null);
       } else {
         await message.reply(
           `🎴 **WOJNA KARCIANA** 🎴\n` +
           `Rozgrywka w toku...\n` +
           `Stawka: **${formatCurrency(session.bet)}**\n` +
           `Uczestnicy: ${listNames.join(', ')}`
-        );
+        ).catch(() => null);
       }
       return;
     }
@@ -116,7 +116,7 @@ module.exports = {
     // ==========================================
     const session = client.warSessions.get(threadId);
     if (session) {
-      await message.reply('❌ Na tej grupie trwa już rozgrywka lub zapisy do wojny karcianej!');
+      await message.reply('❌ Na tej grupie trwa już rozgrywka lub zapisy do wojny karcianej!').catch(() => null);
       return;
     }
 
@@ -132,7 +132,7 @@ module.exports = {
     });
 
     if (betResult.error) {
-      await message.reply(betResult.error);
+      await message.reply(betResult.error).catch(() => null);
       return;
     }
 
@@ -155,157 +155,165 @@ module.exports = {
       `⏱️ Czas na zapisy: **90 sekund**\n` +
       `👥 Maksymalnie: **12 graczy**\n\n` +
       `👉 Wpisz **!wojna dolacz** (lub **!wojna d**), aby wejść do gry!`
-    );
+    ).catch(() => null);
 
     // Setup lobby resolution
     setTimeout(async () => {
-      const active = client.warSessions.get(threadId);
-      if (!active || active.state !== 'lobby') return;
+      try {
+        const active = client.warSessions.get(threadId);
+        if (!active || active.state !== 'lobby') return;
 
-      if (active.participants.length < 2) {
-        // Refund the host and cancel
-        await withData(store => {
-          const hostUser = createUser(active.hostId, store.users);
-          hostUser.balance += active.bet;
-        });
-
-        client.warSessions.delete(threadId);
-        await client.api.sendMessage(
-          `❌ Wojna karciana została anulowana – zgłosiło się za mało uczestników (wymagane min. 2 osoby, zapisał się tylko host).\n` +
-          `💰 Stawka **${formatCurrency(active.bet)}** została zwrócona do portfela hosta.`,
-          threadId
-        );
-        return;
-      }
-
-      // Transition to game phase
-      active.state = 'game';
-
-      // Start turns
-      let players = [...active.participants];
-      const allParticipants = [...players];
-      const pot = allParticipants.length * active.bet;
-      let roundNum = 1;
-
-      const runTurn = async () => {
-        if (players.length <= 1) {
-          // We have a winner!
-          const winnerId = players[0];
-          const winnerName = await client.resolveUserName(winnerId);
-
-          const tax = Math.floor(pot * 0.05);
-          const potAfterTax = pot - tax;
-
-          const resolution = await withData(store => {
-            const winnerUser = createUser(winnerId, store.users);
-            const winnerInv = ensureInventoryRecord(store.inventory, winnerId);
-            const { hasItem } = require('../utils/economy');
-            let finalPot = potAfterTax;
-            if (hasItem(winnerInv, 'krolewskie_insygnia')) {
-              const profit = potAfterTax - active.bet;
-              if (profit > 0) {
-                finalPot += Math.floor(profit * 0.10);
-              }
-            }
-            winnerUser.balance += finalPot;
-
-            const net = finalPot - active.bet;
-            const xpResult = recordGame(winnerUser, net, 25, winnerInv);
-            refreshBadges(winnerUser, winnerInv);
-
-            const losersXp = [];
-            for (const pid of allParticipants) {
-              if (pid !== winnerId) {
-                const loserUser = createUser(pid, store.users);
-                const loserInv = ensureInventoryRecord(store.inventory, pid);
-                const lx = recordGame(loserUser, -active.bet, 25, loserInv);
-                refreshBadges(loserUser, loserInv);
-                losersXp.push({ userId: pid, xpResult: lx });
-              }
-            }
-
-            return { xpResult, losersXp };
+        if (active.participants.length < 2) {
+          await withData(store => {
+            const hostUser = createUser(active.hostId, store.users);
+            hostUser.balance += active.bet;
           });
 
           client.warSessions.delete(threadId);
-
-          let winMsg = `🏆 **WOJNA ZAKOŃCZONA!** 🏆\n\n` +
-            `👑 Zwycięzcą zostaje: **${winnerName}**!\n` +
-            `💰 Wygrana pula: **+${formatCurrency(potAfterTax)}** (netto: +${formatCurrency(potAfterTax - active.bet)}, po potrąceniu 5% podatku: -${formatCurrency(tax)})\n`;
-
-          if (resolution.xpResult && resolution.xpResult.leveledUp) {
-            winMsg += `\n🎉 **AWANS!** ${winnerName} awansował na **poziom ${resolution.xpResult.newLevel}**!`;
-            if (resolution.xpResult.milestonesGained && resolution.xpResult.milestonesGained.length > 0) {
-              const { getMilestoneRewardDescription } = require('../utils/economy');
-              for (const lvl of resolution.xpResult.milestonesGained) {
-                winMsg += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
-              }
-            }
+          if (client.api) {
+            await client.api.sendMessage(
+              `❌ Wojna karciana została anulowana – zgłosiło się za mało uczestników (wymagane min. 2 osoby, zapisał się tylko host).\n` +
+              `💰 Stawka **${formatCurrency(active.bet)}** została zwrócona do portfela hosta.`,
+              threadId
+            ).catch(() => null);
           }
-
-          // Output level ups for losers if any
-          for (const lx of resolution.losersXp) {
-            if (lx.xpResult && lx.xpResult.leveledUp) {
-              const lName = await client.resolveUserName(lx.userId);
-              winMsg += `\n🎉 **AWANS!** ${lName} awansował na **poziom ${lx.xpResult.newLevel}**!`;
-            }
-          }
-
-          await client.api.sendMessage(winMsg, threadId);
           return;
         }
 
-        // Draw cards
-        const draws = [];
-        const crypto = require('crypto');
-        for (const pid of players) {
-          const val = crypto.randomInt(2, 15); // 2 to 14 inclusive
-          const suit = crypto.randomInt(1, 5); // 1 to 4 inclusive
-          const strength = val * 10 + suit;
-          draws.push({ userId: pid, val, suit, strength });
+        active.state = 'game';
+
+        let players = [...active.participants];
+        const allParticipants = [...players];
+        const pot = allParticipants.length * active.bet;
+        let roundNum = 1;
+
+        const runTurn = async () => {
+          try {
+            if (players.length <= 1) {
+              const winnerId = players[0];
+              const winnerName = await client.resolveUserName(winnerId);
+
+              const tax = Math.floor(pot * 0.05);
+              const potAfterTax = pot - tax;
+
+              const resolution = await withData(store => {
+                const winnerUser = createUser(winnerId, store.users);
+                const winnerInv = ensureInventoryRecord(store.inventory, winnerId);
+                const { hasItem } = require('../utils/economy');
+                let finalPot = potAfterTax;
+                if (hasItem(winnerInv, 'krolewskie_insygnia')) {
+                  const profit = potAfterTax - active.bet;
+                  if (profit > 0) {
+                    finalPot += Math.floor(profit * 0.10);
+                  }
+                }
+                winnerUser.balance += finalPot;
+
+                const net = finalPot - active.bet;
+                const xpResult = recordGame(winnerUser, net, 25, winnerInv);
+                refreshBadges(winnerUser, winnerInv);
+
+                const losersXp = [];
+                for (const pid of allParticipants) {
+                  if (pid !== winnerId) {
+                    const loserUser = createUser(pid, store.users);
+                    const loserInv = ensureInventoryRecord(store.inventory, pid);
+                    const lx = recordGame(loserUser, -active.bet, 25, loserInv);
+                    refreshBadges(loserUser, loserInv);
+                    losersXp.push({ userId: pid, xpResult: lx });
+                  }
+                }
+
+                return { xpResult, losersXp };
+              });
+
+              client.warSessions.delete(threadId);
+
+              let winMsg = `🏆 **WOJNA ZAKOŃCZONA!** 🏆\n\n` +
+                `👑 Zwycięzcą zostaje: **${winnerName}**!\n` +
+                `💰 Wygrana pula: **+${formatCurrency(potAfterTax)}** (netto: +${formatCurrency(potAfterTax - active.bet)}, po potrąceniu 5% podatku: -${formatCurrency(tax)})\n`;
+
+              if (resolution.xpResult && resolution.xpResult.leveledUp) {
+                winMsg += `\n🎉 **AWANS!** ${winnerName} awansował na **poziom ${resolution.xpResult.newLevel}**!`;
+                if (resolution.xpResult.milestonesGained && resolution.xpResult.milestonesGained.length > 0) {
+                  const { getMilestoneRewardDescription } = require('../utils/economy');
+                  for (const lvl of resolution.xpResult.milestonesGained) {
+                    winMsg += `\n🎁 Otrzymałeś nagrodę kamienia milowego za poziom **${lvl}**: **${getMilestoneRewardDescription(lvl)}**!`;
+                  }
+                }
+              }
+
+              for (const lx of resolution.losersXp) {
+                if (lx.xpResult && lx.xpResult.leveledUp) {
+                  const lName = await client.resolveUserName(lx.userId);
+                  winMsg += `\n🎉 **AWANS!** ${lName} awansował na **poziom ${lx.xpResult.newLevel}**!`;
+                }
+              }
+
+              if (client.api) {
+                await client.api.sendMessage(winMsg, threadId).catch(() => null);
+              }
+              return;
+            }
+
+            const draws = [];
+            const crypto = require('crypto');
+            for (const pid of players) {
+              const val = crypto.randomInt(2, 15);
+              const suit = crypto.randomInt(1, 5);
+              const strength = val * 10 + suit;
+              draws.push({ userId: pid, val, suit, strength });
+            }
+
+            draws.sort((a, b) => a.strength - b.strength);
+
+            const N = players.length;
+            const E = Math.max(1, Math.min(N - 1, Math.round(N * 0.40)));
+
+            const eliminated = draws.slice(0, E);
+            const survivors = draws.slice(E);
+
+            let roundMsg = `🎴 **WOJNA - RUNDA ${roundNum}** 🎴\n` +
+              `Pozostało graczy: **${N}**\n\n` +
+              `**Wylosowane karty:**\n`;
+
+            for (const draw of draws) {
+              const name = await client.resolveUserName(draw.userId);
+              const cardStr = `${CARD_NAMES[draw.val]} ${SUIT_EMOJIS[draw.suit]}`;
+              const isElim = eliminated.some(el => el.userId === draw.userId);
+              roundMsg += `• **${name}**: ${cardStr} ${isElim ? '❌ (Odpada)' : '✅'}\n`;
+            }
+
+            roundNum++;
+            players = survivors.map(s => s.userId);
+
+            if (client.api) {
+              await client.api.sendMessage(roundMsg, threadId).catch(() => null);
+            }
+
+            setTimeout(runTurn, 4000);
+          } catch (err) {
+            console.error('[WOJNA] Błąd w trakcie tury:', err);
+            if (client.api) {
+              await client.api.sendMessage('❌ Wojna karciana: wystąpił błąd podczas rozgrywki.', threadId).catch(() => null);
+            }
+          }
+        };
+
+        if (client.api) {
+          await client.api.sendMessage(
+            `🏁 **ZAPISY ZAMKNIĘTE! ROZPOCZYNAMY WOJNĘ!** 🏁\n` +
+            `Uczestnicy (**${allParticipants.length}**): Wszyscy wkraczają na pole walki.\n` +
+            `Pula nagród: **${formatCurrency(pot)}**\n\n` +
+            `Losowanie za 3 sekundy...`,
+            threadId
+          ).catch(() => null);
         }
 
-        // Sort by strength ascending (lowest first)
-        draws.sort((a, b) => a.strength - b.strength);
-
-        // Eliminate 40% of players
-        const N = players.length;
-        const E = Math.max(1, Math.min(N - 1, Math.round(N * 0.40)));
-
-        const eliminated = draws.slice(0, E);
-        const survivors = draws.slice(E);
-
-        let roundMsg = `🎴 **WOJNA - RUNDA ${roundNum}** 🎴\n` +
-          `Pozostało graczy: **${N}**\n\n` +
-          `**Wylosowane karty:**\n`;
-
-        for (const draw of draws) {
-          const name = await client.resolveUserName(draw.userId);
-          const cardStr = `${CARD_NAMES[draw.val]} ${SUIT_EMOJIS[draw.suit]}`;
-          const isElim = eliminated.some(el => el.userId === draw.userId);
-          roundMsg += `• **${name}**: ${cardStr} ${isElim ? '❌ (Odpada)' : '✅'}\n`;
-        }
-
-        roundNum++;
-        players = survivors.map(s => s.userId);
-
-        await client.api.sendMessage(roundMsg, threadId);
-
-        // Schedule next turn
-        setTimeout(runTurn, 4000);
-      };
-
-      // Start the first turn
-      await client.api.sendMessage(
-        `🏁 **ZAPISY ZAMKNIĘTE! ROZPOCZYNAMY WOJNĘ!** 🏁\n` +
-        `Uczestnicy (**${allParticipants.length}**): Wszyscy wkraczają na pole walki.\n` +
-        `Pula nagród: **${formatCurrency(pot)}**\n\n` +
-        `Losowanie za 3 sekundy...`,
-        threadId
-      );
-
-      setTimeout(runTurn, 3000);
-
+        setTimeout(runTurn, 3000);
+      } catch (err) {
+        console.error('[WOJNA] Błąd w callbacku lobby:', err);
+      }
     }, newSession.lobbyDuration);
   }
 };

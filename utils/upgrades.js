@@ -166,12 +166,28 @@ function formatBonusText(itemId, bonus) {
   if (!bonus) return '';
   const parts = [];
   for (const [key, value] of Object.entries(bonus)) {
-    const pct = Number(value) * 100;
-    const label = key
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, s => s.toUpperCase())
-      .trim();
-    parts.push(`+${pct.toFixed(key === 'maxBet' || key === 'bankCapacity' || key === 'extraWeeklyDraws' || key === 'cooldownMinutes' || key === 'robLootPercent' || key === 'defensePenaltyBonus' || key === 'defenseChanceReduction' || key === 'theftReduction' ? 0 : 1)}% ${label}`);
+    const num = Number(value);
+    if (!Number.isFinite(num)) continue;
+
+    const flatKeys = new Set(['bankBonus', 'bankCapacity', 'maxBet', 'extraWeeklyDraws', 'cooldownMinutes', 'robLootPercent']);
+    if (flatKeys.has(key)) {
+      const label = key
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, s => s.toUpperCase())
+        .trim();
+      const formatted = key === 'maxBet' || key === 'bankBonus' || key === 'bankCapacity'
+        ? formatCurrency(num)
+        : num.toFixed(key === 'cooldownMinutes' || key === 'extraWeeklyDraws' ? 0 : 1);
+      parts.push(`${formatted} ${label}`);
+    } else {
+      const pct = num * 100;
+      const label = key
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, s => s.toUpperCase())
+        .trim();
+      const decimals = pct < 10 ? 1 : (Number.isInteger(pct) ? 0 : 1);
+      parts.push(`+${pct.toFixed(decimals)}% ${label}`);
+    }
   }
   return parts.join(', ');
 }
