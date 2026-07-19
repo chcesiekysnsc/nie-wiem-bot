@@ -359,7 +359,23 @@ const client = {
       if (!api) {
         return resolve(this.userNames.get(userId) || `Użytkownik_${userId.slice(-6)}`);
       }
+
+      let resolved = false;
+      const fallback = this.userNames.get(userId) || `Użytkownik_${userId.slice(-6)}`;
+
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          console.log(`[SELF-BOT] Timeout podczas pobierania nazwy uzytkownika ${userId} — uzywam fallbacku: ${fallback}`);
+          resolve(fallback);
+        }
+      }, 3000);
+
       api.getUserInfo(userId, (err, ret) => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeout);
+
         if (!err && ret && ret[userId]) {
           const name = ret[userId].name;
           this.userNames.set(userId, name);
@@ -375,7 +391,6 @@ const client = {
 
           resolve(name);
         } else {
-          const fallback = this.userNames.get(userId) || `Użytkownik_${userId.slice(-6)}`;
           resolve(fallback);
         }
       });
