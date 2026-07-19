@@ -490,14 +490,14 @@ const helpCommands = [
     id: 34,
     name: "gang",
     category: "SOCIAL_GANGS",
-    shortDescription: "🛡️ zarządzanie i akcje gangu",
-    description: "🛡️ System gangów: zakładanie, sejf, ulepszenia dziupli, napady oraz wojny.",
-    usage: "!gang [stworz/zapros/dolacz/awans/wyrzuc/opusc/wplac/wyplac/ulepsz/skok/wsparcie/haracz/atak/info] [argument]",
-    examples: ["!gang stworz MojaEkipa","!gang zapros @Kowalski","!gang wplac 5000","!gang skok"],
+    shortDescription: "zarzadzanie i interakcje gangu",
+    description: "System gangów: zakładanie, wspólny sejf, ulepszenia Dziupli, Biznesów i Fachu, skoki oraz wojny gangów.",
+    usage: "!gang [stworz/zapros/dolacz/awans/wyrzuc/opusc/wplac/wyplac/ulepsz/skok/wsparcie/wesprzyj/haracz/atak/info] [@osoba/nazwa]",
+    examples: ["!gang stworz MojaEkipa","!gang zapros @Kowalski","!gang wplac 5000","!gang ulepsz dziupla","!gang skok","!gang wsparcie InnyGang","!gang wesprzyj","!gang atak InnyGang","!gang info @Kowalski"],
     cooldown: "3 sekundy",
-    requirements: "Założenie gangu kosztuje 1 000 000 monet. Skok wymaga min. 2 graczy.",
+    requirements: "Zakładanie gangu kosztuje 1 000 000 viccoinów. Skok gangu wymaga min. 2 graczy.",
     aliases: ["gangi"],
-    additionalInfo: ["Boss i Zastępcy zarządzają gangiem.","Ulepszenia dają pasywne bonusy do pracy i kradzieży."]
+    additionalInfo: ["Boss i Zastępcy zarządzają gangiem.","Ulepszenia dają bonusy do pracy i kradzieży."]
   },
   {
     id: 35,
