@@ -108,7 +108,7 @@ module.exports = {
         });
       }
 
-      await message.reply(`✅ Dziękujemy za zgłoszenie! Twoja propozycja (Numer: **#${proposalNum}**) została przesłana do administracji.`);
+      await message.reply(`✅ Dziękujemy za zgłoszenie! Twoja propozycja (numer #${proposalNum}) została przesłana do administracji.`);
       return;
     }
 
