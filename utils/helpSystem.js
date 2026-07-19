@@ -1089,8 +1089,9 @@ function buildHelpShell() {
 }
 
 function buildHelpListEmbed(client, prefix = '!') {
+  const sep = '─'.repeat(28);
   const embed = buildHelpShell()
-    .setDescription('Wszystkie dostepne komendy bota podzielone na 3 kategorie.');
+    .setDescription(`📖 **LISTA WSZYSTKICH KOMEND**\n${sep}`);
 
   const categories = {
     ECONOMY_GAMBLING: '💰 EKONOMIA I HAZARD',
@@ -1102,9 +1103,9 @@ function buildHelpListEmbed(client, prefix = '!') {
   for (const [catKey, catLabel] of Object.entries(categories)) {
     const cmds = getActiveHelpCommands().filter(c => c.category === catKey);
     if (cmds.length > 0) {
-      const fieldContent = cmds.map(c => `• ${c.id}. ${prefix}${c.name} - ${c.shortDescription}`).join('\n');
+      const fieldContent = cmds.map(c => `  ${c.id}. ${prefix}${c.name}\n      ↳ ${c.shortDescription}`).join('\n\n');
       fields.push({
-        name: catLabel,
+        name: `\n${sep}\n${catLabel}\n${sep}`,
         value: fieldContent,
         inline: false
       });
@@ -1113,7 +1114,7 @@ function buildHelpListEmbed(client, prefix = '!') {
 
   if (fields.length > 0) {
     const lastField = fields[fields.length - 1];
-    lastField.value += `\n\nUzyj \`${prefix}help <nazwa_komendy>\`, aby poznac szczegoly.`;
+    lastField.value += `\n\n${sep}\n💡 Wpisz ${prefix}help <nazwa> aby poznać szczegóły komendy.`;
   }
 
   embed.addFields(fields);
@@ -1121,14 +1122,33 @@ function buildHelpListEmbed(client, prefix = '!') {
 }
 
 function buildHelpDetailEmbed(client, command, prefix = '!') {
+  const sep = '─'.repeat(28);
+  const aliasText = command.aliases && command.aliases.length > 0
+    ? command.aliases.map(a => `${prefix}${a}`).join(', ')
+    : 'Brak';
+  const infoText = command.additionalInfo && command.additionalInfo.length > 0
+    ? command.additionalInfo.map(i => `  💡 ${i}`).join('\n')
+    : '';
+
+  const fields = [
+    { name: `\n${sep}\n📝 OPIS`, value: command.description, inline: false },
+    { name: `\n${sep}\n⌨️ SKŁADNIA`, value: command.usage.replace(/!/g, prefix), inline: false },
+    { name: `\n📋 PRZYKŁADY`, value: command.examples.map(ex => `  ▸ ${ex.replace(/!/g, prefix)}`).join('\n'), inline: false },
+    { name: `\n${sep}\n⏱️ COOLDOWN`, value: `  ${command.cooldown}`, inline: false },
+    { name: `🔗 ALIASY`, value: `  ${aliasText}`, inline: false }
+  ];
+
+  if (command.requirements && command.requirements !== 'Brak.') {
+    fields.push({ name: `⚠️ WYMAGANIA`, value: `  ${command.requirements}`, inline: false });
+  }
+
+  if (infoText) {
+    fields.push({ name: `\n${sep}\n📌 DODATKOWE INFO`, value: infoText, inline: false });
+  }
+
   return buildHelpShell()
-    .setTitle(`Komenda: ${prefix}${command.name}`)
-    .setDescription(command.description)
-    .addFields(
-      { name: 'Cooldown', value: command.cooldown, inline: true },
-      { name: 'Skladnia', value: command.usage.replace(/!/g, prefix), inline: false },
-      { name: 'Przyklady', value: command.examples.map(ex => ex.replace(/!/g, prefix)).join('\n'), inline: false }
-    );
+    .setTitle(`📖 Komenda: ${prefix}${command.name}`)
+    .addFields(fields);
 }
 
 function buildHelpErrorEmbed() {
@@ -1158,16 +1178,20 @@ function getHelpCommandByCategoryAndNumber(categoryKey, num) {
 }
 
 function buildCategoryPromptEmbed(prefix = '!') {
+  const sep = '─'.repeat(28);
   return buildHelpShell()
     .setTitle('📖 Centrum Pomocy')
     .setDescription(
-      `Wybierz kategorię, którą chcesz zobaczyć:\n\n` +
-      `1️⃣ 💰 Ekonomiczne\n` +
-      `2️⃣ 👥 Społeczne\n` +
-      `3️⃣ 🛠️ Narzędzia / Inne\n` +
-      `4️⃣ 📋 Wszystkie na raz\n\n` +
-      `👉 Odpowiedz numerem (1-4) lub nazwą kategorii (np. "społeczne").\n` +
-      `⏳ Masz 60 sekund na odpowiedź — tylko Ty możesz odpowiedzieć na to pytanie.`
+      `Wybierz kategorię komend:\n` +
+      `${sep}\n\n` +
+      `  1️⃣  💰 Ekonomiczne\n\n` +
+      `  2️⃣  👥 Społeczne\n\n` +
+      `  3️⃣  🛠️ Narzędzia / Inne\n\n` +
+      `  4️⃣  📋 Wszystkie na raz\n\n` +
+      `${sep}\n` +
+      `👉 Odpowiedz numerem (1-4)\n` +
+      `   lub nazwą (np. "społeczne")\n\n` +
+      `⏳ Masz 60s na odpowiedź.`
     );
 }
 
@@ -1175,13 +1199,17 @@ function buildCategoryListEmbed(categoryKey, prefix = '!') {
   const label = CATEGORY_SELECT_LABELS[categoryKey] || categoryKey;
   const cmds = getCommandsByCategory(categoryKey);
   const catArg = CATEGORY_ARG_NAMES[categoryKey] || '';
+  const sep = '─'.repeat(28);
 
-  const listText = cmds.map(c => `${c.categoryId}. ${prefix}${c.name} — ${c.shortDescription}`).join('\n');
+  const listText = cmds.map(c => `  ${c.categoryId}. ${prefix}${c.name}\n      ↳ ${c.shortDescription}`).join('\n\n');
 
   return buildHelpShell()
-    .setTitle(label)
+    .setTitle(`${label}`)
     .setDescription(
-      `${listText}\n\n💡 Szczegóły komendy: \`${prefix}help ${catArg} <numer>\``
+      `${sep}\n\n` +
+      `${listText}\n\n` +
+      `${sep}\n` +
+      `💡 Szczegóły: ${prefix}help ${catArg} <numer>`
     );
 }
 
