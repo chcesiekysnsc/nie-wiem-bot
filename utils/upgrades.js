@@ -148,6 +148,35 @@ function resolveItemId(input) {
   const q = String(input || '').toLowerCase().trim();
   if (!q) return null;
 
+  // Sprawdź czy to jest numer (np. "2" lub "s1" lub "sklep 1")
+  const shopMatch = q.match(/^(?:s|sklep)\s*(\d+)$/);
+  if (shopMatch) {
+    const num = parseInt(shopMatch[1], 10);
+    let currentNum = 1;
+    for (const [id, item] of Object.entries(config.shopItems)) {
+      if (item.buyable !== false) {
+        if (currentNum === num) return id;
+        currentNum++;
+      }
+    }
+  }
+
+  const artMatch = q.match(/^(\d+)$/);
+  if (artMatch) {
+    const num = parseInt(artMatch[1], 10);
+    const eventItemIds = [
+      'szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia',
+      'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta', 'kosci_oszusta', 'czterolistna_moneta'
+    ];
+    let currentNum = 1;
+    for (const [id, item] of Object.entries(config.shopItems)) {
+      if (eventItemIds.includes(id)) continue;
+      if (item.buyable !== false) continue;
+      if (currentNum === num) return id;
+      currentNum++;
+    }
+  }
+
   if (config.shopItems[q]) return q;
   if (config.upgradePaths[q]) return q;
   if (config.gangUpgradePaths[q]) return q;
@@ -163,29 +192,86 @@ function resolveItemId(input) {
   return null;
 }
 
+function getItemNumberLabel(itemId) {
+  const item = config.shopItems[itemId];
+  if (!item) return '';
+
+  const eventItemIds = [
+    'szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia',
+    'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta', 'kosci_oszusta', 'czterolistna_moneta'
+  ];
+
+  if (item.buyable !== false) {
+    let currentNum = 1;
+    for (const [id, it] of Object.entries(config.shopItems)) {
+      if (it.buyable !== false) {
+        if (id === itemId) return `S${currentNum}. `;
+        currentNum++;
+      }
+    }
+  } else if (!eventItemIds.includes(itemId)) {
+    let currentNum = 1;
+    for (const [id, it] of Object.entries(config.shopItems)) {
+      if (eventItemIds.includes(id)) continue;
+      if (it.buyable !== false) continue;
+      if (id === itemId) return `${currentNum}. `;
+      currentNum++;
+    }
+  }
+
+  return '';
+}
+
 function formatBonusText(itemId, bonus) {
   if (!bonus) return '';
+  const TRANSLATIONS = {
+    chance: 'szansy na obronę',
+    robLootBonus: 'zysku z kradzieży (!rob)',
+    robPenaltyReduction: 'redukcji kary przy kradzieży',
+    activationChance: 'szansy na aktywację',
+    extraWeeklyDraws: 'dodatkowych losowań tygodniowo',
+    robLootPercent: 'łupu z kradzieży',
+    cooldownMinutes: 'minut cooldownu dla złodzieja',
+    dailyBonus: 'bonusu do !daily',
+    workBonus: 'bonusu do !work',
+    bankBonus: 'bonusu do banku',
+    bankCapacity: 'pojemności banku',
+    robChance: 'szansy na kradzież (!rob)',
+    robPenaltyBonus: 'zwiększenia kary przy wpadce',
+    blackjackBonusChance: 'szansy na lepszą kartę w blackjacku',
+    defensePenaltyBonus: 'kary nałożonej na złodzieja',
+    defenseChanceReduction: 'szansy na obronę',
+    crimeChanceReduction: 'szansy na wpadkę w !crime',
+    xpBonus: 'bonusu do XP',
+    companyIncomeBonus: 'zysków z firm (!firma)',
+    globalIncomeBonus: 'globalnego dochodu',
+    doubleWorkChance: 'szansy na podwójne zarobki w !work',
+    cooldownReduction: 'skrócenia cooldownu',
+    streakBonus: 'bonusu za wygraną z rzędu',
+    maxStreakBonus: 'maksymalnego bonusu za streak',
+    gangAttackBonus: 'zysków z napadów gangu',
+    gangWarBonus: 'zysków z wojen gangów',
+    maxBet: 'maksymalnego zakładu'
+  };
+
   const parts = [];
   for (const [key, value] of Object.entries(bonus)) {
     const num = Number(value);
     if (!Number.isFinite(num)) continue;
 
+    const label = TRANSLATIONS[key] || key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, s => s.toUpperCase())
+      .trim();
+
     const flatKeys = new Set(['bankBonus', 'bankCapacity', 'maxBet', 'extraWeeklyDraws', 'cooldownMinutes', 'robLootPercent']);
     if (flatKeys.has(key)) {
-      const label = key
-        .replace(/([A-Z])/g, ' $1')
-        .replace(/^./, s => s.toUpperCase())
-        .trim();
       const formatted = key === 'maxBet' || key === 'bankBonus' || key === 'bankCapacity'
         ? formatCurrency(num)
         : num.toFixed(key === 'cooldownMinutes' || key === 'extraWeeklyDraws' ? 0 : 1);
       parts.push(`${formatted} ${label}`);
     } else {
       const pct = num * 100;
-      const label = key
-        .replace(/([A-Z])/g, ' $1')
-        .replace(/^./, s => s.toUpperCase())
-        .trim();
       const decimals = pct < 10 ? 1 : (Number.isInteger(pct) ? 0 : 1);
       parts.push(`+${pct.toFixed(decimals)}% ${label}`);
     }
@@ -208,6 +294,7 @@ module.exports = {
   upgradeItem,
   getAllUpgradableItems,
   resolveItemId,
+  getItemNumberLabel,
   formatBonusText
 };
 

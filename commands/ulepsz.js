@@ -11,6 +11,7 @@ const {
   upgradeItem,
   getAllUpgradableItems,
   resolveItemId,
+  getItemNumberLabel,
   formatBonusText,
   MAX_LEVEL,
   UPGRADE_MATERIALS
@@ -86,7 +87,8 @@ module.exports = {
             const lvl = getItemUpgradeLevel(inventory, id);
             const bonus = getUpgradeBonus(id, lvl);
             const bonusText = bonus ? ` — ${formatBonusText(id, bonus)}` : '';
-            return `${def.emoji} **${def.name}** +${lvl}${bonusText}`;
+            const numLabel = getItemNumberLabel(id);
+            return `${numLabel}${def.emoji} **${def.name}** +${lvl}${bonusText}`;
           })
           .filter(Boolean);
 

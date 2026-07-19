@@ -23,8 +23,8 @@ const PACZKI = {
     drops: [
       { chance: 100, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] }, // 10%
       { chance: 30,  items: [{ id: 'walizka', qty: 1, label: '💼 Walizka', permanent: true }] }, // 3%
-      { chance: 40, items: [{ id: 'material_upgrade_1', qty: 1, label: '🔩 Żelazo' }] }, // 4%
-      { chance: 20, items: [{ id: 'material_upgrade_2', qty: 1, label: '🔧 Miedź' }] } // 2%
+      { chance: 10, items: [{ id: 'material_upgrade_1', qty: 1, label: '🔩 Żelazo' }] }, // 1%
+      { chance: 10, items: [{ id: 'material_upgrade_2', qty: 1, label: '🔧 Miedź' }] } // 1%
     ]
   },
   srebrna: {
@@ -38,9 +38,9 @@ const PACZKI = {
       { chance: 50, items: [{ id: 'piwo',   qty: 1, label: '🍺 Piwo'   }] },
       { chance: 25, items: [{ id: 'kominiarka', qty: 1, label: '🥷 Kominiarka', permanent: true }] }, // 2.5%
       { chance: 25, items: [{ id: 'podrecznik_praktykanta', qty: 1, label: '📘 Podręcznik Praktykanta', permanent: true }] }, // 2.5%
-      { chance: 50, items: [{ id: 'material_upgrade_1', qty: 1, label: '🔩 Żelazo' }] },
-      { chance: 30, items: [{ id: 'material_upgrade_2', qty: 1, label: '🔧 Miedź' }] },
-      { chance: 15, items: [{ id: 'material_upgrade_3', qty: 1, label: '⚙️ Tytan' }] }
+      { chance: 10, items: [{ id: 'material_upgrade_1', qty: 1, label: '🔩 Żelazo' }] },
+      { chance: 10, items: [{ id: 'material_upgrade_2', qty: 1, label: '🔧 Miedź' }] },
+      { chance: 10, items: [{ id: 'material_upgrade_3', qty: 1, label: '⚙️ Tytan' }] }
     ]
   },
   zlota: {
@@ -59,8 +59,8 @@ const PACZKI = {
       { chance: 15, items: [{ id: 'zestaw_wlamywacza', qty: 1, label: '🛠️ Zestaw Włamywacza', permanent: true }] }, // 1.5%
       { chance: 15, items: [{ id: 'latarka', qty: 1, label: '🔦 Latarka', permanent: true }] }, // 1.5%
       { chance: 10, items: [{ id: 'ksiega_inwestora', qty: 1, label: '📖 Księga Inwestora', permanent: true }] }, // 1.0%
-      { chance: 40, items: [{ id: 'material_upgrade_2', qty: 1, label: '🔧 Miedź' }] },
-      { chance: 30, items: [{ id: 'material_upgrade_3', qty: 1, label: '⚙️ Tytan' }] },
+      { chance: 10, items: [{ id: 'material_upgrade_2', qty: 1, label: '🔧 Miedź' }] },
+      { chance: 10, items: [{ id: 'material_upgrade_3', qty: 1, label: '⚙️ Tytan' }] },
       { chance: 10, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] }
     ]
   },
@@ -82,8 +82,8 @@ const PACZKI = {
       { chance: 15, items: [{ id: 'kaczka_biznesu', qty: 1, label: '🦆 Kaczka Biznesu', permanent: true }] }, // 1.5%
       { chance: 15, items: [{ id: 'patrol_policji', qty: 1, label: '🚔 Patrol Policji', permanent: true }] }, // 1.5%
       { chance: 10, items: [{ id: 'mocna_kawa', qty: 1, label: '☕ Mocna Kawa', permanent: true }] }, // 1.0%
-      { chance: 50, items: [{ id: 'material_upgrade_3', qty: 1, label: '⚙️ Tytan' }] },
-      { chance: 30, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] },
+      { chance: 10, items: [{ id: 'material_upgrade_3', qty: 1, label: '⚙️ Tytan' }] },
+      { chance: 10, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] },
       { chance: 10, items: [{ id: 'material_upgrade_5', qty: 1, label: '⚛️ Inżelit' }] }
     ]
   },
@@ -106,8 +106,8 @@ const PACZKI = {
       { chance: 7.5, items: [{ id: 'sakiewka_kolekcjonera', qty: 1, label: '💰 Sakiewka Kolekcjonera', permanent: true }] }, // 0.75%
       { chance: 10, items: [{ id: 'z_drive', qty: 1, label: '⏳ Z-drive', permanent: true }] }, // 1.0%
       { chance: 10, items: [{ id: 'rekawice_robotnika', qty: 1, label: '🧤 Rękawice Robotnika', permanent: true }] }, // 1.0%
-      { chance: 120, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] },
-      { chance: 80, items: [{ id: 'material_upgrade_5', qty: 1, label: '⚛️ Inżelit' }] }
+      { chance: 10, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] },
+      { chance: 10, items: [{ id: 'material_upgrade_5', qty: 1, label: '⚛️ Inżelit' }] }
     ]
   }
 };

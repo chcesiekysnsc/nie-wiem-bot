@@ -173,44 +173,6 @@ module.exports = {
   upgradeMaterials: ['Żelazo', 'Miedź', 'Tytan', 'Karbid', 'Inżelit'],
   upgradeCosts: [100000, 250000, 500000, 1000000, 2000000],
   upgradePaths: {
-    klodka: {
-      bonuses: [
-        { chance: 0.05 },
-        { chance: 0.10 },
-        { chance: 0.15 },
-        { chance: 0.20 },
-        { chance: 0.25 }
-      ]
-    },
-    piwo: {
-      bonuses: [
-        { robLootBonus: 0.05, robPenaltyReduction: 0.10, activationChance: 0.50 },
-        { robLootBonus: 0.06, robPenaltyReduction: 0.09, activationChance: 0.55 },
-        { robLootBonus: 0.07, robPenaltyReduction: 0.08, activationChance: 0.60 },
-        { robLootBonus: 0.08, robPenaltyReduction: 0.07, activationChance: 0.65 },
-        { robLootBonus: 0.09, robPenaltyReduction: 0.06, activationChance: 0.70 },
-        { robLootBonus: 0.10, robPenaltyReduction: 0.05, activationChance: 0.75 }
-      ]
-    },
-    ticket: {
-      bonuses: [
-        { extraWeeklyDraws: 1 },
-        { extraWeeklyDraws: 2 },
-        { extraWeeklyDraws: 3 },
-        { extraWeeklyDraws: 4 },
-        { extraWeeklyDraws: 5 }
-      ]
-    },
-    bomba: {
-      bonuses: [
-        { robLootPercent: 0.40, cooldownMinutes: 30 },
-        { robLootPercent: 0.45, cooldownMinutes: 35 },
-        { robLootPercent: 0.50, cooldownMinutes: 40 },
-        { robLootPercent: 0.55, cooldownMinutes: 45 },
-        { robLootPercent: 0.60, cooldownMinutes: 50 },
-        { robLootPercent: 0.65, cooldownMinutes: 60 }
-      ]
-    },
     vip: {
       bonuses: [
         { dailyBonus: 0.25, workBonus: 0.10, bankBonus: 25000 },
@@ -621,32 +583,32 @@ module.exports = {
       name: 'Brązowa Paczka',
       emoji: '🟫',
       price: 50000,
-      shortDesc: 'Lootbox: 20.25k–65.25k + 10% Bilet Loterii + 3% Walizka.',
-      description: 'Otwórz komendą: !otworz brazowa\nZawartość: losowa kwota od 20 250 do 65 250 viccoinów (rozkład równomierny).\nBonus drop: 10% Bilet Loterii, 3% Walizka.',
+      shortDesc: 'Lootbox: 20.25k–65.25k + 10% Bilet, 3% Walizka, 1% Żelazo, 1% Miedź.',
+      description: 'Otwórz komendą: !otworz brazowa\nZawartość: losowa kwota od 20 250 do 65 250 viccoinów (rozkład równomierny).\nBonus drop: 10% Bilet Loterii, 3% Walizka, 1% Żelazo, 1% Miedź.',
       type: 'stackable'
     },
     paczka_srebrna: {
       name: 'Srebrna Paczka',
       emoji: '⬜',
       price: 100000,
-      shortDesc: 'Lootbox: 64.125k–131.625k + szansa na Kłódkę, Piwo, Kominiarkę, Podręcznik.',
-      description: 'Otwórz komendą: !otworz srebrna\nZawartość: losowa kwota od 64 125 do 131 625 viccoinów.\nBonus drop: 5% Kłódka, 5% Piwo, 2.5% Kominiarka, 2.5% Podręcznik Praktykanta.',
+      shortDesc: 'Lootbox: 64.125k–131.625k + szansa na Kłódkę, Piwo, Kominiarkę, Podręcznik, 1% Żelazo, 1% Miedź, 1% Tytan.',
+      description: 'Otwórz komendą: !otworz srebrna\nZawartość: losowa kwota od 64 125 do 131 625 viccoinów.\nBonus drop: 5% Kłódka, 5% Piwo, 2.5% Kominiarka, 2.5% Podręcznik Praktykanta, 1% Żelazo, 1% Miedź, 1% Tytan.',
       type: 'stackable'
     },
     paczka_zlota: {
       name: 'Złota Paczka',
       emoji: '🟨',
       price: 200000,
-      shortDesc: 'Lootbox: 130.5k–220.5k + szansa na itemy/Księgę/Włamywacza/Latarkę.',
-      description: 'Otwórz komendą: !otworz zlota\nZawartość: losowa kwota od 130 500 do 220 500 viccoinów.\nBonus drop: 5% Bomba, 3% Kłódka+Piwo, 2% Bilet, 2% Złota Karta, 1% Kamera, 1% Talizman Fortuny, 1% Księga Inwestora, 1.5% Zestaw Włamywacza, 1.5% Latarka.',
+      shortDesc: 'Lootbox: 130.5k–220.5k + szansa na itemy/Księgę/Włamywacza/Latarkę, 1% Miedź, 1% Tytan, 1% Karbid.',
+      description: 'Otwórz komendą: !otworz zlota\nZawartość: losowa kwota od 130 500 do 220 500 viccoinów.\nBonus drop: 5% Bomba, 3% Kłódka+Piwo, 2% Bilet, 2% Złota Karta, 1% Kamera, 1% Talizman Fortuny, 1% Księga Inwestora, 1.5% Zestaw Włamywacza, 1.5% Latarka, 1% Miedź, 1% Tytan, 1% Karbid.',
       type: 'stackable'
     },
     paczka_diamentowa: {
       name: 'Diamentowa Paczka',
       emoji: '🟦',
       price: 500000,
-      shortDesc: 'Lootbox: 202.5k–652.5k + szansa na VIP/Sejf/Alarm/Psa/Kaczkę.',
-      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 202 500 do 652 500 viccoinów.\nBonus drop: 5% VIP Pass, 5% Ulepszenie Banku, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur, 2% Alarm, 2% Pies Stróżujący, 1.5% Kaczka Biznesu.',
+      shortDesc: 'Lootbox: 202.5k–652.5k + szansa na VIP/Sejf/Alarm/Psa/Kaczkę, 1% Tytan, 1% Karbid, 1% Inżelit.',
+      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 202 500 do 652 500 viccoinów.\nBonus drop: 5% VIP Pass, 5% Ulepszenie Banku, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur, 2% Alarm, 2% Pies Stróżujący, 1.5% Kaczka Biznesu, 1% Tytan, 1% Karbid, 1% Inżelit.',
       type: 'stackable'
     },
     // Poniższe itemy są niedostępne w sklepie — wypadają tylko z paczek
@@ -724,8 +686,8 @@ module.exports = {
       name: 'Tytanowa Paczka',
       emoji: '🩶',
       price: 800000,
-      shortDesc: 'Lootbox: 495k–900k + szansa na Krupiera, Kostkę, Insygnia, Księgową.',
-      description: 'Otwórz komendą: !otworz tytanowa\nZawartość: losowa kwota od 495 000 do 900 000 viccoinów.\nBonus drop: 2% Przekupiony Krupier, 3% Kostka Ryzyka, 3% Insygnia Gangu, 0.75% Dobra Księgowa, 40% Bomba/Piwo/Kłódka.',
+      shortDesc: 'Lootbox: 495k–900k + szansa na Krupiera, Kostkę, Insygnia, Księgową, 1% Karbid, 1% Inżelit.',
+      description: 'Otwórz komendą: !otworz tytanowa\nZawartość: losowa kwota od 495 000 do 900 000 viccoinów.\nBonus drop: 2% Przekupiony Krupier, 3% Kostka Ryzyka, 3% Insygnia Gangu, 0.75% Dobra Księgowa, 40% Bomba/Piwo/Kłódka, 1% Karbid, 1% Inżelit.',
       type: 'stackable',
       buyable: true
     },

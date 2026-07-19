@@ -156,7 +156,7 @@ const helpCommands = [
     shortDescription: "🔧 ulepsz przedmiot",
     description: "🔧 Ulepsz przedmioty w ekwipunku do +5. Każdy poziom wymaga kopii przedmiotu + materiału ulepszeniowego + monet.",
     usage: "!ulepsz <przedmiot> | !ulepsz <przedmiot> potwierdz | !ulepsz lista",
-    examples: ["!ulepsz klodka","!ulepsz vip potwierdz","!ulepsz lista"],
+    examples: ["!ulepsz sejf","!ulepsz vip potwierdz","!ulepsz lista"],
     cooldown: "3 sekundy",
     requirements: "Posiadanie przedmiotu i odpowiednich materiałów.",
     aliases: ["upgrade","ulepszanie"],
