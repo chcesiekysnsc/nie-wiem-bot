@@ -1,6 +1,6 @@
 const config = require('../config/config');
-const { withData, createUser, ensureInventoryRecord, loadData, saveData } = require('./storage');
-const { hasItem, addItem, removeItem, getItemQuantity, formatCurrency } = require('./economy');
+const { withData, createUser, loadData, saveData } = require('./storage');
+const { hasItem, addItem, removeItem, getItemQuantity, formatCurrency, ensureInventoryRecord } = require('./economy');
 
 const UPGRADE_MATERIALS = config.upgradeMaterials || ['Żelazo', 'Miedź', 'Tytan', 'Karbid', 'Inżelit'];
 const UPGRADE_COSTS = config.upgradeCosts || [100000, 250000, 500000, 1000000, 2000000];

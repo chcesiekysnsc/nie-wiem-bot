@@ -1,6 +1,6 @@
 const config = require('../config/config');
-const { withData, ensureInventoryRecord, createUser } = require('../utils/storage');
-const { formatCurrency, hasItem, getItemQuantity } = require('../utils/economy');
+const { withData, createUser } = require('../utils/storage');
+const { formatCurrency, hasItem, getItemQuantity, ensureInventoryRecord } = require('../utils/economy');
 const {
   isUpgradeable,
   getItemUpgradeLevel,
