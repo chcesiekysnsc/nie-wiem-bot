@@ -81,8 +81,26 @@ module.exports = {
         authorName = client.userNames.get(userId);
       }
 
+      const proposalNum = await withData(store => {
+        store.profiles.proposals = store.profiles.proposals || [];
+        const num = store.profiles.proposals.length + 1;
+
+        const newProposal = {
+          num,
+          userId,
+          authorName,
+          content,
+          threadId: message.rawEvent.threadID,
+          messageId: message.rawEvent.messageID,
+          timestamp: Date.now()
+        };
+
+        store.profiles.proposals.push(newProposal);
+        return num;
+      });
+
       if (client.api && typeof client.api.sendMessage === 'function') {
-        const adminMsg = `👤 Zgłosił: ${authorName} (ID: ${userId})\n\n!propozycja ${content}`;
+        const adminMsg = `💡 **PROPOZYCJA #${proposalNum}**\n👤 Zgłosił: ${authorName} (ID: ${userId})\n\n${content}\n\n💡 Aby odpowiedzieć, wpisz: !odpowiedz ${proposalNum} <treść>`;
         client.api.sendMessage(adminMsg, ADMIN_GROUP_ID, (err) => {
           if (err) {
             console.error('[PROPOZYCJE] Błąd wysyłania na grupę administracyjną:', err);
@@ -90,7 +108,7 @@ module.exports = {
         });
       }
 
-      await message.reply('✅ Dziękujemy za zgłoszenie! Twoja propozycja została przesłana do administracji.');
+      await message.reply(`✅ Dziękujemy za zgłoszenie! Twoja propozycja (Numer: **#${proposalNum}**) została przesłana do administracji.`);
       return;
     }
 

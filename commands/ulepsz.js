@@ -133,7 +133,7 @@ module.exports = {
                 const matStatus = hasMaterial ? '✅' : '❌';
                 const coinStatus = hasCoins ? '✅' : '❌';
 
-                reqText = ` — potrzeba: ${matEmoji} ${reqs.material} ${matStatus} + 💰 ${formatCurrency(reqs.coins)} ${coinStatus}`;
+                reqText = ` — potrzeba: ${matEmoji} ${reqs.material} ${matStatus} + ${formatCurrency(reqs.coins)} ${coinStatus}`;
               }
             }
             return `${numLabel}${def.emoji} **${def.name}** +${lvl}${reqText}`;
