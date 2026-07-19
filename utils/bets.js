@@ -1,15 +1,29 @@
 const fs = require('fs');
 const path = require('path');
-const storage = require('./storage');
-const { withData, createUser } = storage;
+const { withData, createUser } = require('./storage');
 const { formatCurrency, refreshBadges, ensureInventoryRecord, randomInt, recordGame } = require('./economy');
 
+const BETS_FILE = path.join(__dirname, '..', 'data', 'active_bets.json');
+
 function loadBets() {
-  return storage.loadData('activeBets') || {};
+  try {
+    if (!fs.existsSync(BETS_FILE)) {
+      return {};
+    }
+    const raw = fs.readFileSync(BETS_FILE, 'utf8');
+    return raw.trim() ? JSON.parse(raw) : {};
+  } catch (err) {
+    console.error('[BETS] Error loading active bets:', err);
+    return {};
+  }
 }
 
 function saveBets(bets) {
-  storage.saveData('activeBets', bets);
+  try {
+    fs.writeFileSync(BETS_FILE, JSON.stringify(bets, null, 2), 'utf8');
+  } catch (err) {
+    console.error('[BETS] Error saving active bets:', err);
+  }
 }
 
 function addActiveBet(userId, betData) {

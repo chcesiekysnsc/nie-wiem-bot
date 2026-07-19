@@ -14,14 +14,12 @@ require('dotenv').config();
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
-const config = require('../config/config');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  ssl: { rejectUnauthorized: false }
+  connectionTimeoutMillis: 2000,
 });
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
@@ -54,17 +52,6 @@ function readJson(fileName, fallback = {}) {
     console.warn(`  [WARN] Nie udało się odczytać ${fileName}: ${err.message}`);
     return fallback;
   }
-}
-
-function parseMigrationDate(dateStr) {
-  if (!dateStr) return null;
-  if (typeof dateStr === 'string' && dateStr.includes('.')) {
-    const parts = dateStr.split('.');
-    if (parts.length === 3) {
-      return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
-  }
-  return dateStr;
 }
 
 async function migrate() {
@@ -152,22 +139,22 @@ async function migrate() {
           Math.max(0, Math.floor(Number(user.xp) || 0)),
           Math.max(0, Math.floor(Number(user.prestige) || 0)),
           Array.isArray(user.badges) ? user.badges : [],
-          null, // married_to (będzie ustawione w osobnym kroku poniżej)
+          user.marriedTo ? String(user.marriedTo) : null,
           user.dailyCooldown ? new Date(Number(user.dailyCooldown)) : null,
           Math.max(0, Number(user.messageCount) || 0),
           JSON.stringify(user.groupMessages || {}),
           JSON.stringify(user.commandCounts || {}),
-          null, // company_id (będzie ustawione w osobnym kroku poniżej)
-          null, // company2_id (będzie ustawione w osobnym kroku poniżej)
-          null, // gang_id (będzie ustawione w osobnym kroku poniżej)
+          user.company?.id || null,
+          user.company2?.id || null,
+          user.gangId || null,
           user.lastActiveThreadId || null,
           user.defaultCity || null,
           Math.max(0, Number(user.openedPackagesToday) || 0),
-          parseMigrationDate(user.lastPackageOpenDate),
+          user.lastPackageOpenDate || null,
           user.negativeSince ? new Date(Number(user.negativeSince)) : null,
           user.activeLoan ? JSON.stringify(user.activeLoan) : null,
           Boolean(user.blacklistedForNegativeBalance),
-          JSON.stringify(Array.isArray(user.claimedMilestones) ? user.claimedMilestones : []),
+          Array.isArray(user.claimedMilestones) ? user.claimedMilestones : [],
           String(user.bio || ''),
           user.lastWorkTime ? new Date(Number(user.lastWorkTime)) : null
         ]
@@ -177,64 +164,7 @@ async function migrate() {
       userIdMap[oldId] = newId;
       migratedUsers++;
     }
-    console.log(`  Zmigrowano ${migratedUsers} użytkowników`);
-
-    // --------------------------------------------------------
-    // 2.1 FIRMY (Migracja z users.json)
-    // --------------------------------------------------------
-    console.log('  Migracja firm...');
-    let migratedCompanies = 0;
-    for (const [oldId, user] of Object.entries(users)) {
-      const newId = userIdMap[oldId];
-      if (!newId) continue;
-
-      const companySlots = [
-        { key: 'company', field: 'company_id' },
-        { key: 'company2', field: 'company2_id' }
-      ];
-
-      for (const slot of companySlots) {
-        const comp = user[slot.key];
-        if (comp && typeof comp === 'object') {
-          // Pobierz domyślną nazwę z konfiguracji
-          const configComp = config.economy?.companies?.[comp.id];
-          const name = comp.name || (configComp?.name ? `${configComp.name}` : 'Firma');
-          
-          const compRes = await client.query(
-            `INSERT INTO companies (owner_id, name, type, level, income, last_claim)
-             VALUES ($1, $2, $3, $4, $5, $6)
-             RETURNING id`,
-            [
-              newId,
-              name,
-              String(comp.id || 'kiosk'),
-              Number(comp.level) || 1,
-              JSON.stringify(comp.income || {}),
-              comp.lastClaim ? new Date(Number(comp.lastClaim)) : null
-            ]
-          );
-          const newCompanyId = compRes.rows[0].id;
-          await client.query(`UPDATE users SET ${slot.field} = $1 WHERE id = $2`, [newCompanyId, newId]);
-          migratedCompanies++;
-        }
-      }
-    }
-    console.log(`  Zmigrowano ${migratedCompanies} firm`);
-
-    // Aktualizuj relacje małżeńskie (married_to) u użytkowników
-    console.log('  Aktualizacja relacji małżeńskich...');
-    let updatedMarriages = 0;
-    for (const [oldId, user] of Object.entries(users)) {
-      const newId = userIdMap[oldId];
-      if (newId && user.marriedTo) {
-        const spousePgId = userIdMap[String(user.marriedTo)];
-        if (spousePgId) {
-          await client.query(`UPDATE users SET married_to = $1 WHERE id = $2`, [spousePgId, newId]);
-          updatedMarriages++;
-        }
-      }
-    }
-    console.log(`  Zaktualizowano ${updatedMarriages} relacji małżeńskich`);
+    console.log(`  Zmi­growano ${migratedUsers} użytkowników`);
 
     // --------------------------------------------------------
     // 3. GANGI
@@ -272,7 +202,7 @@ async function migrate() {
         RETURNING id`,
         [
           String(gang.name || oldId),
-          gang.bossId ? userIdMap[String(gang.bossId)] : null,
+          gang.bossId ? String(gang.bossId) : null,
           Math.max(0, Number(gang.vault) || 0),
           Math.max(0, Math.floor(Number(gang.levelDziupla) || 0)),
           Math.max(0, Math.floor(Number(gang.levelBiznesy) || 0)),
@@ -292,21 +222,6 @@ async function migrate() {
       migratedGangs++;
     }
     console.log(`  Zmigrowano ${migratedGangs} gangów`);
-
-    // Aktualizuj gang_id u użytkowników
-    console.log('  Aktualizacja gangów u użytkowników...');
-    let updatedUserGangs = 0;
-    for (const [oldId, user] of Object.entries(users)) {
-      const newId = userIdMap[oldId];
-      if (newId && user.gangId) {
-        const newGangId = gangIdMap[String(user.gangId)];
-        if (newGangId) {
-          await client.query(`UPDATE users SET gang_id = $1 WHERE id = $2`, [newGangId, newId]);
-          updatedUserGangs++;
-        }
-      }
-    }
-    console.log(`  Zaktualizowano gang_id u ${updatedUserGangs} użytkowników`);
 
     // Członkowie gangów
     console.log('  Migracja członków gangów...');
@@ -1215,17 +1130,11 @@ async function migrate() {
     throw err;
   } finally {
     client.release();
-    if (require.main === module) {
-      await pool.end();
-    }
+    await pool.end();
   }
 }
 
-if (require.main === module) {
-  migrate().catch(err => {
-    console.error('Migracja nie powiodła się:', err);
-    process.exit(1);
-  });
-}
-
-module.exports = { migrate };
+migrate().catch(err => {
+  console.error('Migracja nie powiodła się:', err);
+  process.exit(1);
+});

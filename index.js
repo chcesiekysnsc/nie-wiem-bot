@@ -606,60 +606,7 @@ async function handleBailResponse(client, message, pendingBail, action) {
 }
 
 async function start() {
-  // --- Inicjalizacja bazy danych PostgreSQL (jeśli DATABASE_URL jest ustawiony) ---
-  if (process.env.DATABASE_URL) {
-    console.log('[BOT] Wykryto DATABASE_URL — uruchamiam inicjalizację PostgreSQL...');
-
-    // 1. Uruchom migracje schematu bazy danych
-    try {
-      const { runMigrations } = require('./database/migrations/runner');
-      await runMigrations();
-    } catch (err) {
-      console.error('[BOT] [FATAL] Migracje bazy danych nie powiodły się:', err);
-      throw err;
-    }
-
-    // 2. Synchronizuj konfigurację (przedmioty, terytoria, parametry gry)
-    try {
-      const { syncConfig } = require('./database/config_sync');
-      await syncConfig();
-    } catch (err) {
-      console.error('[BOT] [WARN] Synchronizacja konfiguracji nie powiodła się:', err.message);
-      // Nie przerywamy startu — bot może działać z danymi już w bazie
-    }
-
-    // 3. Auto-import danych z plików JSON do bazy (jednorazowo, jeśli baza jest pusta)
-    try {
-      const pool = require('./database/config');
-      const checkRes = await pool.query('SELECT COUNT(*) as cnt FROM users');
-      const userCount = parseInt(checkRes.rows[0].cnt, 10);
-      if (userCount === 0) {
-        console.log('[BOT] Baza danych jest pusta — uruchamiam import z plików JSON...');
-        const { migrate } = require('./database/migration');
-        await migrate();
-        console.log('[BOT] Import z JSON zakończony pomyślnie.');
-      } else {
-        console.log(`[BOT] Baza danych zawiera ${userCount} użytkowników — pomijam import.`);
-      }
-    } catch (err) {
-      console.error('[BOT] [WARN] Auto-import z JSON nie powiódł się:', err.message);
-    }
-
-    // 4. Załaduj cache z PostgreSQL do pamięci
-    try {
-      const { initializeCache } = require('./utils/storage');
-      await initializeCache();
-    } catch (err) {
-      console.error('[BOT] [FATAL] Inicjalizacja cache PostgreSQL nie powiodła się:', err);
-      throw err;
-    }
-
-    console.log('[BOT] Inicjalizacja PostgreSQL zakończona pomyślnie.');
-  } else {
-    console.log('[BOT] Brak DATABASE_URL — używam lokalnych plików JSON.');
-    ensureDataFiles();
-  }
-
+  ensureDataFiles();
   loadCommands();
 
   if (!process.env.MESSENGER_VERIFY_TOKEN?.trim()) {
