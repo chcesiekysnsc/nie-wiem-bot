@@ -136,6 +136,7 @@ async function upgradeItem(userId, itemId) {
 function getAllUpgradableItems(inventoryRecord) {
   const items = [];
   for (const itemId of Object.keys(config.shopItems)) {
+    if (!config.shopItems[itemId]) continue;
     if (isUpgradeable(itemId) && getItemQuantity(inventoryRecord, itemId) > 0) {
       items.push(itemId);
     }

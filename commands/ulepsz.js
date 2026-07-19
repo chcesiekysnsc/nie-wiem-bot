@@ -79,18 +79,25 @@ module.exports = {
         if (items.length === 0) {
           return { error: '❌ Nie masz żadnych ulepszalnych przedmiotów w ekwipunku.' };
         }
-        const lines = items.map(id => {
-          const def = config.shopItems[id];
-          const lvl = getItemUpgradeLevel(inventory, id);
-          const bonus = getUpgradeBonus(id, lvl);
-          const bonusText = bonus ? ` — ${formatBonusText(id, bonus)}` : '';
-          return `${def.emoji} **${def.name}** +${lvl}${bonusText}`;
-        });
+        const lines = items
+          .map(id => {
+            const def = config.shopItems[id];
+            if (!def) return null;
+            const lvl = getItemUpgradeLevel(inventory, id);
+            const bonus = getUpgradeBonus(id, lvl);
+            const bonusText = bonus ? ` — ${formatBonusText(id, bonus)}` : '';
+            return `${def.emoji} **${def.name}** +${lvl}${bonusText}`;
+          })
+          .filter(Boolean);
+
+        if (lines.length === 0) {
+          return { error: '❌ Nie masz żadnych ulepszalnych przedmiotów w ekwipunku.' };
+        }
         return { lines };
       });
 
       if (result.error) {
-        await message.reply(result.error);
+        await message.reply(result.error).catch(() => null);
         return;
       }
 
@@ -98,7 +105,7 @@ module.exports = {
         `🔧 **TWOJE ULEPSZENIA**\n\n` +
         result.lines.join('\n') +
         `\n\n💡 Wpisz **!ulepsz <przedmiot>** aby zobaczyć szczegóły.`
-      );
+      ).catch(() => null);
       return;
     }
 
