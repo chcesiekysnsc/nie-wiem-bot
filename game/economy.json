@@ -1,0 +1,87 @@
+{
+  "defaultUser": {
+    "balance": 5000,
+    "bank": 10000,
+    "level": 5,
+    "xp": 240,
+    "totalWon": 12000,
+    "totalLost": 8000,
+    "gamesPlayed": 53,
+    "wins": 0,
+    "losses": 0,
+    "commandsUsed": 0,
+    "lastActiveThreadId": null,
+    "prestige": 1,
+    "bio": "",
+    "badges": [],
+    "marriedTo": null,
+    "dailyCooldown": 0,
+    "messageCount": 0,
+    "groupMessages": {},
+    "commandCounts": {},
+    "company": null,
+    "defaultCity": null,
+    "openedPackagesToday": 0,
+    "lastPackageOpenDate": null
+  },
+  "companies": {
+    "kiosk": {
+      "name": "Kiosk",
+      "price": 2000000,
+      "payout": 45000,
+      "breakChance": 0.06,
+      "emoji": "🏪"
+    },
+    "restauracja": {
+      "name": "Restauracja",
+      "price": 4000000,
+      "payout": 95000,
+      "breakChance": 0.08,
+      "emoji": "🍔"
+    },
+    "salon": {
+      "name": "Salon Gier",
+      "price": 6000000,
+      "payout": 150000,
+      "breakChance": 0.1,
+      "emoji": "🎮"
+    },
+    "stocznia": {
+      "name": "Stocznia",
+      "price": 8000000,
+      "payout": 220000,
+      "breakChance": 0.12,
+      "emoji": "🚢"
+    },
+    "bank": {
+      "name": "Prywatny Bank",
+      "price": 10000000,
+      "payout": 340000,
+      "breakChance": 0.15,
+      "emoji": "🏦"
+    }
+  },
+  "maxBet": 100000,
+  "dailyMin": 900,
+  "dailyMax": 2200,
+  "dailyVipBonus": 1.25,
+  "workMin": 5000,
+  "workMax": 25000,
+  "workVipBonus": 1.1,
+  "crimeSuccessChance": 0.52,
+  "crimeWinMin": 400,
+  "crimeWinMax": 2400,
+  "crimeLoseMin": 200,
+  "crimeLoseMax": 1100,
+  "robSuccessChance": 0.38,
+  "robMinTarget": 2500,
+  "robMinPercent": 0.1,
+  "robMaxPercent": 0.3,
+  "bankBaseCapacity": 100000,
+  "bankVipBonus": 25000,
+  "bankPrestigeBonus": 25000,
+  "goldenCardBonus": 50000,
+  "xpPerLevelBase": 180,
+  "xpPerLevelGrowth": 55,
+  "jailDurationMinutes": 30
+}

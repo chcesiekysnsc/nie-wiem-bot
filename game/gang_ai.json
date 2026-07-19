@@ -1,0 +1,245 @@
+{
+  "enabled": true,
+  "maxAIGangs": 6,
+  "maxVault": 5000000,
+  "minVaultAfterAttack": 100000,
+  "actionIntervalMinutesMin": 30,
+  "actionIntervalMinutesMax": 120,
+  "actionsPerTickMin": 1,
+  "actionsPerTickMax": 3,
+  "repeatActionRerollChance": 0.7,
+  "actionWeights": {
+    "earn": 35,
+    "upgrade": 22,
+    "recruit": 13,
+    "attack": 10,
+    "alliance": 8,
+    "event": 5,
+    "buyBossCrate": 15
+  },
+  "attackTimeStartHour": 8,
+  "attackTimeEndHour": 22,
+  "aiToAiAllianceWeight": 3,
+  "aiToPlayerAllianceWeight": 1,
+  "attackAiWeight": 1,
+  "attackPlayerWeight": 1,
+  "allianceAcceptChanceFromAI": 0.7,
+  "allianceAcceptChanceFromPlayer": 0.35,
+  "maxAlliances": 3,
+  "participantRatioMin": 0.4,
+  "participantRatioMax": 1,
+  "attackVaultCostRatio": 0.1,
+  "attackTargetVaultRatioMin": 0.5,
+  "attackTargetVaultRatioMax": 2,
+  "attackStrongTargetChance": 0.04,
+  "startVaultMin": 50000,
+  "startVaultMax": 300000,
+  "startMembersMin": 1,
+  "startMembersMax": 3,
+  "personalities": {
+    "agresywny": {
+      "upgradePriority": [
+        "fach",
+        "dziupla",
+        "biznesy"
+      ],
+      "attackWeight": 1.8
+    },
+    "defensywny": {
+      "upgradePriority": [
+        "dziupla",
+        "fach",
+        "biznesy"
+      ],
+      "attackWeight": 0.4
+    },
+    "bogacz": {
+      "upgradePriority": [
+        "biznesy",
+        "dziupla",
+        "fach"
+      ],
+      "attackWeight": 0.5
+    },
+    "rekruter": {
+      "upgradePriority": [
+        "dziupla",
+        "biznesy",
+        "fach"
+      ],
+      "attackWeight": 0.7
+    },
+    "zbalansowany": {
+      "upgradePriority": [
+        "dziupla",
+        "biznesy",
+        "fach"
+      ],
+      "attackWeight": 1
+    },
+    "agresywny_izraelici": {
+      "upgradePriority": [
+        "fach",
+        "dziupla",
+        "biznesy"
+      ],
+      "attackWeight": 1.1
+    }
+  },
+  "nameParts": {
+    "adjectives": [
+      "Cienie",
+      "Żmije",
+      "Czarna",
+      "Krwawa",
+      "Stalowa",
+      "Złota",
+      "Srebrna",
+      "Wściekła",
+      "Niewidzialna",
+      "Podziemna",
+      "Mroczna",
+      "Płomienna",
+      "Lodowa",
+      "Szara",
+      "Błękitna",
+      "Zatruty",
+      "Zbrodniczy",
+      "Diabli",
+      "Kosmiczny",
+      "Posępny"
+    ],
+    "nouns": [
+      "Gwardia",
+      "Bractwo",
+      "Kartel",
+      "Legion",
+      "Sfora",
+      "Banda",
+      "Syndykat",
+      "Klan",
+      "Horda",
+      "Wataha",
+      "Grom",
+      "Straż",
+      "Firma",
+      "Zespół",
+      "Ród",
+      "Kolba",
+      "Węzeł",
+      "Krąg",
+      "Szczep",
+      "Rój"
+    ],
+    "suffixes": [
+      "Nocy",
+      "Mroku",
+      "Stali",
+      "Ognia",
+      "Lodu",
+      "Cienia",
+      "Krwii",
+      "Złamanych",
+      "Ulic",
+      "Starego",
+      "Nowego",
+      "Złotych",
+      "Srebrnych",
+      "Diabłów",
+      "Rozdartych"
+    ]
+  },
+  "fakeNames": {
+    "first": [
+      "Jan",
+      "Piotr",
+      "Adam",
+      "Marek",
+      "Kamil",
+      "Tomasz",
+      "Jakub",
+      "Michał",
+      "Krzysztof",
+      "Andrzej",
+      "Paweł",
+      "Rafał",
+      "Grzegorz",
+      "Marcin",
+      "Łukasz",
+      "Dawid",
+      "Patryk",
+      "Sebastian",
+      "Damian",
+      "Konrad",
+      "Oskar",
+      "Dominik",
+      "Mikołaj",
+      "Wojciech",
+      "Artur",
+      "Mateusz",
+      "Adrian",
+      "Bartosz",
+      "Robert",
+      "Arkadiusz"
+    ],
+    "last": [
+      "Nowak",
+      "Kowalski",
+      "Wiśniewski",
+      "Wójcik",
+      "Kowalczyk",
+      "Kamiński",
+      "Lewandowski",
+      "Zieliński",
+      "Szymański",
+      "Woźniak",
+      "Dąbrowski",
+      "Kozłowski",
+      "Jankowski",
+      "Mazur",
+      "Krawczyk",
+      "Piotrowski",
+      "Grabowski",
+      "Nowakowski",
+      "Pawłowski",
+      "Michalski",
+      "Adamczyk",
+      "Dudek",
+      "Zając",
+      "Wieczorek",
+      "Jabłoński",
+      "Król",
+      "Witkowski",
+      "Walczak",
+      "Stępień",
+      "Górski"
+    ]
+  },
+  "fixedGangs": [
+    {
+      "name": "Arasaka",
+      "personality": "agresywny"
+    },
+    {
+      "name": "Militech",
+      "personality": "bogacz"
+    },
+    {
+      "name": "Kiramann",
+      "personality": "bogacz"
+    },
+    {
+      "name": "Bar Ostatnia Kropla",
+      "personality": "rekruter"
+    },
+    {
+      "name": "Chem Barons",
+      "personality": "zbalansowany"
+    },
+    {
+      "name": "Izraelici",
+      "personality": "agresywny_izraelici"
+    }
+  ],
+  "fixedActionIntervalMinutes": 45
+}

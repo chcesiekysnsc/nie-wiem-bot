@@ -1,0 +1,164 @@
+{
+  "definitions": [
+    {
+      "id": "strefa_przemyslowa",
+      "name": "Strefa Przemysłowa",
+      "emoji": "🏭",
+      "bonusType": "work",
+      "bonusValue": 0.05,
+      "description": "+5% do nagród z komendy work"
+    },
+    {
+      "id": "dzielnica_kasyn",
+      "name": "Dzielnica Kasyn",
+      "emoji": "🎰",
+      "bonusType": "crime_reward",
+      "bonusValue": 0.05,
+      "description": "+5% do nagród z crime"
+    },
+    {
+      "id": "port",
+      "name": "Port",
+      "emoji": "🚢",
+      "bonusType": "npc_raid",
+      "bonusValue": 0.1,
+      "description": "+10% do nagród za napady na NPC"
+    },
+    {
+      "id": "centrum_finansowe",
+      "name": "Centrum Finansowe",
+      "emoji": "💎",
+      "bonusType": "daily",
+      "bonusValue": 0.05,
+      "description": "+5% do daily"
+    },
+    {
+      "id": "twierdza",
+      "name": "Twierdza",
+      "emoji": "🛡️",
+      "bonusType": "gang_defense",
+      "bonusValue": 0.05,
+      "description": "+5% do całkowitej obrony gangu"
+    },
+    {
+      "id": "fabryka_broni",
+      "name": "Fabryka Broni",
+      "emoji": "⚔️",
+      "bonusType": "gang_attack",
+      "bonusValue": 0.05,
+      "description": "+5% do całkowitego ataku gangu"
+    },
+    {
+      "id": "centrum_wywiadu",
+      "name": "Centrum Wywiadu",
+      "emoji": "📡",
+      "bonusType": "intel",
+      "bonusValue": 0.1,
+      "description": "+10% do skuteczności wywiadu"
+    },
+    {
+      "id": "magazyny",
+      "name": "Magazyny",
+      "emoji": "🚚",
+      "bonusType": "bank_deposit",
+      "bonusValue": 0.05,
+      "description": "+5% do wszystkich zarobków wpłacanych do banku gangu"
+    },
+    {
+      "id": "slumsy",
+      "name": "Slumsy",
+      "emoji": "🏚️",
+      "bonusType": "crime_chance",
+      "bonusValue": 0.05,
+      "description": "+5% szansy na udany crime"
+    },
+    {
+      "id": "szlaki_przemytnicze",
+      "name": "Szlaki Przemytnicze",
+      "emoji": "🛣️",
+      "bonusType": "crime_cooldown",
+      "bonusValue": -0.1,
+      "description": "-10% czasu cooldown komendy crime"
+    },
+    {
+      "id": "bank_centralny",
+      "name": "Bank Centralny",
+      "emoji": "🏦",
+      "bonusType": "bank_capacity",
+      "bonusValue": 0.1,
+      "description": "+10% pojemności banku gangu"
+    },
+    {
+      "id": "warsztat_terytorium",
+      "name": "Warsztat",
+      "emoji": "🔧",
+      "bonusType": "upgrade_cost",
+      "bonusValue": -0.1,
+      "description": "-10% kosztów ulepszeń gangu"
+    },
+    {
+      "id": "centrum_dowodzenia",
+      "name": "Centrum Dowodzenia",
+      "emoji": "🛰️",
+      "bonusType": "war_both",
+      "bonusValue": 0.05,
+      "description": "+5% ataku oraz +5% obrony podczas wojen gangów"
+    },
+    {
+      "id": "posterunek_policji",
+      "name": "Posterunek Policji",
+      "emoji": "🚔",
+      "bonusType": "war_loss_reduction",
+      "bonusValue": 0.1,
+      "description": "Zmniejsza utratę pieniędzy po przegranej wojnie o 10%"
+    },
+    {
+      "id": "szpital_polowy",
+      "name": "Szpital Polowy",
+      "emoji": "🏥",
+      "bonusType": "shield_reduction",
+      "bonusValue": 3600000,
+      "description": "Skraca czas ochrony po wojnie o 1 godzinę"
+    },
+    {
+      "id": "sklad_zaopatrzenia",
+      "name": "Skład Zaopatrzenia",
+      "emoji": "📦",
+      "bonusType": "mercenary_effectiveness",
+      "bonusValue": 0.05,
+      "description": "+5% skuteczności najemników"
+    },
+    {
+      "id": "rafineria",
+      "name": "Rafineria",
+      "emoji": "⛽",
+      "bonusType": "all_economy",
+      "bonusValue": 0.05,
+      "description": "+5% do wszystkich nagród ekonomicznych (work, crime, napady NPC)"
+    },
+    {
+      "id": "centrum_miasta",
+      "name": "Centrum Miasta",
+      "emoji": "🏙️",
+      "bonusType": "reputation_gain",
+      "bonusValue": 0.05,
+      "description": "+5% zdobywanej reputacji gangu"
+    },
+    {
+      "id": "dworzec_towarowy",
+      "name": "Dworzec Towarowy",
+      "emoji": "🚂",
+      "bonusType": "npc_raid",
+      "bonusValue": 0.1,
+      "description": "+10% do nagród za napady NPC"
+    },
+    {
+      "id": "rezydencja_bossa",
+      "name": "Rezydencja Bossa",
+      "emoji": "👑",
+      "bonusType": "all_stats",
+      "bonusValue": 0.03,
+      "description": "+3% do wszystkich statystyk gangu: ataku, obrony, wywiadu"
+    }
+  ]
+}

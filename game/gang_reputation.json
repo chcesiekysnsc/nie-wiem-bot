@@ -1,0 +1,32 @@
+{
+  "ranks": [
+    {
+      "min": 0,
+      "name": "Początkujący"
+    },
+    {
+      "min": 100,
+      "name": "Uliczny Gang"
+    },
+    {
+      "min": 300,
+      "name": "Znany Gang"
+    },
+    {
+      "min": 700,
+      "name": "Organizacja"
+    },
+    {
+      "min": 1500,
+      "name": "Syndykat"
+    },
+    {
+      "min": 3000,
+      "name": "Imperium"
+    },
+    {
+      "min": 6000,
+      "name": "Legenda"
+    }
+  ]
+}

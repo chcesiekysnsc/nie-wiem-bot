@@ -303,8 +303,6 @@ function checkIfRestricted(commandName, args) {
   return false;
 }
 
-ensureDataFiles();
-
 const client = {
   commands: new Map(),
   config: config,
@@ -724,9 +722,52 @@ try {
 
 // ===== KONIEC APPSTATE =====
 
-console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
+async function start() {
+  if (process.env.DATABASE_URL) {
+    console.log('[SELF-BOT] Wykryto DATABASE_URL — uruchamiam inicjalizację PostgreSQL...');
+    try {
+      const { runMigrations } = require('./database/migrations/runner');
+      await runMigrations();
+    } catch (err) {
+      console.error('[SELF-BOT] [FATAL] Migracje bazy danych nie powiodły się:', err);
+      process.exit(1);
+    }
+    try {
+      const { syncConfig } = require('./database/config_sync');
+      await syncConfig();
+    } catch (err) {
+      console.error('[SELF-BOT] [WARN] Synchronizacja konfiguracji nie powiodła się:', err.message);
+    }
+    try {
+      const pool = require('./database/config');
+      const checkRes = await pool.query('SELECT COUNT(*) as cnt FROM users');
+      const userCount = parseInt(checkRes.rows[0].cnt, 10);
+      if (userCount === 0) {
+        console.log('[SELF-BOT] Baza danych jest pusta — uruchamiam import z plików JSON...');
+        const { migrate } = require('./database/migration');
+        await migrate();
+        console.log('[SELF-BOT] Import z JSON zakończony pomyślnie.');
+      } else {
+        console.log(`[SELF-BOT] Baza danych zawiera ${userCount} użytkowników — pomijam import.`);
+      }
+    } catch (err) {
+      console.error('[SELF-BOT] [WARN] Auto-import z JSON nie powiódł się:', err.message);
+    }
+    try {
+      const { initializeCache } = require('./utils/storage');
+      await initializeCache();
+    } catch (err) {
+      console.error('[SELF-BOT] [FATAL] Inicjalizacja cache PostgreSQL nie powiodła się:', err);
+      process.exit(1);
+    }
+    console.log('[SELF-BOT] Inicjalizacja PostgreSQL zakończona pomyślnie.');
+  } else {
+    console.log('[SELF-BOT] Brak DATABASE_URL — używam lokalnych plików JSON.');
+    ensureDataFiles();
+  }
 
-login({ appState }, (loginErr, api) => {
+  console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
+  login({ appState }, (loginErr, api) => {
   if (loginErr) {
     console.error('[SELF-BOT] Logowanie nie powiodlo sie:', loginErr);
     process.exit(1);
@@ -3197,14 +3238,17 @@ login({ appState }, (loginErr, api) => {
           threadId
         });
       }).catch(() => null);
-    } catch (cmdErr) {
-      console.error(`[SELF-BOT] Blad komendy: ${commandName}`, cmdErr);
+        } catch (cmdErr) {
+      console.error('[SELF-BOT] Blad komendy: ' + commandName, cmdErr);
       await messageContext.reply({
         embeds: [errorEmbed('Blad komendy', 'Wystapil problem podczas wykonywania komendy.')]
       }).catch(() => null);
     }
   });
 });
+}
+
+start();
 
 // Serwer HTTP: panel administratora (apka/), health check (Railway) i pobieranie kopii
 const PORT = process.env.PORT || 8080;
@@ -3219,7 +3263,7 @@ panelApp.get('/backup', (req, res) => {
     });
     res.send(global.latestBackup);
   } else {
-    res.status(403).type('text/plain').send('Forbidden: Błędny lub przestarzały klucz kopii zapasowej.');
+    res.status(403).type('text/plain').send('Forbidden: Bl\u0119dny lub przestarza\u0142y klucz kopii zapasowej.');
   }
 });
 
@@ -3228,5 +3272,5 @@ panelApp.get('/health', (req, res) => {
 });
 
 panelApp.listen(PORT, '0.0.0.0', () => {
-  console.log(`[SELF-BOT] Serwer HTTP (panel administratora + health check) nasłuchuje na porcie ${PORT}`);
+  console.log('[SELF-BOT] Serwer HTTP (panel administratora + health check) nas\u0142uchuje na porcie ' + PORT);
 });
