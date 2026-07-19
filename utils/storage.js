@@ -880,7 +880,7 @@ async function saveCacheToDatabase() {
 
     // Zapisz/aktualizuj gangi
     const resolvedGangs = [];
-    for (const [gangName, g] of Object.entries(cache.profiles.gangs)) {
+    for (const [gangName, g] of Object.entries(cache.profiles.gangs || {})) {
       const bossPgId = g.bossId ? await ensureUserPgId(client, g.bossId) : null;
       
       const gangRes = await client.query(
@@ -960,17 +960,17 @@ async function saveCacheToDatabase() {
 
     // Czarna lista i zablokowane grupy
     await client.query('DELETE FROM blacklist');
-    for (const uid of cache.profiles.blacklist) {
+    for (const uid of cache.profiles.blacklist || []) {
       await client.query('INSERT INTO blacklist (user_id) VALUES ($1) ON CONFLICT DO NOTHING', [String(uid)]);
     }
 
     await client.query('DELETE FROM blacklisted_groups');
-    for (const tid of cache.profiles.blacklistedGroups) {
+    for (const tid of cache.profiles.blacklistedGroups || []) {
       await client.query('INSERT INTO blacklisted_groups (thread_id) VALUES ($1) ON CONFLICT DO NOTHING', [String(tid)]);
     }
 
     // Ustawienia wątków
-    for (const [tid, s] of Object.entries(cache.profiles.threadSettings)) {
+    for (const [tid, s] of Object.entries(cache.profiles.threadSettings || {})) {
       await client.query(
         `INSERT INTO thread_settings (thread_id, prefix, loop_users, nickname_guards, unsend_logging_enabled)
          VALUES ($1, $2, $3, $4, $5)
@@ -990,7 +990,7 @@ async function saveCacheToDatabase() {
     }
 
     // Moderacja propozycji
-    for (const [mId, pm] of Object.entries(cache.profiles.proposalModeration)) {
+    for (const [mId, pm] of Object.entries(cache.profiles.proposalModeration || {})) {
       const pgUserId = await ensureUserPgId(client, mId);
       if (!pgUserId) continue;
       await client.query(
@@ -1004,7 +1004,7 @@ async function saveCacheToDatabase() {
     }
 
     // AFK użytkownicy
-    for (const [mId, data] of Object.entries(cache.profiles.afk)) {
+    for (const [mId, data] of Object.entries(cache.profiles.afk || {})) {
       const pgUserId = await ensureUserPgId(client, mId);
       if (!pgUserId) continue;
       await client.query(
@@ -1019,7 +1019,7 @@ async function saveCacheToDatabase() {
     }
 
     // Nadpisania szans
-    for (const [mId, ov] of Object.entries(cache.profiles.chanceOverrides)) {
+    for (const [mId, ov] of Object.entries(cache.profiles.chanceOverrides || {})) {
       const pgUserId = await ensureUserPgId(client, mId);
       if (!pgUserId) continue;
       await client.query(
@@ -1059,7 +1059,7 @@ async function saveCacheToDatabase() {
 
     // Pożyczki graczy
     await client.query('DELETE FROM player_loans');
-    for (const pl of cache.profiles.playerLoans) {
+    for (const pl of cache.profiles.playerLoans || []) {
       const borrowerPgId = await ensureUserPgId(client, pl.borrowerId);
       const lenderPgId = await ensureUserPgId(client, pl.lenderId);
       if (!borrowerPgId || !lenderPgId) continue;
@@ -1078,7 +1078,7 @@ async function saveCacheToDatabase() {
     }
 
     // Multi-bet usage
-    for (const [mId, usage] of Object.entries(cache.profiles.eventCasinoMultiBetUsage)) {
+    for (const [mId, usage] of Object.entries(cache.profiles.eventCasinoMultiBetUsage || {})) {
       const pgUserId = await ensureUserPgId(client, mId);
       if (!pgUserId) continue;
       await client.query(
@@ -1090,7 +1090,7 @@ async function saveCacheToDatabase() {
     }
 
     // Połączenia Last.fm
-    for (const [mId, lfm] of Object.entries(cache.profiles.lastfmConnections)) {
+    for (const [mId, lfm] of Object.entries(cache.profiles.lastfmConnections || {})) {
       const pgUserId = await ensureUserPgId(client, mId);
       if (!pgUserId) continue;
       await client.query(
@@ -1106,7 +1106,7 @@ async function saveCacheToDatabase() {
     // Logi (zapisujemy te nowe z cache.logs)
     const logsRes = await client.query('SELECT id FROM logs');
     const existingLogIds = new Set(logsRes.rows.map(r => String(r.id)));
-    for (const l of cache.logs) {
+    for (const l of cache.logs || []) {
       if (existingLogIds.has(l.id)) continue; // Już jest w bazie
       const pgUserId = l.userId ? await ensureUserPgId(client, l.userId) : null;
       await client.query(
