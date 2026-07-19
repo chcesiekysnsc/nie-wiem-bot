@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier, getGlobalIncomeMultiplier } = require('../utils/economy');
+const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier, getGlobalIncomeMultiplier, getItemUpgradeLevel } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { getItemSetBonus } = require('../utils/itemSets');
@@ -216,7 +216,9 @@ module.exports = {
           // Królewskie Insygnia: +10% do zysku z firmy
           let insygniaBonus = 0;
           if (hasInsygnia) {
-            insygniaBonus = Math.floor(payout * 0.10);
+            const level = getItemUpgradeLevel(inventory, 'krolewskie_insygnia');
+            const bonus = 0.10 + level * 0.01;
+            insygniaBonus = Math.floor(payout * bonus);
             payout += insygniaBonus;
           }
 

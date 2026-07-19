@@ -170,6 +170,420 @@ module.exports = {
     xpPerLevelGrowth: 55,
     jailDurationMinutes: 30
   },
+  upgradeMaterials: ['Żelazo', 'Miedź', 'Tytan', 'Karbid', 'Inżelit'],
+  upgradeCosts: [100000, 250000, 500000, 1000000, 2000000],
+  upgradePaths: {
+    klodka: {
+      bonuses: [
+        { chance: 0.05 },
+        { chance: 0.10 },
+        { chance: 0.15 },
+        { chance: 0.20 },
+        { chance: 0.25 }
+      ]
+    },
+    piwo: {
+      bonuses: [
+        { robLootBonus: 0.05, robPenaltyReduction: 0.10, activationChance: 0.50 },
+        { robLootBonus: 0.06, robPenaltyReduction: 0.09, activationChance: 0.55 },
+        { robLootBonus: 0.07, robPenaltyReduction: 0.08, activationChance: 0.60 },
+        { robLootBonus: 0.08, robPenaltyReduction: 0.07, activationChance: 0.65 },
+        { robLootBonus: 0.09, robPenaltyReduction: 0.06, activationChance: 0.70 },
+        { robLootBonus: 0.10, robPenaltyReduction: 0.05, activationChance: 0.75 }
+      ]
+    },
+    ticket: {
+      bonuses: [
+        { extraWeeklyDraws: 1 },
+        { extraWeeklyDraws: 2 },
+        { extraWeeklyDraws: 3 },
+        { extraWeeklyDraws: 4 },
+        { extraWeeklyDraws: 5 }
+      ]
+    },
+    bomba: {
+      bonuses: [
+        { robLootPercent: 0.40, cooldownMinutes: 30 },
+        { robLootPercent: 0.45, cooldownMinutes: 35 },
+        { robLootPercent: 0.50, cooldownMinutes: 40 },
+        { robLootPercent: 0.55, cooldownMinutes: 45 },
+        { robLootPercent: 0.60, cooldownMinutes: 50 },
+        { robLootPercent: 0.65, cooldownMinutes: 60 }
+      ]
+    },
+    vip: {
+      bonuses: [
+        { dailyBonus: 0.25, workBonus: 0.10, bankBonus: 25000 },
+        { dailyBonus: 0.27, workBonus: 0.12, bankBonus: 30000 },
+        { dailyBonus: 0.29, workBonus: 0.14, bankBonus: 35000 },
+        { dailyBonus: 0.31, workBonus: 0.16, bankBonus: 40000 },
+        { dailyBonus: 0.33, workBonus: 0.18, bankBonus: 45000 },
+        { dailyBonus: 0.35, workBonus: 0.20, bankBonus: 50000 }
+      ]
+    },
+    sejf: {
+      bonuses: [
+        { bankCapacity: 75000 },
+        { bankCapacity: 85000 },
+        { bankCapacity: 95000 },
+        { bankCapacity: 105000 },
+        { bankCapacity: 115000 },
+        { bankCapacity: 125000 }
+      ]
+    },
+    krwawy_zeton: {
+      bonuses: [
+        { robChance: 0.06, robLootBonus: 0.04, robPenaltyBonus: 0.08 },
+        { robChance: 0.07, robLootBonus: 0.05, robPenaltyBonus: 0.09 },
+        { robChance: 0.08, robLootBonus: 0.06, robPenaltyBonus: 0.10 },
+        { robChance: 0.09, robLootBonus: 0.07, robPenaltyBonus: 0.11 },
+        { robChance: 0.10, robLootBonus: 0.08, robPenaltyBonus: 0.12 },
+        { robChance: 0.11, robLootBonus: 0.09, robPenaltyBonus: 0.13 }
+      ]
+    },
+    przekupiony_krupier: {
+      bonuses: [
+        { blackjackBonusChance: 0.030 },
+        { blackjackBonusChance: 0.033 },
+        { blackjackBonusChance: 0.036 },
+        { blackjackBonusChance: 0.039 },
+        { blackjackBonusChance: 0.042 },
+        { blackjackBonusChance: 0.045 }
+      ]
+    },
+    kamera: {
+      bonuses: [
+        { defensePenaltyBonus: 0.05 },
+        { defensePenaltyBonus: 0.06 },
+        { defensePenaltyBonus: 0.07 },
+        { defensePenaltyBonus: 0.08 },
+        { defensePenaltyBonus: 0.09 },
+        { defensePenaltyBonus: 0.10 }
+      ]
+    },
+    zestaw_wlamywacza: {
+      bonuses: [
+        { robChance: 0.03 },
+        { robChance: 0.035 },
+        { robChance: 0.04 },
+        { robChance: 0.045 },
+        { robChance: 0.05 },
+        { robChance: 0.055 }
+      ]
+    },
+    kominiarka: {
+      bonuses: [
+        { robPenaltyReduction: 0.10 },
+        { robPenaltyReduction: 0.105 },
+        { robPenaltyReduction: 0.11 },
+        { robPenaltyReduction: 0.115 },
+        { robPenaltyReduction: 0.12 },
+        { robPenaltyReduction: 0.14 }
+      ]
+    },
+    latarka: {
+      bonuses: [
+        { robLootBonus: 0.02 },
+        { robLootBonus: 0.025 },
+        { robLootBonus: 0.03 },
+        { robLootBonus: 0.035 },
+        { robLootBonus: 0.04 },
+        { robLootBonus: 0.045 }
+      ]
+    },
+    alarm: {
+      bonuses: [
+        { defenseChanceReduction: 0.04 },
+        { defenseChanceReduction: 0.045 },
+        { defenseChanceReduction: 0.05 },
+        { defenseChanceReduction: 0.055 },
+        { defenseChanceReduction: 0.06 },
+        { defenseChanceReduction: 0.065 }
+      ]
+    },
+    pies_strozujacy: {
+      bonuses: [
+        { defensePenaltyBonus: 0.05 },
+        { defensePenaltyBonus: 0.055 },
+        { defensePenaltyBonus: 0.06 },
+        { defensePenaltyBonus: 0.065 },
+        { defensePenaltyBonus: 0.07 },
+        { defensePenaltyBonus: 0.09 }
+      ]
+    },
+    odznaka_komendanta: {
+      bonuses: [
+        { crimeChanceReduction: 0.125 },
+        { crimeChanceReduction: 0.135 },
+        { crimeChanceReduction: 0.145 },
+        { crimeChanceReduction: 0.155 },
+        { crimeChanceReduction: 0.165 },
+        { crimeChanceReduction: 0.175 }
+      ]
+    },
+    podrecznik_praktykanta: {
+      bonuses: [
+        { xpBonus: 0.05 },
+        { xpBonus: 0.06 },
+        { xpBonus: 0.07 },
+        { xpBonus: 0.08 },
+        { xpBonus: 0.09 },
+        { xpBonus: 0.10 }
+      ]
+    },
+    krysztal_doswiadczenia: {
+      bonuses: [
+        { xpBonus: 0.15 },
+        { xpBonus: 0.17 },
+        { xpBonus: 0.19 },
+        { xpBonus: 0.21 },
+        { xpBonus: 0.23 },
+        { xpBonus: 0.25 }
+      ]
+    },
+    kaczka_biznesu: {
+      bonuses: [
+        { companyIncomeBonus: 0.05 },
+        { companyIncomeBonus: 0.055 },
+        { companyIncomeBonus: 0.06 },
+        { companyIncomeBonus: 0.065 },
+        { companyIncomeBonus: 0.07 },
+        { companyIncomeBonus: 0.08 }
+      ]
+    },
+    sakiewka_kolekcjonera: {
+      bonuses: [
+        { globalIncomeBonus: 0.03 },
+        { globalIncomeBonus: 0.031 },
+        { globalIncomeBonus: 0.032 },
+        { globalIncomeBonus: 0.033 },
+        { globalIncomeBonus: 0.034 },
+        { globalIncomeBonus: 0.038 }
+      ]
+    },
+    mocna_kawa: {
+      bonuses: [
+        { workBonus: 0.08 },
+        { workBonus: 0.085 },
+        { workBonus: 0.09 },
+        { workBonus: 0.095 },
+        { workBonus: 0.10 },
+        { workBonus: 0.11 }
+      ]
+    },
+    rekawice_robotnika: {
+      bonuses: [
+        { doubleWorkChance: 0.10 },
+        { doubleWorkChance: 0.105 },
+        { doubleWorkChance: 0.11 },
+        { doubleWorkChance: 0.115 },
+        { doubleWorkChance: 0.12 },
+        { doubleWorkChance: 0.15 }
+      ]
+    },
+    stary_zegar: {
+      bonuses: [
+        { cooldownReduction: 0.10 },
+        { cooldownReduction: 0.105 },
+        { cooldownReduction: 0.11 },
+        { cooldownReduction: 0.115 },
+        { cooldownReduction: 0.12 },
+        { cooldownReduction: 0.13 }
+      ]
+    },
+    z_drive: {
+      bonuses: [
+        { cooldownReduction: 0.15 },
+        { cooldownReduction: 0.154 },
+        { cooldownReduction: 0.158 },
+        { cooldownReduction: 0.162 },
+        { cooldownReduction: 0.166 },
+        { cooldownReduction: 0.17 }
+      ]
+    },
+    talizman_fortuny: {
+      bonuses: [
+        { streakBonus: 0.01, maxStreakBonus: 0.10 },
+        { streakBonus: 0.012, maxStreakBonus: 0.12 },
+        { streakBonus: 0.014, maxStreakBonus: 0.14 },
+        { streakBonus: 0.016, maxStreakBonus: 0.16 },
+        { streakBonus: 0.018, maxStreakBonus: 0.18 },
+        { streakBonus: 0.02, maxStreakBonus: 0.20 }
+      ]
+    },
+    godlo_gangu: {
+      bonuses: [
+        { gangAttackBonus: 0.10, gangWarBonus: 0.05 },
+        { gangAttackBonus: 0.11, gangWarBonus: 0.06 },
+        { gangAttackBonus: 0.12, gangWarBonus: 0.07 },
+        { gangAttackBonus: 0.13, gangWarBonus: 0.08 },
+        { gangAttackBonus: 0.14, gangWarBonus: 0.09 },
+        { gangAttackBonus: 0.15, gangWarBonus: 0.10 }
+      ]
+    },
+    garnitur: {
+      bonuses: [
+        { companyIncomeBonus: 0.10 },
+        { companyIncomeBonus: 0.105 },
+        { companyIncomeBonus: 0.11 },
+        { companyIncomeBonus: 0.115 },
+        { companyIncomeBonus: 0.12 },
+        { companyIncomeBonus: 0.13 }
+      ]
+    },
+    kosc_ryzyka: {
+      bonuses: [
+        { maxBet: 500000 },
+        { maxBet: 550000 },
+        { maxBet: 600000 },
+        { maxBet: 650000 },
+        { maxBet: 700000 },
+        { maxBet: 750000 }
+      ]
+    }
+  },
+  gangUpgradePaths: {
+    van_opancerzony: {
+      bonuses: [
+        { attackLootBonus: 0.15 },
+        { attackLootBonus: 0.16 },
+        { attackLootBonus: 0.17 },
+        { attackLootBonus: 0.18 },
+        { attackLootBonus: 0.19 },
+        { attackLootBonus: 0.21 }
+      ]
+    },
+    siec_informatorow: {
+      bonuses: [
+        { heistChance: 0.10 },
+        { heistChance: 0.11 },
+        { heistChance: 0.12 },
+        { heistChance: 0.13 },
+        { heistChance: 0.14 },
+        { heistChance: 0.15 }
+      ]
+    },
+    falszywe_dokumenty: {
+      bonuses: [
+        { cooldownReduction: 0.10 },
+        { cooldownReduction: 0.11 },
+        { cooldownReduction: 0.12 },
+        { cooldownReduction: 0.13 },
+        { cooldownReduction: 0.14 },
+        { cooldownReduction: 0.15 }
+      ]
+    },
+    monitoring: {
+      bonuses: [
+        { gangDefense: 0.02 },
+        { gangDefense: 0.025 },
+        { gangDefense: 0.03 },
+        { gangDefense: 0.035 },
+        { gangDefense: 0.04 },
+        { gangDefense: 0.045 }
+      ]
+    },
+    centrum_treningowe: {
+      bonuses: [
+        { gangAttack: 0.02 },
+        { gangAttack: 0.025 },
+        { gangAttack: 0.03 },
+        { gangAttack: 0.035 },
+        { gangAttack: 0.04 },
+        { gangAttack: 0.045 }
+      ]
+    },
+    warsztat_gang: {
+      bonuses: [
+        { upgradeCostReduction: 0.05 },
+        { upgradeCostReduction: 0.06 },
+        { upgradeCostReduction: 0.07 },
+        { upgradeCostReduction: 0.08 },
+        { upgradeCostReduction: 0.09 },
+        { upgradeCostReduction: 0.10 }
+      ]
+    },
+    szkolenie_bojowe: {
+      bonuses: [
+        { gangAttack: 0.05 },
+        { gangAttack: 0.06 },
+        { gangAttack: 0.07 },
+        { gangAttack: 0.08 },
+        { gangAttack: 0.09 },
+        { gangAttack: 0.10 }
+      ]
+    },
+    mobilna_barykada: {
+      bonuses: [
+        { gangDefense: 0.06 },
+        { gangDefense: 0.07 },
+        { gangDefense: 0.08 },
+        { gangDefense: 0.09 },
+        { gangDefense: 0.10 },
+        { gangDefense: 0.11 }
+      ]
+    },
+    warsztat: {
+      bonuses: [
+        { workBonus: 0.10 },
+        { workBonus: 0.105 },
+        { workBonus: 0.11 },
+        { workBonus: 0.115 },
+        { workBonus: 0.12 },
+        { workBonus: 0.14 }
+      ]
+    },
+    celowniki_laserowe: {
+      bonuses: [
+        { attackBonus: 0.10 },
+        { attackBonus: 0.11 },
+        { attackBonus: 0.12 },
+        { attackBonus: 0.13 },
+        { attackBonus: 0.14 },
+        { attackBonus: 0.15 }
+      ]
+    },
+    ksiegowy_gangu: {
+      bonuses: [
+        { gangIncomeBonus: 0.05 },
+        { gangIncomeBonus: 0.055 },
+        { gangIncomeBonus: 0.06 },
+        { gangIncomeBonus: 0.065 },
+        { gangIncomeBonus: 0.07 },
+        { gangIncomeBonus: 0.075 }
+      ]
+    },
+    sztab_dowodzenia: {
+      bonuses: [
+        { gangAttack: 0.05, gangDefense: 0.05, lootBonus: 0.10 },
+        { gangAttack: 0.06, gangDefense: 0.06, lootBonus: 0.11 },
+        { gangAttack: 0.07, gangDefense: 0.07, lootBonus: 0.12 },
+        { gangAttack: 0.08, gangDefense: 0.08, lootBonus: 0.13 },
+        { gangAttack: 0.09, gangDefense: 0.09, lootBonus: 0.14 },
+        { gangAttack: 0.10, gangDefense: 0.10, lootBonus: 0.15 }
+      ]
+    },
+    pralnia_pieniedzy: {
+      bonuses: [
+        { gangIncomeBonus: 0.05 },
+        { gangIncomeBonus: 0.055 },
+        { gangIncomeBonus: 0.06 },
+        { gangIncomeBonus: 0.065 },
+        { gangIncomeBonus: 0.07 },
+        { gangIncomeBonus: 0.08 }
+      ]
+    },
+    tajny_sejf: {
+      bonuses: [
+        { theftReduction: 0.03 },
+        { theftReduction: 0.031 },
+        { theftReduction: 0.032 },
+        { theftReduction: 0.034 },
+        { theftReduction: 0.036 },
+        { theftReduction: 0.04 }
+      ]
+    }
+  },
   shopItems: {
     klodka: {
       name: 'Klodka',

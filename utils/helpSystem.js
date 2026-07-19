@@ -151,6 +151,19 @@ const helpCommands = [
   },
   {
     id: 9,
+    name: "ulepsz",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "🔧 ulepsz przedmiot",
+    description: "🔧 Ulepsz przedmioty w ekwipunku do +5. Każdy poziom wymaga kopii przedmiotu + materiału ulepszeniowego + monet.",
+    usage: "!ulepsz <przedmiot> | !ulepsz <przedmiot> potwierdz | !ulepsz lista",
+    examples: ["!ulepsz klodka","!ulepsz vip potwierdz","!ulepsz lista"],
+    cooldown: "3 sekundy",
+    requirements: "Posiadanie przedmiotu i odpowiednich materiałów.",
+    aliases: ["upgrade","ulepszanie"],
+    additionalInfo: ["Materiały dropują z paczek: Żelazo, Miedź, Tytan, Karbid, Inżelit.","Event przedmioty nie mogą być ulepszane."]
+  },
+  {
+    id: 9,
     name: "use",
     category: "ECONOMY_GAMBLING",
     shortDescription: "⚡ użyj przedmiotu",

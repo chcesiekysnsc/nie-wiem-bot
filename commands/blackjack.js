@@ -9,7 +9,8 @@ const {
   hasItem,
   getPassiveMultiplier,
   getActiveEventMultiplier,
-  getCasinoWinMultiplier
+  getCasinoWinMultiplier,
+  getDealerBonusChance
 } = require('../utils/economy');
 const { createUser, withData, loadData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -62,9 +63,9 @@ function renderHand(cards, hideSecond = false) {
   return cards.map(c => `[${c.rank}${c.suit}]`).join(' ');
 }
 
-function drawCardForPlayer(game, hasDealerItem) {
+function drawCardForPlayer(game, dealerCheatChance) {
   let card = game.deck.pop();
-  if (hasDealerItem && Math.random() < 0.03 && game.deck.length > 0) {
+  if (dealerCheatChance > 0 && Math.random() < dealerCheatChance && game.deck.length > 0) {
     const nextCard = game.deck[game.deck.length - 1];
     const currentVal = getHandValue([...game.playerCards, card]);
     const nextVal = getHandValue([...game.playerCards, nextCard]);
@@ -245,9 +246,9 @@ module.exports = {
     if (action === 'hit' || action === 'dobierz') {
       const inventoryData = loadData('inventory');
       const inventoryRecord = ensureInventoryRecord(inventoryData, authorId);
-      const hasDealerItem = hasItem(inventoryRecord, 'przekupiony_krupier');
+      const dealerCheatChance = getDealerBonusChance(inventoryRecord);
 
-      const drawnCard = drawCardForPlayer(game, hasDealerItem);
+      const drawnCard = drawCardForPlayer(game, dealerCheatChance);
       playerValue = getHandValue(game.playerCards);
       const cheatNote = drawnCard.isCheat ? `\n🧠 **Przekupiony Krupier:** *Krupier dyskretnie wsunął Ci korzystniejszą kartę: ${drawnCard.cheatDetails}!*` : '';
 
@@ -377,9 +378,9 @@ module.exports = {
       game.bet *= 2;
       const inventoryData = loadData('inventory');
       const inventoryRecord = ensureInventoryRecord(inventoryData, authorId);
-      const hasDealerItem = hasItem(inventoryRecord, 'przekupiony_krupier');
+      const dealerCheatChance = getDealerBonusChance(inventoryRecord);
 
-      const drawnCard = drawCardForPlayer(game, hasDealerItem);
+      const drawnCard = drawCardForPlayer(game, dealerCheatChance);
       playerValue = getHandValue(game.playerCards);
       const cheatNote = drawnCard.isCheat ? `\n🧠 **Przekupiony Krupier:** *Krupier dyskretnie wsunął Ci korzystniejszą kartę: ${drawnCard.cheatDetails}!*` : '';
 

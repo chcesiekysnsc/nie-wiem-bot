@@ -254,15 +254,42 @@ function removeItem(inventoryRecord, itemId, quantity = 1) {
   return true;
 }
 
+function getItemUpgradeLevel(inventoryRecord, itemId) {
+  if (!inventoryRecord || !inventoryRecord._upgrades || !inventoryRecord._upgrades[itemId]) {
+    return 0;
+  }
+  return Math.max(0, Math.min(5, Math.floor(inventoryRecord._upgrades[itemId].level || 0)));
+}
+
+function getUpgradedLinearBonus(inventoryRecord, itemId, baseBonus, bonusPerLevel) {
+  if (!hasItem(inventoryRecord, itemId)) return baseBonus > 0 ? 0 : 0;
+  const level = getItemUpgradeLevel(inventoryRecord, itemId);
+  return baseBonus + level * bonusPerLevel;
+}
+
+function getUpgradedCapBonus(inventoryRecord, itemId, baseCap, capPerLevel) {
+  if (!hasItem(inventoryRecord, itemId)) return 0;
+  const level = getItemUpgradeLevel(inventoryRecord, itemId);
+  return baseCap + level * capPerLevel;
+}
+
+function getDealerBonusChance(inventoryRecord) {
+  if (!hasItem(inventoryRecord, 'przekupiony_krupier')) return 0;
+  const level = getItemUpgradeLevel(inventoryRecord, 'przekupiony_krupier');
+  return 0.03 + level * 0.003;
+}
+
 function getBankCapacity(user, inventoryRecord) {
   let capacity = config.economy.bankBaseCapacity;
 
   if (hasItem(inventoryRecord, 'vip')) {
-    capacity += config.economy.bankVipBonus;
+    const bonus = getUpgradedCapBonus(inventoryRecord, 'vip', config.economy.bankVipBonus, 5000);
+    capacity += bonus;
   }
 
   if (hasItem(inventoryRecord, 'sejf')) {
-    capacity += 75000;
+    const bonus = getUpgradedCapBonus(inventoryRecord, 'sejf', 75000, 10000);
+    capacity += bonus;
   }
 
   if (hasItem(inventoryRecord, 'zlota_karta')) {
@@ -402,7 +429,21 @@ function refreshBadges(user, inventoryRecord) {
 function getPassiveMultiplier(inventoryRecord, itemId, baseBonus) {
   if (!hasItem(inventoryRecord, itemId)) return 0;
   const hasCzterolistna = hasItem(inventoryRecord, 'czterolistna_moneta');
-  return parseFloat((baseBonus + (hasCzterolistna ? 0.01 : 0.00)).toFixed(4));
+  const level = getItemUpgradeLevel(inventoryRecord, itemId);
+  
+  const upgradePerLevel = {
+    garnitur: 0.005,
+    kaczka_biznesu: 0.005,
+    mocna_kawa: 0.01,
+    podrecznik_praktykanta: 0.01,
+    krysztal_doswiadczenia: 0.02,
+    rekawice_robotnika: 0.005
+  };
+  
+  const perLevel = upgradePerLevel[itemId] || 0;
+  const totalBonus = baseBonus + level * perLevel + (hasCzterolistna ? 0.01 : 0.00);
+  
+  return parseFloat(totalBonus.toFixed(4));
 }
 
 function getActiveEventMultiplier(type) {
@@ -508,7 +549,11 @@ function getCasinoWinMultiplier(inventoryRecord) {
 function getGlobalIncomeMultiplier(inventoryRecord) {
   if (!inventoryRecord) return 0;
   if (hasItem(inventoryRecord, 'sakiewka_kolekcjonera')) {
-    return 0.03;
+    const level = getItemUpgradeLevel(inventoryRecord, 'sakiewka_kolekcjonera');
+    const base = 0.03;
+    const perLevel = 0.001;
+    const total = base + level * perLevel;
+    return parseFloat(total.toFixed(4));
   }
   return 0;
 }
@@ -517,7 +562,10 @@ function getGlobalCooldownReduction(inventoryRecord) {
   if (!inventoryRecord) return 0;
   let reduction = 0;
   if (hasItem(inventoryRecord, 'z_drive')) {
-    reduction += 0.15;
+    const level = getItemUpgradeLevel(inventoryRecord, 'z_drive');
+    const base = 0.15;
+    const perLevel = 0.004;
+    reduction += base + level * perLevel;
   }
   const { getItemSetBonus } = require('./itemSets');
   reduction += getItemSetBonus(inventoryRecord, 'cooldown_reduction');
@@ -552,5 +600,9 @@ module.exports = {
   getCompanyPayoutMultiplier,
   getCasinoWinMultiplier,
   getGlobalIncomeMultiplier,
-  getGlobalCooldownReduction
+  getGlobalCooldownReduction,
+  getItemUpgradeLevel,
+  getUpgradedLinearBonus,
+  getUpgradedCapBonus,
+  getDealerBonusChance
 };

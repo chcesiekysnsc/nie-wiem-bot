@@ -7,7 +7,8 @@ const {
   msToReadable,
   refreshBadges,
   getGlobalIncomeMultiplier,
-  getItemSetBonus
+  getItemSetBonus,
+  getItemUpgradeLevel
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -74,7 +75,9 @@ module.exports = {
       let reward = 20000 + streakBonus;
 
       if (hasItem(inventory, 'vip')) {
-        reward = Math.floor(reward * config.economy.dailyVipBonus);
+        const level = getItemUpgradeLevel(inventory, 'vip');
+        const bonus = 0.25 + level * 0.02;
+        reward = Math.floor(reward * (1 + bonus));
       }
 
       let dailyBonusMult = 1.0;

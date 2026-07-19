@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { ensureInventoryRecord } = require('../utils/economy');
+const { ensureInventoryRecord, getItemUpgradeLevel } = require('../utils/economy');
 const { withData } = require('../utils/storage');
 
 const eventItemIds = [
@@ -47,7 +47,9 @@ module.exports = {
       const ownedStatus = await withData(store => {
         const inv = ensureInventoryRecord(store.inventory, userId);
         const qty = inv[art.id] || 0;
-        return qty > 0 ? `🟢 Posiadasz (sztuk: ${qty})` : '🔴 Nie posiadasz';
+        const level = getItemUpgradeLevel(inv, art.id);
+        const upgradeStr = level > 0 ? ` (poziom +${level})` : '';
+        return qty > 0 ? `🟢 Posiadasz (sztuk: ${qty}${upgradeStr})` : '🔴 Nie posiadasz';
       });
 
       let response = 
@@ -70,7 +72,9 @@ module.exports = {
       const inv = ensureInventoryRecord(store.inventory, userId);
       return itemsList.map(art => {
         const qty = inv[art.id] || 0;
-        const status = qty > 0 ? `🟢 (${qty} szt.)` : '🔴 (brak)';
+        const level = getItemUpgradeLevel(inv, art.id);
+        const upgradeStr = level > 0 ? ` +${level}` : '';
+        const status = qty > 0 ? `🟢 (${qty} szt.${upgradeStr})` : '🔴 (brak)';
         return `${art.num}. ${art.emoji} *${art.name}* — ${art.shortDesc} ${status}`;
       });
     });

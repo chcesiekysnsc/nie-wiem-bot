@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, hasItem, getPassiveMultiplier } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, hasItem, getPassiveMultiplier, getDealerBonusChance } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 async function resolveName(client, userId) {
@@ -231,9 +231,8 @@ module.exports = {
         let okoSaved = false;
 
         if (state === 'lose') {
-          // Przekupiony Krupier (3% na wygraną przy przegranej)
-          const hasKrupier = hasItem(inventory, 'przekupiony_krupier');
-          if (hasKrupier && Math.random() < 0.03) {
+          const dealerCheatChance = getDealerBonusChance(inventory);
+          if (dealerCheatChance > 0 && Math.random() < dealerCheatChance) {
             botMove = MOVES[playerMove].beats;
             state = 'win';
             krupierSaved = true;

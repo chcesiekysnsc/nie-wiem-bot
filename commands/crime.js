@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable, getCrimeSuccessMultiplier, hasItem, getGlobalIncomeMultiplier, getGlobalCooldownReduction } = require('../utils/economy');
+const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable, getCrimeSuccessMultiplier, hasItem, getGlobalIncomeMultiplier, getGlobalCooldownReduction, getItemUpgradeLevel } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { hasReputationBonus } = require('../utils/gangAI');
@@ -158,7 +158,9 @@ module.exports = {
       const hasOdznakaKomendanta = hasItem(inventory, 'odznaka_komendanta');
       let savedByBadge = false;
       if (hasOdznakaKomendanta && !success) {
-        const finalChance = Math.min(baseSuccessChance + 0.125, 1);
+        const level = getItemUpgradeLevel(inventory, 'odznaka_komendanta');
+        const bonus = 0.125 + level * 0.01;
+        const finalChance = Math.min(baseSuccessChance + bonus, 1);
         if (roll < finalChance) {
           success = true;
           savedByBadge = true;

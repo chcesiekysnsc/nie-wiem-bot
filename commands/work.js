@@ -11,7 +11,10 @@ const {
   getActiveEventMultiplier,
   getGlobalIncomeMultiplier,
   getGlobalCooldownReduction,
-  getCasinoWinMultiplier
+  getCasinoWinMultiplier,
+  getItemUpgradeLevel,
+  getUpgradedLinearBonus,
+  getUpgradedCapBonus
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -45,7 +48,11 @@ module.exports = {
       const hasSzwajcar = hasItem(inventory, 'szwajcarski_zegarek');
       const baseCd = config.cooldowns.work || 600;
       let actualCd = baseCd;
-      if (hasZegar) actualCd *= 0.90;
+      if (hasZegar) {
+        const level = getItemUpgradeLevel(inventory, 'stary_zegar');
+        const reduction = 0.10 + level * 0.005;
+        actualCd *= (1 - reduction);
+      }
       if (hasSzwajcar) actualCd *= 0.85;
       const cdReduction = getGlobalCooldownReduction(inventory);
       if (cdReduction > 0) {
@@ -67,7 +74,9 @@ module.exports = {
 
       let reward = randomInt(config.economy.workMin, config.economy.workMax);
       if (hasItem(inventory, 'vip')) {
-        reward = Math.floor(reward * config.economy.workVipBonus);
+        const level = getItemUpgradeLevel(inventory, 'vip');
+        const bonus = 0.10 + level * 0.02;
+        reward = Math.floor(reward * (1 + bonus));
       }
 
       if (Number.isFinite(workLuckOverride) && workLuckOverride !== 1) {
@@ -97,8 +106,12 @@ module.exports = {
       const tripleChance = getItemSetBonus(inventory, 'work_triple_chance');
       if (tripleChance > 0 && Math.random() < tripleChance) {
         reward = reward * 3;
-      } else if (hasItem(inventory, 'rekawice_robotnika') && Math.random() < 0.10) {
-        reward = reward * 2;
+      } else if (hasItem(inventory, 'rekawice_robotnika')) {
+        const level = getItemUpgradeLevel(inventory, 'rekawice_robotnika');
+        const chance = 0.10 + level * 0.01;
+        if (Math.random() < Math.min(chance, 0.20)) {
+          reward = reward * 2;
+        }
       }
 
       if (user.badges && user.badges.includes(config.badges.krolSpamu)) {

@@ -6,7 +6,8 @@ const {
   msToReadable,
   recordGame,
   refreshBadges,
-  getActiveEventMultiplier
+  getActiveEventMultiplier,
+  getItemUpgradeLevel
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -71,8 +72,9 @@ module.exports = {
         return { error: '❌ Nie masz żadnej zapisanej ostatniej wygranej netto z kasyna (np. z !bet, !cf, !bj), którą mógłbyś zaryzykować!' };
       }
 
-      // Stawka to ostatnia wygrana netto, max 500k
-      const stake = Math.min(500000, lastWin);
+      const koscLevel = getItemUpgradeLevel(inventory, 'kosc_ryzyka');
+      const maxBet = 500000 + koscLevel * 50000;
+      const stake = Math.min(maxBet, lastWin);
 
       // Losowanie 50/50
       const won = Math.random() < 0.5;

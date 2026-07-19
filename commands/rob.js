@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem, getPassiveMultiplier, getItemSetBonus } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem, getPassiveMultiplier, getItemSetBonus, getItemUpgradeLevel } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 
@@ -167,6 +167,11 @@ module.exports = {
       // Szanse: 60% sukces, 40% wpadka. Krwawy Żeton daje +6%. Odznaka Zwycięzca daje +5%
       const robberHasZeton = hasItem(robberInv, 'krwawy_zeton');
       let baseSuccessChance = robberHasZeton ? 0.66 : 0.60;
+      if (robberHasZeton) {
+        const level = getItemUpgradeLevel(robberInv, 'krwawy_zeton');
+        const zetonBonus = 0.06 + level * 0.01;
+        baseSuccessChance = 0.60 + zetonBonus;
+      }
       if (Number.isFinite(robSuccessOverride)) {
         baseSuccessChance = robSuccessOverride / 100;
       }
@@ -209,7 +214,9 @@ module.exports = {
 
         let stolen = Math.floor(baseStolen * (1 + bonusPercent));
         if (robberHasZeton) {
-          stolen = Math.floor(stolen * 1.04);
+          const level = getItemUpgradeLevel(robberInv, 'krwawy_zeton');
+          const zetonLootBonus = 0.04 + level * 0.01;
+          stolen = Math.floor(stolen * (1 + zetonLootBonus));
         }
 
         let latarkaBonus = 0;
@@ -376,7 +383,9 @@ module.exports = {
         const losePercent = hasBeer ? 0.40 : 0.30;
         let fine = Math.max(1, Math.floor(robber.balance * losePercent));
         if (robberHasZeton) {
-          fine = Math.floor(fine * 1.08);
+          const level = getItemUpgradeLevel(robberInv, 'krwawy_zeton');
+          const zetonPenaltyBonus = 0.08 + level * 0.01;
+          fine = Math.floor(fine * (1 + zetonPenaltyBonus));
         }
         if (kominiarkaBonusPct > 0) {
           fine = Math.floor(fine * (1 - kominiarkaBonusPct));

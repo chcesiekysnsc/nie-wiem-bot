@@ -3,7 +3,8 @@ const {
   ensureInventoryRecord,
   formatCurrency,
   getItemQuantity,
-  refreshBadges
+  refreshBadges,
+  getItemUpgradeLevel
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { eventItems } = require('./eventitemy');
@@ -108,7 +109,9 @@ module.exports = {
           const prefix = `${entry.num}. `;
           const isActive = ['klodka', 'bomba', 'piwo'].includes(entry.id) || entry.id.startsWith('paczka_');
           const passiveSuffix = isActive ? '' : ' *(Pasywny)*';
-          return `${prefix}${entry.emoji} **${entry.name}** x${qty}${passiveSuffix}`;
+          const level = getItemUpgradeLevel(inventory, entry.id);
+          const upgradeSuffix = level > 0 ? ` +${level}` : '';
+          return `${prefix}${entry.emoji} **${entry.name}**${upgradeSuffix} x${qty}${passiveSuffix}`;
         })
         .filter(Boolean);
 

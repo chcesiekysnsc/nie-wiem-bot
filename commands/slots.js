@@ -8,7 +8,8 @@ const {
   resolveAmount,
   getPassiveMultiplier,
   getActiveEventMultiplier,
-  getCasinoWinMultiplier
+  getCasinoWinMultiplier,
+  getDealerBonusChance
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -92,8 +93,8 @@ module.exports = {
       let activeBadgeName = '';
       let dealerCheated = false;
 
-      const hasDealerItem = hasItem(inventory, 'przekupiony_krupier');
-      if (multiplier <= 0 && hasDealerItem && Math.random() < 0.03) {
+      const dealerBonus = getDealerBonusChance(inventory);
+      if (multiplier <= 0 && dealerBonus > 0 && Math.random() < dealerBonus) {
         symbols[0] = SYMBOLS.cherry;
         symbols[1] = SYMBOLS.cherry;
         symbols[2] = SYMBOLS.cherry;
