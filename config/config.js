@@ -109,35 +109,35 @@ module.exports = {
         name: 'Kiosk',
         price: 2000000,
         payout: 45000,
-        breakChance: 0.06,
+        breakChance: 0.03,
         emoji: '🏪'
       },
       restauracja: {
         name: 'Restauracja',
         price: 4000000,
         payout: 95000,
-        breakChance: 0.08,
+        breakChance: 0.04,
         emoji: '🍔'
       },
       salon: {
         name: 'Salon Gier',
         price: 6000000,
         payout: 150000,
-        breakChance: 0.10,
+        breakChance: 0.05,
         emoji: '🎮'
       },
       stocznia: {
         name: 'Stocznia',
         price: 8000000,
         payout: 220000,
-        breakChance: 0.12,
+        breakChance: 0.06,
         emoji: '🚢'
       },
       bank: {
         name: 'Prywatny Bank',
         price: 10000000,
         payout: 340000,
-        breakChance: 0.15,
+        breakChance: 0.08,
         emoji: '🏦'
       }
     },

@@ -41,6 +41,21 @@ module.exports = {
     // !help <kategoria> [numer]
     if (categoryKey) {
       if (categoryKey === 'ALL') {
+        const secondArg = args[1];
+        if (secondArg !== undefined) {
+          const num = Number(secondArg);
+          if (!Number.isInteger(num)) {
+            await message.reply({ embeds: [buildHelpErrorEmbed()] });
+            return;
+          }
+          const cmd = getHelpCommandById(num);
+          if (!cmd) {
+            await message.reply({ embeds: [buildHelpErrorEmbed()] });
+            return;
+          }
+          await message.reply({ embeds: [buildHelpDetailEmbed(client, cmd, prefix)] });
+          return;
+        }
         await message.reply({ embeds: [buildHelpListEmbed(client, prefix)] });
         return;
       }

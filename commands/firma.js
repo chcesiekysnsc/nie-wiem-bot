@@ -168,7 +168,9 @@ module.exports = {
 
         const overrides = (store.profiles && store.profiles.chanceOverrides && store.profiles.chanceOverrides[message.author.id]) || {};
         const breakChanceOverride = overrides['company_breakdown'];
-        const hasBreakdownOverride = breakChanceOverride !== undefined && breakChanceOverride !== null && breakChanceOverride !== '';
+        // Override is only active when explicitly set to a value OTHER than the REGISTRY default (50)
+        const COMPANY_BREAKDOWN_REGISTRY_DEFAULT = 50;
+        const hasBreakdownOverride = breakChanceOverride !== undefined && breakChanceOverride !== null && breakChanceOverride !== '' && Number(breakChanceOverride) !== COMPANY_BREAKDOWN_REGISTRY_DEFAULT;
 
         if (!user.company && !user.company2) {
           return { error: '❌ Nie posiadasz żadnego przedsiębiorstwa! Kup je najpierw za pomocą **!firma kup <nr>**.' };
