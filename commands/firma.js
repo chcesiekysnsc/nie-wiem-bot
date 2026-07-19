@@ -60,9 +60,8 @@ module.exports = {
         const repairCost = def.payout * 4;
         const breakPct = Math.round(def.breakChance * 100);
         
-        // Calculate payback time under 4 collections/day
-        const expectedPayout = def.payout * (1 - 4 * def.breakChance);
-        const paybackDays = expectedPayout > 0 ? (def.price / expectedPayout / 4).toFixed(1) : 'nigdy';
+        const expectedDailyPayout = def.payout * 4 * (1 - def.breakChance);
+        const paybackDays = expectedDailyPayout > 0 ? (def.price / expectedDailyPayout).toFixed(1) : 'nigdy';
 
         list += `**${i}. ${def.emoji} ${def.name}** (ID: \`${id}\`)\n`;
         list += `   ↳ Cena: **${formatCurrency(def.price)}**\n`;

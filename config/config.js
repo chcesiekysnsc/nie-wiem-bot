@@ -109,36 +109,41 @@ module.exports = {
         name: 'Kiosk',
         price: 2000000,
         payout: 45000,
-        breakChance: 0.03,
-        emoji: '🏪'
+        breakChance: 0.04,
+        emoji: '🏪',
+        description: 'Niska cena wejścia, stabilne zyski. Inwestycja zwraca się w około 13 dni.'
       },
       restauracja: {
         name: 'Restauracja',
         price: 4000000,
         payout: 95000,
-        breakChance: 0.04,
-        emoji: '🍔'
+        breakChance: 0.05,
+        emoji: '🍔',
+        description: 'Solidny biznes z przewidywalnym dochodem. Zwrot kosztów w około 13 dni.'
       },
       salon: {
         name: 'Salon Gier',
         price: 6000000,
         payout: 150000,
-        breakChance: 0.05,
-        emoji: '🎮'
+        breakChance: 0.06,
+        emoji: '🎮',
+        description: 'Łatwiejsze utrzymanie i regularni klienci. Zwrot kosztów w około 13 dni.'
       },
       stocznia: {
         name: 'Stocznia',
         price: 8000000,
         payout: 220000,
-        breakChance: 0.06,
-        emoji: '🚢'
+        breakChance: 0.08,
+        emoji: '🚢',
+        description: 'Większe ryzyko, ale i większe zyski. Zwrot kosztów w około 13 dni.'
       },
       bank: {
         name: 'Prywatny Bank',
         price: 10000000,
         payout: 340000,
-        breakChance: 0.08,
-        emoji: '🏦'
+        breakChance: 0.11,
+        emoji: '🏦',
+        description: 'Najwyższe zyski przy najwyższym ryzyku. Zwrot kosztów w około 13 dni.'
       }
     },
     maxBet: 100000,
