@@ -39,6 +39,7 @@
       <button class="tab-btn" data-tab="live">📡 Live</button>
       <button class="tab-btn" data-tab="mody">🛠️ Mody</button>
       <button class="tab-btn" data-tab="decisions">🧠 Decyzje</button>
+      <button class="tab-btn" data-tab="suspects">🕵️ Podejrzani</button>
     </nav>
 
     <main>
@@ -329,6 +330,30 @@
         </div>
         <div id="decision-gang-info" class="card"></div>
         <div id="decision-log-list"></div>
+      </section>
+
+      <section id="tab-suspects" class="tab hidden">
+        <div class="card">
+          <h3>🕵️ Podejrzani — AI Analyst</h3>
+          <p class="muted card-desc">Wpisz ID użytkownika i pytanie. System prześle historię komend tego użytkownika do AI, która uwzględni jego stan ekonomiczny i aktywność od początku istnienia bota.</p>
+          <div class="field-group">
+            <label for="suspect-id">ID użytkownika</label>
+            <input type="text" id="suspect-id" placeholder="np. 1000123456789">
+          </div>
+          <div class="field-group">
+            <label for="suspect-question">Pytanie / polecenie dla AI</label>
+            <input type="text" id="suspect-question" placeholder="np. przeanalizuj 5000 użyć komend, skąd zaczął mieć tyle pieniędzy">
+          </div>
+          <div class="field-group">
+            <label for="suspect-limit">Limit wpisów do analizy (maks. 5000)</label>
+            <input type="number" id="suspect-limit" value="5000" min="1" max="5000">
+          </div>
+          <button id="suspect-analyze-btn" class="primary">🔍 Wyślij do AI</button>
+        </div>
+        <div id="suspect-result" class="card hidden" style="margin-top:16px;">
+          <h3>📊 Odpowiedź AI</h3>
+          <pre id="suspect-result-text" style="white-space:pre-wrap; word-break:break-word;"></pre>
+        </div>
       </section>
     </main>
   </div>

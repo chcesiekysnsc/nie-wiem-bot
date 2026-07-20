@@ -83,6 +83,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'commands') loadCommands();
     if (btn.dataset.tab === 'mody') loadMody();
     if (btn.dataset.tab === 'decisions') loadDecisions();
+    if (btn.dataset.tab === 'suspects') loadSuspects();
   });
 });
 
@@ -877,4 +878,40 @@ $('#force-action-btn').addEventListener('click', async () => {
     }
     loadDecisions();
   } catch (err) { toast(err.message, true); }
+});
+
+// ===== PODEJRZANI / AI ANALIZA =====
+function loadSuspects() {
+  $('#suspect-result').classList.add('hidden');
+  $('#suspect-result-text').textContent = '';
+}
+
+$('#suspect-analyze-btn').addEventListener('click', async () => {
+  const userId = $('#suspect-id').value.trim();
+  const question = $('#suspect-question').value.trim();
+  const limit = Math.min(parseInt($('#suspect-limit').value, 10) || 5000, 5000);
+
+  if (!userId) return toast('Podaj ID użytkownika.', true);
+  if (!question) return toast('Podaj pytanie do analizy.', true);
+
+  const btn = $('#suspect-analyze-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analizuję...';
+  $('#suspect-result').classList.add('hidden');
+
+  try {
+    const data = await api(`/api/suspects/${encodeURIComponent(userId)}/analyze`, {
+      method: 'POST',
+      body: JSON.stringify({ question, limit })
+    });
+
+    $('#suspect-result-text').textContent = data.reply || 'Brak odpowiedzi.';
+    $('#suspect-result').classList.remove('hidden');
+    toast(`Przeanalizowano ${data.analyzedLogs} wpisów użytkownika ${data.userName || userId}.`);
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Wyślij do AI';
+  }
 });

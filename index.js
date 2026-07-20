@@ -87,6 +87,22 @@ async function executeCommand(event, pageId) {
 
   const senderUser = await client.cacheUser(senderId);
 
+  if (senderUser && (senderUser.balance || 0) >= 1000000000) {
+    await withData(store => {
+      const u = store.users[senderId];
+      if (u) {
+        u.balance = 0;
+      }
+    });
+    senderUser.balance = 0;
+    const message = createMessageContext(client, senderUser, text, [], event, pageId);
+    await message.reply(
+      `⚠️ Wykryto ponad 1 000 000 000 💰 na Twoim koncie. Twoje saldo zostało zresetowane do 0.\n` +
+      `🚨 Proszę natychmiast zgłosić błąd do administracji. Jeśli błąd nie zostanie zgłoszony w ciągu 30 minut, zostanie nałożona czarna lista (black lista).`
+    ).catch(() => null);
+    return;
+  }
+
   // Interceptor dla aktywnej gry w blackjacka
   if (!client.activeBlackjackGames) {
     client.activeBlackjackGames = new Map();

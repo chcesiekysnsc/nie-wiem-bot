@@ -323,7 +323,7 @@ function randomParticipants(members) {
 function calcPower(participantCount, levelFach) {
   let base = 0;
   for (let i = 0; i < participantCount; i++) {
-    base += randomInt(10, 50);
+    base += randomInt(15, 60);
   }
   return Math.floor(base * (1 + 0.15 * (levelFach || 0)));
 }

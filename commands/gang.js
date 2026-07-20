@@ -1905,7 +1905,7 @@ module.exports = {
 
           let baseAttackPower = 0;
           for (let i = 0; i < effectiveAttackerCount; i++) {
-            baseAttackPower += randomInt(10, 50);
+            baseAttackPower += randomInt(15, 60);
           }
           const attFachLvl = attackerGang.levelFach || 0;
           const attBossBonus = getGangBossShopMultiplier(attackerGang, 'attack');
@@ -1917,7 +1917,7 @@ module.exports = {
           let baseDefensePower = 0;
           if (effectiveDefenderCount > 0) {
             for (let i = 0; i < effectiveDefenderCount; i++) {
-              baseDefensePower += randomInt(10, 50);
+              baseDefensePower += randomInt(15, 60);
             }
           }
           const defFachLvl = defenderGang.levelFach || 0;

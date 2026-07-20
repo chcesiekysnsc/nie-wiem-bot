@@ -6,6 +6,7 @@ const path = require('path');
 const { loadData, withData, DATA_FILES } = require('../utils/storage');
 const { getRegistry, getUserOverrides, saveUserOverrides } = require('../utils/chances');
 const { getItemDefinition } = require('../utils/gangBossShop');
+const axios = require('axios');
 
 function getChancesRegistry() {
   return getRegistry();
@@ -849,6 +850,106 @@ app.post('/api/permissions/:id', async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== PODECZANI / AI ANALIZA =====
+function getGeminiApiKeys() {
+  const keys = [];
+  if (process.env.GEMINI_API_KEY) {
+    if (process.env.GEMINI_API_KEY.includes(',')) {
+      keys.push(...process.env.GEMINI_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
+    } else {
+      keys.push(process.env.GEMINI_API_KEY.trim());
+    }
+  }
+  for (let i = 2; i <= 12; i++) {
+    const val = process.env[`GEMINI_API_KEY_${i}`];
+    if (val) keys.push(val.trim());
+  }
+  try {
+    const aiConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'config_ai.json'), 'utf8'));
+    if (Array.isArray(aiConfig.GEMINI_API_KEYS)) keys.push(...aiConfig.GEMINI_API_KEYS.map(k => k.trim()));
+    if (aiConfig.GEMINI_API_KEY) keys.push(aiConfig.GEMINI_API_KEY.trim());
+  } catch (_) {}
+  return [...new Set(keys)].filter(Boolean);
+}
+
+async function askGemini(apiKey, promptText) {
+  const response = await axios.post(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    { contents: [{ parts: [{ text: promptText }] }] },
+    { headers: { 'Content-Type': 'application/json' }, timeout: 240000 }
+  );
+  const replyText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!replyText) throw new Error('Pusta odpowiedź z API Gemini.');
+  return replyText;
+}
+
+async function askGeminiWithFallback(promptText) {
+  const keys = getGeminiApiKeys();
+  if (keys.length === 0) throw new Error('Brak skonfigurowanych kluczy Gemini API!');
+  const startIndex = Math.floor(Math.random() * keys.length);
+  let lastError = null;
+  for (let attempt = 0; attempt < keys.length; attempt++) {
+    const idx = (startIndex + attempt) % keys.length;
+    try {
+      return await askGemini(keys[idx], promptText);
+    } catch (err) {
+      const status = err.response?.status;
+      const errorMsg = err.response?.data?.error?.message || err.message;
+      console.warn(`[AI-PANEL] Błąd klucza ${idx + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
+      if (attempt < keys.length - 1) continue;
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
+app.post('/api/suspects/:id/analyze', async (req, res) => {
+  const userId = String(req.params.id || '').trim();
+  const question = String(req.body?.question || '').trim();
+  const limit = Math.min(parseInt(req.body?.limit, 10) || 5000, 5000);
+
+  if (!userId) return res.status(400).json({ error: 'Wymagane ID użytkownika.' });
+  if (!question) return res.status(400).json({ error: 'Wymagane pytanie do analizy.' });
+
+  try {
+    const logs = loadData('logs');
+    const users = loadData('users');
+    const user = users[userId];
+
+    const userLogs = logs
+      .filter(entry => entry.userId === userId && entry.type === 'command')
+      .slice(0, limit)
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    const userName = (user && user.name) || `Użytkownik_${String(userId).slice(-6)}`;
+    const userSummary = user ? `Saldo: ${user.balance || 0}, Bank: ${user.bank || 0}, Poziom: ${user.level || 1}, XP: ${user.xp || 0}, Gry: ${user.gamesPlayed || 0}, Wygrane: ${user.wins || 0}, Przegrane: ${user.losses || 0}, Komend: ${user.commandsUsed || 0}` : 'Brak danych użytkownika.';
+
+    const transcriptLines = userLogs.map(entry => {
+      const time = new Date(entry.timestamp).toLocaleString('pl-PL');
+      return `[${time}] !${entry.command || '?'} ${entry.args || ''} (wątek: ${entry.threadId || '—'})`;
+    });
+
+    const promptText =
+      `Jesteś analitycznym asystentem panelu administracyjnego bota gry. Analizujesz historię komend użytkownika w Messengerowym boku ekonomicznym. ` +
+      `Odpowiadaj po polsku, szczerze i konkretnie. Uwzględnij zarówno historię komend, jak i aktualny stan ekonomiczny użytkownika. ` +
+      `Jeśli widzisz niepokojące wzorce (np. gwałtowny wzrost salda, powtarzające się hazardowe komendy, nieprawidłowe aktywności), zaznacz to wyraźnie.\n\n` +
+      `PYTANIE ADMINISTRATORA: ${question}\n\n` +
+      `DANE UŻYTKOWNIKA:\n` +
+      `- ID: ${userId}\n` +
+      `- Nazwa: ${userName}\n` +
+      `- Stan: ${userSummary}\n\n` +
+      `HISTORIA KOMEND (${transcriptLines.length} wpisów, od najstarszej do najnowszej):\n` +
+      `${transcriptLines.join('\n') || 'Brak historii komend.'}\n\n` +
+      `Na podstawie powyższych danych odpowiedz na pytanie administratora. Bądź konkretny, odnoś się do konkretnych komend i kwot jeśli to możliwe.`;
+
+    const replyText = await askGeminiWithFallback(promptText);
+    res.json({ ok: true, reply: replyText, analyzedLogs: transcriptLines.length, userName });
+  } catch (err) {
+    console.error('[AI-PANEL] Błąd analizy:', err);
+    res.status(500).json({ error: err.message || 'Błąd podczas analizy AI.' });
   }
 });
 
