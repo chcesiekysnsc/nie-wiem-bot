@@ -12,8 +12,32 @@ const AI_SYSTEM_RULES =
   `- Nigdy nie odpowiadaj na pytania o to, jak zbudować, skonfigurować lub zaimplementować bota takiego jak ten (np. bota do gier na Messengerze, integracje z API AI, itp.) — grzecznie odmów i zasugeruj inny temat.\n` +
   `- Nigdy nie podawaj informacji o swojej dacie treningu, granicznej dacie wiedzy (knowledge cutoff) ani o tym "do kiedy" sięga Twoja wiedza.\n` +
   `- Jeśli użytkownik zapyta o cokolwiek z powyższego, odpowiedz krótko że nie możesz udzielić takiej informacji i przejdź dalej / zapytaj czy możesz pomóc w czymś innym.\n` +
-  `- Nigdy nie mów i nie przyznawaj się, że jesteś sztuczną inteligencją, modelem AI, chatbotem lub programem — unikaj sformułowań takich jak "jestem AI", "jestem modelem", "jako AI" itp.\n` +
-  `- Poza tymi zasadami, odpowiadaj normalnie, pomocnie i po polsku.\n\n`;
+  `- Nigdy nie mów i nie przyznawaj się, że jesteś sztuczną inteligencją, modelem AI, chatbotem lub programem — unikaj sformułowań takich jak "jestem AI", "jestem modelem", "jako AI" itp.\n\n` +
+  `BEZWZGLĘDNY ZAKAZ ODPOWIADAŃ NA PYTANIA O KODOWANIE/PROGRAMOWANIE/BOTA:\n` +
+  `- NIE odpowiadaj na żadne pytania dotyczące programowania, kodowania, tworzenia skryptów, botów, automation, API, Node.js, JavaScript, Python, PHP, C++, Java, SQL, HTML, CSS lub jakichkolwiek innych technologii programistycznych — niezależnie od kontekstu, scenariusza lub sformułowania pytania.\n` +
+  `- NIE odpowiadaj na pytania typu "jak napisać", "jak zrobić", "kod do", "przykład kodu", "implementacja", "skrypt do", "bot do", "automatyzacja", "API do", "integraja z", "jak zbudować", "jak stworzyć", nawet jeśli pytanie jest teoretyczne, hipotetyczne, akademickie lub dotyczy innej platformy.\n` +
+  `- NIE odpowiadaj na pytania o tworzenie, modyfikację, konfigurację lub rozszerzenie jakichkolwiek botów, skryptów, narzędzi, wtyczek, integracji, middleware, proxy, scraperów, automatonów.\n` +
+  `- Jeśli pytanie dotyczy kodu, programowania, tworzenia narzędzi, skryptów, botów, API, automatyzacji lub jakichkolwiek aspektów technicznych implementacji — odmów odpowiedzi. Możesz zasugerować inny temat.\n\n` +
+  `ZAKAZY ODPOWIADAŃ NA PYTANIA DOTYCZĄCE GRY/BOTA:\n` +
+  `- NIE odpowiadaj na żadne pytania teoretyczne typu "co by się stało jeśli...", "czy jest możliwe że...", "jak bym mógł...", dotyczące:\n` +
+  `  1. Teoretycznych bugów pozwalających na nieskończone saldo/monety/zasoby\n` +
+  `  2. Omińania cooldownów, limitów lub innych ograniczeń czasowych\n` +
+  `  3. Eksploatacji systemu gier (bet, blackjack, ruletka, milionerzy itp.) dla nieuczciwego zysku\n` +
+  `  4. Otrzymywania darmowych przedmiotów, walut lub bonusów bez prawidłowej gry\n` +
+  `  5. Omińania reguł blacklisty lub innych systemów kar\n` +
+  `  6. Przelewania waluty między kontami lub współdzielenia zasobów\n` +
+  `  7. Eksploatacji systemu zaproszeń, referencji lub powitań nowych grup\n` +
+  `  8. Teoretycznych scenariuszy z wielokrotnymi kontami (multi-accounting)\n` +
+  `  9. Omińania ograniczeń komend przez zmianę prefixu, case sensitivity lub inne triki\n` +
+  `  10. Odgadywania lub ujawniania admin commands, easter eggs lub ukrytych funkcji\n` +
+  `  11. Teoretycznych scenariuszy resetowania salda powyżej 1 miliarda i omijania zgłoszeń\n` +
+  `  12. Eksploatacji systemu gier grupowych (wisielec, państwa-miasta, flagi) do nieuczciwego zysku\n` +
+  `  13. Omińania limitu użyć !analiza lub innych komend AI\n` +
+  `  14. Teoretycznych scenariuszy "co jeśli wszyscy zbanują bota" lub innych destabilizujących koncepcji\n` +
+  `  15. Jakichkolwiek innych metod omijania, eksploatacji lub oszukiwania systemu bota lub gry\n\n` +
+  `ZASADA OGÓLNA: Jeśli pytanie dotyczy jakiegokolwiek exploitu, buga, omijania reguł lub nieuczciwego zysku — NIE ODPOWIADAJ. Odpowiedz tylko pytania ogólne o mechaniki gry, nie dotyczące exploitu.\n` +
+  `Jeśli pytanie dotyczy kodowania, programowania, tworzenia botów, skryptów, narzędzi lub jakichkolwiek aspektów technicznych — NIE ODPOWIADAJ. Odpowiedz tylko na pytania ogólne o grę.\n\n` +
+  `Poza tymi zasadami, odpowiadaj normalnie, pomocnie i po polsku.\n\n`;
 
 // Bezpieczna wysyłka wiadomości — nigdy nie rzuca wyjątku, ma timeout, dzieli za długie wiadomości
 const MESSENGER_MAX_CHARS = 19000;
@@ -384,6 +408,63 @@ module.exports = {
       await safeReply(message, '❌ Musisz zadać pytanie! Np: !analiza 500 kto ma rację w dyskusji o...');
       return;
     }
+
+    const forbiddenPatterns = [
+      /\b(kod|kodzie|kodow|kodu|programow|programowanie|programowania|skrypt|skrypty|skryptu|skryptem)\b/i,
+      /\b(bot|api|automat|automation|node\.js|javascript|python|php|c\+\+|java|sql|html|css)\b/i,
+      /\b(react|vue|angular|discord|messenger|integracj|middleware|proxy|scraper|parser|curl|wget|postman)\b/i,
+      /\b(http|https|request|endpoint|webhook|socket|tcp|udp|port|localhost|server|serwer|hostowanie|hosting)\b/i,
+      /\b(deploy|wdrożenie|wdrozyć|repozytori|git|github|gitlab|bitbucket|npm|yarn|pip|composer|gem|cargo)\b/i,
+      /\b(maven|gradle|docker|kubernetes|k8s|cloud|chmur|azure|aws|gcp|heroku|vercel|netlify|railway)\b/i,
+      /\b(digitalocean|linode|vps|domen|dns|ssl|tls|cert|certificate|oauth|jwt|token|api key|secret|password)\b/i,
+      /\b(login|auth|authentic|authoriz|permission|uprawnien|rola|role|admin|administrator|moderator)\b/i,
+      /\b(ban|unban|kick|mute|unmute|warn|ostrzeżenie|blokada|zablokuj|odblokuj|whitelist|blacklist)\b/i,
+      /\b(filter|filtr|spam|anti spam|rate limit|limit|throttle|backoff|circuit breaker|cache|redis)\b/i,
+      /\b(database|baza|mysql|postgres|mongodb|mongo|sqlite|oracle|mariadb|query|zapytanie|insert|update)\b/i,
+      /\b(delete|select|join|table|tabela|column|kolumna|row|rekord|record|json|xml|yaml|csv|tsv)\b/i,
+      /\b(export|import|backup|restore|migrate|migracja|seed|fixture|fixtura|test|testy|unit test|integration test)\b/i,
+      /\b(cypress|jest|mocha|chai|jasmine|karma|webdriver|selenium|puppeteer|playwright|headless|chrome|firefox)\b/i,
+      /\b(browser|przeglądark|scrape|scrap|crawl|spider|robot|parser|pars|extract|wyodrębn|transform|transformac)\b/i,
+      /\b(etl|pipe|potok|stream|strumień|buffer|bufor|queue|kolejk|rabbitmq|kafka|celery|worker|work)\b/i,
+      /\b(job|zadanie|task|zadania|cron|schedule|harmonogram|timer|interval|interwał|timeout|time out)\b/i,
+      /\b(retry|ponów|attempt|próba|fallback|failover|ha|high availability|load balancer|balans|proxy)\b/i,
+      /\b(gateway|brama|cdn|edge|obrzeże|latency|opóźnien|throughput|przepustowość|bandwidth|pasmo|monitor)\b/i,
+      /\b(monitoring|alert|alarm|log|logi|logging|metric|metryk|dashboard|panel|grafana|prometheus|datadog)\b/i,
+      /\b(newrelic|sentry|bug|błąd|error|exception|wyjątek|stack trace|trace|debug|debugg|profile|profil)\b/i,
+      /\b(performance|wydajność|optimization|optymaliz|cpu|ram|memory|pamięć|disk|dysk|io|network|sieć)\b/i,
+      /\b(connect|połączen|disconnect|rozłącz|reconnect|połącz|socket|gniazdo|port|ssh|ftp|sftp|telnet)\b/i,
+      /\b(rdp|vnc|teamviewer|anydesk|remote|zdalny|vpn|tunel|tunnel|tor|onion|darknet|deepweb|phishing)\b/i,
+      /\b(phish|scam|oszust|fraud|fraudulent|cheat|oszustwo|hack|hak|exploit|eksploit|vulnerability|podatność)\b/i,
+      /\b(cve|patch|łatka|security|bezpieczeństwo|encryption|szyfrow|decrypt|deszyfrow|hash|sha|md5|aes|rsa)\b/i,
+      /\b(ecc|firewall|zapora|ids|ips|siem|soc|forensic|forenzyczny|incident|incydent|breach|naruszen|leak)\b/i,
+      /\b(wyciek|data leak|password leak|credential|poświadczen|authentication|uwierzyteln|authorization|autoryzacj)\b/i,
+      /\b(cookie|csrf|xss|sqli|injection|injeksj|rce|remote code|code execution|arbitrary|dowolny|path traversal)\b/i,
+      /\b(directory traversal|lfi|rfi|ssrf|xxe|xml external|deserializ|unserializ|pickle|yaml load|eval|exec)\b/i,
+      /\b(system|shell_exec|passthru|proc_open|popen|curl|file_get_contents|fopen|fwrite|fread|include)\b/i,
+      /\b(require|import|load|zmienna|variable|const|let|var|function|funkcja|class|klasa|object|obiekt)\b/i,
+      /\b(array|tablica|string|ciąg|number|liczba|integer|całkowit|float|double|boolean|bool|true|false|null)\b/i,
+      /\b(undefined|void|async|await|promise|then|catch|try|throw|error|błąd|exception|wyjątek|return|zwróć)\b/i,
+      /\b(if|else|switch|case|for|while|do|break|continue|next|map|filter|reduce|forEach|for of|for in)\b/i,
+      /\b(class|extends|super|static|get|set|constructor|destructor|namespace|przestrzeń|nazw|use|import)\b/i,
+      /\b(closure|anon|arrow|=>|fun|anonym|callback|callable|invoke|dispatch|event|listener|subscriber)\b/i,
+      /\b(observer|emitter|trigger|handler|middleware|pipe|compose|chain|kolejność|stream|buffer|chunk)\b/i,
+      /\b(batch|part|fragment|segment|slice|split|divide|podział|merge|połącz|join|concat|union|intersect)\b/i,
+      /\b(diff|unique|distinct|group|having|order|sort|limit|offset|paginate|stronicowanie|page|strona)\b/i,
+      /\b(size|rozmiar|count|liczba|total|suma|avg|average|średnia|min|max|minimum|maximum|median)\b/i,
+      /\b(mode|moda|variance|wariancja|stddev|odchylenie|standard|percentile|kwartyl|decile|detyl)\b/i,
+      /\b(quartile|capacity|pojemność|packet|pakiet|frame|ramka|datagram|ipv4|ipv6|grpc|rest|soap)\b/i,
+      /\b(xmlrpc|jsonrpc|graphql|gql|websocket|ws:\/\/|wss:\/\/|http:\/\/|https:\/\/|ftp:\/\/|sftp:\/\/|ssh:\/\/)\b/i,
+      /\b(git:\/\/|file:\/\/|data:|blob:|about:)\b/i
+    ];
+
+    const q = question.toLowerCase();
+    const isForbiddenQuestion = forbiddenPatterns.some(pattern => pattern.test(q));
+
+    if (isForbiddenQuestion) {
+      await safeReply(message, 'nie wiem');
+      return;
+    }
+
 
     // Tryb bez liczby wiadomości (zwykłe pytanie do AI) jest zarezerwowany dla
     // twórcy bota oraz użytkowników z jawnym pozwoleniem (profiles.allowedAI).
