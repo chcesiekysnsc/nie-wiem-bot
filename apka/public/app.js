@@ -936,19 +936,27 @@ $('#suspect-analyze-btn').addEventListener('click', async () => {
 });
 
 // ===== GRUPY =====
+let currentGroupId = null;
 let groupSearchTimer = null;
-$('#group-search').addEventListener('input', () => {
-  clearTimeout(groupSearchTimer);
-  groupSearchTimer = setTimeout(loadGroups, 300);
-});
+const groupSearchInput = $('#group-search');
+if (groupSearchInput) {
+  groupSearchInput.addEventListener('input', () => {
+    clearTimeout(groupSearchTimer);
+    groupSearchTimer = setTimeout(loadGroups, 300);
+  });
+}
 
 async function loadGroups() {
   try {
-    const search = encodeURIComponent($('#group-search').value.trim());
-    const data = await api(`/api/groups?search=${search}`);
-    $('#group-count').textContent = `Znaleziono: ${data.total}`;
+    const searchValue = $('#group-search').value.trim().toLowerCase();
+    const data = await api(`/api/groups`);
+    const allGroups = Array.isArray(data.groups) ? data.groups : [];
+    const filtered = searchValue
+      ? allGroups.filter(g => (g.name || '').toLowerCase().includes(searchValue) || String(g.id).includes(searchValue))
+      : allGroups;
+    $('#group-count').textContent = `Znaleziono: ${filtered.length}`;
     const tbody = $('#groups-table tbody');
-    tbody.innerHTML = data.groups.map(g => `
+    tbody.innerHTML = filtered.map(g => `
       <tr>
         <td>${esc(g.name || '—')}</td>
         <td class="muted">${esc(g.id)}</td>
@@ -963,8 +971,9 @@ async function loadGroups() {
 
 window.openGroup = async function (groupId) {
   try {
-    const data = await api(`/api/groups/${encodeURIComponent(groupId)}`);
-    $('#group-detail-title').textContent = `${data.name ? esc(data.name) : 'Grupa'} (${esc(groupId)})`;
+    currentGroupId = String(groupId);
+    const data = await api(`/api/groups/${encodeURIComponent(currentGroupId)}`);
+    $('#group-detail-title').textContent = `${data.name ? esc(data.name) : 'Grupa'} (${esc(currentGroupId)})`;
     $('#group-detail-meta').textContent = `Członkowie: ${data.memberCount || 0} | Admini: ${data.adminCount || 0} | Komendy: ${data.commandsExecuted || 0}`;
     
     const membersList = $('#group-members-list');
@@ -982,3 +991,27 @@ window.openGroup = async function (groupId) {
     $('#group-detail').classList.remove('hidden');
   } catch (err) { toast(err.message, true); }
 };
+
+$('#group-notify-btn').addEventListener('click', async () => {
+  if (!currentGroupId) return toast('Nie wybrano grupy.', true);
+  const text = $('#group-notify-text').value.trim();
+  if (!text) return toast('Podaj treść powiadomienia.', true);
+
+  const btn = $('#group-notify-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Wysyłam...';
+
+  try {
+    await api(`/api/groups/${encodeURIComponent(currentGroupId)}/notify`, {
+      method: 'POST',
+      body: JSON.stringify({ text })
+    });
+    toast('Powiadomienie zostało wysłane.');
+    $('#group-notify-text').value = '';
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📨 Wyślij powiadomienie';
+  }
+});

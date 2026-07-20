@@ -1095,6 +1095,32 @@ app.get('/api/groups/:id', async (req, res) => {
   }
 });
 
+app.post('/api/groups/:id/notify', async (req, res) => {
+  const groupId = String(req.params.id || '').trim();
+  const text = String(req.body?.text || '').trim();
+
+  if (!groupId) return res.status(400).json({ error: 'Wymagane ID grupy.' });
+  if (!text) return res.status(400).json({ error: 'Wymagana treść powiadomienia.' });
+
+  try {
+    const api = global.botApi || global.botApi;
+    if (!api || typeof api.sendMessage !== 'function') {
+      return res.status(500).json({ error: 'Bot API nie jest dostępne.' });
+    }
+
+    const payload = {
+      body: `📣 POWIADOMIENIE INDYWIDUALNE:\n\n${text}`,
+      mentions: []
+    };
+
+    api.sendMessage(payload, groupId);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[PANEL] Błąd wysyłania powiadomienia do grupy:', err);
+    res.status(500).json({ error: err.message || 'Nie udało się wysłać powiadomienia.' });
+  }
+});
+
 if (require.main === module) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Panel administratora działa na http://localhost:${PORT}`);
