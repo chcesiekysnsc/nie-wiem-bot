@@ -66,7 +66,7 @@ const { ensureDataFiles, withData, createUser, appendLog, loadData, saveData } =
 const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
-const { checkAndResetBalance } = require('./utils/balanceMonitor');
+const { checkAndResetBalance, checkPendingBalanceBlock, checkOverdueBalanceReports } = require('./utils/balanceMonitor');
 const { formatCurrency, msToReadable } = require('./utils/economy');
 const { getCommandsByCategory } = require('./utils/helpSystem');
 const { extractTikTokLink, getTikTokVideoData, downloadFile } = require('./utils/tiktok');
@@ -854,6 +854,12 @@ login({ appState }, (loginErr, api) => {
       }
     }).catch(err => console.error('[ADMIN-PANEL] Błąd pętli panelu:', err));
   }, 10000);
+
+  setInterval(() => {
+    checkOverdueBalanceReports((msg, threadId) => {
+      if (client.api) client.api.sendMessage(msg, threadId);
+    });
+  }, 60 * 1000);
 
   // Centralny tick gangów AI
   if (config.gangAI && config.gangAI.enabled) {
@@ -3187,20 +3193,29 @@ login({ appState }, (loginErr, api) => {
          }
        }
 
-       if (messageContext && messageContext.threadID) {
-         const profiles = loadData('profiles');
-         const threadSettings = profiles.threadSettings || {};
-         const settings = threadSettings[messageContext.threadID] || {};
-         if (settings.blockEconomy) {
-           const economyCommands = getCommandsByCategory('ECONOMY_GAMBLING').map(c => c.name);
-           if (economyCommands.includes(commandName)) {
-             await messageContext.reply('❌ Wszystkie komendy ekonomiczne są zablokowane na tej grupie przez administrację.');
-             return;
-           }
-         }
-       }
+        if (messageContext && messageContext.threadID) {
+          const profiles = loadData('profiles');
+          const threadSettings = profiles.threadSettings || {};
+          const settings = threadSettings[messageContext.threadID] || {};
+          if (settings.blockEconomy) {
+            const economyCommands = getCommandsByCategory('ECONOMY_GAMBLING').map(c => c.name);
+            if (economyCommands.includes(commandName)) {
+              await messageContext.reply('❌ Wszystkie komendy ekonomiczne są zablokowane na tej grupie przez administrację.');
+              return;
+            }
+          }
+        }
 
-       await command.execute(client, messageContext, args);
+        const blockedByPendingReport = await checkPendingBalanceBlock(
+          async payload => messageContext.reply(payload).catch(() => null),
+          senderId,
+          command.name
+        );
+        if (blockedByPendingReport) {
+          return;
+        }
+
+        await command.execute(client, messageContext, args);
 
       withData(store => {
         appendLog(store.logs, {

@@ -10,7 +10,7 @@ const { ensureDataFiles, withData, createUser } = require('./utils/storage');
 const { checkCooldown, checkSpam, checkAdminDailyLimit } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { createMessageContext, createMessengerClient } = require('./utils/messenger');
-const { checkAndResetBalance } = require('./utils/balanceMonitor');
+const { checkAndResetBalance, checkPendingBalanceBlock } = require('./utils/balanceMonitor');
 
 const client = createMessengerClient(config);
 client.config = config;
@@ -425,6 +425,15 @@ async function executeCommand(event, pageId) {
     const spamState = await checkSpam(senderId);
     if (spamState.blocked) {
       await message.reply({ embeds: [spamState.embed] }).catch(() => null);
+      return;
+    }
+
+    const blockedByPendingReport = await checkPendingBalanceBlock(
+      payload => message.reply(payload).catch(() => null),
+      senderId,
+      command.name
+    );
+    if (blockedByPendingReport) {
       return;
     }
 
