@@ -223,7 +223,7 @@ module.exports = {
         groupGangLines = await Promise.all(
           gangsWithMembersInGroup.map(async (g, i) => {
             const bossName = await getName(g.bossId);
-            return `${medals[i]} **${g.name}** (Boss: **${bossName}**) — ${g.membersInGroup} członków na tej grupie`;
+            return `${medals[i]} **${g.name}** (Boss: **${bossName}**, ${g.membersInGroup} członków na tej grp) — ${formatCurrency(g.vault)}`;
           })
         );
       }
