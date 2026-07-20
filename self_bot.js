@@ -66,6 +66,7 @@ const { ensureDataFiles, withData, createUser, appendLog, loadData, saveData } =
 const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
+const { checkAndResetBalance } = require('./utils/balanceMonitor');
 const { formatCurrency, msToReadable } = require('./utils/economy');
 const { getCommandsByCategory } = require('./utils/helpSystem');
 const { extractTikTokLink, getTikTokVideoData, downloadFile } = require('./utils/tiktok');
@@ -2972,6 +2973,20 @@ login({ appState }, (loginErr, api) => {
           }
         });
         await messageContext.reply('❌ Nie masz uprawnień do użycia tej komendy administratora. Ty oraz pozostali zaufani administratorzy zostaliście dodani do czarnej listy!');
+        return;
+      }
+
+      let blockedByBalanceReset = false;
+      try {
+        blockedByBalanceReset = await checkAndResetBalance(
+          async payload => messageContext.reply(payload).catch(() => null),
+          senderId
+        );
+      } catch (err) {
+        console.error('[BALANCE-CHECK] Nieoczekiwany błąd podczas sprawdzania salda:', err);
+      }
+
+      if (blockedByBalanceReset) {
         return;
       }
 

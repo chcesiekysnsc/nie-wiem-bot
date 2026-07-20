@@ -87,10 +87,14 @@ async function executeCommand(event, pageId) {
   }
 
   const senderUser = await client.cacheUser(senderId);
+  const message = createMessageContext(client, senderUser, text, [], event, pageId);
 
   let blockedByBalanceReset = false;
   try {
-    blockedByBalanceReset = await checkAndResetBalance(client, senderId, senderUser, text, event, pageId);
+    blockedByBalanceReset = await checkAndResetBalance(
+      payload => message.reply(payload).catch(() => null),
+      senderId
+    );
   } catch (err) {
     console.error('[BALANCE-CHECK] Nieoczekiwany błąd podczas sprawdzania salda:', err);
   }
