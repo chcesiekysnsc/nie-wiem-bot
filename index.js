@@ -10,6 +10,7 @@ const { ensureDataFiles, withData, createUser } = require('./utils/storage');
 const { checkCooldown, checkSpam, checkAdminDailyLimit } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { createMessageContext, createMessengerClient } = require('./utils/messenger');
+const { checkAndResetBalance } = require('./utils/balanceMonitor');
 
 const client = createMessengerClient(config);
 client.config = config;
@@ -87,33 +88,14 @@ async function executeCommand(event, pageId) {
 
   const senderUser = await client.cacheUser(senderId);
 
-  let balanceCheck = { triggered: false };
+  let blockedByBalanceReset = false;
   try {
-    balanceCheck = await withData(store => {
-      const u = createUser(senderId, store.users);
-      const balance = u.balance || 0;
-      const bank = u.bank || 0;
-      const total = balance + bank;
-      console.log(`[BALANCE-CHECK] userId=${senderId} balance=${balance} bank=${bank} total=${total}`);
-      if (total >= 1000000000) {
-        console.log(`[BALANCE-CHECK] RESET triggered for ${senderId}`);
-        u.balance = 0;
-        u.bank = 0;
-        return { triggered: true };
-      }
-      return { triggered: false };
-    });
-    console.log(`[BALANCE-CHECK] Result for ${senderId}: triggered=${balanceCheck.triggered}`);
+    blockedByBalanceReset = await checkAndResetBalance(client, senderId, senderUser, text, event, pageId);
   } catch (err) {
-    console.error('[BALANCE-CHECK] Błąd podczas sprawdzania salda:', err);
+    console.error('[BALANCE-CHECK] Nieoczekiwany błąd podczas sprawdzania salda:', err);
   }
 
-  if (balanceCheck.triggered) {
-    const message = createMessageContext(client, senderUser, text, [], event, pageId);
-    await message.reply(
-      `⚠️ Wykryto ponad 1 000 000 000 💰 na Twoim koncie. Twoje saldo zostało zresetowane do 0.\n` +
-      `🚨 Proszę natychmiast zgłosić błąd do administracji. Jeśli błąd nie zostanie zgłoszony w ciągu 30 minut, zostanie nałożona czarna lista (black lista).`
-    ).catch(() => null);
+  if (blockedByBalanceReset) {
     return;
   }
 
