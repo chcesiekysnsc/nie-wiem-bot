@@ -1,5 +1,6 @@
 const { withData } = require('../utils/storage');
 const { askGeminiWithFallback } = require('./ai');
+const { REPORT_WINDOW_MS } = require('../utils/balanceMonitor');
 
 const ADMIN_GROUP_ID = '5277347745703557';
 const MAX_LENGTH = 1000;
