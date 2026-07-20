@@ -461,7 +461,7 @@ module.exports = {
     const isForbiddenQuestion = forbiddenPatterns.some(pattern => pattern.test(q));
 
     if (isForbiddenQuestion) {
-      await safeReply(message, 'nie wiem');
+      await safeReply(message, 'nie mam pojecia bracie sam sie naucz');
       return;
     }
 
