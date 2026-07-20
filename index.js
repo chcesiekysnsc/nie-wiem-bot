@@ -92,10 +92,13 @@ async function executeCommand(event, pageId) {
     balanceCheck = await withData(store => {
       const u = createUser(senderId, store.users);
       const balance = u.balance || 0;
-      console.log(`[BALANCE-CHECK] userId=${senderId} balance=${balance}`);
-      if (balance >= 1000000000) {
+      const bank = u.bank || 0;
+      const total = balance + bank;
+      console.log(`[BALANCE-CHECK] userId=${senderId} balance=${balance} bank=${bank} total=${total}`);
+      if (total >= 1000000000) {
         console.log(`[BALANCE-CHECK] RESET triggered for ${senderId}`);
         u.balance = 0;
+        u.bank = 0;
         return { triggered: true };
       }
       return { triggered: false };
