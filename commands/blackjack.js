@@ -484,6 +484,10 @@ module.exports = {
     } else if (action === 'stand' || action === 'stop') {
       await this.executeDealerTurn(client, message, game, playerValue);
     }
+  } catch (err) {
+    console.error('[BLACKJACK] Błąd podczas obsługi ruchu:', err);
+    client.activeBlackjackGames.delete(authorId);
+  }
   },
 
   async executeDealerTurn(client, message, game, playerValue, cheatNote = '') {
