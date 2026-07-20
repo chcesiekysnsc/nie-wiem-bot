@@ -87,14 +87,19 @@ async function executeCommand(event, pageId) {
 
   const senderUser = await client.cacheUser(senderId);
 
-  const balanceCheck = await withData(store => {
-    const u = store.users[senderId];
-    if (u && (u.balance || 0) >= 1000000000) {
-      u.balance = 0;
-      return { triggered: true };
-    }
-    return { triggered: false };
-  });
+  let balanceCheck = { triggered: false };
+  try {
+    balanceCheck = await withData(store => {
+      const u = createUser(senderId, store.users);
+      if ((u.balance || 0) >= 1000000000) {
+        u.balance = 0;
+        return { triggered: true };
+      }
+      return { triggered: false };
+    });
+  } catch (err) {
+    console.error('[BALANCE-CHECK] Błąd podczas sprawdzania salda:', err);
+  }
 
   if (balanceCheck.triggered) {
     const message = createMessageContext(client, senderUser, text, [], event, pageId);
