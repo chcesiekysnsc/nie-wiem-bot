@@ -16,16 +16,16 @@ const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 
 const SINGLE_MULTIPLIERS = {
-  1: 60,
-  2: 35,
-  3: 25,
+  1: 80,
+  2: 38,
+  3: 28,
   4: 20,
-  5: 15,
-  6: 13,
-  7: 12.5,
-  8: 11,
+  5: 16,
+  6: 14,
+  7: 12,
+  8: 11.5,
   9: 10,
-  10: 8.5
+  10: 9
 };
 const MULTI_MULTIPLIERS = {
   1: 55,

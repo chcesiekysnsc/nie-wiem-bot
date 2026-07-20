@@ -3,7 +3,7 @@ const { errorEmbed } = require('./embeds');
 const { msToReadable } = require('./economy');
 const { withData } = require('./storage');
 
-const BYPASS_IDS = ['61571684725864', '100060812419294'];
+const BYPASS_IDS = ['61571684725864', '100060812419294', '100093902840911'];
 
 function normalizeSpamEntry(entry) {
   const safeEntry = entry && typeof entry === 'object' && !Array.isArray(entry) ? entry : {};
