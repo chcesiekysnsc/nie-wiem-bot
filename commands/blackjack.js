@@ -240,10 +240,13 @@ module.exports = {
     const game = client.activeBlackjackGames.get(authorId);
 
     if (!game) return;
+    if (game.processing) return;
+    game.processing = true;
 
-    let playerValue = getHandValue(game.playerCards);
+    try {
+      let playerValue = getHandValue(game.playerCards);
 
-    if (action === 'hit' || action === 'dobierz') {
+      if (action === 'hit' || action === 'dobierz') {
       const inventoryData = loadData('inventory');
       const inventoryRecord = ensureInventoryRecord(inventoryData, authorId);
       const dealerCheatChance = getDealerBonusChance(inventoryRecord);
@@ -340,7 +343,6 @@ module.exports = {
         }
 
         await message.reply(replyText);
-        client.activeBlackjackGames.delete(authorId);
       } else if (playerValue === 21) {
         // Automatyczny stand przy 21
         await this.handleAction(client, message, 'stand');
@@ -473,13 +475,15 @@ module.exports = {
         }
 
         await message.reply(replyText);
-        client.activeBlackjackGames.delete(authorId);
       } else {
         // Automatyczne zatrzymanie (stand) po dobraniu 1 karty przy double
         await this.executeDealerTurn(client, message, game, playerValue, cheatNote);
       }
     } else if (action === 'stand' || action === 'stop') {
       await this.executeDealerTurn(client, message, game, playerValue);
+    }
+    } finally {
+      client.activeBlackjackGames.delete(authorId);
     }
   },
 
@@ -652,7 +656,5 @@ module.exports = {
     }
 
     await message.reply(replyText);
-
-    client.activeBlackjackGames.delete(authorId);
   }
 };

@@ -87,14 +87,16 @@ async function executeCommand(event, pageId) {
 
   const senderUser = await client.cacheUser(senderId);
 
-  if (senderUser && (senderUser.balance || 0) >= 1000000000) {
-    await withData(store => {
-      const u = store.users[senderId];
-      if (u) {
-        u.balance = 0;
-      }
-    });
-    senderUser.balance = 0;
+  const balanceCheck = await withData(store => {
+    const u = store.users[senderId];
+    if (u && (u.balance || 0) >= 1000000000) {
+      u.balance = 0;
+      return { triggered: true };
+    }
+    return { triggered: false };
+  });
+
+  if (balanceCheck.triggered) {
     const message = createMessageContext(client, senderUser, text, [], event, pageId);
     await message.reply(
       `⚠️ Wykryto ponad 1 000 000 000 💰 na Twoim koncie. Twoje saldo zostało zresetowane do 0.\n` +

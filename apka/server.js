@@ -907,49 +907,183 @@ async function askGeminiWithFallback(promptText) {
 }
 
 app.post('/api/suspects/:id/analyze', async (req, res) => {
-  const userId = String(req.params.id || '').trim();
+  const targetId = String(req.params.id || '').trim();
   const question = String(req.body?.question || '').trim();
   const limit = Math.min(parseInt(req.body?.limit, 10) || 5000, 5000);
 
-  if (!userId) return res.status(400).json({ error: 'Wymagane ID użytkownika.' });
+  if (!targetId) return res.status(400).json({ error: 'Wymagane ID użytkownika lub grupy.' });
   if (!question) return res.status(400).json({ error: 'Wymagane pytanie do analizy.' });
 
   try {
     const logs = loadData('logs');
     const users = loadData('users');
-    const user = users[userId];
+    const activeThreads = [];
+    try {
+      const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
+      if (fs.existsSync(threadsPath)) {
+        const raw = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
+        if (Array.isArray(raw)) activeThreads.push(...raw.map(String));
+      }
+    } catch (_) {}
 
-    const userLogs = logs
-      .filter(entry => entry.userId === userId && entry.type === 'command')
-      .slice(0, limit)
-      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    const isGroup = activeThreads.includes(targetId);
+    let transcriptLines = [];
+    let targetName = '';
+    let targetSummary = '';
 
-    const userName = (user && user.name) || `Użytkownik_${String(userId).slice(-6)}`;
-    const userSummary = user ? `Saldo: ${user.balance || 0}, Bank: ${user.bank || 0}, Poziom: ${user.level || 1}, XP: ${user.xp || 0}, Gry: ${user.gamesPlayed || 0}, Wygrane: ${user.wins || 0}, Przegrane: ${user.losses || 0}, Komend: ${user.commandsUsed || 0}` : 'Brak danych użytkownika.';
+    if (isGroup) {
+      const groupLogs = logs
+        .filter(entry => entry.threadId === targetId && entry.type === 'command')
+        .slice(0, limit)
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-    const transcriptLines = userLogs.map(entry => {
-      const time = new Date(entry.timestamp).toLocaleString('pl-PL');
-      return `[${time}] !${entry.command || '?'} ${entry.args || ''} (wątek: ${entry.threadId || '—'})`;
-    });
+      transcriptLines = groupLogs.map(entry => {
+        const time = new Date(entry.timestamp).toLocaleString('pl-PL');
+        const name = entry.userName || `Użytkownik_${String(entry.userId || '?').slice(-6)}`;
+        return `[${time}] ${name}: !${entry.command || '?'} ${entry.args || ''}`;
+      });
+
+      const groupStats = loadData('groupStats');
+      const stats = groupStats[targetId] || {};
+      targetName = stats.threadName || `Grupa_${String(targetId).slice(-6)}`;
+      targetSummary = `ID grupy: ${targetId}\nNazwa: ${targetName}\nLiczba wpisów w logach: ${groupLogs.length}`;
+    } else {
+      const user = users[targetId];
+      const userLogs = logs
+        .filter(entry => entry.userId === targetId && entry.type === 'command')
+        .slice(0, limit)
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+      transcriptLines = userLogs.map(entry => {
+        const time = new Date(entry.timestamp).toLocaleString('pl-PL');
+        return `[${time}] !${entry.command || '?'} ${entry.args || ''} (wątek: ${entry.threadId || '—'})`;
+      });
+
+      targetName = (user && user.name) || `Użytkownik_${String(targetId).slice(-6)}`;
+      targetSummary = user ? `Saldo: ${user.balance || 0}, Bank: ${user.bank || 0}, Poziom: ${user.level || 1}, XP: ${user.xp || 0}, Gry: ${user.gamesPlayed || 0}, Wygrane: ${user.wins || 0}, Przegrane: ${user.losses || 0}, Komend: ${user.commandsUsed || 0}` : 'Brak danych użytkownika.';
+    }
 
     const promptText =
-      `Jesteś analitycznym asystentem panelu administracyjnego bota gry. Analizujesz historię komend użytkownika w Messengerowym boku ekonomicznym. ` +
-      `Odpowiadaj po polsku, szczerze i konkretnie. Uwzględnij zarówno historię komend, jak i aktualny stan ekonomiczny użytkownika. ` +
+      `Jesteś analitycznym asystentem panelu administracyjnego bota gry. Analizujesz historię aktywności w Messengerowym boku ekonomicznym. ` +
+      `Odpowiadaj po polsku, szczerze i konkretnie. Uwzględnij zarówno historię komend, jak i dostarczone dane. ` +
       `Jeśli widzisz niepokojące wzorce (np. gwałtowny wzrost salda, powtarzające się hazardowe komendy, nieprawidłowe aktywności), zaznacz to wyraźnie.\n\n` +
       `PYTANIE ADMINISTRATORA: ${question}\n\n` +
-      `DANE UŻYTKOWNIKA:\n` +
-      `- ID: ${userId}\n` +
-      `- Nazwa: ${userName}\n` +
-      `- Stan: ${userSummary}\n\n` +
-      `HISTORIA KOMEND (${transcriptLines.length} wpisów, od najstarszej do najnowszej):\n` +
-      `${transcriptLines.join('\n') || 'Brak historii komend.'}\n\n` +
+      `DANE CELU:\n` +
+      `- ID: ${targetId}\n` +
+      `- Typ: ${isGroup ? 'Grupa' : 'Użytkownik'}\n` +
+      `- Nazwa: ${targetName}\n` +
+      `- Stan: ${targetSummary}\n\n` +
+      `HISTORIA (${transcriptLines.length} wpisów, od najstarszej do najnowszej):\n` +
+      `${transcriptLines.join('\n') || 'Brak historii.'}\n\n` +
       `Na podstawie powyższych danych odpowiedz na pytanie administratora. Bądź konkretny, odnoś się do konkretnych komend i kwot jeśli to możliwe.`;
 
     const replyText = await askGeminiWithFallback(promptText);
-    res.json({ ok: true, reply: replyText, analyzedLogs: transcriptLines.length, userName });
+    res.json({ ok: true, reply: replyText, analyzedLogs: transcriptLines.length, targetName, isGroup });
   } catch (err) {
     console.error('[AI-PANEL] Błąd analizy:', err);
     res.status(500).json({ error: err.message || 'Błąd podczas analizy AI.' });
+  }
+});
+
+// ===== GRUPY =====
+app.get('/api/groups', (req, res) => {
+  try {
+    const groupStats = loadData('groupStats');
+    const activeThreads = [];
+    try {
+      const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
+      if (fs.existsSync(threadsPath)) {
+        const raw = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
+        if (Array.isArray(raw)) activeThreads.push(...raw.map(String));
+      }
+    } catch (_) {}
+
+    const groups = activeThreads.map(id => {
+      const stats = groupStats[id] || {};
+      return {
+        id,
+        name: stats.threadName || null,
+        memberCount: stats.memberCount || 0,
+        adminCount: stats.adminCount || 0,
+        commandsExecuted: stats.commandsExecuted || 0,
+        firstUse: stats.firstUse || null,
+        lastUpdated: stats.lastUpdated || null
+      };
+    });
+
+    res.json({ total: groups.length, groups });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/groups/:id', async (req, res) => {
+  const groupId = String(req.params.id || '').trim();
+  if (!groupId) return res.status(400).json({ error: 'Wymagane ID grupy.' });
+
+  try {
+    const groupStats = loadData('groupStats');
+    const stats = groupStats[groupId] || {};
+    const baseInfo = {
+      id: groupId,
+      name: stats.threadName || null,
+      memberCount: stats.memberCount || 0,
+      adminCount: stats.adminCount || 0,
+      commandsExecuted: stats.commandsExecuted || 0,
+      firstUse: stats.firstUse || null,
+      lastUpdated: stats.lastUpdated || null,
+      participants: []
+    };
+
+    const api = global.botApi || global.botApi;
+    if (!api || typeof api.getThreadInfo !== 'function') {
+      return res.json(baseInfo);
+    }
+
+    const threadInfo = await new Promise((resolve) => {
+      api.getThreadInfo(groupId, (err, info) => {
+        if (err) return resolve(null);
+        resolve(info || null);
+      });
+    });
+
+    if (!threadInfo) {
+      return res.json(baseInfo);
+    }
+
+    const participantIds = (threadInfo.participantIDs || []).map(String);
+    const adminIds = new Set((threadInfo.adminIDs || []).map(String));
+    const nameMap = {};
+
+    if (participantIds.length > 0 && typeof api.getUserInfo === 'function') {
+      try {
+        const userInfo = await new Promise((resolve) => {
+          api.getUserInfo(participantIds, (err, res) => {
+            if (err) return resolve({});
+            resolve(res || {});
+          });
+        });
+        for (const pid of participantIds) {
+          if (userInfo[pid] && userInfo[pid].name) {
+            nameMap[pid] = userInfo[pid].name;
+          }
+        }
+      } catch (_) {}
+    }
+
+    const participants = participantIds.map(pid => ({
+      id: pid,
+      name: nameMap[pid] || `Użytkownik_${pid.slice(-6)}`,
+      isAdmin: adminIds.has(pid)
+    }));
+
+    res.json({
+      ...baseInfo,
+      name: threadInfo.threadName || threadInfo.name || baseInfo.name,
+      participants
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

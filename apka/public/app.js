@@ -77,6 +77,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'bans') loadBans();
     if (btn.dataset.tab === 'logs') { loadLogs(); loadActivity(); }
     if (btn.dataset.tab === 'gangs') loadGangs();
+    if (btn.dataset.tab === 'groups') loadGroups();
     if (btn.dataset.tab === 'settings') loadSettings();
     if (btn.dataset.tab === 'events') loadEvents();
     if (btn.dataset.tab === 'live') loadLive();
@@ -884,14 +885,31 @@ $('#force-action-btn').addEventListener('click', async () => {
 function loadSuspects() {
   $('#suspect-result').classList.add('hidden');
   $('#suspect-result-text').textContent = '';
+  updateSuspectMode();
 }
 
+function updateSuspectMode() {
+  const mode = $('#suspect-mode').value;
+  const label = $('#suspect-id-label');
+  const input = $('#suspect-id');
+  if (mode === 'group') {
+    label.textContent = 'ID grupy';
+    input.placeholder = 'np. 1339768834716771';
+  } else {
+    label.textContent = 'ID użytkownika';
+    input.placeholder = 'np. 1000123456789';
+  }
+}
+
+$('#suspect-mode').addEventListener('change', updateSuspectMode);
+
 $('#suspect-analyze-btn').addEventListener('click', async () => {
-  const userId = $('#suspect-id').value.trim();
+  const mode = $('#suspect-mode').value;
+  const targetId = $('#suspect-id').value.trim();
   const question = $('#suspect-question').value.trim();
   const limit = Math.min(parseInt($('#suspect-limit').value, 10) || 5000, 5000);
 
-  if (!userId) return toast('Podaj ID użytkownika.', true);
+  if (!targetId) return toast(mode === 'group' ? 'Podaj ID grupy.' : 'Podaj ID użytkownika.', true);
   if (!question) return toast('Podaj pytanie do analizy.', true);
 
   const btn = $('#suspect-analyze-btn');
@@ -900,14 +918,15 @@ $('#suspect-analyze-btn').addEventListener('click', async () => {
   $('#suspect-result').classList.add('hidden');
 
   try {
-    const data = await api(`/api/suspects/${encodeURIComponent(userId)}/analyze`, {
+    const data = await api(`/api/suspects/${encodeURIComponent(targetId)}/analyze`, {
       method: 'POST',
       body: JSON.stringify({ question, limit })
     });
 
     $('#suspect-result-text').textContent = data.reply || 'Brak odpowiedzi.';
     $('#suspect-result').classList.remove('hidden');
-    toast(`Przeanalizowano ${data.analyzedLogs} wpisów użytkownika ${data.userName || userId}.`);
+    const targetLabel = data.isGroup ? 'grupy' : 'użytkownika';
+    toast(`Przeanalizowano ${data.analyzedLogs} wpisów ${targetLabel} ${data.targetName || targetId}.`);
   } catch (err) {
     toast(err.message, true);
   } finally {
@@ -915,3 +934,51 @@ $('#suspect-analyze-btn').addEventListener('click', async () => {
     btn.textContent = '🔍 Wyślij do AI';
   }
 });
+
+// ===== GRUPY =====
+let groupSearchTimer = null;
+$('#group-search').addEventListener('input', () => {
+  clearTimeout(groupSearchTimer);
+  groupSearchTimer = setTimeout(loadGroups, 300);
+});
+
+async function loadGroups() {
+  try {
+    const search = encodeURIComponent($('#group-search').value.trim());
+    const data = await api(`/api/groups?search=${search}`);
+    $('#group-count').textContent = `Znaleziono: ${data.total}`;
+    const tbody = $('#groups-table tbody');
+    tbody.innerHTML = data.groups.map(g => `
+      <tr>
+        <td>${esc(g.name || '—')}</td>
+        <td class="muted">${esc(g.id)}</td>
+        <td>${fmt(g.memberCount)}</td>
+        <td>${fmt(g.adminCount)}</td>
+        <td>${fmt(g.commandsExecuted)}</td>
+        <td class="muted">${g.lastUpdated ? new Date(g.lastUpdated).toLocaleString('pl-PL') : '—'}</td>
+        <td><button class="small" onclick="openGroup('${esc(g.id)}')">Szczegóły</button></td>
+      </tr>`).join('');
+  } catch (err) { toast(err.message, true); }
+}
+
+window.openGroup = async function (groupId) {
+  try {
+    const data = await api(`/api/groups/${encodeURIComponent(groupId)}`);
+    $('#group-detail-title').textContent = `${data.name ? esc(data.name) : 'Grupa'} (${esc(groupId)})`;
+    $('#group-detail-meta').textContent = `Członkowie: ${data.memberCount || 0} | Admini: ${data.adminCount || 0} | Komendy: ${data.commandsExecuted || 0}`;
+    
+    const membersList = $('#group-members-list');
+    if (data.participants && data.participants.length > 0) {
+      membersList.innerHTML = data.participants.map(p => `
+        <div class="list-item">
+          <span>${esc(p.name)} <span class="muted">${esc(p.id)}</span></span>
+          <span>${p.isAdmin ? '<span class="badge warn">Admin</span>' : ''}</span>
+        </div>
+      `).join('');
+    } else {
+      membersList.innerHTML = '<p class="muted">Brak danych o członkach (bot może nie mieć dostępu do listy uczestników).</p>';
+    }
+    
+    $('#group-detail').classList.remove('hidden');
+  } catch (err) { toast(err.message, true); }
+};

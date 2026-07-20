@@ -34,6 +34,7 @@
       <button class="tab-btn" data-tab="bans">🚫 Bany</button>
       <button class="tab-btn" data-tab="logs">📜 Logi</button>
       <button class="tab-btn" data-tab="gangs">🔫 Gangi</button>
+      <button class="tab-btn" data-tab="groups">👥 Grupy</button>
       <button class="tab-btn" data-tab="settings">⚙️ Ustawienia</button>
       <button class="tab-btn" data-tab="events">🎉 Eventy</button>
       <button class="tab-btn" data-tab="live">📡 Live</button>
@@ -120,6 +121,27 @@
 
       <section id="tab-gangs" class="tab hidden">
         <div id="gangs-list"></div>
+      </section>
+
+      <section id="tab-groups" class="tab hidden">
+        <div class="toolbar">
+          <input type="text" id="group-search" placeholder="Szukaj po nazwie lub ID grupy...">
+          <span id="group-count" class="muted"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="groups-table">
+            <thead>
+              <tr><th>Nazwa</th><th>ID</th><th>Członkowie</th><th>Admini</th><th>Komendy</th><th>Ostatnia aktywność</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="group-detail" class="card hidden" style="margin-top:16px;">
+          <h3 id="group-detail-title"></h3>
+          <p id="group-detail-meta" class="muted"></p>
+          <h4>Członkowie</h4>
+          <div id="group-members-list"></div>
+        </div>
       </section>
 
       <section id="tab-settings" class="tab hidden">
@@ -335,9 +357,16 @@
       <section id="tab-suspects" class="tab hidden">
         <div class="card">
           <h3>🕵️ Podejrzani — AI Analyst</h3>
-          <p class="muted card-desc">Wpisz ID użytkownika i pytanie. System prześle historię komend tego użytkownika do AI, która uwzględni jego stan ekonomiczny i aktywność od początku istnienia bota.</p>
+          <p class="muted card-desc">Wpisz ID użytkownika lub grupy i pytanie. System prześle historię komend do AI, która uwzględni stan ekonomiczny i aktywność.</p>
           <div class="field-group">
-            <label for="suspect-id">ID użytkownika</label>
+            <label>Tryb analizy</label>
+            <select id="suspect-mode">
+              <option value="user">👤 Użytkownik</option>
+              <option value="group">👥 Grupa</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label id="suspect-id-label" for="suspect-id">ID użytkownika</label>
             <input type="text" id="suspect-id" placeholder="np. 1000123456789">
           </div>
           <div class="field-group">
