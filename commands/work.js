@@ -167,7 +167,8 @@ module.exports = {
           tributeAmount = Math.floor(reward * (tributePercent / 100));
           user.balance += reward - tributeAmount;
           // Dodaj haracza do sejfu gangu i do portfela Bossa
-          gang.vault += tributeAmount;
+          const incomeBonus = getGangBossShopMultiplier(gang, 'income');
+          gang.vault += Math.floor(tributeAmount * (1 + incomeBonus));
           const bossUser = createUser(gang.bossId, store.users);
           bossUser.balance += tributeAmount;
         } else {

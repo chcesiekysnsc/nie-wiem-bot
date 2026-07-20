@@ -1,8 +1,9 @@
 const config = require('../config/config');
 const { withData, createUser, loadData } = require('./storage');
-const { randomInt, formatCurrency } = require('./economy');
+const { randomInt, formatCurrency, ensureInventoryRecord, hasItem, getPassiveMultiplier } = require('./economy');
 const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getAllCrateDefinitions, processBossShopPurchase, ensureDailyLimit } = require('./gangBossShop');
 const { getTerritoryBonus } = require('./territories');
+const { getItemSetBonus } = require('./itemSets');
 
 function getPolandHour(date) {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -261,12 +262,12 @@ function isAttackHour() {
 }
 
 function getWeaponMultiplier(gang) {
-  const bonuses = [0, 0.02, 0.04, 0.08, 0.12, 0.16];
+  const bonuses = [0, 0.04, 0.08, 0.12, 0.16, 0.24];
   return bonuses[gang.levelUzbrojenie || 0] || 0;
 }
 
 function getDefenseUpgradeMultiplier(gang) {
-  const bonuses = [0, 0.02, 0.04, 0.08, 0.12, 0.16];
+  const bonuses = [0, 0.04, 0.08, 0.12, 0.16, 0.24];
   return bonuses[gang.levelObrona || 0] || 0;
 }
 
@@ -390,20 +391,21 @@ function resolveWar(attackerGang, defenderGang, attackerPowerCount, defenderPowe
 
   if (success) {
     const pct = randomInt(15, 35) / 100;
-    let stolenTotal = Math.floor(defenderVaultBefore * pct);
+    let baseStolen = Math.floor(defenderVaultBefore * pct);
     const warLossReduction = getTerritoryBonus(defenderGang.id, 'war_loss_reduction');
     if (warLossReduction > 0) {
-      stolenTotal = Math.floor(stolenTotal * (1 - warLossReduction));
+      baseStolen = Math.floor(baseStolen * (1 - warLossReduction));
     }
     const lootMult = 1 + getGangBossShopMultiplier(attackerGang, 'loot');
-    vaultShare = Math.floor(stolenTotal * 0.30 * lootMult);
+    stolenTotal = Math.min(defenderVaultBefore, Math.floor(baseStolen * lootMult));
+    vaultShare = Math.floor(stolenTotal * 0.30);
     const membersTotalShare = stolenTotal - vaultShare;
     sharePerPerson = attackerRewardCount > 0 ? Math.floor(membersTotalShare / attackerRewardCount) : 0;
 
     stolenItemId = attemptStealBossItem(attackerGang, defenderGang);
   } else {
-    let penaltyVault = Math.floor(attackerVaultBefore * 0.20);
-    let penaltyDefenders = Math.floor(attackerVaultBefore * 0.15);
+    penaltyVault = Math.floor(attackerVaultBefore * 0.20);
+    penaltyDefenders = Math.floor(attackerVaultBefore * 0.15);
     const warLossReduction = getTerritoryBonus(attackerGang.id, 'war_loss_reduction');
     if (warLossReduction > 0) {
       penaltyVault = Math.floor(penaltyVault * (1 - warLossReduction));
@@ -869,7 +871,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
       if (result.success) {
         defender.vault = Math.max(0, (defender.vault || 0) - result.stolenTotal);
         const incomeBonus = getGangBossShopMultiplier(attacker, 'income');
-        attacker.vault = Math.min(getVaultCap(), (attacker.vault || 0) + Math.floor(result.vaultShare * (1 + incomeBonus)));
+        attacker.vault = Math.min(getVaultCap(attacker), (attacker.vault || 0) + Math.floor(result.vaultShare * (1 + incomeBonus)));
 
         const membersTotalShare = result.stolenTotal - result.vaultShare;
         const sharePerPerson = attCount > 0 ? Math.floor(membersTotalShare / attCount) : 0;
@@ -878,8 +880,31 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
         for (const pid of listAttackers) {
           const pUser = createUser(pid, store.users);
           let finalShare = sharePerPerson;
+          const inventory = ensureInventoryRecord(store.inventory, pid);
+
+          const insygniaMultiplier = getPassiveMultiplier(inventory, 'insygnia_gang', 0.08);
+          let insygniaBonus = 0;
+          if (insygniaMultiplier > 0) {
+            insygniaBonus = Math.floor(finalShare * insygniaMultiplier);
+          }
+
+          let godloBonus = 0;
+          if (hasItem(inventory, 'godlo_gangu')) {
+            godloBonus = Math.floor(finalShare * 0.05);
+          }
+          let krolewskieBonus = 0;
+          if (hasItem(inventory, 'krolewskie_insygnia')) {
+            krolewskieBonus = Math.floor(finalShare * 0.10);
+          }
+          const gangRewardsBonus = getItemSetBonus(inventory, 'gang_rewards');
+          let gangRewardsBonusAmt = 0;
+          if (gangRewardsBonus > 0) {
+            gangRewardsBonusAmt = Math.floor(finalShare * gangRewardsBonus);
+          }
+
+          finalShare += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt;
           pUser.balance = (pUser.balance || 0) + finalShare;
-          attackerBonuses[pid] = { godlo: 0, insygnia: 0 };
+          attackerBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
         }
         return { ...result, success: true, sharePerPerson, attackerBonuses };
       } else {
@@ -897,8 +922,31 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
           for (const pid of listDefenders) {
             const pUser = createUser(pid, store.users);
             let finalShare = sharePerDefender;
+            const inventory = ensureInventoryRecord(store.inventory, pid);
+
+            const insygniaMultiplier = getPassiveMultiplier(inventory, 'insygnia_gang', 0.08);
+            let insygniaBonus = 0;
+            if (insygniaMultiplier > 0) {
+              insygniaBonus = Math.floor(finalShare * insygniaMultiplier);
+            }
+
+            let godloBonus = 0;
+            if (hasItem(inventory, 'godlo_gangu')) {
+              godloBonus = Math.floor(finalShare * 0.05);
+            }
+            let krolewskieBonus = 0;
+            if (hasItem(inventory, 'krolewskie_insygnia')) {
+              krolewskieBonus = Math.floor(finalShare * 0.10);
+            }
+            const gangRewardsBonus = getItemSetBonus(inventory, 'gang_rewards');
+            let gangRewardsBonusAmt = 0;
+            if (gangRewardsBonus > 0) {
+              gangRewardsBonusAmt = Math.floor(finalShare * gangRewardsBonus);
+            }
+
+            finalShare += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt;
             pUser.balance = (pUser.balance || 0) + finalShare;
-            defenderBonuses[pid] = { godlo: 0, insygnia: 0 };
+            defenderBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
           }
         } else {
           defender.vault += Math.floor(penaltyDefenders * (1 + defenderIncomeBonus));

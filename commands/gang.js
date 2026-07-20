@@ -938,7 +938,7 @@ module.exports = {
           const costs = [500000, 1000000, 2000000, 4000000, 8000000];
           cost = costs[currentLevel];
           newLevel = currentLevel + 1;
-          const bonuses = ['+2%', '+4%', '+8%', '+12%', '+16%'];
+          const bonuses = ['+4%', '+8%', '+12%', '+16%', '+24%'];
           upgradeLabel = `Lepsze uzbrojenie (Atak gangu bonus: ${bonuses[currentLevel]})`;
         } else if (targetUpgrade === 'obrona') {
           const currentLevel = gang.levelObrona || 0;
@@ -948,7 +948,7 @@ module.exports = {
           const costs = [500000, 1000000, 2000000, 4000000, 8000000];
           cost = costs[currentLevel];
           newLevel = currentLevel + 1;
-          const bonuses = ['+2%', '+4%', '+8%', '+12%', '+16%'];
+          const bonuses = ['+4%', '+8%', '+12%', '+16%', '+24%'];
           upgradeLabel = `Lepsza strategia obronna (Obrona gangu bonus: ${bonuses[currentLevel]})`;
         }
 
@@ -1967,17 +1967,18 @@ module.exports = {
           if (success) {
             // Success Loot: 15% to 35% of defender's vault
             const pct = randomInt(15, 35) / 100;
-            const stolenTotal = Math.floor(defenderGang.vault * pct);
+            const baseStolen = Math.floor(defenderGang.vault * pct);
+            const lootMult = 1 + getGangBossShopMultiplier(attackerGang, 'loot');
+            const stolenTotal = Math.min(defenderGang.vault, Math.floor(baseStolen * lootMult));
             
             defenderGang.vault = Math.max(0, defenderGang.vault - stolenTotal);
             
-            const lootMult = 1 + getGangBossShopMultiplier(attackerGang, 'loot');
-            const rawVaultShare = Math.floor(stolenTotal * 0.30 * lootMult);
-            const vaultShare = Math.min(stolenTotal, rawVaultShare);
+            const vaultShare = Math.floor(stolenTotal * 0.30);
             const membersTotalShare = stolenTotal - vaultShare;
             const sharePerPerson = membersForReward > 0 ? Math.floor(membersTotalShare / membersForReward) : 0;
 
-            attackerGang.vault += vaultShare;
+            const incomeBonus = getGangBossShopMultiplier(attackerGang, 'income');
+            attackerGang.vault += Math.floor(vaultShare * (1 + incomeBonus));
 
             const stolenItemId = attemptStealBossItem(attackerGang, defenderGang);
             if (stolenItemId) {
@@ -2766,8 +2767,8 @@ module.exports = {
     let bonusesStr = '';
     const bizPerc = [0, 10, 20, 30][infoResult.levelBiznesy];
     const fachPerc = [0, 4, 8, 12][infoResult.levelFach];
-    const uzbrojeniePerc = [0, 2, 4, 8, 12, 16][infoResult.levelUzbrojenie || 0];
-    const obronaPerc = [0, 2, 4, 8, 12, 16][infoResult.levelObrona || 0];
+    const uzbrojeniePerc = [0, 4, 8, 12, 16, 24][infoResult.levelUzbrojenie || 0];
+    const obronaPerc = [0, 4, 8, 12, 16, 24][infoResult.levelObrona || 0];
 
     const costDziupla = infoResult.levelDziupla < 10 
       ? ` — Koszt ulepszenia: **${formatCurrency(100000 + infoResult.levelDziupla * 40000)}**` 

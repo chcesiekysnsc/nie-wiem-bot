@@ -607,8 +607,8 @@ module.exports = {
       name: 'Diamentowa Paczka',
       emoji: '🟦',
       price: 500000,
-      shortDesc: 'Lootbox: 202.5k–652.5k + szansa na VIP/Sejf/Alarm/Psa/Kaczkę, 1% Tytan, 1% Karbid, 1% Inżelit.',
-      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 202 500 do 652 500 viccoinów.\nBonus drop: 5% VIP Pass, 5% Ulepszenie Banku, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur, 2% Alarm, 2% Pies Stróżujący, 1.5% Kaczka Biznesu, 1% Tytan, 1% Karbid, 1% Inżelit.',
+      shortDesc: 'Lootbox: 202.5k–652.5k + szansa na VIP/Sejf/Alarm/Psa/Kaczkę, 1% Tytan, 1% Karbid, 1% Inżelit, 1% Zakłócacz.',
+      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 202 500 do 652 500 viccoinów.\nBonus drop: 5% VIP Pass, 5% Ulepszenie Banku, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur, 2% Alarm, 2% Pies Stróżujący, 1.5% Kaczka Biznesu, 1% Tytan, 1% Karbid, 1% Inżelit, 1% Zakłócacz.',
       type: 'stackable'
     },
     // Poniższe itemy są niedostępne w sklepie — wypadają tylko z paczek
@@ -1010,6 +1010,16 @@ module.exports = {
       type: 'stackable',
       buyable: false,
       shopNote: 'Dostępny tylko z 🩶 Tytanowej Paczki (0.5%).'
+    },
+    zaklocasz: {
+      name: 'Zakłócacz',
+      emoji: '📟',
+      price: 0,
+      shortDesc: 'Pozwala co 48h usunąć tarczę ochronną wybranego gangu za pomocą !zakloc.',
+      description: 'Zaawansowane urządzenie deszyfrujące. Użycie: !zakloc <nazwa gangu> — natychmiastowo niszczy tarczę ochronną przeciwnika. Cooldown: 48 godzin.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Diamentowej Paczki (1.0%).'
     }
   },
   badges: {
