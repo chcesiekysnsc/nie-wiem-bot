@@ -581,10 +581,18 @@ app.get('/api/settings', (req, res) => {
     if (fs.existsSync(threadsPath)) {
       const threadIds = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
       if (Array.isArray(threadIds)) {
+        const onlyActive = String(req.query.active || '1') === '1';
+        const now = Date.now();
+        const activeThreshold = 7 * 24 * 60 * 60 * 1000; // 7 dni
+
         groups = threadIds.map(id => {
           const stats = groupStats[id] || {};
-          return { id, name: stats.threadName || null };
-        });
+          return { id, name: stats.threadName || null, lastUpdated: stats.lastUpdated || null };
+        }).filter(g => {
+          if (!onlyActive) return true;
+          if (!g.lastUpdated) return false;
+          return (now - g.lastUpdated) <= activeThreshold;
+        }).map(({ id, name }) => ({ id, name }));
       }
     }
   } catch (_) {}
