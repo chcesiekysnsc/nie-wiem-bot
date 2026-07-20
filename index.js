@@ -91,12 +91,16 @@ async function executeCommand(event, pageId) {
   try {
     balanceCheck = await withData(store => {
       const u = createUser(senderId, store.users);
-      if ((u.balance || 0) >= 1000000000) {
+      const balance = u.balance || 0;
+      console.log(`[BALANCE-CHECK] userId=${senderId} balance=${balance}`);
+      if (balance >= 1000000000) {
+        console.log(`[BALANCE-CHECK] RESET triggered for ${senderId}`);
         u.balance = 0;
         return { triggered: true };
       }
       return { triggered: false };
     });
+    console.log(`[BALANCE-CHECK] Result for ${senderId}: triggered=${balanceCheck.triggered}`);
   } catch (err) {
     console.error('[BALANCE-CHECK] Błąd podczas sprawdzania salda:', err);
   }
