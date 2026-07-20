@@ -15,12 +15,30 @@ const {
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 
-const SINGLE_MULTIPLIERS = {};
-const MULTI_MULTIPLIERS = {};
-for (let i = 1; i <= 90; i++) {
-  SINGLE_MULTIPLIERS[i] = parseFloat((98 / i).toFixed(2));
-  MULTI_MULTIPLIERS[i] = parseFloat((90 / i).toFixed(2));
-}
+const SINGLE_MULTIPLIERS = {
+  1: 60,
+  2: 35,
+  3: 25,
+  4: 20,
+  5: 15,
+  6: 13,
+  7: 12.5,
+  8: 11,
+  9: 10,
+  10: 8.5
+};
+const MULTI_MULTIPLIERS = {
+  1: 55,
+  2: 32,
+  3: 23,
+  4: 18,
+  5: 14,
+  6: 12,
+  7: 11,
+  8: 10,
+  9: 9,
+  10: 7.8
+};
 
 module.exports = {
   name: 'bet',
