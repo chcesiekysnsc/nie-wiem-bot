@@ -172,7 +172,10 @@ module.exports = {
       validMessageIds: []
     };
 
-    client.activeHangman.set(threadId, newGame);
+    client.activeHangman.set(threadId, {
+      ...newGame,
+      timestamp: Date.now()
+    });
 
     // Auto-start after 2 minutes
     newGame.joinTimeout = setTimeout(async () => {

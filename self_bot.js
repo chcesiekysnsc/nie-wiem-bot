@@ -73,11 +73,12 @@ const { extractTikTokLink, getTikTokVideoData, downloadFile } = require('./utils
 
 // ========== THREAD INFO CACHE + RATE LIMITER + BACKOFF ==========
 const _threadInfoCache = new Map(); // Map<threadId, { data, timestamp }>
-const THREAD_CACHE_TTL = 10 * 60 * 1000; // 10 minut cache
+const THREAD_CACHE_TTL = 30 * 60 * 1000; // 30 minut cache
 const THREAD_API_MIN_INTERVAL = 3000; // minimum 3 sekundy między zapytaniami
 let _threadApiLastCall = 0;
 let _threadApiConsecutiveErrors = 0;
 let _threadApiBackoffUntil = 0;
+const USERNAME_CACHE_MAX = 5000;
 
 let _originalGetThreadInfo = null;
 
@@ -322,6 +323,19 @@ const client = {
       this.processedMessages.delete(first);
     }
   },
+  _updateUserName(userId, name) {
+    if (this.userNames.has(userId)) {
+      this.userNames.delete(userId);
+    }
+    this.userNames.set(userId, name);
+    this.resolvedUserNames.add(userId);
+    if (this.userNames.size > USERNAME_CACHE_MAX) {
+      const oldest = this.userNames.keys().next().value;
+      if (oldest) {
+        this.userNames.delete(oldest);
+      }
+    }
+  },
   marriageRequests: new Map(),
   userNames: new Map(),
   resolvedUserNames: new Set(),
@@ -339,6 +353,7 @@ const client = {
       api = this.api;
     }
     if (this.resolvedUserNames.has(userId) && this.userNames.has(userId)) {
+      this._updateUserName(userId, this.userNames.get(userId));
       return this.userNames.get(userId);
     }
 
@@ -353,7 +368,7 @@ const client = {
     } catch (_) {}
 
     if (dbName) {
-      this.userNames.set(userId, dbName);
+      this._updateUserName(userId, dbName);
       this.resolvedUserNames.add(userId);
       return dbName;
     }
@@ -365,7 +380,7 @@ const client = {
       api.getUserInfo(userId, (err, ret) => {
         if (!err && ret && ret[userId]) {
           const name = ret[userId].name;
-          this.userNames.set(userId, name);
+          this._updateUserName(userId, name);
           this.resolvedUserNames.add(userId);
           
           // Zapisz asynchronicznie do bazy danych
@@ -861,6 +876,133 @@ login({ appState }, (loginErr, api) => {
     });
   }, 60 * 1000);
 
+
+  const jitter = (ms, fraction = 0.1) => ms + Math.floor(Math.random() * ms * fraction);
+
+  setTimeout(() => {
+    setInterval(() => {
+      const now = Date.now();
+      let threadCacheCleaned = 0;
+      for (const [threadId, entry] of _threadInfoCache.entries()) {
+        if (now - entry.timestamp > THREAD_CACHE_TTL) {
+          _threadInfoCache.delete(threadId);
+          threadCacheCleaned++;
+        }
+      }
+      if (threadCacheCleaned > 0) {
+        console.log(`[MEMORY-CLEANUP] Usunięto ${threadCacheCleaned} przeterminowanych wpisów z _threadInfoCache.`);
+      }
+    }, 5 * 60 * 1000);
+  }, jitter(5 * 60 * 1000, 0.2));
+
+  setTimeout(() => {
+    setInterval(() => {
+      const now = Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+      let lastMsgCleaned = 0;
+      for (const [userId, ts] of client.lastNormalMessageTime.entries()) {
+        if (now - ts > dayMs) {
+          client.lastNormalMessageTime.delete(userId);
+          lastMsgCleaned++;
+        }
+      }
+      if (lastMsgCleaned > 0) {
+        console.log(`[MEMORY-CLEANUP] Usunięto ${lastMsgCleaned} przeterminowanych wpisów z lastNormalMessageTime.`);
+      }
+    }, 30 * 60 * 1000);
+  }, jitter(30 * 60 * 1000, 0.2));
+
+  setTimeout(() => {
+    setInterval(() => {
+      const now = Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+      let marriageCleaned = 0;
+      for (const [key, req] of client.marriageRequests.entries()) {
+        if (now - (req.timestamp || 0) > dayMs) {
+          client.marriageRequests.delete(key);
+          marriageCleaned++;
+        }
+      }
+      if (marriageCleaned > 0) {
+        console.log(`[MEMORY-CLEANUP] Usunięto ${marriageCleaned} przeterminowanych wpisów z marriageRequests.`);
+      }
+    }, 60 * 60 * 1000);
+  }, jitter(60 * 60 * 1000, 0.2));
+
+  setTimeout(() => {
+    setInterval(() => {
+      const now = Date.now();
+      const thirtyMinMs = 30 * 60 * 1000;
+      let gameCleaned = 0;
+      for (const [key, game] of client.activeBlackjackGames.entries()) {
+        if (now - (game.timestamp || 0) > thirtyMinMs) {
+          client.activeBlackjackGames.delete(key);
+          gameCleaned++;
+        }
+      }
+      for (const [key, game] of client.activeMilionerzy.entries()) {
+        if (now - (game.timestamp || 0) > thirtyMinMs) {
+          client.activeMilionerzy.delete(key);
+          gameCleaned++;
+        }
+      }
+      for (const [key, game] of client.activeHangman.entries()) {
+        if (now - (game.timestamp || 0) > thirtyMinMs) {
+          client.activeHangman.delete(key);
+          gameCleaned++;
+        }
+      }
+      for (const [key, game] of client.activePanstwaMiasta.entries()) {
+        if (now - (game.timestamp || 0) > thirtyMinMs) {
+          client.activePanstwaMiasta.delete(key);
+          gameCleaned++;
+        }
+      }
+      if (gameCleaned > 0) {
+        console.log(`[MEMORY-CLEANUP] Usunięto ${gameCleaned} przeterminowanych gier.`);
+      }
+    }, 15 * 60 * 1000);
+  }, jitter(15 * 60 * 1000, 0.2));
+
+  setTimeout(() => {
+    setInterval(() => {
+      const now = Date.now();
+      const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
+      let groupsCleaned = 0;
+      for (const threadId of client.processedNewGroups.entries()) {
+        const stats = store.profiles.groupStats && store.profiles.groupStats[threadId];
+        const lastActive = stats && stats.lastUpdated ? stats.lastUpdated : 0;
+        if (now - lastActive > twoDaysMs) {
+          client.processedNewGroups.delete(threadId);
+          groupsCleaned++;
+        }
+      }
+      if (groupsCleaned > 0) {
+        console.log(`[MEMORY-CLEANUP] Usunięto ${groupsCleaned} nieaktywnych wpisów z processedNewGroups.`);
+      }
+    }, 6 * 60 * 60 * 1000);
+  }, jitter(6 * 60 * 60 * 1000, 0.2));
+
+  setTimeout(() => {
+    setInterval(() => {
+      const now = Date.now();
+      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+      let threadIdsCleaned = 0;
+      for (const threadId of client.activeThreadIds.entries()) {
+        const stats = store.profiles.groupStats && store.profiles.groupStats[threadId];
+        const lastActive = stats && stats.lastUpdated ? stats.lastUpdated : 0;
+        if (now - lastActive > sevenDaysMs) {
+          client.activeThreadIds.delete(threadId);
+          threadIdsCleaned++;
+        }
+      }
+      if (threadIdsCleaned > 0) {
+        try { fs.writeFileSync(activeThreadsPath, JSON.stringify(Array.from(client.activeThreadIds), null, 2), 'utf8'); } catch (_) {}
+        console.log(`[MEMORY-CLEANUP] Usunięto ${threadIdsCleaned} nieaktywnych grup z activeThreadIds.`);
+      }
+    }, 24 * 60 * 60 * 1000);
+  }, jitter(24 * 60 * 60 * 1000, 0.2));
+
   // Centralny tick gangów AI
   if (config.gangAI && config.gangAI.enabled) {
     setTimeout(async () => {
@@ -941,7 +1083,18 @@ login({ appState }, (loginErr, api) => {
         client.sendingLoanNotifications = false;
       });
     }
-    return originalSendMessage.call(api, message, threadID, callback, messageID);
+    const wrappedCallback = typeof callback === 'function' ? function(err) {
+      if (err && threadID && client.activeThreadIds && client.activeThreadIds.has(threadID)) {
+        const errStr = String(err || '');
+        if (errStr.includes('not in group') || errStr.includes('not a participant') || errStr.includes('not a member') || errStr.includes('Invalid thread ID')) {
+          client.activeThreadIds.delete(threadID);
+          try { fs.writeFileSync(activeThreadsPath, JSON.stringify(Array.from(client.activeThreadIds), null, 2), 'utf8'); } catch (_) {}
+          console.log(`[MEMORY-CLEANUP] Usunięto nieaktywną grupę ${threadID} z activeThreadIds.`);
+        }
+      }
+      if (typeof callback === 'function') callback(err);
+    } : undefined;
+    return originalSendMessage.call(api, message, threadID, wrappedCallback, messageID);
   };
 
   client.api = api;

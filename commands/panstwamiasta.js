@@ -313,7 +313,10 @@ module.exports = {
       validMessageIds: []
     };
 
-    client.activePanstwaMiasta.set(threadId, newGame);
+    client.activePanstwaMiasta.set(threadId, {
+      ...newGame,
+      timestamp: Date.now()
+    });
 
     // Auto-start after 2 minutes
     newGame.joinTimeout = setTimeout(async () => {

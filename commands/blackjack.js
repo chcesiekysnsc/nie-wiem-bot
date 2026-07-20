@@ -222,7 +222,8 @@ module.exports = {
       playerCards,
       dealerCards,
       deck,
-      threadId
+      threadId,
+      timestamp: Date.now()
     });
 
     await message.reply(
