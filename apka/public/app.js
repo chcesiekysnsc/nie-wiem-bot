@@ -980,8 +980,7 @@ window.openGroup = async function (groupId) {
     if (data.participants && data.participants.length > 0) {
       membersList.innerHTML = data.participants.map(p => `
         <div class="list-item">
-          <span>${esc(p.name)} <span class="muted">${esc(p.id)}</span></span>
-          <span>${p.isAdmin ? '<span class="badge warn">Admin</span>' : ''}</span>
+          <span>${esc(p.name)} <span class="muted">${esc(p.id)}</span>${p.isAdmin ? ' <span class="badge warn">(admin)</span>' : ''}</span>
         </div>
       `).join('');
     } else {

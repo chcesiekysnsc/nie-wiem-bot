@@ -420,10 +420,24 @@ app.post('/api/gangs/:id', async (req, res) => {
       const gang = (store.profiles.gangs || {})[req.params.id];
       if (!gang) return { error: 'Nie znaleziono gangu.' };
       if (deleteGang) {
+        const membersToClear = [];
+        const deputiesToClear = [];
+        const bossId = gang.bossId;
+        if (Array.isArray(gang.members)) membersToClear.push(...gang.members);
+        if (Array.isArray(gang.deputies)) deputiesToClear.push(...gang.deputies);
+        const allIdsToClear = [...new Set([...membersToClear, ...deputiesToClear, bossId].filter(Boolean))];
+
         delete store.profiles.gangs[req.params.id];
         for (const other of Object.values(store.profiles.gangs)) {
           if (Array.isArray(other.alliances)) {
             other.alliances = other.alliances.filter(a => a !== req.params.id);
+          }
+        }
+        for (const uid of allIdsToClear) {
+          const u = store.users[uid];
+          if (u) {
+            u.gangId = null;
+            u.gangRole = null;
           }
         }
         return { ok: true };

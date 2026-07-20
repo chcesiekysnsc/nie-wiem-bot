@@ -173,7 +173,8 @@ module.exports = {
         return Object.values(store.profiles.gangs).map(g => ({
           name: g.name,
           bossId: g.bossId,
-          vault: g.vault || 0
+          vault: g.vault || 0,
+          members: g.members || []
         }));
       });
 
@@ -190,9 +191,54 @@ module.exports = {
         })
       );
 
-      const responseText = 
-        `🏆 **Ranking Gangów (Top 3)**\n` +
+      let groupParticipantIDs = [];
+      if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
+        try {
+          groupParticipantIDs = await new Promise((resolve) => {
+            client.api.getThreadInfo(threadId, (err, info) => {
+              if (!err && info && info.participantIDs) {
+                resolve(info.participantIDs);
+              } else {
+                resolve([]);
+              }
+            });
+          });
+        } catch (_) {}
+      }
+
+      let groupGangLines = [];
+      if (groupParticipantIDs && groupParticipantIDs.length > 0) {
+        const participantSet = new Set(groupParticipantIDs);
+        const gangsWithMembersInGroup = gangsList
+          .map(g => {
+            const membersInGroup = (g.members || []).filter(id => participantSet.has(id)).length;
+            return { ...g, membersInGroup };
+          })
+          .filter(g => g.membersInGroup > 0)
+          .sort((a, b) => b.membersInGroup - a.membersInGroup || b.vault - a.vault)
+          .slice(0, 3);
+
+        await preloadNames(gangsWithMembersInGroup.map(g => g.bossId));
+
+        groupGangLines = await Promise.all(
+          gangsWithMembersInGroup.map(async (g, i) => {
+            const bossName = await getName(g.bossId);
+            return `${medals[i]} **${g.name}** (Boss: **${bossName}**) — ${g.membersInGroup} członków na tej grupie`;
+          })
+        );
+      }
+
+      let responseText = 
+        `🏆 **Ranking Gangów (Top 3 Globalnie)**\n` +
         `${lines.length ? lines.join('\n') : 'Brak zarejestrowanych gangów.'}`;
+
+      if (groupGangLines.length > 0) {
+        responseText += `\n\n👥 **Top 3 Gangów na tej grupie**\n`;
+        responseText += groupGangLines.join('\n');
+      } else if (groupParticipantIDs && groupParticipantIDs.length > 0) {
+        responseText += `\n\n👥 **Top 3 Gangów na tej grupie**\n`;
+        responseText += 'Brak gangów z członkami na tej grupie.';
+      }
 
       await message.reply(responseText);
       return;

@@ -2,6 +2,16 @@ const config = require('../config/config');
 const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
+
+function getGangUser(store, userId) {
+  const user = createUser(userId, store.users);
+  if (user.gangId && !store.profiles.gangs) store.profiles.gangs = {};
+  if (user.gangId && !store.profiles.gangs[user.gangId]) {
+    user.gangId = null;
+    user.gangRole = null;
+  }
+  return user;
+}
 const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getItemDefinition, getAllCrateDefinitions, getCrateDefinition, processBossShopPurchase, ensureDailyLimit, hasGangBossItem } = require('../utils/gangBossShop');
 const { getWeaponMultiplier, getDefenseUpgradeMultiplier, getSpecialGangMultiplier, getMercenaryPowerBonus, getReputationRank, hasReputationBonus } = require('../utils/gangAI');
 const { getTerritoryBonus } = require('../utils/territories');
@@ -71,7 +81,7 @@ module.exports = {
 
       const readResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -281,7 +291,7 @@ module.exports = {
           return { error: '❌ Gang o takiej nazwie już istnieje.' };
         }
 
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
         if (user.gangId) {
           return { error: '❌ Jesteś już członkiem innego gangu.' };
         }
@@ -356,7 +366,7 @@ module.exports = {
 
       const inviteResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -424,7 +434,7 @@ module.exports = {
           return { error: '❌ Ten gang już nie istnieje.' };
         }
 
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
         if (user.gangId) {
           client.gangInvites.delete(message.author.id);
           return { error: '❌ Jesteś już w gangu.' };
@@ -476,7 +486,7 @@ module.exports = {
 
       const promoteResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -546,7 +556,7 @@ module.exports = {
 
       const kickResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -595,7 +605,7 @@ module.exports = {
     if (sub === 'opusc') {
       const leaveResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -649,7 +659,7 @@ module.exports = {
 
       const depositResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -707,7 +717,7 @@ module.exports = {
 
       const withdrawResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -774,7 +784,7 @@ module.exports = {
 
       const tributeResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -832,7 +842,7 @@ module.exports = {
 
       if (!['dziupla', 'biznesy', 'fach', 'uzbrojenie', 'obrona'].includes(targetUpgrade)) {
         const levels = await withData(store => {
-          const user = createUser(message.author.id, store.users);
+          const user = getGangUser(store, message.author.id);
           if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
             const gang = store.profiles.gangs[user.gangId];
             return {
@@ -875,7 +885,7 @@ module.exports = {
 
       const upgradeResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -997,7 +1007,7 @@ module.exports = {
 
       const supportResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -1162,7 +1172,7 @@ module.exports = {
     if (sub === 'wesprzyj') {
       const joinRes = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (user.jailUntil && user.jailUntil > Date.now()) {
           return { error: '❌ Jesteś w więzieniu i nie możesz brać udziału w skokach!' };
@@ -1231,7 +1241,7 @@ module.exports = {
       if (option === 'dolacz' || option === 'd') {
         const getJoinRes = await withData(store => {
           store.profiles.gangs = store.profiles.gangs || {};
-          const user = createUser(message.author.id, store.users);
+          const user = getGangUser(store, message.author.id);
 
           if (user.jailUntil && user.jailUntil > Date.now()) {
             return { error: '❌ Jesteś w więzieniu i nie możesz brać udziału w skokach!' };
@@ -1277,7 +1287,7 @@ module.exports = {
 
       const startResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
         const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
         if (user.jailUntil && user.jailUntil > Date.now()) {
@@ -1576,7 +1586,7 @@ module.exports = {
       if (action === 'dolacz' || action === 'd') {
         const joinResult = await withData(store => {
           store.profiles.gangs = store.profiles.gangs || {};
-          const user = createUser(message.author.id, store.users);
+          const user = getGangUser(store, message.author.id);
 
           if (!user.gangId || !store.profiles.gangs[user.gangId]) {
             return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -1646,7 +1656,7 @@ module.exports = {
 
       const startResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
         const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
@@ -2238,7 +2248,7 @@ module.exports = {
     if (sub === 'eq') {
       const eqResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         let targetGangId = null;
 
@@ -2343,7 +2353,7 @@ module.exports = {
         }
 
         const ownResult = await withData(store => {
-          const user = createUser(message.author.id, store.users);
+          const user = getGangUser(store, message.author.id);
           if (!user.gangId || !store.profiles.gangs[user.gangId]) return { notInGang: true };
           const gang = store.profiles.gangs[user.gangId];
           const owned = (gang.bossShopItems || []).includes(art.id);
@@ -2367,7 +2377,7 @@ module.exports = {
       }
 
       const listResult = await withData(store => {
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
         if (!user.gangId || !store.profiles.gangs[user.gangId]) return { notInGang: true };
         const gang = store.profiles.gangs[user.gangId];
         return {
@@ -2455,7 +2465,7 @@ module.exports = {
 
       const readResult = await withData(store => {
         store.profiles.gangs = store.profiles.gangs || {};
-        const user = createUser(message.author.id, store.users);
+        const user = getGangUser(store, message.author.id);
 
         if (!user.gangId || !store.profiles.gangs[user.gangId]) {
           return { error: '❌ Nie należysz do żadnego gangu.' };
@@ -2669,7 +2679,7 @@ module.exports = {
 
     const infoResult = await withData(store => {
       store.profiles.gangs = store.profiles.gangs || {};
-      const user = createUser(message.author.id, store.users);
+      const user = getGangUser(store, message.author.id);
 
       let targetGangId = null;
 
