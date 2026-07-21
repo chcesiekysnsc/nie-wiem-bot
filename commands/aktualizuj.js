@@ -11,7 +11,7 @@ function getThreadHistoryPage(api, threadID, amount, timestamp) {
         console.warn(`[AKTUALIZUJ] getThreadHistory timed out for thread ${threadID}`);
         resolve(null);
       }
-    }, 12000);
+    }, 120000);
 
     api.getThreadHistory(threadID, amount, timestamp, (err, history) => {
       clearTimeout(timeout);
@@ -74,6 +74,8 @@ module.exports = {
         seenMessageIds = new Set(store.groupStats[threadId].seenMessageIds);
       }
     });
+
+    const startTime = Date.now();
 
     try {
       while (keepFetching && totalFetched < 100000) {
@@ -155,7 +157,12 @@ module.exports = {
         // Informowanie o postępie co 5 000 wiadomości
         const chunkIndex = Math.floor(totalFetched / 5000);
         if (chunkIndex > lastChunkIndex) {
-          await message.reply(`⏳ Przeanalizowano już **${totalFetched}** wiadomości z historii czatu...`);
+          const elapsedSec = ((Date.now() - startTime) / 1000).toFixed(0);
+          try {
+            await message.reply(`⏳ [${elapsedSec}s] Przeanalizowano już **${totalFetched}** wiadomości z historii czatu...`);
+          } catch (notifyErr) {
+            console.error('[AKTUALIZUJ] Błąd wysyłania powiadomienia o postępie:', notifyErr.message);
+          }
           lastChunkIndex = chunkIndex;
         }
 
@@ -367,7 +374,15 @@ module.exports = {
       }
 
       console.log(`[AKTUALIZUJ] Zakończono dla ${threadId}: totalFetched=${totalFetched}, keepFetching=${keepFetching}, fetchErrorOccurred=${fetchErrorOccurred}, powód zatrzymania: ${fetchErrorOccurred ? 'błąd API' : (totalFetched >= 100000 ? 'osiągnięto limit 100000' : 'naturalny koniec historii lub zapętlona paginacja')}`);
-      await message.reply(summaryText);
+      
+      try {
+        await message.reply(summaryText);
+      } catch (replyErr) {
+        console.error('[AKTUALIZUJ] Nie udało się wysłać podsumowania:', replyErr);
+        try {
+          await message.reply(`✅ Odzyskiwanie zakończone. Przeanalizowano ${totalFetched} wiadomości.`);
+        } catch (_) {}
+      }
 
     } catch (err) {
       console.error('[AKTUALIZUJ] Blad podczas odzyskiwania:', err);

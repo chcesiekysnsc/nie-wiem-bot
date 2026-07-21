@@ -330,7 +330,6 @@ module.exports = {
       const users = Object.entries(store.users || {});
       const showIds = store.profiles.showIds || [];
 
-      // Wszystkie konta posortowane globalnie
       const globalSorted = users
         .map(([id, u]) => {
           const borrowed = u.activeLoan ? u.activeLoan.originalAmount : 0;
@@ -341,13 +340,10 @@ module.exports = {
       const totalPlayers = globalSorted.length;
       const myRank = globalSorted.findIndex(u => u.id === message.author.id) + 1;
 
-      // Top 5 Globalnie (najwięcej monet ze wszystkich zarejestrowanych)
       const globalTop = globalSorted.slice(0, 5);
 
-      // Top 5 Grupy (najbardziej majętni ludzie na danej grupie)
       let groupMembers = [];
       if (participantIDs && participantIDs.length > 0) {
-        // Mapujemy wszystkich uczestników grupy - jeśli nie ma ich w bazie, dajemy domyślny balans startowy (15 000)
         groupMembers = participantIDs.map(id => {
           const u = store.users[id] || { balance: 5000, bank: 10000 };
           const borrowed = u.activeLoan ? u.activeLoan.originalAmount : 0;
@@ -355,13 +351,12 @@ module.exports = {
         })
         .sort((a, b) => b.balance - a.balance)
         .slice(0, 5);
-      } else {
-        // Fallback: Pokazujemy zarejestrowanych użytkowników
-        groupMembers = globalSorted.slice(0, 5);
       }
 
       return { globalTop, groupMembers, showIds, myRank, totalPlayers };
     });
+
+    const isGroup = threadId && threadId !== (message.rawEvent?.senderID || message.author.id);
 
     const allTopIds = [...new Set([...globalTop.map(u => u.id), ...groupMembers.map(u => u.id)])];
     await preloadNames(allTopIds);
@@ -386,13 +381,35 @@ module.exports = {
       })
     );
 
-    const responseText = 
-      `🏆 **Ranking Kasynowy**\n` +
-      `🌍 **Top 5 Global**\n` +
-      `${globalLines.length ? globalLines.join('\n') : 'Brak danych.'}\n` +
-      `👥 **Top 5 Grupy**\n` +
-      `${groupLines.length ? groupLines.join('\n') : 'Brak danych grupowych.'}\n\n` +
-      `🌎 Jesteś **${myRank}** z **${totalPlayers}** graczy.`;
+    let responseText = '';
+
+    if (sub === 'global' || sub === 'topmsg') {
+      responseText +=
+        `🏆 **Ranking Kasynowy — Globalny**\n` +
+        `${globalLines.length ? globalLines.join('\n') : 'Brak danych.'}\n\n` +
+        `🌎 Jesteś **${myRank}** z **${totalPlayers}** graczy.`;
+    } else {
+      const showGlobal = threadId
+        ? true
+        : true;
+
+      if (showGlobal) {
+        responseText +=
+          `🏆 **Ranking Kasynowy**\n` +
+          `🌍 **Top 5 Global**\n` +
+          `${globalLines.length ? globalLines.join('\n') : 'Brak danych.'}\n`;
+      }
+
+      if (groupLines.length > 0 && isGroup) {
+        responseText +=
+          `👥 **Top 5 Grupy**\n` +
+          `${groupLines.join('\n')}\n`;
+      } else if (showGlobal) {
+        responseText += `\n👥 Brak danych grupowych.\n`;
+      }
+
+      responseText += `\n🌎 Jesteś **${myRank}** z **${totalPlayers}** graczy.`;
+    }
 
     await message.reply(responseText);
   }
