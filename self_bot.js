@@ -2229,7 +2229,7 @@ login({ appState }, (loginErr, api) => {
     }
 
     const senderId = String(event.senderID);
-    const threadId = String(event.threadID);
+    const threadId = String(event.threadID || event.senderID);
     const isGroup = threadId && threadId !== senderId;
 
     console.log(`[MQTT-MSG] Message received in thread ${threadId} from sender ${senderId}: "${event.body}"`);
@@ -2311,7 +2311,9 @@ login({ appState }, (loginErr, api) => {
 
     // Sam prefix - pokaz help
     if (text === currentPrefix) {
-      api.sendMessage(`💡 Aby zobaczyć listę komend, proszę napisać: **${currentPrefix}help**`, threadId, () => {}, messageId);
+      api.sendMessage(`💡 Aby zobaczyć listę komend, proszę napisać: **${currentPrefix}help**`, threadId, (err) => {
+        if (err) console.error('[SEND MSG ERROR]', err);
+      }, messageId);
       return;
     }
 
