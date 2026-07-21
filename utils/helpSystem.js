@@ -1106,6 +1106,36 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: ["thanks", "credits", "podziekowanie"],
     additionalInfo: ["Tylko twórca bota może dodawać/usuwać osoby komendą !thx."]
+  },
+  {
+    id: 1000,
+    name: "tlumacz",
+    category: "UTILITY_ADMIN",
+    shortDescription: "🌍 przetłumacz tekst na wybrany język",
+    description: "🌍 Przetłumacza podaną treść na wybrany język za pomocą AI.",
+    usage: "!tlumacz <treść> <język>",
+    examples: ["!tlumacz hello world angielski","!tlumacz jak się masz francuski","!tlumacz good morning japoński"],
+    cooldown: "5 sekund",
+    requirements: "Brak.",
+    aliases: ["translate", "tl"],
+    additionalInfo: ["Język podaj jako słowo, np. angielski, niemiecki, francuski, hiszpański, japoński, chiński, rosyjski itp."]
+  },
+  {
+    id: 1001,
+    name: "afk",
+    category: "UTILITY_ADMIN",
+    shortDescription: "😴 ustaw status nieobecności",
+    description: "😴 Ustawia status AFK (Away From Keyboard) z dowolnym powodem. Inni użytkownicy zostaną powiadomieni o Twojej nieobecności, gdy wzmienią Twoją nazwę.",
+    usage: "!afk <powód> | !afk off",
+    examples: ["!afk lecę spać","!afk praca","!afk off"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: [],
+    additionalInfo: [
+      "Status AFK wygasa automatycznie po 24 godzinach.",
+      "Wszyscy użytkownicy mają status AFK wyłączony domyślnie.",
+      "Aby sprawdzić swój status: !afk"
+    ]
   }
 ];
 

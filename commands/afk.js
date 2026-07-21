@@ -1,89 +1,117 @@
 const { withData } = require('../utils/storage');
-const { intelligentCensor } = require('../utils/censorship');
+const { msToReadable } = require('../utils/economy');
+
+const COOLDOWN_MS = 3000;
+
+function getAfkEntry(store, userId) {
+  store.profiles = store.profiles || {};
+  store.profiles.afk = store.profiles.afk || {};
+  return store.profiles.afk[userId] || null;
+}
+
+function setAfkEntry(store, userId, reason) {
+  store.profiles = store.profiles || {};
+  store.profiles.afk = store.profiles.afk || {};
+  store.profiles.afk[userId] = {
+    reason: reason || 'Nie podano powodu.',
+    time: Date.now()
+  };
+}
+
+function removeAfkEntry(store, userId) {
+  store.profiles = store.profiles || {};
+  store.profiles.afk = store.profiles.afk || {};
+  delete store.profiles.afk[userId];
+}
 
 module.exports = {
   name: 'afk',
-  aliases: ['brb', 'zaz', 'zw'],
+  aliases: [],
   async execute(client, message, args) {
     const userId = message.author.id;
-    const userName = message.author.profile?.name || message.author.username || 'Użytkownik';
-    
-    // Sprawdź czy podano tryb on/off
-    if (args.length > 0 && ['on', 'off', 'wlacz', 'wylacz', '1', '0'].includes(args[0].toLowerCase())) {
-      const shouldEnable = ['on', 'wlacz', '1'].includes(args[0].toLowerCase());
-      
-      let filteredReason = 'Nie podano powodu';
-      
-      await withData(async store => {
-        store.profiles.afk = store.profiles.afk || {};
-        
-        if (shouldEnable) {
-          // Włącz AFK z domyślnym powodem lub podanym
-          const rawReason = args.slice(1).join(' ').trim() || 'Nie podano powodu';
-          filteredReason = rawReason;
-          
-          // Filtruj powód za pomocą AI jeśli podano
-          if (args.length > 1) {
-            try {
-              filteredReason = await intelligentCensor(rawReason, 'powód AFK');
-            } catch (err) {
-              console.error('[AFK AI CHECK ERROR] Fallback to raw reason:', err.message);
-            }
-          }
-          
-          store.profiles.afk[userId] = {
-            reason: filteredReason,
-            time: Date.now(),
-            enabled: true
-          };
-        } else {
-          // Wyłącz AFK
-          if (store.profiles.afk[userId]) {
-            delete store.profiles.afk[userId];
-          }
-        }
-      });
-      
-      // Send reply after withData completes
-      if (shouldEnable) {
-        await message.reply(`💤 **${userName}** włączył/a AFK: **${filteredReason}**`);
-      } else {
-        await message.reply(`✅ **${userName}** wyłączył/a AFK.`);
-      }
-      
-      return;
-    }
-    
-    // Stara logika - jeśli nie podano on/off, włącz AFK z podanym powodem
-    const rawReason = args.join(' ').trim() || 'Brak podanego powodu';
+    const now = Date.now();
 
-    // 1. Walidacja długości powodu
-    if (rawReason.length > 200) {
-      await message.reply('❌ Powód AFK nie może być dłuższy niż 200 znaków.');
-      return;
-    }
-
-    let filteredReason = rawReason;
-
-    // 2. Jeśli podano powód, filtrujemy go za pomocą AI
-    if (args.length > 0) {
-      try {
-        filteredReason = await intelligentCensor(rawReason, 'powód AFK');
-      } catch (err) {
-        console.error('[AFK AI CHECK ERROR] Fallback to raw reason:', err.message);
-      }
-    }
-
-    // 3. Zapis statusu AFK do bazy danych
-    await withData(store => {
-      store.profiles.afk = store.profiles.afk || {};
-      store.profiles.afk[userId] = {
-        reason: filteredReason,
-        time: Date.now(),
-        enabled: true
-      };
+    const userCooldown = await withData(store => {
+      store.cooldowns = store.cooldowns || {};
+      store.cooldowns.commands = store.cooldowns.commands || {};
+      store.cooldowns.commands[userId] = store.cooldowns.commands[userId] || {};
+      const userCd = store.cooldowns.commands[userId];
+      const lastUsed = userCd.afk || 0;
+      return { lastUsed };
     });
 
-    await message.reply(`💤 **${userName}** jest teraz AFK: **${filteredReason}**`);
+    if (now - userCooldown.lastUsed < COOLDOWN_MS) {
+      const remaining = COOLDOWN_MS - (now - userCooldown.lastUsed);
+      await message.reply(`⏳ Odczekaj jeszcze **${msToReadable(remaining)}** przed ponownym użyciem !afk.`);
+      return;
+    }
+
+    if (args.length === 0) {
+      const afkData = await withData(store => getAfkEntry(store, userId));
+
+      if (!afkData) {
+        await message.reply(
+          '❌ Użycie:\n' +
+          '• `!afk <powód>` — ustaw status AFK z powodem\n' +
+          '• `!afk off` — wyłącz status AFK\n\n' +
+          'Przykłady:\n' +
+          '• `!afk lecę spać`\n' +
+          '• `!afk praca`\n' +
+          '• `!afk off`'
+        );
+        return;
+      }
+
+      const elapsedMs = Date.now() - afkData.time;
+      const elapsedStr = msToReadable(elapsedMs);
+      await message.reply(
+        `ℹ️ Masz ustawiony status AFK od **${elapsedStr}**.\n` +
+        `Powód: **${afkData.reason}**\n\n` +
+        `Aby wyłączyć: ` + '`!afk off`'
+      );
+      return;
+    }
+
+    if (args[0].toLowerCase() === 'off') {
+      const hadAfk = await withData(store => {
+        const entry = getAfkEntry(store, userId);
+        if (entry) {
+          removeAfkEntry(store, userId);
+        }
+        return !!entry;
+      });
+
+      if (hadAfk) {
+        await message.reply('✅ Wyłączono status AFK. Jesteś z powrotem!');
+      } else {
+        await message.reply('ℹ️ Nie masz ustawionego statusu AFK.');
+      }
+
+      await withData(store => {
+        store.cooldowns.commands = store.cooldowns.commands || {};
+        store.cooldowns.commands[userId] = store.cooldowns.commands[userId] || {};
+        store.cooldowns.commands[userId].afk = Date.now();
+      });
+      return;
+    }
+
+    const reason = args.join(' ').trim();
+    if (reason.length > 200) {
+      await message.reply('❌ Powód AFK jest zbyt długi (maks. 200 znaków).');
+      return;
+    }
+
+    await withData(store => {
+      setAfkEntry(store, userId, reason);
+      store.cooldowns.commands = store.cooldowns.commands || {};
+      store.cooldowns.commands[userId] = store.cooldowns.commands[userId] || {};
+      store.cooldowns.commands[userId].afk = Date.now();
+    });
+
+    await message.reply(
+      `✅ Ustawiono status AFK.\n` +
+      `Powód: **${reason}**\n\n` +
+      `Aby wyłączyć: ` + '`!afk off`'
+    );
   }
 };
