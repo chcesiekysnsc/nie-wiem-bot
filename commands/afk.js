@@ -1,8 +1,6 @@
 const { withData } = require('../utils/storage');
 const { msToReadable } = require('../utils/economy');
 
-const COOLDOWN_MS = 3000;
-
 function getAfkEntry(store, userId) {
   store.profiles = store.profiles || {};
   store.profiles.afk = store.profiles.afk || {};
@@ -60,21 +58,6 @@ module.exports = {
     }
 
     if (args[0].toLowerCase() === 'off') {
-      const userCooldown = await withData(store => {
-        store.cooldowns = store.cooldowns || {};
-        store.cooldowns.commands = store.cooldowns.commands || {};
-        store.cooldowns.commands[userId] = store.cooldowns.commands[userId] || {};
-        const userCd = store.cooldowns.commands[userId];
-        const lastUsed = userCd.afk || 0;
-        return { lastUsed };
-      });
-
-      if (now - userCooldown.lastUsed < COOLDOWN_MS) {
-        const remaining = COOLDOWN_MS - (now - userCooldown.lastUsed);
-        await message.reply(`⏳ Odczekaj jeszcze **${msToReadable(remaining)}** przed ponownym użyciem !afk.`);
-        return;
-      }
-
       const hadAfk = await withData(store => {
         const entry = getAfkEntry(store, userId);
         if (entry) {
@@ -88,27 +71,6 @@ module.exports = {
       } else {
         await message.reply('ℹ️ Nie masz ustawionego statusu AFK.');
       }
-
-      await withData(store => {
-        store.cooldowns.commands = store.cooldowns.commands || {};
-        store.cooldowns.commands[userId] = store.cooldowns.commands[userId] || {};
-        store.cooldowns.commands[userId].afk = Date.now();
-      });
-      return;
-    }
-
-    const userCooldown = await withData(store => {
-      store.cooldowns = store.cooldowns || {};
-      store.cooldowns.commands = store.cooldowns.commands || {};
-      store.cooldowns.commands[userId] = store.cooldowns.commands[userId] || {};
-      const userCd = store.cooldowns.commands[userId];
-      const lastUsed = userCd.afk || 0;
-      return { lastUsed };
-    });
-
-    if (now - userCooldown.lastUsed < COOLDOWN_MS) {
-      const remaining = COOLDOWN_MS - (now - userCooldown.lastUsed);
-      await message.reply(`⏳ Odczekaj jeszcze **${msToReadable(remaining)}** przed ponownym użyciem !afk.`);
       return;
     }
 
@@ -120,9 +82,6 @@ module.exports = {
 
     await withData(store => {
       setAfkEntry(store, userId, reason);
-      store.cooldowns.commands = store.cooldowns.commands || {};
-      store.cooldowns.commands[userId] = store.cooldowns.commands[userId] || {};
-      store.cooldowns.commands[userId].afk = Date.now();
     });
 
     await message.reply(

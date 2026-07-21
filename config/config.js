@@ -69,7 +69,8 @@ module.exports = {
     firma: 3,
     analiza: 10,
     krolik: 0,
-    kot: 0
+    kot: 0,
+    afk: 3
   },
   adminDailyLimits: {
     unlimited: ['admadd', 'admgiv', 'admgivglobal', 'reset', 'del', 'global', 'say', 'loteriastart'],
