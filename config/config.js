@@ -1010,16 +1010,6 @@ module.exports = {
       type: 'stackable',
       buyable: false,
       shopNote: 'Dostępny tylko z 🩶 Tytanowej Paczki (0.5%).'
-    },
-    zaklocasz: {
-      name: 'Zakłócacz',
-      emoji: '📟',
-      price: 0,
-      shortDesc: 'Pozwala co 48h usunąć tarczę ochronną wybranego gangu za pomocą !zakloc.',
-      description: 'Zaawansowane urządzenie deszyfrujące. Użycie: !zakloc <nazwa gangu> — natychmiastowo niszczy tarczę ochronną przeciwnika. Cooldown: 48 godzin.',
-      type: 'permanent',
-      buyable: false,
-      shopNote: 'Dostępny tylko z Diamentowej Paczki (1.0%).'
     }
   },
   badges: {
