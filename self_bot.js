@@ -2238,10 +2238,6 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
-    const senderId = String(event.senderID);
-    const threadId = String(event.threadID || event.senderID);
-    const isGroup = threadId && threadId !== senderId;
-
     console.log(`[MQTT-MSG] Message received in thread ${threadId} from sender ${senderId}: "${event.body}"`);
 
     const text = event.body.trim();
