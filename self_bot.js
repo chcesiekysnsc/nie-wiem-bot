@@ -3371,8 +3371,9 @@ login({ appState }, (loginErr, api) => {
       }
 
       const isBribe = command.name === 'crime' && args[0] && ['lapowka', 'łapówka', 'przekup'].includes(args[0].toLowerCase().trim());
+      const isAfkStatusCheck = command.name === 'afk' && (!args || args.length === 0);
       let cooldownState = { active: false };
-      if (!isBribe) {
+      if (!isBribe && !isAfkStatusCheck) {
         cooldownState = await checkCooldown(command.name, senderId);
       }
       if (cooldownState.active) {
