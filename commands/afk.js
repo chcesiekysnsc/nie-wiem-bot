@@ -31,28 +31,14 @@ module.exports = {
     const userId = message.author.id;
     const now = Date.now();
 
-    const userCooldown = await withData(store => {
-      store.cooldowns = store.cooldowns || {};
-      store.cooldowns.commands = store.cooldowns.commands || {};
-      store.cooldowns.commands[userId] = store.cooldowns.commands[userId] || {};
-      const userCd = store.cooldowns.commands[userId];
-      const lastUsed = userCd.afk || 0;
-      return { lastUsed };
-    });
-
-    if (now - userCooldown.lastUsed < COOLDOWN_MS) {
-      const remaining = COOLDOWN_MS - (now - userCooldown.lastUsed);
-      await message.reply(`⏳ Odczekaj jeszcze **${msToReadable(remaining)}** przed ponownym użyciem !afk.`);
-      return;
-    }
-
     if (args.length === 0) {
       const afkData = await withData(store => getAfkEntry(store, userId));
 
       if (!afkData) {
         await message.reply(
-          '❌ Użycie:\n' +
-          '• `!afk <powód>` — ustaw status AFK z powodem\n' +
+          '❌ Nie masz ustawionego statusu AFK.\n\n' +
+          'Użyj:\n' +
+          '• `!afk <powód>` — ustaw status AFK\n' +
           '• `!afk off` — wyłącz status AFK\n\n' +
           'Przykłady:\n' +
           '• `!afk lecę spać`\n' +
@@ -65,14 +51,30 @@ module.exports = {
       const elapsedMs = Date.now() - afkData.time;
       const elapsedStr = msToReadable(elapsedMs);
       await message.reply(
-        `ℹ️ Masz ustawiony status AFK od **${elapsedStr}**.\n` +
+        `💤 Jesteś AFK od **${elapsedStr}**.\n` +
         `Powód: **${afkData.reason}**\n\n` +
-        `Aby wyłączyć: ` + '`!afk off`'
+        `⚠️ Aby wyłączyć AFK, wpisz **` + '`!afk off`' + `**\n` +
+        `Bez tego wiadomości do Ciebie nadal będą oznaczone jako AFK.`
       );
       return;
     }
 
     if (args[0].toLowerCase() === 'off') {
+      const userCooldown = await withData(store => {
+        store.cooldowns = store.cooldowns || {};
+        store.cooldowns.commands = store.cooldowns.commands || {};
+        store.cooldowns.commands[userId] = store.cooldowns.commands[userId] || {};
+        const userCd = store.cooldowns.commands[userId];
+        const lastUsed = userCd.afk || 0;
+        return { lastUsed };
+      });
+
+      if (now - userCooldown.lastUsed < COOLDOWN_MS) {
+        const remaining = COOLDOWN_MS - (now - userCooldown.lastUsed);
+        await message.reply(`⏳ Odczekaj jeszcze **${msToReadable(remaining)}** przed ponownym użyciem !afk.`);
+        return;
+      }
+
       const hadAfk = await withData(store => {
         const entry = getAfkEntry(store, userId);
         if (entry) {
@@ -95,6 +97,21 @@ module.exports = {
       return;
     }
 
+    const userCooldown = await withData(store => {
+      store.cooldowns = store.cooldowns || {};
+      store.cooldowns.commands = store.cooldowns.commands || {};
+      store.cooldowns.commands[userId] = store.cooldowns.commands[userId] || {};
+      const userCd = store.cooldowns.commands[userId];
+      const lastUsed = userCd.afk || 0;
+      return { lastUsed };
+    });
+
+    if (now - userCooldown.lastUsed < COOLDOWN_MS) {
+      const remaining = COOLDOWN_MS - (now - userCooldown.lastUsed);
+      await message.reply(`⏳ Odczekaj jeszcze **${msToReadable(remaining)}** przed ponownym użyciem !afk.`);
+      return;
+    }
+
     const reason = args.join(' ').trim();
     if (reason.length > 200) {
       await message.reply('❌ Powód AFK jest zbyt długi (maks. 200 znaków).');
@@ -111,7 +128,8 @@ module.exports = {
     await message.reply(
       `✅ Ustawiono status AFK.\n` +
       `Powód: **${reason}**\n\n` +
-      `Aby wyłączyć: ` + '`!afk off`'
+      `⚠️ Aby wyłączyć AFK, wpisz **` + '`!afk off`' + `**\n` +
+      `Bez tego wiadomości do Ciebie nadal będą oznaczone jako AFK.`
     );
   }
 };

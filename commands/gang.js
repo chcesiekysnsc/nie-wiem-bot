@@ -1310,6 +1310,10 @@ module.exports = {
           return { error: '❌ Tylko Boss oraz Zastępcy mogą zaplanować skok gangu.' };
         }
 
+        if ((gang.vault || 0) < 500000) {
+          return { error: `❌ Sejf gangu musi mieć minimum **500 000 v**, aby zaplanować skok. Obecnie: **${(gang.vault || 0).toLocaleString()} v**.` };
+        }
+
         // Sprawdź cooldown 1h
         const lastTime = gang.lastHeistTime || 0;
         const now = Date.now();

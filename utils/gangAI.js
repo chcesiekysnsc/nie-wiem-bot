@@ -238,11 +238,13 @@ function getAttackWeight(gang) {
 }
 
 function getVaultCap(gang) {
+  if (gang && gang.maxVault) {
+    const { getTerritoryBonus } = require('./territories');
+    const territoryBonus = getTerritoryBonus(gang.id, 'bank_capacity');
+    return Math.floor(gang.maxVault * (1 + territoryBonus));
+  }
   const base = (config.gangAI && config.gangAI.maxVault) || 5000000;
-  if (!gang) return base;
-  const { getTerritoryBonus } = require('./territories');
-  const territoryBonus = getTerritoryBonus(gang.id, 'bank_capacity');
-  return Math.floor(base * (1 + territoryBonus));
+  return base;
 }
 
 function getMinVaultAfterAttack() {
@@ -1271,6 +1273,17 @@ async function ensureFixedAIGangs(store, cfg) {
     console.log(`[GANG-AI] Wyczyszczono ${staleCount} nieaktualnych gangów AI spoza fixedGangs.`);
   }
 
+  let migratedCount = 0;
+  for (const [gangId, gang] of Object.entries(gangs)) {
+    if (gang.isAI && !gang.maxVault) {
+      gang.maxVault = Math.floor(Math.random() * 3000000) + 7000000;
+      migratedCount++;
+    }
+  }
+  if (migratedCount > 0) {
+    console.log(`[GANG-AI] Zmigrowano ${migratedCount} istniejących gangów AI do nowego limitu sejfu (7-10mln).`);
+  }
+
   const createdGangIds = [];
 
   for (const def of fixedGangs) {
@@ -1293,6 +1306,7 @@ async function ensureFixedAIGangs(store, cfg) {
       deputies: [],
       members: Object.keys(fakeUsers),
       vault: startVault,
+      maxVault: Math.floor(Math.random() * 3000000) + 7000000,
       levelDziupla: 0,
       levelBiznesy: 0,
       levelFach: 0,
