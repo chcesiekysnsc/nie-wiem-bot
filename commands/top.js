@@ -215,7 +215,7 @@ module.exports = {
             return { ...g, membersInGroup };
           })
           .filter(g => g.membersInGroup > 0)
-          .sort((a, b) => b.membersInGroup - a.membersInGroup || b.vault - a.vault)
+          .sort((a, b) => (b.vault || 0) - (a.vault || 0))
           .slice(0, 3);
 
         await preloadNames(gangsWithMembersInGroup.map(g => g.bossId));

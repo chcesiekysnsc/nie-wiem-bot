@@ -2573,7 +2573,7 @@ module.exports = {
           if (result.error) return result;
           const { getVaultCap } = require('../utils/gangAI');
           const maxVault = getVaultCap(gang);
-          gang.vault = Math.min(maxVault, (gang.vault || 0) + result.totalMoney);
+          gang.vault = (gang.vault || 0) + result.totalMoney;
           return result;
         });
 
