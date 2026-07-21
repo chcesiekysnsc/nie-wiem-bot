@@ -86,7 +86,7 @@ function getThreadHistoryPage(api, threadID, amount, timestamp) {
         console.warn(`[AI] getThreadHistory timed out for thread ${threadID}`);
         resolve([]);
       }
-    }, 240000);
+    }, 300000);
 
     api.getThreadHistory(threadID, amount, timestamp, (err, history) => {
       clearTimeout(timeout);
@@ -158,7 +158,7 @@ async function askGemini(apiKey, promptText) {
     },
     {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 240000
+      timeout: 300000
     }
   );
 
@@ -216,7 +216,41 @@ async function askGeminiForChunk(promptText, keys, chunkIndex) {
 }
 
 const CHARS_PER_CHUNK = 350000;
-const MAX_CHUNKS = 20; // zabezpieczenie: powyżej tej liczby chunków przerywamy zamiast ryzykować OOM
+const MAX_CHUNKS = 20;
+const HEARTBEAT_INTERVAL_MS = 30000;
+
+function createHeartbeat(message, getStatusText) {
+  let timer = null;
+  let aborted = false;
+
+  const tick = async () => {
+    if (aborted) return;
+    try {
+      const text = getStatusText();
+      if (text) {
+        await safeReply(message, text);
+      }
+    } catch (err) {
+      console.error('[AI] heartbeat error:', err.message);
+    }
+    if (!aborted) {
+      timer = setTimeout(tick, HEARTBEAT_INTERVAL_MS);
+    }
+  };
+
+  return {
+    start() {
+      if (!timer) timer = setTimeout(tick, HEARTBEAT_INTERVAL_MS);
+    },
+    stop() {
+      aborted = true;
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    }
+  };
+}
 
 function splitTranscriptIntoChunks(transcriptLines, maxCharsPerChunk = CHARS_PER_CHUNK) {
   const chunks = [];
@@ -409,62 +443,6 @@ module.exports = {
       return;
     }
 
-    const forbiddenPatterns = [
-      /\b(kod|kodzie|kodow|kodu|programow|programowanie|programowania|skrypt|skrypty|skryptu|skryptem)\b/i,
-      /\b(bot|api|automat|automation|node\.js|javascript|python|php|c\+\+|java|sql|html|css)\b/i,
-      /\b(react|vue|angular|discord|messenger|integracj|middleware|proxy|scraper|parser|curl|wget|postman)\b/i,
-      /\b(http|https|request|endpoint|webhook|socket|tcp|udp|port|localhost|server|serwer|hostowanie|hosting)\b/i,
-      /\b(deploy|wdrożenie|wdrozyć|repozytori|git|github|gitlab|bitbucket|npm|yarn|pip|composer|gem|cargo)\b/i,
-      /\b(maven|gradle|docker|kubernetes|k8s|cloud|chmur|azure|aws|gcp|heroku|vercel|netlify|railway)\b/i,
-      /\b(digitalocean|linode|vps|domen|dns|ssl|tls|cert|certificate|oauth|jwt|token|api key|secret|password)\b/i,
-      /\b(login|auth|authentic|authoriz|permission|uprawnien|rola|role|admin|administrator|moderator)\b/i,
-      /\b(ban|unban|kick|mute|unmute|warn|ostrzeżenie|blokada|zablokuj|odblokuj|whitelist|blacklist)\b/i,
-      /\b(filter|filtr|spam|anti spam|rate limit|limit|throttle|backoff|circuit breaker|cache|redis)\b/i,
-      /\b(database|baza|mysql|postgres|mongodb|mongo|sqlite|oracle|mariadb|query|zapytanie|insert|update)\b/i,
-      /\b(delete|select|join|table|tabela|column|kolumna|row|rekord|record|json|xml|yaml|csv|tsv)\b/i,
-      /\b(export|import|backup|restore|migrate|migracja|seed|fixture|fixtura|test|testy|unit test|integration test)\b/i,
-      /\b(cypress|jest|mocha|chai|jasmine|karma|webdriver|selenium|puppeteer|playwright|headless|chrome|firefox)\b/i,
-      /\b(browser|przeglądark|scrape|scrap|crawl|spider|robot|parser|pars|extract|wyodrębn|transform|transformac)\b/i,
-      /\b(etl|pipe|potok|stream|strumień|buffer|bufor|queue|kolejk|rabbitmq|kafka|celery|worker|work)\b/i,
-      /\b(job|zadanie|task|zadania|cron|schedule|harmonogram|timer|interval|interwał|timeout|time out)\b/i,
-      /\b(retry|ponów|attempt|próba|fallback|failover|ha|high availability|load balancer|balans|proxy)\b/i,
-      /\b(gateway|brama|cdn|edge|obrzeże|latency|opóźnien|throughput|przepustowość|bandwidth|pasmo|monitor)\b/i,
-      /\b(monitoring|alert|alarm|log|logi|logging|metric|metryk|dashboard|panel|grafana|prometheus|datadog)\b/i,
-      /\b(newrelic|sentry|bug|błąd|error|exception|wyjątek|stack trace|trace|debug|debugg|profile|profil)\b/i,
-      /\b(performance|wydajność|optimization|optymaliz|cpu|ram|memory|pamięć|disk|dysk|io|network|sieć)\b/i,
-      /\b(connect|połączen|disconnect|rozłącz|reconnect|połącz|socket|gniazdo|port|ssh|ftp|sftp|telnet)\b/i,
-      /\b(rdp|vnc|teamviewer|anydesk|remote|zdalny|vpn|tunel|tunnel|tor|onion|darknet|deepweb|phishing)\b/i,
-      /\b(phish|scam|oszust|fraud|fraudulent|cheat|oszustwo|hack|hak|exploit|eksploit|vulnerability|podatność)\b/i,
-      /\b(cve|patch|łatka|security|bezpieczeństwo|encryption|szyfrow|decrypt|deszyfrow|hash|sha|md5|aes|rsa)\b/i,
-      /\b(ecc|firewall|zapora|ids|ips|siem|soc|forensic|forenzyczny|incident|incydent|breach|naruszen|leak)\b/i,
-      /\b(wyciek|data leak|password leak|credential|poświadczen|authentication|uwierzyteln|authorization|autoryzacj)\b/i,
-      /\b(cookie|csrf|xss|sqli|injection|injeksj|rce|remote code|code execution|arbitrary|dowolny|path traversal)\b/i,
-      /\b(directory traversal|lfi|rfi|ssrf|xxe|xml external|deserializ|unserializ|pickle|yaml load|eval|exec)\b/i,
-      /\b(system|shell_exec|passthru|proc_open|popen|curl|file_get_contents|fopen|fwrite|fread|include)\b/i,
-      /\b(require|import|load|zmienna|variable|const|let|var|function|funkcja|class|klasa|object|obiekt)\b/i,
-      /\b(array|tablica|string|ciąg|number|liczba|integer|całkowit|float|double|boolean|bool|true|false|null)\b/i,
-      /\b(undefined|void|async|await|promise|then|catch|try|throw|error|błąd|exception|wyjątek|return|zwróć)\b/i,
-      /\b(if|else|switch|case|for|while|do|break|continue|next|map|filter|reduce|forEach|for of|for in)\b/i,
-      /\b(class|extends|super|static|get|set|constructor|destructor|namespace|przestrzeń|nazw|use|import)\b/i,
-      /\b(closure|anon|arrow|=>|fun|anonym|callback|callable|invoke|dispatch|event|listener|subscriber)\b/i,
-      /\b(observer|emitter|trigger|handler|middleware|pipe|compose|chain|kolejność|stream|buffer|chunk)\b/i,
-      /\b(batch|part|fragment|segment|slice|split|divide|podział|merge|połącz|join|concat|union|intersect)\b/i,
-      /\b(diff|unique|distinct|group|having|order|sort|limit|offset|paginate|stronicowanie|page|strona)\b/i,
-      /\b(size|rozmiar|count|liczba|total|suma|avg|average|średnia|min|max|minimum|maximum|median)\b/i,
-      /\b(mode|moda|variance|wariancja|stddev|odchylenie|standard|percentile|kwartyl|decile|detyl)\b/i,
-      /\b(quartile|capacity|pojemność|packet|pakiet|frame|ramka|datagram|ipv4|ipv6|grpc|rest|soap)\b/i,
-      /\b(xmlrpc|jsonrpc|graphql|gql|websocket|ws:\/\/|wss:\/\/|http:\/\/|https:\/\/|ftp:\/\/|sftp:\/\/|ssh:\/\/)\b/i,
-      /\b(git:\/\/|file:\/\/|data:|blob:|about:)\b/i
-    ];
-
-    const q = question.toLowerCase();
-    const isForbiddenQuestion = forbiddenPatterns.some(pattern => pattern.test(q));
-
-    if (isForbiddenQuestion) {
-      await safeReply(message, 'nie mam pojecia bracie sam sie naucz');
-      return;
-    }
-
 
     // Tryb bez liczby wiadomości (zwykłe pytanie do AI) jest zarezerwowany dla
     // twórcy bota oraz użytkowników z jawnym pozwoleniem (profiles.allowedAI).
@@ -522,9 +500,16 @@ module.exports = {
     }
 
     const fetchCount = msgCount || 200;
-    await safeReply(message, `📥 Pobieram ${fetchCount} wiadomości i analizuję...`);
+    const analysisStartTime = Date.now();
+    const fetchHeartbeat = createHeartbeat(message, () => {
+      const elapsed = ((Date.now() - analysisStartTime) / 1000).toFixed(0);
+      return `⏳ Analiza trwa już **${elapsed}s** — nadal pobieram historię wiadomości...`;
+    });
+    fetchHeartbeat.start();
 
     try {
+      await safeReply(message, `📥 Pobieram ${fetchCount} wiadomości i analizuję...`);
+
       console.log(`[AI] Start pobierania historii — thread ${threadId}, fetchCount ${fetchCount}`);
       const history = [];
       let oldestTimestamp = null;
@@ -666,30 +651,42 @@ module.exports = {
 
         console.log(`[AI] Startuję równoległe przetwarzanie ${chunks.length} chunków (thread ${threadId})`);
 
-        const partialSummaries = await Promise.all(
-          chunks.map(async (chunkLines, idx) => {
-            const chunkPrompt =
-              AI_SYSTEM_RULES +
-              `Jesteś asystentem analizującym FRAGMENT dłuższej rozmowy z Messengera (część ${idx + 1} z ${chunks.length}). ` +
-              `Odpowiadaj po polsku.\n\n` +
-              `PYTANIE UŻYTKOWNIKA (kontekst do całej analizy): ${question}\n\n` +
-              `Przeanalizuj poniższy fragment rozmowy (${chunkLines.length} wiadomości) i wypisz w punktach kluczowe fakty, ` +
-              `wątki, osoby i ich wypowiedzi, które są istotne w kontekście powyższego pytania. ` +
-              `Nie odpowiadaj jeszcze na pytanie — tylko wyciągnij istotne informacje z tego fragmentu. ` +
-              `Bądź zwięzły i konkretny.\n\n` +
-              `Fragment rozmowy:\n` +
-              `${chunkLines.join('\n')}\n`;
+        const chunkStartTime = Date.now();
+        const chunkHeartbeat = createHeartbeat(message, () => {
+          const elapsed = ((Date.now() - chunkStartTime) / 1000).toFixed(0);
+          return `⏳ Analiza trwa już **${elapsed}s** — przetwarzam historię (części: ${chunks.length})...`;
+        });
+        chunkHeartbeat.start();
 
-            try {
-              const summary = await askGeminiForChunk(chunkPrompt, apiKeysForChunks, idx);
-              console.log(`[AI-CHUNK] Ukończono chunk ${idx + 1}/${chunks.length} (thread ${threadId})`);
-              return { idx, summary, error: null };
-            } catch (err) {
-              console.error(`[AI-CHUNK] Błąd przetwarzania chunku ${idx + 1}:`, err.message);
-              return { idx, summary: null, error: err.message };
-            }
-          })
-        );
+        let partialSummaries = [];
+        try {
+          partialSummaries = await Promise.all(
+            chunks.map(async (chunkLines, idx) => {
+              const chunkPrompt =
+                AI_SYSTEM_RULES +
+                `Jesteś asystentem analizującym FRAGMENT dłuższej rozmowy z Messengera (część ${idx + 1} z ${chunks.length}). ` +
+                `Odpowiadaj po polsku.\n\n` +
+                `PYTANIE UŻYTKOWNIKA (kontekst do całej analizy): ${question}\n\n` +
+                `Przeanalizuj poniższy fragment rozmowy (${chunkLines.length} wiadomości) i wypisz w punktach kluczowe fakty, ` +
+                `wątki, osoby i ich wypowiedzi, które są istotne w kontekście powyższego pytania. ` +
+                `Nie odpowiadaj jeszcze na pytanie — tylko wyciągnij istotne informacje z tego fragmentu. ` +
+                `Bądź zwięzły i konkretny.\n\n` +
+                `Fragment rozmowy:\n` +
+                `${chunkLines.join('\n')}\n`;
+
+              try {
+                const summary = await askGeminiForChunk(chunkPrompt, apiKeysForChunks, idx);
+                console.log(`[AI-CHUNK] Ukończono chunk ${idx + 1}/${chunks.length} (thread ${threadId})`);
+                return { idx, summary, error: null };
+              } catch (err) {
+                console.error(`[AI-CHUNK] Błąd przetwarzania chunku ${idx + 1}:`, err.message);
+                return { idx, summary: null, error: err.message };
+              }
+            })
+          );
+        } finally {
+          chunkHeartbeat.stop();
+        }
 
         const successfulSummaries = partialSummaries
           .filter(p => p.summary)
@@ -713,8 +710,18 @@ module.exports = {
           `${successfulSummaries.join('\n\n')}\n`;
 
         console.log(`[AI] Wysyłam finalne zapytanie scalające (${successfulSummaries.length}/${chunks.length} chunków, thread ${threadId})`);
-        finalReplyText = await askGeminiWithFallback(finalPrompt);
-        console.log(`[AI] Otrzymano finalną odpowiedź (thread ${threadId})`);
+        const summaryStartTime = Date.now();
+        const summaryHeartbeat = createHeartbeat(message, () => {
+          const elapsed = ((Date.now() - summaryStartTime) / 1000).toFixed(0);
+          return `⏳ Analiza trwa już **${elapsed}s** — składam końcową odpowiedź z ${successfulSummaries.length} części...`;
+        });
+        summaryHeartbeat.start();
+        try {
+          finalReplyText = await askGeminiWithFallback(finalPrompt);
+          console.log(`[AI] Otrzymano finalną odpowiedź (thread ${threadId})`);
+        } finally {
+          summaryHeartbeat.stop();
+        }
 
         if (failedCount > 0) {
           finalReplyText += `\n\n⚠️ *Uwaga: ${failedCount} z ${chunks.length} części rozmowy nie udało się przeanalizować z powodu błędów API — odpowiedź może być niepełna.*`;
@@ -730,7 +737,19 @@ module.exports = {
       } else {
         errorMsg += ` Szczegóły: ${err.message}`;
       }
-      await safeReply(message, errorMsg);
+      try {
+        await safeReply(message, errorMsg);
+      } catch (sendErr) {
+        console.error('[AI] Nie udało się wysłać wiadomości o błędzie:', sendErr.message);
+      }
+    } finally {
+      fetchHeartbeat.stop();
+      if (typeof chunkHeartbeat !== 'undefined') {
+        chunkHeartbeat.stop();
+      }
+      if (typeof summaryHeartbeat !== 'undefined') {
+        summaryHeartbeat.stop();
+      }
     }
   }
 };
