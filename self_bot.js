@@ -342,6 +342,7 @@ const client = {
   lastLotteryDraw: 0,
   lastTaxCollection: 0,
   activeThreadIds: new Set(),
+  pvPrefixes: new Map(),
   async resolveUserName(apiOrUserId, maybeUserId) {
     let api = null;
     let userId = null;
@@ -2231,24 +2232,35 @@ login({ appState }, (loginErr, api) => {
     const threadId = String(event.threadID);
     const isGroup = threadId && threadId !== senderId;
 
-    // Na czatach prywatnych (PV/DM) bot odpowiada wyłącznie twórcy (100060812419294)
-    if (!isGroup && senderId !== '100060812419294') {
-      return;
-    }
-
     console.log(`[MQTT-MSG] Message received in thread ${threadId} from sender ${senderId}: "${event.body}"`);
 
     const text = event.body.trim();
     const messageId = event.messageID;
 
-    // Odczytaj prefix dla danej grupy z bazy danych
     let currentPrefix = client.config.prefix;
-    if (threadId) {
+    if (isGroup && threadId) {
       await withData(store => {
         if (store.profiles.threadSettings && store.profiles.threadSettings[threadId] && store.profiles.threadSettings[threadId].prefix) {
           currentPrefix = store.profiles.threadSettings[threadId].prefix;
         }
       });
+    } else if (!isGroup && senderId) {
+      await withData(store => {
+        if (store.profiles.pvSettings && store.profiles.pvSettings[senderId] && store.profiles.pvSettings[senderId].prefix) {
+          currentPrefix = store.profiles.pvSettings[senderId].prefix;
+        }
+      });
+      if (!client.pvPrefixes.has(senderId)) {
+        client.pvPrefixes.set(senderId, {
+          prefix: currentPrefix,
+          firstUse: Date.now(),
+          lastUse: Date.now(),
+          messageCount: 0
+        });
+      }
+      const pvData = client.pvPrefixes.get(senderId);
+      pvData.lastUse = Date.now();
+      pvData.messageCount++;
     }
 
     // --- SYSTEM AFK ---
