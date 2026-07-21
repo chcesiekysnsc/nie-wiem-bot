@@ -900,10 +900,12 @@ login({ appState }, (loginErr, api) => {
       const now = Date.now();
       const dayMs = 24 * 60 * 60 * 1000;
       let lastMsgCleaned = 0;
-      for (const [userId, ts] of client.lastNormalMessageTime.entries()) {
-        if (now - ts > dayMs) {
-          client.lastNormalMessageTime.delete(userId);
-          lastMsgCleaned++;
+      if (client.lastNormalMessageTime) {
+        for (const [userId, ts] of client.lastNormalMessageTime.entries()) {
+          if (now - ts > dayMs) {
+            client.lastNormalMessageTime.delete(userId);
+            lastMsgCleaned++;
+          }
         }
       }
       if (lastMsgCleaned > 0) {
@@ -934,28 +936,36 @@ login({ appState }, (loginErr, api) => {
       const now = Date.now();
       const thirtyMinMs = 30 * 60 * 1000;
       let gameCleaned = 0;
-      for (const [key, game] of client.activeBlackjackGames.entries()) {
-        if (now - (game.timestamp || 0) > thirtyMinMs) {
-          client.activeBlackjackGames.delete(key);
-          gameCleaned++;
+      if (client.activeBlackjackGames) {
+        for (const [key, game] of client.activeBlackjackGames.entries()) {
+          if (now - (game.timestamp || 0) > thirtyMinMs) {
+            client.activeBlackjackGames.delete(key);
+            gameCleaned++;
+          }
         }
       }
-      for (const [key, game] of client.activeMilionerzy.entries()) {
-        if (now - (game.timestamp || 0) > thirtyMinMs) {
-          client.activeMilionerzy.delete(key);
-          gameCleaned++;
+      if (client.activeMilionerzy) {
+        for (const [key, game] of client.activeMilionerzy.entries()) {
+          if (now - (game.timestamp || 0) > thirtyMinMs) {
+            client.activeMilionerzy.delete(key);
+            gameCleaned++;
+          }
         }
       }
-      for (const [key, game] of client.activeHangman.entries()) {
-        if (now - (game.timestamp || 0) > thirtyMinMs) {
-          client.activeHangman.delete(key);
-          gameCleaned++;
+      if (client.activeHangman) {
+        for (const [key, game] of client.activeHangman.entries()) {
+          if (now - (game.timestamp || 0) > thirtyMinMs) {
+            client.activeHangman.delete(key);
+            gameCleaned++;
+          }
         }
       }
-      for (const [key, game] of client.activePanstwaMiasta.entries()) {
-        if (now - (game.timestamp || 0) > thirtyMinMs) {
-          client.activePanstwaMiasta.delete(key);
-          gameCleaned++;
+      if (client.activePanstwaMiasta) {
+        for (const [key, game] of client.activePanstwaMiasta.entries()) {
+          if (now - (game.timestamp || 0) > thirtyMinMs) {
+            client.activePanstwaMiasta.delete(key);
+            gameCleaned++;
+          }
         }
       }
       if (gameCleaned > 0) {
@@ -965,18 +975,20 @@ login({ appState }, (loginErr, api) => {
   }, jitter(15 * 60 * 1000, 0.2));
 
   setTimeout(() => {
-    setInterval(() => {
+    setInterval(async () => {
       const now = Date.now();
       const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
       let groupsCleaned = 0;
-      for (const threadId of client.processedNewGroups.entries()) {
-        const stats = store.profiles.groupStats && store.profiles.groupStats[threadId];
-        const lastActive = stats && stats.lastUpdated ? stats.lastUpdated : 0;
-        if (now - lastActive > twoDaysMs) {
-          client.processedNewGroups.delete(threadId);
-          groupsCleaned++;
+      await withData(store => {
+        for (const threadId of client.processedNewGroups.entries()) {
+          const stats = store.profiles && store.profiles.groupStats && store.profiles.groupStats[threadId];
+          const lastActive = stats && stats.lastUpdated ? stats.lastUpdated : 0;
+          if (now - lastActive > twoDaysMs) {
+            client.processedNewGroups.delete(threadId);
+            groupsCleaned++;
+          }
         }
-      }
+      });
       if (groupsCleaned > 0) {
         console.log(`[MEMORY-CLEANUP] Usunięto ${groupsCleaned} nieaktywnych wpisów z processedNewGroups.`);
       }
@@ -984,18 +996,20 @@ login({ appState }, (loginErr, api) => {
   }, jitter(6 * 60 * 60 * 1000, 0.2));
 
   setTimeout(() => {
-    setInterval(() => {
+    setInterval(async () => {
       const now = Date.now();
       const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
       let threadIdsCleaned = 0;
-      for (const threadId of client.activeThreadIds.entries()) {
-        const stats = store.profiles.groupStats && store.profiles.groupStats[threadId];
-        const lastActive = stats && stats.lastUpdated ? stats.lastUpdated : 0;
-        if (now - lastActive > sevenDaysMs) {
-          client.activeThreadIds.delete(threadId);
-          threadIdsCleaned++;
+      await withData(store => {
+        for (const threadId of client.activeThreadIds.entries()) {
+          const stats = store.profiles && store.profiles.groupStats && store.profiles.groupStats[threadId];
+          const lastActive = stats && stats.lastUpdated ? stats.lastUpdated : 0;
+          if (now - lastActive > sevenDaysMs) {
+            client.activeThreadIds.delete(threadId);
+            threadIdsCleaned++;
+          }
         }
-      }
+      });
       if (threadIdsCleaned > 0) {
         try { fs.writeFileSync(activeThreadsPath, JSON.stringify(Array.from(client.activeThreadIds), null, 2), 'utf8'); } catch (_) {}
         console.log(`[MEMORY-CLEANUP] Usunięto ${threadIdsCleaned} nieaktywnych grup z activeThreadIds.`);
@@ -2213,8 +2227,8 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
-    const senderId = event.senderID;
-    const threadId = event.threadID;
+    const senderId = String(event.senderID);
+    const threadId = String(event.threadID);
     const isGroup = threadId && threadId !== senderId;
 
     // Na czatach prywatnych (PV/DM) bot odpowiada wyłącznie twórcy (100060812419294)
