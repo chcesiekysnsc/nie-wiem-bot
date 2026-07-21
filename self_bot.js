@@ -1839,12 +1839,8 @@ login({ appState }, (loginErr, api) => {
     autoMarkRead: false
   });
 
-  api.listenMqtt(async (err, event) => {
-    if (err) {
-      console.error('[SELF-BOT] Blad nasluchiwania (wymuszenie restartu):', err);
-      process.exit(1);
-    }
-
+  const mqttClient = api.listenMqtt();
+  mqttClient.on('message', async (event) => {
     if (!event || !event.type) {
       return;
     }
@@ -3447,6 +3443,9 @@ login({ appState }, (loginErr, api) => {
         embeds: [errorEmbed('Blad komendy', 'Wystapil problem podczas wykonywania komendy.')]
       }).catch(() => null);
     }
+  });
+  mqttClient.on('error', (err) => {
+    console.error('[SELF-BOT] Blad nasluchiwania MQTT:', err);
   });
 });
 
