@@ -607,8 +607,8 @@ module.exports = {
       name: 'Diamentowa Paczka',
       emoji: '🟦',
       price: 500000,
-      shortDesc: 'Lootbox: 202.5k–652.5k + szansa na VIP/Sejf/Alarm/Psa/Kaczkę, 1% Tytan, 1% Karbid, 1% Inżelit, 1% Zakłócacz.',
-      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 202 500 do 652 500 viccoinów.\nBonus drop: 5% VIP Pass, 5% Ulepszenie Banku, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur, 2% Alarm, 2% Pies Stróżujący, 1.5% Kaczka Biznesu, 1% Tytan, 1% Karbid, 1% Inżelit, 1% Zakłócacz.',
+      shortDesc: 'Lootbox: 202.5k–652.5k + szansa na VIP/Sejf/Alarm/Psa/Kaczkę, 1% Tytan, 1% Karbid, 1% Inżelit.',
+      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 202 500 do 652 500 viccoinów.\nBonus drop: 5% VIP Pass, 5% Ulepszenie Banku, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur, 2% Alarm, 2% Pies Stróżujący, 1.5% Kaczka Biznesu, 1% Tytan, 1% Karbid, 1% Inżelit.',
       type: 'stackable'
     },
     // Poniższe itemy są niedostępne w sklepie — wypadają tylko z paczek
@@ -1131,7 +1131,8 @@ module.exports = {
         items: {
           szkolenie_bojowe: { name: 'Szkolenie Bojowe', emoji: '🪖', chance: 1.25, description: '+5% siły podczas ataków na gangi.' },
           mobilna_barykada: { name: 'Mobilna Barykada', emoji: '🛡️', chance: 1.25, description: '+6% obrony przed atakiem innego gangu.' },
-          warsztat: { name: 'Warsztat', emoji: '🧰', chance: 1.25, description: '+10% pieniędzy z !work dla wszystkich członków gangu.' }
+          warsztat: { name: 'Warsztat', emoji: '🧰', chance: 1.25, description: '+10% pieniędzy z !work dla wszystkich członków gangu.' },
+          zaklocasz: { name: 'Zakłócacz', emoji: '📟', chance: 1.5, description: 'Gangowy zakłócacz tarcz. Użycie przez bossa/zastępcę niszczy tarczę ochronną dowolnego gangu. Wszystkie osobiste kopie członków gangu są automatycznie przenoszone do gangu po zdobyciu.' }
         }
       },
       skrzynia_opancerzona: {

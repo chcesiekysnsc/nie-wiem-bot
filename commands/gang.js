@@ -1737,7 +1737,7 @@ module.exports = {
         // Check 24h attack cooldown
         const now = Date.now();
         const lastAttack = myGang.lastAttackTime || 0;
-        let cooldown = 24 * 60 * 60 * 1000;
+        let cooldown = 12 * 60 * 60 * 1000;
         const attCdBonus = getGangBossShopMultiplier(myGang, 'cooldown');
         if (attCdBonus > 0) {
           cooldown = Math.floor(cooldown * (1 - attCdBonus));
@@ -2569,10 +2569,8 @@ module.exports = {
         const purchaseResult = await withData(async store => {
           const gang = store.profiles.gangs[readResult.gangId];
           if (!gang) return { error: '❌ Gang nie istnieje.' };
-          const result = await processBossShopPurchase(gang, crateId, quantity);
+          const result = await processBossShopPurchase(gang, crateId, quantity, store);
           if (result.error) return result;
-          const { getVaultCap } = require('../utils/gangAI');
-          const maxVault = getVaultCap(gang);
           gang.vault = (gang.vault || 0) + result.totalMoney;
           return result;
         });
@@ -2602,6 +2600,10 @@ module.exports = {
 
         if (purchaseResult.itemsSummary) {
           lines.push(purchaseResult.itemsSummary);
+        }
+
+        if (purchaseResult.transferredZaklocasz && purchaseResult.transferredZaklocasz > 0) {
+          lines.push(`📟 **Zakłócacz:** przeniesiono **${purchaseResult.transferredZaklocasz}** osobistych kopii od członków gangu do zbioru gangu.`);
         }
 
         lines.push(`📅 Pozostało zakupów dziś: **${purchaseResult.remainingPurchases}/10**`);
@@ -2829,8 +2831,8 @@ module.exports = {
       const territoryNames = ownedTerritories.map(t => `${t.emoji} ${t.name}`).join(', ');
       statusStr += `🌍 Terytoria: **${territoryNames}**\n`;
     }
-    if (infoResult.lastAttackTime && now - infoResult.lastAttackTime < 24 * 60 * 60 * 1000) {
-      const leftSec = Math.ceil((24 * 60 * 60 * 1000 - (now - infoResult.lastAttackTime)) / 1000);
+    if (infoResult.lastAttackTime && now - infoResult.lastAttackTime < 12 * 60 * 60 * 1000) {
+      const leftSec = Math.ceil((12 * 60 * 60 * 1000 - (now - infoResult.lastAttackTime)) / 1000);
       const hrs = Math.floor(leftSec / 3600);
       const mins = Math.floor((leftSec % 3600) / 60);
       const secs = leftSec % 60;

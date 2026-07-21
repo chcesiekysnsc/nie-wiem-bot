@@ -84,8 +84,7 @@ const PACZKI = {
       { chance: 10, items: [{ id: 'mocna_kawa', qty: 1, label: '☕ Mocna Kawa', permanent: true }] }, // 1.0%
       { chance: 10, items: [{ id: 'material_upgrade_3', qty: 1, label: '⚙️ Tytan' }] },
       { chance: 10, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] },
-      { chance: 10, items: [{ id: 'material_upgrade_5', qty: 1, label: '⚛️ Inżelit' }] },
-      { chance: 10, items: [{ id: 'zaklocasz', qty: 1, label: '📟 Zakłócacz', permanent: true }] }
+      { chance: 10, items: [{ id: 'material_upgrade_5', qty: 1, label: '⚛️ Inżelit' }] }
     ]
   },
   tytanowa: {

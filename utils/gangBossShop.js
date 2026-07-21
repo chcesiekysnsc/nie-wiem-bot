@@ -144,7 +144,7 @@ function canPurchase(gang, quantity = 1) {
   return { allowed: true, remaining: remaining - quantity };
 }
 
-function processPurchase(gang, crateId, quantity) {
+function processPurchase(gang, crateId, quantity, store) {
   const crate = getCrate(crateId);
   if (!crate) {
     return { error: '❌ Nie znaleziono takiej skrzynki.' };
@@ -163,7 +163,7 @@ function processPurchase(gang, crateId, quantity) {
     return { error: `❌ Brak środków w sejfie gangu. Potrzeba: **${formatCurrency(totalCost)}**, posiadacie: **${formatCurrency(gang.vault || 0)}**.` };
   }
 
-  gang.vault = Math.max(0, (gang.vault || 0) - totalCost);
+  gang.vault = (gang.vault || 0) - totalCost;
 
   let totalMoney = 0;
   const droppedItems = [];
@@ -188,7 +188,7 @@ function processPurchase(gang, crateId, quantity) {
   const itemNames = droppedItems.map(id => `${getItemEmoji(id)} **${getItemName(id)}**`);
   const itemsSummary = itemNames.length > 0 ? `\n🎁 **Przedmioty:** ${itemNames.join(', ')}` : '';
 
-  return {
+  const result = {
     success: true,
     totalMoney,
     droppedItems,
@@ -196,6 +196,22 @@ function processPurchase(gang, crateId, quantity) {
     perCrateResults,
     remainingPurchases: DAILY_LIMIT - gang.bossShopPurchasesToday
   };
+
+  if (droppedItems.includes('zaklocasz') && store && store.inventory && gang.members) {
+    let transferred = 0;
+    for (const memberId of gang.members) {
+      const inv = store.inventory[memberId];
+      if (inv && inv.zaklocasz && inv.zaklocasz > 0) {
+        transferred += inv.zaklocasz;
+        delete inv.zaklocasz;
+      }
+    }
+    if (transferred > 0) {
+      result.transferredZaklocasz = transferred;
+    }
+  }
+
+  return result;
 }
 
 module.exports = {

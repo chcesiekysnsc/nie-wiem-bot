@@ -488,6 +488,10 @@ module.exports = {
   } catch (err) {
     console.error('[BLACKJACK] Błąd podczas obsługi ruchu:', err);
     client.activeBlackjackGames.delete(authorId);
+  } finally {
+    if (client.activeBlackjackGames.has(authorId)) {
+      game.processing = false;
+    }
   }
   },
 

@@ -1,6 +1,5 @@
-const config = require('../config/config');
 const { withData, createUser } = require('../utils/storage');
-const { ensureInventoryRecord, hasItem } = require('../utils/economy');
+const { getGangUser } = require('./gang');
 
 module.exports = {
   name: 'zakloc',
@@ -15,17 +14,25 @@ module.exports = {
     }
 
     const result = await withData(store => {
-      const inventory = ensureInventoryRecord(store.inventory, userId);
-      
-      // 1. Sprawdź czy użytkownik ma przedmiot
-      if (!hasItem(inventory, 'zaklocasz')) {
-        return { error: '❌ Nie posiadasz urządzenia **Zakłócacz** (możesz go zdobyć z 🟦 Diamentowej Paczki).' };
+      const user = getGangUser(store, userId);
+
+      if (!user.gangId || !store.profiles.gangs[user.gangId]) {
+        return { error: '❌ Nie należysz do żadnego gangu.' };
       }
 
-      // 2. Sprawdź cooldown 48h
-      const user = createUser(userId, store.users);
+      const gang = store.profiles.gangs[user.gangId];
+      const isBoss = user.gangRole === 'boss';
+      const isDeputy = user.gangRole === 'deputy';
+      if (!isBoss && !isDeputy) {
+        return { error: '❌ Tylko Boss oraz Zastępcy mogą używać Zakłócacza.' };
+      }
+
+      if (!gang.bossShopItems || !gang.bossShopItems.includes('zaklocasz')) {
+        return { error: '❌ Twój gang nie posiada **Zakłócacza**. Zdobyj go z 🥇 Pozłacanej Skrzynki w Bossowym Sklepie (!gang sklep).' };
+      }
+
       const now = Date.now();
-      const lastUse = user.lastZaklocTime || 0;
+      const lastUse = gang.lastZaklocUse || 0;
       const cooldown = 48 * 60 * 60 * 1000;
 
       if (now - lastUse < cooldown) {
@@ -34,10 +41,9 @@ module.exports = {
         const mins = Math.floor((diffSec % 3600) / 60);
         const secs = diffSec % 60;
         const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null, `${secs}s`].filter(Boolean).join(' ');
-        return { error: `⏱️ Możesz użyć Zakłócacza ponownie za: **${leftStr}**.` };
+        return { error: `⏱️ Gang może użyć Zakłócacza ponownie za: **${leftStr}**.` };
       }
 
-      // 3. Znajdź gang przeciwnika
       let targetGangId = null;
       const cleanParam = targetParam.toLowerCase();
 
@@ -56,15 +62,17 @@ module.exports = {
 
       const defenderGang = store.profiles.gangs[targetGangId];
 
-      // 4. Sprawdź czy gang ma tarczę ochronną
+      if (defenderGang.id === gang.id) {
+        return { error: '❌ Nie możesz użyć Zakłócacza na własnym gangie.' };
+      }
+
       const shieldUntil = defenderGang.shieldUntil || 0;
       if (now >= shieldUntil) {
         return { error: `❌ Gang **${defenderGang.name}** nie posiada obecnie aktywnej tarczy ochronnej.` };
       }
 
-      // 5. Usuń tarczę ochronną i nałóż cooldown
       defenderGang.shieldUntil = 0;
-      user.lastZaklocTime = now;
+      gang.lastZaklocUse = now;
 
       return {
         success: true,
