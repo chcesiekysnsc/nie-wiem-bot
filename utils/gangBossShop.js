@@ -1,68 +1,24 @@
 const config = require('../config/config');
-const { withData, createUser, loadData } = require('./storage');
+const { withData } = require('./storage');
 const { randomInt, formatCurrency } = require('./economy');
 
-function hasGangBossItem(gang, itemId) {
-  return Array.isArray(gang.bossShopItems) && gang.bossShopItems.includes(itemId);
-}
+const DAILY_LIMIT = (config.bossShopCrates && config.bossShopCrates.dailyLimit) || 10;
+const MERCENARY_DURATION_MS = 24 * 60 * 60 * 1000;
 
-function getGangBossShopMultiplier(gang, effectType) {
-  if (!gang || !Array.isArray(gang.bossShopItems)) return 0;
-  const items = gang.bossShopItems;
-  let mult = 0;
-
-  if (effectType === 'attack') {
-    if (items.includes('szkolenie_bojowe')) mult += 0.05;
-    if (items.includes('celowniki_laserowe')) mult += 0.10;
-    if (items.includes('sztab_dowodzenia')) mult += 0.05;
-    if (items.includes('centrum_treningowe')) mult += 0.02;
-  } else if (effectType === 'defense') {
-    if (items.includes('mobilna_barykada')) mult += 0.06;
-    if (items.includes('sztab_dowodzenia')) mult += 0.05;
-    if (items.includes('monitoring')) mult += 0.02;
-  } else if (effectType === 'loot') {
-    if (items.includes('van_opancerzony')) mult += 0.15;
-    if (items.includes('sztab_dowodzenia')) mult += 0.10;
-  } else if (effectType === 'heist_success') {
-    if (items.includes('siec_informatorow')) mult += 0.10;
-  } else if (effectType === 'cooldown') {
-    if (items.includes('falszywe_dokumenty')) mult += 0.10;
-  } else if (effectType === 'income') {
-    if (items.includes('ksiegowy_gangu')) mult += 0.05;
-    if (items.includes('sztab_dowodzenia')) mult += 0.10;
-    if (items.includes('pralnia_pieniedzy')) mult += 0.05;
-  } else if (effectType === 'work') {
-    if (items.includes('warsztat')) mult += 0.10;
-  }
-
-  return mult;
-}
-
-function attemptStealBossItem(sourceGang, targetGang) {
-  let stealChance = 0.10;
-  if (hasGangBossItem(targetGang, 'tajny_sejf')) {
-    stealChance = Math.max(0, stealChance - 0.03);
-  }
-  if (Math.random() > stealChance) return null;
-  const targetItems = Array.isArray(targetGang.bossShopItems) ? targetGang.bossShopItems : [];
-  if (targetItems.length === 0) return null;
-
-  const itemId = targetItems[Math.floor(Math.random() * targetItems.length)];
-  return itemId;
-}
-
-function getCrateDefinition(crateId) {
-  const crates = (config.bossShopCrates && config.bossShopCrates.crates) || {};
-  return crates[crateId] || null;
-}
-
-function getAllCrateDefinitions() {
+function getCrates() {
   return (config.bossShopCrates && config.bossShopCrates.crates) || {};
 }
 
-function getItemDefinition(itemId) {
-  const crates = getAllCrateDefinitions();
-  for (const crate of Object.values(crates)) {
+function getCrate(crateId) {
+  return getCrates()[crateId] || null;
+}
+
+function getCrateOrder() {
+  return Object.keys(getCrates());
+}
+
+function getItemDef(itemId) {
+  for (const crate of Object.values(getCrates())) {
     if (crate.items && crate.items[itemId]) {
       return { ...crate.items[itemId], id: itemId };
     }
@@ -71,17 +27,74 @@ function getItemDefinition(itemId) {
 }
 
 function getItemName(itemId) {
-  const def = getItemDefinition(itemId);
+  const def = getItemDef(itemId);
   return def ? def.name : itemId;
 }
 
 function getItemEmoji(itemId) {
-  const def = getItemDefinition(itemId);
+  const def = getItemDef(itemId);
   return def ? def.emoji : '📦';
 }
 
-function rollCrateRewards(crateId) {
-  const crate = getCrateDefinition(crateId);
+function hasItem(gang, itemId) {
+  return Array.isArray(gang.bossShopItems) && gang.bossShopItems.includes(itemId);
+}
+
+function getMultiplier(gang, effectType) {
+  if (!gang || !Array.isArray(gang.bossShopItems)) return 0;
+  const items = gang.bossShopItems;
+  let mult = 0;
+
+  switch (effectType) {
+    case 'attack':
+      if (items.includes('szkolenie_bojowe')) mult += 0.05;
+      if (items.includes('celowniki_laserowe')) mult += 0.10;
+      if (items.includes('sztab_dowodzenia')) mult += 0.05;
+      if (items.includes('centrum_treningowe')) mult += 0.02;
+      break;
+    case 'defense':
+      if (items.includes('mobilna_barykada')) mult += 0.06;
+      if (items.includes('sztab_dowodzenia')) mult += 0.05;
+      if (items.includes('monitoring')) mult += 0.02;
+      break;
+    case 'loot':
+      if (items.includes('van_opancerzony')) mult += 0.15;
+      if (items.includes('sztab_dowodzenia')) mult += 0.10;
+      break;
+    case 'heist_success':
+      if (items.includes('siec_informatorow')) mult += 0.10;
+      break;
+    case 'cooldown':
+      if (items.includes('falszywe_dokumenty')) mult += 0.10;
+      break;
+    case 'income':
+      if (items.includes('ksiegowy_gangu')) mult += 0.05;
+      if (items.includes('sztab_dowodzenia')) mult += 0.10;
+      if (items.includes('pralnia_pieniedzy')) mult += 0.05;
+      break;
+    case 'work':
+      if (items.includes('warsztat')) mult += 0.10;
+      break;
+  }
+
+  return mult;
+}
+
+function attemptStealBossItem(targetGang) {
+  let stealChance = 0.10;
+  if (hasItem(targetGang, 'tajny_sejf')) {
+    stealChance = Math.max(0, stealChance - 0.03);
+  }
+  if (Math.random() > stealChance) return null;
+
+  const items = Array.isArray(targetGang.bossShopItems) ? targetGang.bossShopItems : [];
+  if (items.length === 0) return null;
+
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+function rollCrate(crateId) {
+  const crate = getCrate(crateId);
   if (!crate) return { money: 0, item: null };
 
   const money = randomInt(crate.moneyMin, crate.moneyMax);
@@ -102,39 +115,47 @@ function rollCrateRewards(crateId) {
   return { money, item };
 }
 
-async function ensureDailyLimit(gang, purchasesCount) {
-  const today = new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
-  const currentDate = gang.bossShopPurchasesDate || null;
+function getTodayKey() {
+  return new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
+}
 
-  if (currentDate !== today) {
+function ensureDailyReset(gang) {
+  const today = getTodayKey();
+  if (gang.bossShopPurchasesDate !== today) {
     gang.bossShopPurchasesDate = today;
     gang.bossShopPurchasesToday = 0;
   }
+}
 
-  const remaining = 10 - (gang.bossShopPurchasesToday || 0);
+function getRemainingPurchases(gang) {
+  ensureDailyReset(gang);
+  return DAILY_LIMIT - (gang.bossShopPurchasesToday || 0);
+}
+
+function canPurchase(gang, quantity = 1) {
+  ensureDailyReset(gang);
+  const remaining = getRemainingPurchases(gang);
   if (remaining <= 0) {
     return { allowed: false, remaining: 0, reason: 'limit_reached' };
   }
-
-  if (purchasesCount > remaining) {
+  if (quantity > remaining) {
     return { allowed: false, remaining, reason: 'limit_exceeded' };
   }
-
-  return { allowed: true, remaining: remaining - purchasesCount };
+  return { allowed: true, remaining: remaining - quantity };
 }
 
-async function processBossShopPurchase(gang, crateId, quantity) {
-  const crate = getCrateDefinition(crateId);
+function processPurchase(gang, crateId, quantity) {
+  const crate = getCrate(crateId);
   if (!crate) {
     return { error: '❌ Nie znaleziono takiej skrzynki.' };
   }
 
-  const limitResult = await ensureDailyLimit(gang, quantity);
-  if (!limitResult.allowed) {
-    if (limitResult.reason === 'limit_reached') {
-      return { error: `❌ Przekroczono dzienny limit zakupów Bossowego Sklepu (10/dobę).` };
+  const limitCheck = canPurchase(gang, quantity);
+  if (!limitCheck.allowed) {
+    if (limitCheck.reason === 'limit_reached') {
+      return { error: `❌ Przekroczono dzienny limit zakupów Bossowego Sklepu (${DAILY_LIMIT}/dobę).` };
     }
-    return { error: `❌ Przekroczono dzienny limit zakupów Bossowego Sklepu (10/dobę). Pozostało dziś: **${limitResult.remaining}** zakupów.` };
+    return { error: `❌ Przekroczono dzienny limit zakupów Bossowego Sklepu (${DAILY_LIMIT}/dobę). Pozostało dziś: **${limitCheck.remaining}** zakupów.` };
   }
 
   const totalCost = crate.price * quantity;
@@ -146,11 +167,11 @@ async function processBossShopPurchase(gang, crateId, quantity) {
 
   let totalMoney = 0;
   const droppedItems = [];
-  const gangItems = Array.isArray(gang.bossShopItems) ? gang.bossShopItems : [];
+  const gangItems = Array.isArray(gang.bossShopItems) ? [...gang.bossShopItems] : [];
   const perCrateResults = [];
 
   for (let i = 0; i < quantity; i++) {
-    const result = rollCrateRewards(crateId);
+    const result = rollCrate(crateId);
     totalMoney += result.money;
     const gained = result.item && !gangItems.includes(result.item);
     if (gained) {
@@ -162,7 +183,7 @@ async function processBossShopPurchase(gang, crateId, quantity) {
 
   gang.bossShopItems = gangItems;
   gang.bossShopPurchasesToday = (gang.bossShopPurchasesToday || 0) + quantity;
-  gang.bossShopPurchasesDate = new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
+  gang.bossShopPurchasesDate = getTodayKey();
 
   const itemNames = droppedItems.map(id => `${getItemEmoji(id)} **${getItemName(id)}**`);
   const itemsSummary = itemNames.length > 0 ? `\n🎁 **Przedmioty:** ${itemNames.join(', ')}` : '';
@@ -173,20 +194,33 @@ async function processBossShopPurchase(gang, crateId, quantity) {
     droppedItems,
     itemsSummary,
     perCrateResults,
-    remainingPurchases: 10 - gang.bossShopPurchasesToday
+    remainingPurchases: DAILY_LIMIT - gang.bossShopPurchasesToday
   };
 }
 
 module.exports = {
-  hasGangBossItem,
-  getGangBossShopMultiplier,
-  attemptStealBossItem,
-  getCrateDefinition,
-  getAllCrateDefinitions,
-  getItemDefinition,
+  DAILY_LIMIT,
+  MERCENARY_DURATION_MS,
+  getCrates,
+  getCrate,
+  getCrateOrder,
+  getItemDef,
   getItemName,
   getItemEmoji,
-  rollCrateRewards,
-  ensureDailyLimit,
-  processBossShopPurchase
+  hasItem,
+  getMultiplier,
+  attemptStealBossItem,
+  rollCrate,
+  getTodayKey,
+  ensureDailyReset,
+  getRemainingPurchases,
+  canPurchase,
+  processPurchase,
+  getGangBossShopMultiplier: getMultiplier,
+  getAllCrateDefinitions: getCrates,
+  getCrateDefinition: getCrate,
+  getItemDefinition: getItemDef,
+  processBossShopPurchase: processPurchase,
+  ensureDailyLimit: canPurchase,
+  hasGangBossItem: hasItem
 };
