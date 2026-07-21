@@ -2246,16 +2246,27 @@ login({ appState }, (loginErr, api) => {
       });
     } else if (!isGroup && senderId) {
       await withData(store => {
-        if (store.profiles.pvSettings && store.profiles.pvSettings[senderId] && store.profiles.pvSettings[senderId].prefix) {
+        if (!store.profiles.pvSettings) store.profiles.pvSettings = {};
+        if (!store.profiles.pvSettings[senderId]) {
+          store.profiles.pvSettings[senderId] = {
+            prefix: client.config.prefix,
+            createdAt: Date.now(),
+            messageCount: 0,
+            commandCount: 0
+          };
+        }
+        if (store.profiles.pvSettings[senderId].prefix) {
           currentPrefix = store.profiles.pvSettings[senderId].prefix;
         }
       });
+      if (!client.pvPrefixes) client.pvPrefixes = new Map();
       if (!client.pvPrefixes.has(senderId)) {
         client.pvPrefixes.set(senderId, {
           prefix: currentPrefix,
           firstUse: Date.now(),
           lastUse: Date.now(),
-          messageCount: 0
+          messageCount: 0,
+          commandCount: 0
         });
       }
       const pvData = client.pvPrefixes.get(senderId);
@@ -2264,20 +2275,16 @@ login({ appState }, (loginErr, api) => {
     }
 
     // --- SYSTEM AFK ---
-    // AFK nie jest już automatycznie wyłączane - tylko przez !afk off
     let wasAfk = false;
     let afkInfo = null;
     await withData(store => {
       if (store.profiles.afk && store.profiles.afk[senderId]) {
         afkInfo = store.profiles.afk[senderId];
-        // Nie usuwamy AFK automatycznie - tylko przez komendę !afk off
         wasAfk = true;
       }
     });
 
-    // Usunięto automatyczne wyłączanie AFK - status pozostaje aktywny
-
-    // 2. Powiadomienie jeśli ktoś oznaczył osobę oznaczoną jako AFK
+    // Powiadomienie AFK przy oznaczeniu osoby
     if (event.mentions && Object.keys(event.mentions).length > 0) {
       const mentionedIds = Object.keys(event.mentions);
       const afkMessages = [];
@@ -2302,20 +2309,20 @@ login({ appState }, (loginErr, api) => {
       }
     }
 
-    // Obsługa sytuacji, gdy treść wiadomości to dokładnie sam prefix (np. !)
+    // Sam prefix - pokaz help
     if (text === currentPrefix) {
       api.sendMessage(`💡 Aby zobaczyć listę komend, proszę napisać: **${currentPrefix}help**`, threadId, () => {}, messageId);
       return;
     }
 
-    // Ignoruj własne wiadomości bota, jeśli nie zaczynają się od prefixu komendy (zapobieganie pętlom)
+    // Ignoruj wiadomości bota bez prefixu
     const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
     if (botId && String(senderId) === String(botId) && !text.startsWith(currentPrefix)) {
       console.log(`[MQTT-MSG] Ignored self-message without command prefix: "${text}"`);
       return;
     }
 
-    // Automatyczny pobieracz wideo z TikToka
+    // TikTok downloader
     const tiktokLink = extractTikTokLink(text);
     if (tiktokLink && !text.startsWith(currentPrefix)) {
       console.log(`[TIKTOK] Wykryto link do TikToka od ${senderId} w wątku ${threadId}: ${tiktokLink}`);
@@ -2325,7 +2332,7 @@ login({ appState }, (loginErr, api) => {
         const tempFile = path.join(__dirname, 'data', `tiktok_${messageId}.mp4`);
         try {
           const data = await getTikTokVideoData(tiktokLink);
-          const MAX_SIZE = 25 * 1024 * 1024; // 25 MB
+          const MAX_SIZE = 25 * 1024 * 1024;
 
           if (data.size > MAX_SIZE) {
             console.log(`[TIKTOK] Film jest zbyt duży (${(data.size / 1024 / 1024).toFixed(2)} MB). Wysyłam link bezpośredni.`);
@@ -2369,7 +2376,6 @@ login({ appState }, (loginErr, api) => {
           api.setMessageReaction('❌', messageId, () => {});
           api.sendMessage(`❌ Nie udało się pobrać wideo z TikToka.`, threadId, () => {}, messageId);
         } finally {
-          // Czyszczenie pliku tymczasowego (poczekaj 5s, by upewnić się, że strumień FB został zamknięty)
           setTimeout(() => {
             if (fs.existsSync(tempFile)) {
               try {
@@ -2384,7 +2390,7 @@ login({ appState }, (loginErr, api) => {
       })();
     }
 
-    // Odczytaj wiadomosc po losowym czasie (500ms - 1200ms)
+    // Mark as read
     if (threadId) {
       setTimeout(() => {
         try {
@@ -2399,7 +2405,7 @@ login({ appState }, (loginErr, api) => {
 
     client.lastThreadId = threadId;
 
-    // Interceptor dla potwierdzeń (np. !afkdel ok/stop)
+    // Potwierdzenia (!afkdel ok/stop)
     if (client.pendingConfirmations) {
       const pendingKey = `${threadId}-${senderId}`;
       const pending = client.pendingConfirmations.get(pendingKey);
@@ -2418,69 +2424,66 @@ login({ appState }, (loginErr, api) => {
           } else {
             api.sendMessage('✅ Pomyślnie przerwano.', threadId, () => {}, messageId);
           }
-          return; // Zakończ przetwarzanie, nie traktuj jako komendy
+          return;
         }
       }
     }
 
-    const isCommand = text.startsWith(currentPrefix);
-    if (!isCommand) {
-      if (!client.lastNormalMessageTime) {
-        client.lastNormalMessageTime = new Map();
-      }
-      const lastTime = client.lastNormalMessageTime.get(senderId) || 0;
-      const now = Date.now();
-      const shouldUpdateUser = (now - lastTime >= 2000);
-      if (shouldUpdateUser) {
-        client.lastNormalMessageTime.set(senderId, now);
-      }
+    // ========================
+    // ODDZIEL PV OD GRUP
+    // ========================
+    if (isGroup) {
+      // ---------- GRUPA ----------
+      const isCommand = text.startsWith(currentPrefix);
+      if (!isCommand) {
+        if (!client.lastNormalMessageTime) {
+          client.lastNormalMessageTime = new Map();
+        }
+        const lastTime = client.lastNormalMessageTime.get(senderId) || 0;
+        const now = Date.now();
+        const shouldUpdateUser = (now - lastTime >= 2000);
+        if (shouldUpdateUser) {
+          client.lastNormalMessageTime.set(senderId, now);
+        }
 
-      if (isGroup || shouldUpdateUser) {
         await withData(store => {
           if (shouldUpdateUser) {
             const u = createUser(senderId, store.users);
             u.messageCount = (u.messageCount || 0) + 1;
             u.lastActiveTime = Date.now();
-            if (isGroup) {
-              u.groupMessages = u.groupMessages || {};
-              u.groupMessages[threadId] = (u.groupMessages[threadId] || 0) + 1;
-            }
+            u.groupMessages = u.groupMessages || {};
+            u.groupMessages[threadId] = (u.groupMessages[threadId] || 0) + 1;
           }
 
-          if (isGroup) {
-            if (!store.groupStats) store.groupStats = {};
-            if (!store.groupStats[threadId]) {
-              store.groupStats[threadId] = {
-                visibleMessages: 0,
-                processedMessages: 0,
-                commandsExecuted: 0,
-                mentionsCount: 0,
-                firstUse: Date.now(),
-                lastUpdated: Date.now()
-              };
+          if (!store.groupStats) store.groupStats = {};
+          if (!store.groupStats[threadId]) {
+            store.groupStats[threadId] = {
+              visibleMessages: 0,
+              processedMessages: 0,
+              commandsExecuted: 0,
+              mentionsCount: 0,
+              firstUse: Date.now(),
+              lastUpdated: Date.now()
+            };
+          }
+          const stats = store.groupStats[threadId];
+          stats.seenMessageIds = stats.seenMessageIds || [];
+          if (messageId && !stats.seenMessageIds.includes(messageId)) {
+            stats.seenMessageIds.push(messageId);
+            if (stats.seenMessageIds.length > 2000) {
+              stats.seenMessageIds.shift();
             }
-            const stats = store.groupStats[threadId];
-            stats.seenMessageIds = stats.seenMessageIds || [];
-            if (messageId && !stats.seenMessageIds.includes(messageId)) {
-              stats.seenMessageIds.push(messageId);
-              if (stats.seenMessageIds.length > 2000) {
-                stats.seenMessageIds.shift();
-              }
-            }
-            stats.visibleMessages++;
-            stats.processedMessages++;
-            stats.lastUpdated = Date.now();
+          }
+          stats.visibleMessages++;
+          stats.processedMessages++;
+          stats.lastUpdated = Date.now();
 
-            const mentionMatches = text.match(/@/g);
-            if (mentionMatches) {
-              stats.mentionsCount += mentionMatches.length;
-            }
+          const mentionMatches = text.match(/@/g);
+          if (mentionMatches) {
+            stats.mentionsCount += mentionMatches.length;
           }
         });
-      }
-    } else {
-      // Aktualizacja statystyk dla komend
-      if (isGroup) {
+      } else {
         await withData(store => {
           if (!store.groupStats) store.groupStats = {};
           if (!store.groupStats[threadId]) {
@@ -2507,9 +2510,7 @@ login({ appState }, (loginErr, api) => {
           stats.lastUpdated = Date.now();
         });
       }
-    }
 
-    if (threadId && isGroup) {
       if (!client.activeThreadIds.has(threadId)) {
         client.activeThreadIds.add(threadId);
         try {
@@ -2519,7 +2520,6 @@ login({ appState }, (loginErr, api) => {
         }
       }
 
-      // Dynamiczne pobieranie i zapisywanie nazwy grupy
       try {
         const { loadData } = require('./utils/storage');
         const stats = loadData('groupStats');
@@ -2543,6 +2543,33 @@ login({ appState }, (loginErr, api) => {
         }
       } catch (err) {
         console.error('[SELF-BOT] Error in thread name cache check:', err);
+      }
+    } else {
+      // ---------- PV ----------
+      const isCommand = text.startsWith(currentPrefix);
+      if (!isCommand) {
+        if (!client.lastNormalMessageTime) {
+          client.lastNormalMessageTime = new Map();
+        }
+        const lastTime = client.lastNormalMessageTime.get(senderId) || 0;
+        const now = Date.now();
+        const shouldUpdateUser = (now - lastTime >= 2000);
+        if (shouldUpdateUser) {
+          client.lastNormalMessageTime.set(senderId, now);
+        }
+
+        await withData(store => {
+          if (shouldUpdateUser) {
+            const u = createUser(senderId, store.users);
+            u.messageCount = (u.messageCount || 0) + 1;
+            u.lastActiveTime = Date.now();
+          }
+        });
+      } else {
+        await withData(store => {
+          const u = createUser(senderId, store.users);
+          u.lastActiveTime = Date.now();
+        });
       }
     }
 
