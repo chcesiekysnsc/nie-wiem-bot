@@ -1845,7 +1845,17 @@ login({ appState }, (loginErr, api) => {
       process.exit(1);
     }
 
+    if (!event || !event.type) {
+      return;
+    }
 
+    const senderId = String(event.senderID || '');
+    const threadId = String(event.threadID || event.senderID || '');
+    const isGroup = threadId && threadId !== senderId;
+
+    if (!isGroup && ['message', 'message_reply'].includes(event.type)) {
+      console.log(`[PV-DEBUG] Odebrano wiadomosc PV od ${senderId}: "${event.body}" | typ=${event.type}`);
+    }
 
     // Interceptor dla zmiany pseudonimu (log:thread-nickname lub log:user-nickname)
     const isNicknameEvent = (event.type === 'event' && (event.logMessageType === 'log:thread-nickname' || event.logMessageType === 'log:user-nickname')) 
