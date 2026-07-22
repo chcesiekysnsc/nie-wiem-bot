@@ -21,13 +21,47 @@ const { getEffectiveChance } = require('../utils/chances');
 const { getGangBossShopMultiplier } = require('../utils/gangBossShop');
 const { hasReputationBonus } = require('../utils/gangAI');
 const { getItemSetBonus } = require('../utils/itemSets');
+const { askGeminiWithFallback } = require('../commands/ai');
 
-const jobs = [
-  'Ogarnales nocna zmiane przy stolach pokerowych.',
-  'Sprzedales premium wejscia do strefy VIP.',
-  'Polerowales zlote zetoniki i dostales napiwek.',
-  'Dopilnowales skladu sejfu i zgarnaes premie.'
+const staticJobs = [
+  'Ogarnąłeś nocną zmianę przy stolach pokerowych.',
+  'Sprzedałeś premium wejścia do strefy VIP.',
+  'Połerowałeś złote żetony i dostałeś napiwek.',
+  'Dopilnowałeś składu sejfu i zgarnąłeś premię.'
 ];
+
+async function generateWorkFlavor(reward, finalReward, hasTribute, gangBonus) {
+  try {
+    const promptText =
+      `Jesteś kreatywnym pisarzem humorystycznych opisów do bota kasynowego na Messengerze.\n` +
+      `Napisz JEDNO zdanie w pierwszej osobie (od perspektywy gracza), opisujące co dokładnie zrobił, żeby zarobić pieniądze.\n` +
+      `Styl: miejski, lekko zabawny,烘烤owany klima kasyna/ulicy, krótko.\n` +
+      `Nagroda gracza: ${formatCurrency(finalReward)}${gangBonus ? ` (w tym +${gangBonus}% z biznesu gangu)` : ''}${hasTribute ? ' (odjąto haracz dla Bossa)' : ''}.\n` +
+      `ZASADY:\n` +
+      `- Tylko JEDNO zdanie, max 180 znaków.\n` +
+      `- Nie używaj słów "bot", "komenda", "gra", "bot-a".\n` +
+      `- Nie podawaj kwoty — bot już to zrobi.\n` +
+      `- Nie używaj emoji.\n` +
+      `- Unikaj cenzurowanych/banowalnych słów.\n` +
+      `- Zachowaj klimat miejsca/bota, ale bez bezpośrednich odniesień do Messenger-a.\n` +
+      `PRZYKŁADY:\n` +
+      `- "Zamieniłem karty w talii, gdy dealer się odwrócił."\n` +
+      `- "Nosiłem worki z żetonami z podziemia do sejfu."\n` +
+      `- "Pokazałem wyborcom, gdzie stoją automaty z najwyższym wypłatami."\n` +
+      `- "Sprzątałem pokój po wysokiej grze i znalazłem zostawioną tipówkę."\n\n` +
+      `Napisz tylko opis, bez dodatkowych komentarzy.`;
+
+    const aiText = await askGeminiWithFallback(promptText);
+    const cleaned = String(aiText || '').trim();
+    if (cleaned && cleaned.length <= 200) {
+      return cleaned.replace(/^["'«»]+|["'«»]+$/g, '');
+    }
+  } catch (err) {
+    console.error('[WORK AI] Błąd generowania opisu:', err.message);
+  }
+
+  return staticJobs[randomInt(0, staticJobs.length - 1)];
+}
 
 module.exports = {
   name: 'work',
@@ -187,7 +221,7 @@ module.exports = {
         tributeAmount,
         gangBonus,
         xpResult,
-        text: jobs[randomInt(0, jobs.length - 1)]
+        text: staticJobs[randomInt(0, staticJobs.length - 1)]
       };
     });
 
@@ -196,14 +230,22 @@ module.exports = {
       return;
     }
 
-    const bonusText = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z biznesów gangu)` : '';
+    let workText = result.text;
     const finalReward = result.reward - result.tributeAmount;
+    const hasTribute = result.tributeAmount > 0;
+    try {
+      workText = await generateWorkFlavor(result.reward, finalReward, hasTribute, result.gangBonus);
+    } catch (err) {
+      console.error('[WORK AI] Fallback to static text:', err.message);
+    }
+
+    const bonusText = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z biznesów gangu)` : '';
     let replyText = '';
 
     if (result.tributeAmount > 0) {
-      replyText = `👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText} (pobrano **${formatCurrency(result.tributeAmount)}** haraczu dla Bossa)`;
+      replyText = `👷 ${workText} Zysk: **+${formatCurrency(finalReward)}**${bonusText} (pobrano **${formatCurrency(result.tributeAmount)}** haraczu dla Bossa)`;
     } else {
-      replyText = `👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText}`;
+      replyText = `👷 ${workText} Zysk: **+${formatCurrency(finalReward)}**${bonusText}`;
     }
 
     if (result.xpResult && result.xpResult.leveledUp) {

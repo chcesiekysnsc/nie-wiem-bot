@@ -1,5 +1,6 @@
 const { withData } = require('../utils/storage');
 const { msToReadable } = require('../utils/economy');
+const { intelligentCensor } = require('../utils/censorship');
 
 function getAfkEntry(store, userId) {
   store.profiles = store.profiles || {};
@@ -51,7 +52,7 @@ module.exports = {
       await message.reply(
         `💤 Jesteś AFK od **${elapsedStr}**.\n` +
         `Powód: **${afkData.reason}**\n\n` +
-        `⚠️ Aby wyłączyć AFK, wpisz **` + '`!afk off`' + `**\n` +
+        `⚠️ Aby wyłączyć status AFK, wpisz **\`!afk off\`**\n` +
         `Bez tego wiadomości do Ciebie nadal będą oznaczone jako AFK.`
       );
       return;
@@ -80,14 +81,21 @@ module.exports = {
       return;
     }
 
+    let censoredReason = reason;
+    try {
+      censoredReason = await intelligentCensor(reason, 'powód AFK użytkownika');
+    } catch (err) {
+      console.error('[AFK] Błąd cenzury AI:', err.message);
+    }
+
     await withData(store => {
-      setAfkEntry(store, userId, reason);
+      setAfkEntry(store, userId, censoredReason);
     });
 
     await message.reply(
       `✅ Ustawiono status AFK.\n` +
-      `Powód: **${reason}**\n\n` +
-      `⚠️ Aby wyłączyć AFK, wpisz **` + '`!afk off`' + `**\n` +
+      `Powód: **${censoredReason}**\n\n` +
+      `⚠️ Aby wyłączyć status AFK, wpisz **\`!afk off\`**\n` +
       `Bez tego wiadomości do Ciebie nadal będą oznaczone jako AFK.`
     );
   }
