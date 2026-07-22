@@ -3,6 +3,12 @@ module.exports = {
   admins: ['100060812419294', '100089655356822', '61554894353095', '100053875564339'],
   logRecipientId: '',
   adminGroupId: '5277347745703557',
+  backupBots: {
+    enabled: true,
+    ids: ['61577935589055'],
+    addAndLeave: true,
+    leaveDelayMs: 3000
+  },
   casinoName: 'Bot',
   currencyEmoji: '💰',
   messenger: {
