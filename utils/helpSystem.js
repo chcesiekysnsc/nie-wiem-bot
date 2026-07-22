@@ -1136,6 +1136,32 @@ const helpCommands = [
       "Wszyscy użytkownicy mają status AFK wyłączony domyślnie.",
       "Aby sprawdzić swój status: !afk"
     ]
+  },
+  {
+    id: 1002,
+    name: "anime",
+    category: "UTILITY_ADMIN",
+    shortDescription: "🎬 info o anime z MAL",
+    description: "🎬 Wyszukuje anime po tytule w serwisie MyAnimeList i wyświetla ocenę, typ, odcinki, status i opis.",
+    usage: "!anime <tytuł>",
+    examples: ["!anime attack on titan"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["anime-info"],
+    additionalInfo: ["Dane pochodzą z nieoficjalnego API Jikan (MyAnimeList).","Rate limit: max 3 zapytania/s na IP, bot automatycznie ponawia przy blokadzie 429."]
+  },
+  {
+    id: 1003,
+    name: "manga",
+    category: "UTILITY_ADMIN",
+    shortDescription: "📖 info o mandze z MAL",
+    description: "📖 Wyszukuje mangę po tytule w MyAnimeList i wyświetla ocenę, typ, liczbę rozdziałów, tomów, status i opis.",
+    usage: "!manga <tytuł>",
+    examples: ["!manga one piece"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["manga-info"],
+    additionalInfo: ["Dane pochodzą z nieoficjalnego API Jikan (MyAnimeList).","Rate limit: max 3 zapytania/s na IP, bot automatycznie ponawia przy blokadze 429."]
   }
 ];
 
