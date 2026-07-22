@@ -1,8 +1,8 @@
-const { searchManga, truncateSynopsis, formatStatus } = require('../utils/jikan');
+const { searchManga, truncate, formatStatus, formatFormat, getTitle, getAltTitle } = require('../utils/anilist');
 
 module.exports = {
   name: 'manga',
-  aliases: ['manga-info'],
+  aliases: ['manga-info', 'mangainfo'],
   async execute(client, message, args) {
     const query = args.join(' ').trim();
 
@@ -15,7 +15,7 @@ module.exports = {
     try {
       manga = await searchManga(query);
     } catch (err) {
-      console.error('[MANGA] Błąd zapytania do Jikan:', err.message);
+      console.error('[MANGA] Błąd zapytania do AniList:', err.message);
       await message.reply('❌ Wystąpił błąd podczas pobierania danych o mandze, spróbuj ponownie za chwilę.');
       return;
     }
@@ -25,26 +25,27 @@ module.exports = {
       return;
     }
 
-    const titleLine = manga.title_english && manga.title_english !== manga.title
-      ? `${manga.title} (${manga.title_english})`
-      : manga.title;
+    const titleObj = manga.title || {};
+    const mainTitle = getTitle(titleObj);
+    const altTitle = getAltTitle(titleObj, mainTitle);
+    const titleLine = altTitle ? `${mainTitle} (${altTitle})` : mainTitle;
 
-    const score = manga.score ? `${manga.score}/10` : 'brak oceny';
+    const score = manga.averageScore ? `${manga.averageScore / 10}/10` : 'brak oceny';
     const chapters = manga.chapters ?? 'nieznane';
     const volumes = manga.volumes ?? 'nieznane';
     const genres = Array.isArray(manga.genres) && manga.genres.length > 0
-      ? manga.genres.map(g => g.name).join(', ')
+      ? manga.genres.join(', ')
       : 'brak danych';
-    const publishedStr = manga.published?.string || 'nieznany okres';
+    const format = formatFormat(manga.format);
 
     const reply =
       `📖 **${titleLine}**\n` +
-      `⭐ Ocena MAL: **${score}**\n` +
-      `📚 Typ: **${manga.type || 'nieznany'}** | Rozdziały: **${chapters}** | Tomy: **${volumes}**\n` +
-      `📅 Status: **${formatStatus(manga.status)}** (${publishedStr})\n` +
+      `⭐ Ocena AniList: **${score}**\n` +
+      `📚 Typ: **${format}** | Rozdziały: **${chapters}** | Tomy: **${volumes}**\n` +
+      `📅 Status: **${formatStatus(manga.status)}**\n` +
       `🏷️ Gatunki: **${genres}**\n\n` +
-      `${truncateSynopsis(manga.synopsis)}\n\n` +
-      `🔗 ${manga.url}`;
+      `${truncate(manga.description)}\n\n` +
+      `🔗 ${manga.siteUrl || 'https://anilist.co'}`;
 
     await message.reply(reply);
   }

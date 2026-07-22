@@ -1,8 +1,8 @@
-const { searchAnime, truncateSynopsis, formatStatus } = require('../utils/jikan');
+const { searchAnime, truncate, formatStatus, formatFormat, getTitle, getAltTitle } = require('../utils/anilist');
 
 module.exports = {
   name: 'anime',
-  aliases: ['anime-info'],
+  aliases: ['anime-info', 'animeinfo'],
   async execute(client, message, args) {
     const query = args.join(' ').trim();
 
@@ -15,7 +15,7 @@ module.exports = {
     try {
       anime = await searchAnime(query);
     } catch (err) {
-      console.error('[ANIME] Błąd zapytania do Jikan:', err.message);
+      console.error('[ANIME] Błąd zapytania do AniList:', err.message);
       await message.reply('❌ Wystąpił błąd podczas pobierania danych o anime, spróbuj ponownie za chwilę.');
       return;
     }
@@ -25,25 +25,31 @@ module.exports = {
       return;
     }
 
-    const titleLine = anime.title_english && anime.title_english !== anime.title
-      ? `${anime.title} (${anime.title_english})`
-      : anime.title;
+    const titleObj = anime.title || {};
+    const mainTitle = getTitle(titleObj);
+    const altTitle = getAltTitle(titleObj, mainTitle);
+    const titleLine = altTitle ? `${mainTitle} (${altTitle})` : mainTitle;
 
-    const score = anime.score ? `${anime.score}/10` : 'brak oceny';
+    const score = anime.averageScore ? `${anime.averageScore / 10}/10` : 'brak oceny';
     const episodes = anime.episodes ?? 'nieznane';
     const genres = Array.isArray(anime.genres) && anime.genres.length > 0
-      ? anime.genres.map(g => g.name).join(', ')
+      ? anime.genres.join(', ')
       : 'brak danych';
-    const airedStr = anime.aired?.string || 'nieznany okres';
+    const studios = anime.studios?.nodes?.length
+      ? anime.studios.nodes.map(s => s.name).join(', ')
+      : 'brak danych';
+    const seasonYear = anime.seasonYear ? `${anime.season || ''} ${anime.seasonYear}`.trim() : 'nieznany';
+    const format = formatFormat(anime.format);
 
     const reply =
       `🎬 **${titleLine}**\n` +
-      `⭐ Ocena MAL: **${score}**\n` +
-      `📺 Typ: **${anime.type || 'nieznany'}** | Odcinki: **${episodes}**\n` +
-      `📅 Status: **${formatStatus(anime.status)}** (${airedStr})\n` +
+      `⭐ Ocena AniList: **${score}**\n` +
+      `📺 Typ: **${format}** | Odcinki: **${episodes}**\n` +
+      `📅 Status: **${formatStatus(anime.status)}** | Sezon: **${seasonYear}**\n` +
+      `🏢 Studio: **${studios}**\n` +
       `🏷️ Gatunki: **${genres}**\n\n` +
-      `${truncateSynopsis(anime.synopsis)}\n\n` +
-      `🔗 ${anime.url}`;
+      `${truncate(anime.description)}\n\n` +
+      `🔗 ${anime.siteUrl || 'https://anilist.co'}`;
 
     await message.reply(reply);
   }

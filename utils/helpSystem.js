@@ -1141,27 +1141,27 @@ const helpCommands = [
     id: 1002,
     name: "anime",
     category: "UTILITY_ADMIN",
-    shortDescription: "🎬 info o anime z MAL",
-    description: "🎬 Wyszukuje anime po tytule w serwisie MyAnimeList i wyświetla ocenę, typ, odcinki, status i opis.",
+    shortDescription: "🎬 info o anime z AniList",
+    description: "🎬 Wyszukuje anime po tytule w bazie AniList i wyświetla ocenę, typ, odcinki, status, studio i opis.",
     usage: "!anime <tytuł>",
     examples: ["!anime attack on titan"],
     cooldown: "3 sekundy",
     requirements: "Brak.",
-    aliases: ["anime-info"],
-    additionalInfo: ["Dane pochodzą z nieoficjalnego API Jikan (MyAnimeList).","Rate limit: max 3 zapytania/s na IP, bot automatycznie ponawia przy blokadzie 429."]
+    aliases: ["anime-info", "animeinfo"],
+    additionalInfo: ["Dane pochodzą z AniList (GraphQL, bez klucza, bez rate limit Jikan).","W razie problemów z API spróbuj ponownie za chwilę."]
   },
   {
     id: 1003,
     name: "manga",
     category: "UTILITY_ADMIN",
-    shortDescription: "📖 info o mandze z MAL",
-    description: "📖 Wyszukuje mangę po tytule w MyAnimeList i wyświetla ocenę, typ, liczbę rozdziałów, tomów, status i opis.",
+    shortDescription: "📖 info o mandze z AniList",
+    description: "📖 Wyszukuje mangę po tytule w bazie AniList i wyświetla ocenę, typ, liczbę rozdziałów, tomów, status i opis.",
     usage: "!manga <tytuł>",
     examples: ["!manga one piece"],
     cooldown: "3 sekundy",
     requirements: "Brak.",
-    aliases: ["manga-info"],
-    additionalInfo: ["Dane pochodzą z nieoficjalnego API Jikan (MyAnimeList).","Rate limit: max 3 zapytania/s na IP, bot automatycznie ponawia przy blokadze 429."]
+    aliases: ["manga-info", "mangainfo"],
+    additionalInfo: ["Dane pochodzą z AniList (GraphQL, bez klucza, bez restrykcyjnych limitów Jikan).","W razie problemów z API spróbuj ponownie za chwilę."]
   }
 ];
 
