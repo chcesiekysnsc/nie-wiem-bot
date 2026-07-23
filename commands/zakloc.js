@@ -47,7 +47,9 @@ module.exports = {
       let targetGangId = null;
       const cleanParam = targetParam.toLowerCase();
 
-      if (store.profiles.gangs[cleanParam]) {
+      if (store.profiles.gangs[targetParam]) {
+        targetGangId = targetParam;
+      } else if (store.profiles.gangs[cleanParam]) {
         targetGangId = cleanParam;
       } else {
         const foundGang = Object.entries(store.profiles.gangs).find(
@@ -62,7 +64,7 @@ module.exports = {
 
       const defenderGang = store.profiles.gangs[targetGangId];
 
-      if (defenderGang.id === gang.id) {
+      if (targetGangId === user.gangId) {
         return { error: '❌ Nie możesz użyć Zakłócacza na własnym gangie.' };
       }
 

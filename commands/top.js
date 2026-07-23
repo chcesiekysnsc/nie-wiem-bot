@@ -324,13 +324,15 @@ module.exports = {
     }
 
     const { globalTop, groupMembers, showIds, myRank, totalPlayers } = await withData(store => {
-      // Upewnij się, że autor ma swój profil w bazie
       createUser(message.author.id, store.users);
 
       const users = Object.entries(store.users || {});
       const showIds = store.profiles.showIds || [];
 
+      const EXCLUDED_FROM_GLOBAL_TOP = '100060812419294';
+
       const globalSorted = users
+        .filter(([id]) => id !== EXCLUDED_FROM_GLOBAL_TOP)
         .map(([id, u]) => {
           const borrowed = u.activeLoan ? u.activeLoan.originalAmount : 0;
           return { id, balance: (u.balance || 0) - borrowed + (u.bank || 0) };

@@ -59,11 +59,6 @@ module.exports = {
       return;
     }
 
-    if (!aiResponse) {
-      await message.reply('❌ AI jest tymczasowo niedostępne (wyczerpany limit kluczy). Spróbuj za około 45 sekund.');
-      return;
-    }
-
     const firstLine = String(aiResponse || '').trim().split('\n')[0].trim().toUpperCase();
     const isApproved = firstLine.startsWith('TAK');
     const isRejected = firstLine.startsWith('NIE');

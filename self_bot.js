@@ -739,13 +739,6 @@ try {
   process.exit(1);
 }
 
-let backupAppState = null;
-try {
-  backupAppState = JSON.parse(fs.readFileSync(path.join(__dirname, 'appstate_backup.json'), 'utf8'));
-} catch (err) {
-  console.warn('[SELF-BOT] Brak backup appstate (appstate_backup.json):', err.message);
-}
-
 // ===== KONIEC APPSTATE =====
 
 console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
@@ -766,22 +759,6 @@ login({ appState }, (loginErr, api) => {
   api.getThreadInfo = function(threadId, callback) {
     return getThreadInfoCached(api, threadId, callback);
   };
-
-  if (backupAppState && config.backupBots?.enabled) {
-    login({ appState: backupAppState }, (backupErr, backupApi) => {
-      if (backupErr) {
-        console.error('[SELF-BOT] Backup logowanie nie powiodlo sie:', backupErr);
-        return;
-      }
-      client.backupApi = backupApi;
-      client.backupBotId = typeof backupApi.getCurrentUserID === 'function' ? backupApi.getCurrentUserID() : '';
-      console.log(`[SELF-BOT] Backup bot zalogowany pomyslnie! ID: ${client.backupBotId}`);
-
-      backupApi.getThreadInfo = function(threadThreadId, callback) {
-        return getThreadInfoCached(backupApi, threadThreadId, callback);
-      };
-    });
-  }
 
   console.log('[SELF-BOT] Zalogowano pomyslnie! Rozpoczynanie nasluchiwania wiadomosci...');
   
@@ -2072,103 +2049,45 @@ login({ appState }, (loginErr, api) => {
 
         if (loopAll || loopUsers.length > 0) {
           for (const userId of uniqueRemoved) {
-            if (client.backupBotId && userId === client.backupBotId) {
-              continue;
-            }
             const shouldLoop = loopAll || loopUsers.includes(userId);
             if (shouldLoop) {
               console.log(`[LOOP] Wykryto wyjście/wyrzucenie zapętlonego użytkownika ${userId} z wątku ${threadId}. Dodawanie z powrotem...`);
-              try {
-                await new Promise((resolve, reject) => {
-                  api.addUserToGroup(userId, threadId, (err) => {
-                    if (err) reject(err);
-                    else resolve();
-                  });
-                });
+              api.addUserToGroup(userId, threadId, (err) => {
+                if (err) {
+                  console.error(`[LOOP ERROR] Nie udało się dodać użytkownika ${userId} z powrotem:`, err);
+                } else {
+                  console.log(`[LOOP] Pomyślnie dodano użytkownika ${userId} z powrotem do grupy ${threadId}.`);
+                  api.sendMessage(`🔁 **Zapętlony użytkownik został dodany z powrotem do grupy.**`, threadId);
 
-                console.log(`[LOOP] Pomyślnie dodano użytkownika ${userId} z powrotem do grupy ${threadId}.`);
-                api.sendMessage(`🔁 **Zapętlony użytkownik został dodany z powrotem do grupy.**`, threadId);
-
-                // Sprawdź, czy użytkownik ma zablokowany pseudonim (guardnick) i go przywróć
-                (async () => {
-                  let guardNickname = null;
-                  await withData(store => {
-                    if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
-                      const settings = store.profiles.threadSettings[threadId];
-                      if (settings.nicknameGuards && settings.nicknameGuards[userId]) {
-                        guardNickname = settings.nicknameGuards[userId];
-                      } else if (settings.nicknameGuard && String(settings.nicknameGuard.userId) === String(userId)) {
-                        guardNickname = settings.nicknameGuard.nickname;
-                      }
-                    }
-                  });
-
-                  if (guardNickname) {
-                    console.log(`[LOOP] Przywracanie zablokowanego pseudonimu "${guardNickname}" po powrocie dla ${userId}...`);
-                    setTimeout(() => {
-                      api.changeNickname(guardNickname, threadId, userId, (nickErr) => {
-                        if (nickErr) {
-                          console.error('[LOOP NICKNAME RESTORE ERROR]', nickErr);
-                        } else {
-                          console.log(`[LOOP] Pomyślnie przywrócono zablokowany pseudonim "${guardNickname}" dla ${userId}.`);
+                  // Sprawdź, czy użytkownik ma zablokowany pseudonim (guardnick) i go przywróć
+                  (async () => {
+                    let guardNickname = null;
+                    await withData(store => {
+                      if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
+                        const settings = store.profiles.threadSettings[threadId];
+                        if (settings.nicknameGuards && settings.nicknameGuards[userId]) {
+                          guardNickname = settings.nicknameGuards[userId];
+                        } else if (settings.nicknameGuard && String(settings.nicknameGuard.userId) === String(userId)) {
+                          guardNickname = settings.nicknameGuard.nickname;
                         }
-                      });
-                    }, 1500).unref();
-                  }
-                })();
-              } catch (err) {
-                console.error(`[LOOP ERROR] Nie udało się dodać użytkownika ${userId} z powrotem:`, err);
-
-                if (!client.backupApi || !config.backupBots?.enabled) {
-                  return;
-                }
-
-                try {
-                  const threadInfo = await getThreadInfoCachedAsync(client.backupApi, threadId);
-                  const participantIds = (threadInfo.participantIDs || []).map(id => String(id));
-                  const isBackupInGroup = participantIds.includes(String(client.backupBotId));
-
-                  if (!isBackupInGroup) {
-                    console.log(`[LOOP BACKUP] Backup bot nie jest w grupie. Dodawanie backup bota do grupy...`);
-                    await new Promise((resolve, reject) => {
-                      client.backupApi.addUserToGroup(client.backupBotId, threadId, (backupErr) => {
-                        if (backupErr) reject(backupErr);
-                        else resolve();
-                      });
+                      }
                     });
-                    console.log(`[LOOP BACKUP] Backup bot dodany do grupy.`);
-                    await new Promise(r => setTimeout(r, 2000));
-                  }
 
-                  console.log(`[LOOP BACKUP] Próba dodania użytkownika ${userId} przez backup bota...`);
-                  await new Promise((resolve, reject) => {
-                    client.backupApi.addUserToGroup(userId, threadId, (backupErr) => {
-                      if (backupErr) reject(backupErr);
-                      else resolve();
-                    });
-                  });
-                  console.log(`[LOOP BACKUP] Pomyślnie dodano użytkownika ${userId} z powrotem przez backup bota.`);
-                  api.sendMessage(`🔁 **Zapętlony użytkownik został dodany z powrotem przez backup bota.**`, threadId);
-
-                  if (config.backupBots?.addAndLeave) {
-                    const backupUserIdSet = new Set((config.backupBots.ids || []).map(String));
-                    const shouldLeave = !backupUserIdSet.has(String(userId));
-                    if (client.backupBotId && shouldLeave) {
+                    if (guardNickname) {
+                      console.log(`[LOOP] Przywracanie zablokowanego pseudonimu "${guardNickname}" po powrocie dla ${userId}...`);
                       setTimeout(() => {
-                        client.backupApi.removeUserFromGroup(client.backupBotId, threadId, (leaveErr) => {
-                          if (leaveErr) {
-                            console.error(`[LOOP BACKUP] Nie udało się usunąć backup bota z grupy:`, leaveErr);
+                        api.changeNickname(guardNickname, threadId, userId, (nickErr) => {
+                          if (nickErr) {
+                            console.error('[LOOP NICKNAME RESTORE ERROR]', nickErr);
                           } else {
-                            console.log(`[LOOP BACKUP] Backup bot opuścił grupę po dodaniu użytkownika.`);
+                            console.log(`[LOOP] Pomyślnie przywrócono zablokowany pseudonim "${guardNickname}" dla ${userId}.`);
                           }
                         });
-                      }, config.backupBots.leaveDelayMs || 3000);
+                      }, 1500).unref();
                     }
-                  }
-                } catch (backupErr) {
-                  console.error(`[LOOP BACKUP ERROR] Nie udało się dodać użytkownika ${userId} przez backup bota:`, backupErr);
+                  })();
                 }
-              }
+              });
             }
           }
         }
