@@ -329,14 +329,12 @@ module.exports = {
 
       const users = Object.entries(store.users || {});
       const showIds = store.profiles.showIds || [];
-      const botId = typeof client.api.getCurrentUserID === 'function' ? client.api.getCurrentUserID() : '';
 
       const globalSorted = users
         .map(([id, u]) => {
           const borrowed = u.activeLoan ? u.activeLoan.originalAmount : 0;
           return { id, balance: (u.balance || 0) - borrowed + (u.bank || 0) };
         })
-        .filter(([id]) => id !== botId)
         .sort((a, b) => b.balance - a.balance);
 
       const totalPlayers = globalSorted.length;
