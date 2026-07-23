@@ -146,6 +146,8 @@ function getApiKeys() {
   return uniqueKeys;
 }
 
+const aiKeyCooldowns = new Map();
+
 async function askGemini(apiKey, promptText) {
   const response = await axios.post(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -173,7 +175,7 @@ async function askGemini(apiKey, promptText) {
 async function askGeminiWithFallback(promptText) {
   const keys = getApiKeys();
   if (keys.length === 0) {
-    throw new Error('Brak skonfigurowanych kluczy Gemini API!');
+    return null;
   }
 
   const startIndex = Math.floor(Math.random() * keys.length);
@@ -182,12 +184,27 @@ async function askGeminiWithFallback(promptText) {
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const idx = (startIndex + attempt) % keys.length;
     const apiKey = keys[idx];
+
+    if (aiKeyCooldowns.has(apiKey) && Date.now() < aiKeyCooldowns.get(apiKey)) {
+      if (attempt < keys.length - 1) {
+        continue;
+      }
+      console.warn('[AI] Wszystkie klucze Gemini API są tymczasowo zablokowane (rate limit).');
+      return null;
+    }
+
     try {
       return await askGemini(apiKey, promptText);
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
       console.warn(`[AI] Błąd klucza ${idx + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
+
+      if (status === 429) {
+        const retryMs = 45 * 1000;
+        aiKeyCooldowns.set(apiKey, Date.now() + retryMs);
+        console.warn(`[AI] Klucz ${idx + 1} zablokowany na 45s.`);
+      }
 
       if (attempt < keys.length - 1) {
         console.warn(`[AI] Próba użycia kolejnego klucza...`);
@@ -196,19 +213,32 @@ async function askGeminiWithFallback(promptText) {
       lastError = err;
     }
   }
-  throw lastError;
+  console.warn('[AI] Wszystkie klucze Gemini API zawały — zwracam null zamiast rzucać wyjątek.');
+  return null;
 }
 
 async function askGeminiForChunk(promptText, keys, chunkIndex) {
   let lastError = null;
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const idx = (chunkIndex + attempt) % keys.length;
+    const apiKey = keys[idx];
+
+    if (aiKeyCooldowns.has(apiKey) && Date.now() < aiKeyCooldowns.get(apiKey)) {
+      continue;
+    }
+
     try {
       return await askGemini(keys[idx], promptText);
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
       console.warn(`[AI-CHUNK] Błąd klucza ${idx + 1}/${keys.length} dla chunku ${chunkIndex + 1} (Status: ${status}, Błąd: ${errorMsg}).`);
+
+      if (status === 429) {
+        const retryMs = 45 * 1000;
+        aiKeyCooldowns.set(apiKey, Date.now() + retryMs);
+      }
+
       lastError = err;
     }
   }
@@ -475,6 +505,10 @@ module.exports = {
           `PYTANIE: ${question}`;
 
         const replyText = await askGeminiWithFallback(promptText);
+        if (!replyText) {
+          await safeReply(message, '❌ AI jest tymczasowo niedostępne (wyczerpany limit kluczy). Spróbuj za około 45 sekund.');
+          return;
+        }
         await safeReply(message, `📊 **Odpowiedź:**\n\n${replyText}`);
       } catch (err) {
         console.error('[AI] Błąd:', err);
@@ -646,6 +680,10 @@ module.exports = {
         console.log(`[AI] Wysyłam pojedyncze zapytanie (1 chunk, thread ${threadId})`);
         finalReplyText = await askGeminiWithFallback(promptText);
         console.log(`[AI] Otrzymano odpowiedź (1 chunk, thread ${threadId})`);
+        if (!finalReplyText) {
+          await safeReply(message, '❌ AI jest tymczasowo niedostępne (wyczerpany limit kluczy). Spróbuj za około 45 sekund.');
+          return;
+        }
       } else {
         await safeReply(message, `🧩 Historia jest zbyt długa na jedno zapytanie — dzielę na **${chunks.length}** części i analizuję równolegle...`);
 
@@ -719,6 +757,10 @@ module.exports = {
         try {
           finalReplyText = await askGeminiWithFallback(finalPrompt);
           console.log(`[AI] Otrzymano finalną odpowiedź (thread ${threadId})`);
+          if (!finalReplyText) {
+            await safeReply(message, '❌ AI jest tymczasowo niedostępne (wyczerpany limit kluczy). Spróbuj za około 45 sekund.');
+            return;
+          }
         } finally {
           summaryHeartbeat.stop();
         }

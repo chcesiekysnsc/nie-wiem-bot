@@ -910,7 +910,7 @@ async function askGemini(apiKey, promptText) {
 
 async function askGeminiWithFallback(promptText) {
   const keys = getGeminiApiKeys();
-  if (keys.length === 0) throw new Error('Brak skonfigurowanych kluczy Gemini API!');
+  if (keys.length === 0) return null;
   const startIndex = Math.floor(Math.random() * keys.length);
   let lastError = null;
   for (let attempt = 0; attempt < keys.length; attempt++) {
@@ -925,7 +925,8 @@ async function askGeminiWithFallback(promptText) {
       lastError = err;
     }
   }
-  throw lastError;
+  console.warn('[AI-PANEL] Wszystkie klucze Gemini API zawały — zwracam null zamiast rzucać wyjątek.');
+  return null;
 }
 
 app.post('/api/suspects/:id/analyze', async (req, res) => {
@@ -1000,6 +1001,9 @@ app.post('/api/suspects/:id/analyze', async (req, res) => {
       `Na podstawie powyższych danych odpowiedz na pytanie administratora. Bądź konkretny, odnoś się do konkretnych komend i kwot jeśli to możliwe.`;
 
     const replyText = await askGeminiWithFallback(promptText);
+    if (!replyText) {
+      return res.status(503).json({ error: 'AI jest tymczasowo niedostępne (wyczerpany limit kluczy). Spróbuj za około 45 sekund.' });
+    }
     res.json({ ok: true, reply: replyText, analyzedLogs: transcriptLines.length, targetName, isGroup });
   } catch (err) {
     console.error('[AI-PANEL] Błąd analizy:', err);

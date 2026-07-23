@@ -1,4 +1,5 @@
 const { askGeminiWithFallback } = require('./ai');
+const axios = require('axios');
 
 const ALLOWED_LANGUAGES = new Set([
   'angielski','polski','niemiecki','francuski','hiszpański','włoski','portugalski',
@@ -84,7 +85,7 @@ module.exports = {
     const targetLanguage = normalizeLanguage(lastArg);
 
     if (!targetLanguage) {
-      await message.reply(`❌ Nie rozpoznałem języka "${lastArg}". Podaj język docelowy jako słowo, np. angielski, niemiecki, francuski, hiszpański, japoński itp.`);
+      await message.reply(`❌ Nie rozpoznałem języka "${lastArg}". Podaj język docelowy jako słowo, np. angielski, francuski, hiszpański, japoński itp.`);
       return;
     }
 
@@ -102,10 +103,47 @@ module.exports = {
       `- Jeśli treść zawiera słowa nieznane w języku docelowym, zachowaj je w oryginalnej formie.\n\n` +
       `Treść do przetłumaczenia:\n"${text}"`;
 
+    const languageToCode = {
+      angielski:'en',polski:'pl',niemiecki:'de',francuski:'fr',hiszpański:'es',włoski:'it',portugalski:'pt',
+      rosyjski:'ru',japoński:'ja',koreański:'ko',chiński:'zh',arabski:'ar',turecki:'tr',holenderski:'nl',
+      szwedzki:'sv',norweski:'no',duński:'da',fiński:'fi',grecki:'el',czeski:'cs',słowacki:'sk',węgierski:'hu',
+      rumuński:'ro',bułgarski:'bg',serbski:'sr',chorwacki:'hr',słoweński:'sl',litewski:'lt',łotewski:'lv',
+      estoński:'et',ukraiński:'uk',białoruski:'be',hebrajski:'he',jidisz:'yi',perski:'fa',mongolski:'mn',
+      wietnamski:'vi',tajski:'th',kambodżański:'km',malezyjski:'ms',indonezyjski:'id',filipiński:'tl',
+      hindi:'hi',bengalski:'bn',urdu:'ur',tamilski:'ta',telugu:'te',kannada:'kn',malajalam:'ml',sinhalski:'si',
+      amharski:'am',somali:'so',kazachski:'kk',uzbecki:'uz',azerbejdżański:'az',armeński:'hy',gruziński:'ka',
+      łaciński:'la',starożytny:'grc',egipski:'egy',mandaryński:'zh-CN',kantoński:'yue',
+      amerykański:'en',brytyjski:'en-GB',australijski:'en-AU',kanadyjski:'en-CA',irlandzki:'ga',
+      szkocki:'gd',walijski:'cy',bretoński:'br',kataloński:'ca',galicyjski:'gl',baskijski:'eu'
+    };
+
+    async function translateWithGoogle() {
+      const targetCode = String(languageToCode[targetLanguage] || 'auto');
+      const url = 'https://translate.googleapis.com/translate_a/single';
+      const params = new URLSearchParams({
+        client: 'gtx',
+        sl: 'auto',
+        tl: targetCode,
+        dt: 't'
+      });
+      const res = await axios.get(url, { params, timeout: 15000 });
+      const data = res.data;
+      if (Array.isArray(data) && data[0]) {
+        const translated = data[0].map(segment => segment[0]).join('');
+        return translated;
+      }
+      throw new Error('Nieprawidłowa odpowiedź z Google Translate.');
+    }
+
     try {
       await message.reply(`🌍 Tłumaczę na: **${targetLanguage}**...`);
       const translation = await askGeminiWithFallback(promptText);
-      await message.reply(`🌍 **Tłumaczenie (${targetLanguage}):**\n\n${translation}`);
+      if (translation) {
+        await message.reply(`🌍 **Tłumaczenie (${targetLanguage}):**\n\n${translation}`);
+        return;
+      }
+      const googleTranslation = await translateWithGoogle();
+      await message.reply(`🌍 **Tłumaczenie (${targetLanguage}):**\n\n${googleTranslation}`);
     } catch (err) {
       console.error('[TLUMACZ] Błąd:', err);
       await message.reply('❌ Wystąpił błąd podczas tłumaczenia. Spróbuj ponownie za chwilę.');
