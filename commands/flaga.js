@@ -2158,7 +2158,10 @@ module.exports = {
       const game = client.activeFlags.get(threadId);
       if (game && game.emoji === randomFlag.emoji && game.active) {
         client.activeFlags.delete(threadId);
-        if (client.api) {
+        const { loadData } = require('../utils/storage');
+        const profiles = loadData('profiles');
+        const settings = (profiles.threadSettings || {})[threadId] || {};
+        if (!settings.blockNotifications && client.api) {
           client.api.sendMessage(`⌛ **ZGADNIJ KRAJ** ⌛\nCzas minął! Nikt nie zgadł flagi **${randomFlag.emoji}** (${randomFlag.name}) na czas.`, threadId);
         }
       }

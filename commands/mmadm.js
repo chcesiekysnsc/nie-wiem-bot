@@ -160,13 +160,17 @@ module.exports = {
         `👤 Gracz: **${senderName}**\n` +
         `🎯 Trafiony łączny kurs: **${bestWonOdds}**\n` +
         `💰 Stawka: **${formatCurrency(resolvedKwota)}**\n` +
-        `💵 Wygrana (bez podatku): **${formatCurrency(bestWonPayout)}**`;
+        `💵 Wygrana (bez podatku): **${formatCurrency(bestWonPayout)}**\n\n` +
+        `ℹ️ Aby wyłączyć powiadomienia wpisz !zakaz powiadomienia`;
 
       const targets = Array.from(client.activeThreadIds);
       if (targets.length > 0) {
         for (const threadId of targets) {
-          // Nie wysyłamy na ten sam czat, na którym admin odpalił komendę, żeby nie dublować spamu
           if (threadId !== message.threadID) {
+            const { loadData } = require('../utils/storage');
+            const profiles = loadData('profiles');
+            const settings = (profiles.threadSettings || {})[threadId] || {};
+            if (settings.blockNotifications) continue;
             try {
               client.api.sendMessage(globalMsg, threadId);
             } catch (err) {}

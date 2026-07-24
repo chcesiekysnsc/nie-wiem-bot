@@ -35,7 +35,10 @@ module.exports = {
       const game = client.activeReactions.get(threadId);
       if (game && game.code === code && game.active) {
         client.activeReactions.delete(threadId);
-        if (client.api) {
+        const { loadData } = require('../utils/storage');
+        const profiles = loadData('profiles');
+        const settings = (profiles.threadSettings || {})[threadId] || {};
+        if (!settings.blockNotifications && client.api) {
           client.api.sendMessage(`⌛ **SZYBKIE PALCE** ⌛\nCzas minął! Nikt nie przepisał kodu **${code}** na czas.`, threadId);
         }
       }

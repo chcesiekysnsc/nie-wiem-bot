@@ -833,7 +833,7 @@ const helpCommands = [
     name: "zakaz",
     category: "UTILITY_ADMIN",
     shortDescription: "🚫 blokada komend/powiadomień",
-    description: "🚫 Pozwala zablokować komendy ekonomiczne lub powiadomienia globalne na bieżącej grupie.",
+    description: "🚫 Pozwala zablokować komendy ekonomiczne lub wszystkie globalne powiadomienia na bieżącej grupie.",
     usage: "!zakaz economia | !zakaz powiadomienia",
     examples: ["!zakaz economia", "!zakaz powiadomienia"],
     cooldown: "Brak.",
@@ -841,7 +841,7 @@ const helpCommands = [
     aliases: [],
     additionalInfo: [
       "!zakaz economia — blokuje komendy z kategorii ekonomicznej.",
-      "!zakaz powiadomienia — blokuje powiadomienia wysyłane z panelu administratora."
+      "!zakaz powiadomienia — blokuje WSZYSTKIE globalne powiadomienia (podatki, loteria, eventy, gry, reminder, multimecz, reakcje, flagi itd.)."
     ]
   },
   {

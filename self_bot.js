@@ -71,6 +71,16 @@ const { formatCurrency, msToReadable } = require('./utils/economy');
 const { getCommandsByCategory } = require('./utils/helpSystem');
 const { extractTikTokLink, getTikTokVideoData, downloadFile } = require('./utils/tiktok');
 
+function isNotificationBlocked(threadId) {
+  try {
+    const profiles = loadData('profiles');
+    const settings = (profiles.threadSettings || {})[threadId] || {};
+    return !!settings.blockNotifications;
+  } catch (_) {
+    return false;
+  }
+}
+
 // ========== THREAD INFO CACHE + RATE LIMITER + BACKOFF ==========
 const _threadInfoCache = new Map(); // Map<threadId, { data, timestamp }>
 const THREAD_CACHE_TTL = 30 * 60 * 1000; // 30 minut cache
@@ -182,12 +192,13 @@ async function sendBufferedExpiredEventNotifications() {
     return `🔴 ${name} x${e.multiplier}`;
   });
 
-  const notifyMsg = `ℹ️ **EVENTY ZAKOŃCZONE!** ℹ️\n\n${lines.join('\n')}\n\nWskaźniki gry wróciły do normy. Dziękujemy za udział!`;
+  const notifyMsg = `ℹ️ **EVENTY ZAKOŃCZONE!** ℹ️\n\n${lines.join('\n')}\n\nWskaźniki gry wróciły do normy. Dziękujemy za udział!\n\nℹ️ Aby wyłączyć powiadomienia wpisz !zakaz powiadomienia`;
 
   try {
     if (client.api) {
       const targets = await getRecentActiveThreads(client);
       for (const t of targets) {
+        if (isNotificationBlocked(t)) continue;
         try {
           client.api.sendMessage(notifyMsg, t);
         } catch (err) {
@@ -630,11 +641,15 @@ async function processPlayerLoansMidnight(api, client) {
     if (result && result.length > 0 && api) {
       for (const ann of result) {
         if (ann.threadId) {
+          if (isNotificationBlocked(ann.threadId)) continue;
           api.sendMessage(ann.msg, ann.threadId);
         } else {
           const targets = Array.from(client.activeThreadIds);
           if (targets.length > 0) {
-            api.sendMessage(ann.msg, targets[0]);
+            const t = targets[0];
+            if (!isNotificationBlocked(t)) {
+              api.sendMessage(ann.msg, t);
+            }
           }
         }
       }
@@ -873,7 +888,7 @@ login({ appState }, (loginErr, api) => {
 
   setInterval(() => {
     checkOverdueBalanceReports((msg, threadId) => {
-      if (client.api) client.api.sendMessage(msg, threadId);
+      if (client.api && !isNotificationBlocked(threadId)) client.api.sendMessage(msg, threadId);
     });
   }, 60 * 1000);
 
@@ -1175,12 +1190,13 @@ login({ appState }, (loginErr, api) => {
           client.lastLotteryDraw = Date.now();
           const winnerName = await client.resolveUserName(client.api, drawResult.winnerId);
           const bonusText = drawResult.finalPrize > drawResult.totalPrize ? ' (w tym +10% z Królewskich Insygniów!)' : '';
-          const announceMsg = 
-            `🎟️ **LOSOWANIE LOTERII**\n` +
-            `Łączna liczba biletów w grze: **${drawResult.totalTickets}**\n` +
-            `Wygrywa: **${winnerName}**! 🎉\n` +
-            `Nagroda główna: **+${drawResult.finalPrize.toLocaleString()} viccoinów** została dodana do portfela!${bonusText}\n` +
-            `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą \`!sklep 3\`.`;
+           const announceMsg = 
+             `🎟️ **LOSOWANIE LOTERII**\n` +
+             `Łączna liczba biletów w grze: **${drawResult.totalTickets}**\n` +
+             `Wygrywa: **${winnerName}**! 🎉\n` +
+             `Nagroda główna: **+${drawResult.finalPrize.toLocaleString()} viccoinów** została dodana do portfela!${bonusText}\n` +
+             `Wszystkie bilety zostały zresetowane. Kup nowe w sklepie za pomocą \`!sklep 3\`.\n\n` +
+             `ℹ️ Aby wyłączyć powiadomienia wpisz !zakaz powiadomienia`;
 
           const uniqueBuyers = [...new Set(drawResult.ticketOwners || [])];
           let targets = [];
@@ -1194,6 +1210,7 @@ login({ appState }, (loginErr, api) => {
           }
           if (targets.length > 0) {
             for (const tId of targets) {
+              if (isNotificationBlocked(tId)) continue;
               client.api.sendMessage(announceMsg, tId, (err) => {
                 if (err) console.error('[LOTTERY] Błąd wysyłania powiadomienia:', err.message || err);
               })?.catch?.(err => {
@@ -1250,11 +1267,13 @@ login({ appState }, (loginErr, api) => {
             `📊 **POBÓR PODATKÓW**\n` +
             `Pobrano podatek w wysokości: **4% salda**\n` +
             `Liczba opodatkowanych graczy: **${result.taxedUsers}**\n` +
-            `Łączna kwota podatku: **${result.totalCollected.toLocaleString()} viccoinów**`;
+            `Łączna kwota podatku: **${result.totalCollected.toLocaleString()} viccoinów**\n\n` +
+            `ℹ️ Aby wyłączyć powiadomienia wpisz !zakaz powiadomienia`;
 
           const targets = Array.from(client.activeThreadIds);
           if (targets.length > 0) {
             for (const tId of targets) {
+              if (isNotificationBlocked(tId)) continue;
               client.api.sendMessage(announceMsg, tId, (err) => {
                 if (err) console.error('[TAX] Błąd wysyłania powiadomienia:', err.message || err);
               })?.catch?.(err => {
@@ -1262,11 +1281,13 @@ login({ appState }, (loginErr, api) => {
               });
             }
           } else if (client.lastThreadId) {
-            client.api.sendMessage(announceMsg, client.lastThreadId, (err) => {
-              if (err) console.error('[TAX] Błąd wysyłania powiadomienia:', err.message || err);
-            })?.catch?.(err => {
-              console.error('[TAX] Błąd wysyłania powiadomienia (Promise):', err.message || err);
-            });
+            if (!isNotificationBlocked(client.lastThreadId)) {
+              client.api.sendMessage(announceMsg, client.lastThreadId, (err) => {
+                if (err) console.error('[TAX] Błąd wysyłania powiadomienia:', err.message || err);
+              })?.catch?.(err => {
+                console.error('[TAX] Błąd wysyłania powiadomienia (Promise):', err.message || err);
+              });
+            }
           }
         }
 
@@ -1349,8 +1370,9 @@ login({ appState }, (loginErr, api) => {
             byThread.get(entry.threadId).push(entry);
           }
 
-          for (const [threadId, players] of byThread.entries()) {
-            players.sort((a, b) => b.taxPaid - a.taxPaid);
+           for (const [threadId, players] of byThread.entries()) {
+             if (isNotificationBlocked(threadId)) continue;
+             players.sort((a, b) => b.taxPaid - a.taxPaid);
             const shown = players.slice(0, 10);
             const rest = players.length > 10 ? ` ... i ${players.length - 10} innych` : '';
 
@@ -1359,15 +1381,16 @@ login({ appState }, (loginErr, api) => {
               return `${prefix} ${p.name}: -${p.taxPaid.toLocaleString()} v (próg: ${p.bracketLabel})`;
             }).join('\n');
 
-            const groupSum = players.reduce((sum, p) => sum + p.taxPaid, 0);
-            const msg =
-              `💰 **POBRANO PODATEK MAJĄTKOWY** 💰\n\n` +
-              `W tym cyklu zapłacili:\n${lines}${rest}\n\n` +
-              `━━━━━━━━━━━━━━\n` +
-              `📉 Łącznie pobrano z grupy: **${groupSum.toLocaleString()} v**\n` +
-              `⏳ Następny pobór za: 6h\n\n` +
-              `⚠️ Podatek jest progresywny i kumuluje się co 6h —\n` +
-              `im dłużej trzymasz dużą gotówkę, tym bardziej się opłaca ją zainwestować (giełda, firma) albo wydać.`;
+             const groupSum = players.reduce((sum, p) => sum + p.taxPaid, 0);
+             const msg =
+               `💰 **POBRANO PODATEK MAJĄTKOWY** 💰\n\n` +
+               `W tym cyklu zapłacili:\n${lines}${rest}\n\n` +
+               `━━━━━━━━━━━━━━\n` +
+               `📉 Łącznie pobrano z grupy: **${groupSum.toLocaleString()} v**\n` +
+               `⏳ Następny pobór za: 6h\n\n` +
+               `⚠️ Podatek jest progresywny i kumuluje się co 6h —\n` +
+               `im dłużej trzymasz dużą gotówkę, tym bardziej się opłaca ją zainwestować (giełda, firma) albo wydać.\n\n` +
+               `ℹ️ Aby wyłączyć powiadomienia wpisz !zakaz powiadomienia`;
              client.api.sendMessage(msg, threadId, (err) => {
                if (err) console.error('[PROGRESSIVE-TAX] Błąd wysyłania powiadomienia:', err.message || err);
              })?.catch?.(err => {
@@ -1542,11 +1565,13 @@ login({ appState }, (loginErr, api) => {
           `Wszystkie portfele, banki i gangi zostały zresetowane do wartości początkowych!\n\n` +
           `🏆 **Zwycięzcy Sezonu (Top 5 Graczy bez multikont):**\n` +
           (winnerLines.length > 0 ? winnerLines.join('\n') : 'Brak kwalifikujących się graczy.') + `\n\n` +
-          `💪 Czas na nowy sezon! Powodzenia w zdobywaniu kolejnych szczytów ekonomii!`;
+          `💪 Czas na nowy sezon! Powodzenia w zdobywaniu kolejnych szczytów ekonomii!\n\n` +
+          `ℹ️ Aby wyłączyć powiadomienia wpisz !zakaz powiadomienia`;
 
         const recentTargets = await getRecentActiveThreads(client);
         const targets = recentTargets.length > 0 ? recentTargets : (client.lastThreadId ? [client.lastThreadId] : []);
         for (const tId of targets) {
+          if (isNotificationBlocked(tId)) continue;
           client.api.sendMessage(announceMsg, tId);
         }
       }
@@ -1633,11 +1658,13 @@ login({ appState }, (loginErr, api) => {
                 }));
                 
                 const remindMsg = {
-                  body: `⚠️ **PRZYPOMNIENIE O POŻYCZCE** ⚠️\nNastępujące osoby mają aktywną pożyczkę do spłaty:\n\n${lines}\n\n👉 Spłać komendą: \`!pozyczka splac <kwota|all>\``,
+                  body: `⚠️ **PRZYPOMNIENIE O POŻYCZCE** ⚠️\nNastępujące osoby mają aktywną pożyczkę do spłaty:\n\n${lines}\n\n👉 Spłać komendą: \`!pozyczka splac <kwota|all>\`\n\nℹ️ Aby wyłączyć powiadomienia wpisz !zakaz powiadomienia`,
                   mentions: tagMentions
                 };
                 
-                client.api.sendMessage(remindMsg, threadId);
+                if (!isNotificationBlocked(threadId)) {
+                  client.api.sendMessage(remindMsg, threadId);
+                }
               }
             } catch (err) {
               if (_threadApiBackoffUntil > Date.now()) {
@@ -1688,16 +1715,20 @@ login({ appState }, (loginErr, api) => {
               timestamp: Date.now()
             });
 
-            const announceMsg = `⚡ **SZYBKIE PALCE** ⚡\nKto pierwszy przepisze poniższy kod, wygrywa **💰 ${prize.toLocaleString()}**!\n\n👉 **\`${code}\`**`;
+             const announceMsg = `⚡ **SZYBKIE PALCE** ⚡\nKto pierwszy przepisze poniższy kod, wygrywa **💰 ${prize.toLocaleString()}**!\n\n👉 **\`${code}\`**\n\nℹ️ Aby wyłączyć powiadomienia wpisz !zakaz powiadomienia`;
             
-            client.api.sendMessage(announceMsg, threadId);
+            if (!isNotificationBlocked(threadId)) {
+              client.api.sendMessage(announceMsg, threadId);
+            }
 
             // Auto-cleanup po 2 minutach
             setTimeout(() => {
               const game = client.activeReactions.get(threadId);
               if (game && game.code === code && game.active) {
                 client.activeReactions.delete(threadId);
-                client.api.sendMessage(`⌛ **SZYBKIE PALCE** ⌛\nCzas minął! Nikt nie przepisał kodu **\`${code}\`** na czas.`, threadId);
+                if (!isNotificationBlocked(threadId)) {
+                  client.api.sendMessage(`⌛ **SZYBKIE PALCE** ⌛\nCzas minął! Nikt nie przepisał kodu **\`${code}\`** na czas.`, threadId);
+                }
               }
             }, 2 * 60 * 1000).unref();
           }
@@ -1744,15 +1775,19 @@ login({ appState }, (loginErr, api) => {
               timestamp: Date.now()
             });
 
-            const announceMsg = `🏳️ **ZGADNIJ KRAJ** 🏳️\nJaki kraj reprezentuje ta flaga?\n\n👉 **${randomFlag.emoji}**\n\n💰 Nagroda: **💰 ${prize.toLocaleString()}**!\n⏱️ Masz ${time} sekund na odpowiedź.`;
-            client.api.sendMessage(announceMsg, threadId);
+             const announceMsg = `🏳️ **ZGADNIJ KRAJ** 🏳️\nJaki kraj reprezentuje ta flaga?\n\n👉 **${randomFlag.emoji}**\n\n💰 Nagroda: **💰 ${prize.toLocaleString()}**!\n⏱️ Masz ${time} sekund na odpowiedź.\n\nℹ️ Aby wyłączyć powiadomienia wpisz !zakaz powiadomienia`;
+            if (!isNotificationBlocked(threadId)) {
+              client.api.sendMessage(announceMsg, threadId);
+            }
 
             // Auto-cleanup po określonym czasie
             setTimeout(() => {
               const game = client.activeFlags.get(threadId);
               if (game && game.emoji === randomFlag.emoji && game.active) {
                 client.activeFlags.delete(threadId);
-                client.api.sendMessage(`⌛ **ZGADNIJ KRAJ** ⌛\nCzas minął! Nikt nie zgadł flagi **${randomFlag.emoji}** (${randomFlag.name}) na czas.`, threadId);
+                if (!isNotificationBlocked(threadId)) {
+                  client.api.sendMessage(`⌛ **ZGADNIJ KRAJ** ⌛\nCzas minął! Nikt nie zgadł flagi **${randomFlag.emoji}** (${randomFlag.name}) na czas.`, threadId);
+                }
               }
             }, time * 1000).unref();
           }
