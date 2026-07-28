@@ -76,13 +76,24 @@ const helpCommands = [
     name: "work",
     category: "ECONOMY_GAMBLING",
     shortDescription: "🛠️ zarób monety pracując",
-    description: "🛠️ Uczciwa praca pozwalająca zarobić dodatkowe VicCoiny.",
+    description: "🛠️ Uczciwa praca pozwalająca zarobić dodatkowe VicCoiny. Z każdym użyciem masz szansę awansować na wyższe poziomy pracy, które zwiększają Twoje wynagrodzenie.",
     usage: "!work",
     examples: ["!work"],
-    cooldown: "10 sekund",
+    cooldown: "~10 minut (zależne od ekwipunku i eventów)",
     requirements: "Brak.",
     aliases: [],
-    additionalInfo: ["VIP Pass daje stały bonus do wypłaty."]
+    additionalInfo: [
+      "Awansujesz na wyższe poziomy pracy wykonując !work.",
+      "📈 **Ścieżka kariery (Progresja):**\n" +
+      " • 🟢 **Praktykant** (Lvl 1-4) ➔ Bonus do **+6%** do wypłaty\n" +
+      " • 🔵 **Specjalista** (Lvl 5-9) ➔ Bonus do **+16%** do wypłaty\n" +
+      " • 🟡 **Ekspert** (Lvl 10-14) ➔ Bonus do **+26%** do wypłaty\n" +
+      " • 🟠 **Mistrz** (Lvl 15-19) ➔ Bonus do **+40%** do wypłaty\n" +
+      " • 🔴 **Legenda Pracy** (Lvl 20+) ➔ Stały bonus **+45%** do wypłaty",
+      "Podczas pracy masz 2% szans na losowe wydarzenie: premia (+50%), wypadek, podwyżka lub podwójne XP.",
+      "Podwyżka z eventu działa 6 godzin i zwiększa wszystkie wynagrodzenia z !work.",
+      "Wypadek daje plaster, który skraca cooldown pracy o 20% przez 1 godzinę."
+    ]
   },
   {
     id: 4,
@@ -1247,14 +1258,35 @@ function buildHelpListEmbed(client, prefix = '!') {
 }
 
 function buildHelpDetailEmbed(client, command, prefix = '!') {
-  return buildHelpShell()
+  const embed = buildHelpShell()
     .setTitle(`Komenda: ${prefix}${command.name}`)
     .setDescription(command.description)
     .addFields(
-      { name: 'Cooldown', value: command.cooldown, inline: true },
-      { name: 'Skladnia', value: command.usage.replace(/!/g, prefix), inline: false },
-      { name: 'Przyklady', value: command.examples.map(ex => ex.replace(/!/g, prefix)).join('\n'), inline: false }
+      { name: 'Cooldown', value: command.cooldown, inline: true }
     );
+
+  if (command.aliases && command.aliases.length > 0) {
+    embed.addFields({ name: 'Aliasy', value: command.aliases.map(al => `${prefix}${al}`).join(', '), inline: true });
+  }
+
+  embed.addFields(
+    { name: 'Skladnia', value: command.usage.replace(/!/g, prefix), inline: false },
+    { name: 'Przyklady', value: command.examples.map(ex => ex.replace(/!/g, prefix)).join('\n'), inline: false }
+  );
+
+  if (command.requirements && command.requirements !== 'Brak.') {
+    embed.addFields({ name: 'Wymagania', value: command.requirements, inline: false });
+  }
+
+  if (command.additionalInfo && command.additionalInfo.length > 0) {
+    embed.addFields({
+      name: 'Dodatkowe informacje',
+      value: command.additionalInfo.map(info => info.trim().startsWith('•') || info.trim().startsWith('📈') ? info : `• ${info}`).join('\n'),
+      inline: false
+    });
+  }
+
+  return embed;
 }
 
 function buildHelpErrorEmbed() {

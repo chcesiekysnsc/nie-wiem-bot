@@ -103,7 +103,11 @@ module.exports = {
       company: null,
       defaultCity: null,
       openedPackagesToday: 0,
-      lastPackageOpenDate: null
+      lastPackageOpenDate: null,
+      workLevel: 1,
+      workBoostUntil: 0,
+      workBoostPercent: 0,
+      tempCooldownReductionUntil: 0
     },
     companies: {
       kiosk: {

@@ -35,6 +35,15 @@ module.exports = {
   async execute(client, message) {
     const workLuckOverride = await getEffectiveChance(message.author.id, 'work_luck');
 
+    function getWorkLevelBonus(level) {
+      if (level <= 1) return 0;
+      if (level <= 4) return (level - 1) * 2;
+      if (level <= 9) return 8 + (level - 5) * 2;
+      if (level <= 14) return 18 + (level - 10) * 2;
+      if (level <= 19) return 28 + (level - 15) * 3;
+      return 45;
+    }
+
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
@@ -44,6 +53,7 @@ module.exports = {
         const msLeft = user.jailUntil - now;
         return { error: `❌ Jesteś w więzieniu! Odzyskasz wolność za **${msToReadable(msLeft)}**.` };
       }
+
       const hasZegar = hasItem(inventory, 'stary_zegar');
       const hasSzwajcar = hasItem(inventory, 'szwajcarski_zegarek');
       const baseCd = config.cooldowns.work || 600;
@@ -64,6 +74,10 @@ module.exports = {
         actualCd = Math.floor(actualCd / evMul);
       }
 
+      if (user.tempCooldownReductionUntil && now < user.tempCooldownReductionUntil) {
+        actualCd = Math.floor(actualCd * 0.8);
+      }
+
       const cdMs = actualCd * 1000;
       const last = user.lastWorkTime || 0;
       const diff = now - last;
@@ -72,7 +86,12 @@ module.exports = {
         return { error: `⏳ Byłeś już w pracy! Wróć za **${msToReadable(cdMs - diff)}**.` };
       }
 
+      const workLevel = Math.max(1, user.workLevel || 1);
+      const workLevelBonus = 1 + getWorkLevelBonus(workLevel) / 100;
+
       let reward = randomInt(config.economy.workMin, config.economy.workMax);
+      reward = Math.floor(reward * workLevelBonus);
+
       if (hasItem(inventory, 'vip')) {
         const level = getItemUpgradeLevel(inventory, 'vip');
         const bonus = 0.10 + level * 0.02;
@@ -122,14 +141,12 @@ module.exports = {
         reward = Math.floor(reward * 1.10);
       }
 
-      // Zastosuj bonus za prestiż (4% za każdy poziom prestiżu)
       let prestigeBonusPct = 0;
       if (user.prestige && user.prestige > 0) {
         prestigeBonusPct = user.prestige * 0.04;
         reward = Math.floor(reward * (1 + prestigeBonusPct));
       }
 
-      // Zastosuj bonus gangowy: Legalne Biznesy
       let gangBonus = 0;
       if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
         const gang = store.profiles.gangs[user.gangId];
@@ -157,7 +174,33 @@ module.exports = {
         }
       }
 
-      // Oblicz haracza, jeśli gracz należy do gangu
+      if (user.workBoostUntil && now < user.workBoostUntil && user.workBoostPercent > 0) {
+        reward = Math.floor(reward * (1 + user.workBoostPercent));
+      }
+
+      const EVENT_CHANCE = 0.02;
+      let eventMessage = null;
+      let doubleXp = false;
+      if (Math.random() < EVENT_CHANCE) {
+        const roll = Math.random();
+        if (roll < 0.35) {
+          reward = Math.floor(reward * 1.5);
+          eventMessage = '🎉 Szef był w dobrym nastroju — dostałeś premię **+50%** do nagrody!';
+        } else if (roll < 0.60) {
+          reward = Math.floor(reward * 0.7);
+          user.tempCooldownReductionUntil = now + 60 * 60 * 1000;
+          eventMessage = '⚠️ Potknąłeś się w pracy i straciłeś **-30%** nagrody, ale szef dał Ci plaster — przez następną godzinę cooldown pracy jest skrócony o **20%**!';
+        } else if (roll < 0.75) {
+          const newBoost = Math.min(50, (user.workBoostPercent || 0) + 10);
+          user.workBoostUntil = now + 6 * 60 * 60 * 1000;
+          user.workBoostPercent = newBoost;
+          eventMessage = `💸 Szef dał Ci podwyżkę! Przez następne **6h** wszystkie prace są opłacane o **${newBoost}%** więcej.`;
+        } else {
+          doubleXp = true;
+          eventMessage = '⭐ Szef zauważył Twój talent! Zdobywasz **podwójne XP** z tej pracy!';
+        }
+      }
+
       let tributeAmount = 0;
       if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
         const gang = store.profiles.gangs[user.gangId];
@@ -166,7 +209,6 @@ module.exports = {
         if (tributePercent > 0 && !isExcluded) {
           tributeAmount = Math.floor(reward * (tributePercent / 100));
           user.balance += reward - tributeAmount;
-          // Dodaj haracza do sejfu gangu i do portfela Bossa
           const incomeBonus = getGangBossShopMultiplier(gang, 'income');
           gang.vault += Math.floor(tributeAmount * (1 + incomeBonus));
           const bossUser = createUser(gang.bossId, store.users);
@@ -179,15 +221,29 @@ module.exports = {
       }
 
       user.lastWorkTime = now;
-      const xpResult = addXp(user, randomInt(12, 24), inventory);
+      const xpAmount = doubleXp ? randomInt(12, 24) * 2 : randomInt(12, 24);
+      const xpResult = addXp(user, xpAmount, inventory);
       refreshBadges(user, inventory);
+
+      let leveledUpWork = false;
+      const workLevelChance = workLevel <= 4 ? 0.15 : workLevel <= 9 ? 0.10 : workLevel <= 14 ? 0.07 : workLevel <= 19 ? 0.05 : 0.02;
+      if (Math.random() < workLevelChance) {
+        user.workLevel = workLevel + 1;
+        leveledUpWork = true;
+      }
 
       return {
         reward,
         tributeAmount,
         gangBonus,
         xpResult,
-        text: jobs[randomInt(0, jobs.length - 1)]
+        text: jobs[randomInt(0, jobs.length - 1)],
+        workLevel,
+        leveledUpWork,
+        newWorkLevel: user.workLevel,
+        eventMessage,
+        workBoostActive: !!(user.workBoostUntil && now < user.workBoostUntil),
+        workBoostPercent: user.workBoostPercent || 0
       };
     });
 
@@ -200,10 +256,26 @@ module.exports = {
     const finalReward = result.reward - result.tributeAmount;
     let replyText = '';
 
+    if (result.workLevel > 1 || result.leveledUpWork) {
+      const workTitle = result.workLevel <= 4 ? 'Praktykant' : result.workLevel <= 9 ? 'Specjalista' : result.workLevel <= 14 ? 'Ekspert' : result.workLevel <= 19 ? 'Mistrz' : 'Legenda Pracy';
+      const levelText = result.leveledUpWork
+        ? `\n📈 **AWANS PRACY!** Jesteś teraz **${workTitle}** (poziom **${result.newWorkLevel}**)!`
+        : `\n💼 Twoja ranga: **${workTitle}** (poziom **${result.workLevel}**)`;
+      replyText += levelText;
+    }
+
     if (result.tributeAmount > 0) {
-      replyText = `👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText} (pobrano **${formatCurrency(result.tributeAmount)}** haraczu dla Bossa)`;
+      replyText += `\n👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText} (pobrano **${formatCurrency(result.tributeAmount)}** haraczu dla Bossa)`;
     } else {
-      replyText = `👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText}`;
+      replyText += `\n👷 ${result.text} Zysk: **+${formatCurrency(finalReward)}**${bonusText}`;
+    }
+
+    if (result.eventMessage) {
+      replyText += `\n${result.eventMessage}`;
+    }
+
+    if (result.workBoostActive) {
+      replyText += `\n🚀 Aktywna podwyżka pracy: **+${result.workBoostPercent}%** (pozostało: **${msToReadable(result.workBoostUntil - Date.now())}**)`;
     }
 
     if (result.xpResult && result.xpResult.leveledUp) {

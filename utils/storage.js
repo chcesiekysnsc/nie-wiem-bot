@@ -188,6 +188,10 @@ function sanitizeUser(user) {
   merged.defaultCity = user && typeof user.defaultCity === 'string' ? user.defaultCity.trim() : null;
   merged.openedPackagesToday = Math.max(0, sanitizeInteger(merged.openedPackagesToday, 0));
   merged.lastPackageOpenDate = merged.lastPackageOpenDate ? String(merged.lastPackageOpenDate) : null;
+  merged.workLevel = Math.max(1, sanitizeInteger(merged.workLevel, 1));
+  merged.workBoostUntil = Math.max(0, sanitizeInteger(merged.workBoostUntil, 0));
+  merged.workBoostPercent = Math.max(0, Math.min(50, sanitizeInteger(merged.workBoostPercent, 0)));
+  merged.tempCooldownReductionUntil = Math.max(0, sanitizeInteger(merged.tempCooldownReductionUntil, 0));
 
   return merged;
 }
