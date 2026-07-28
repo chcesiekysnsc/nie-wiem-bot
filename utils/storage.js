@@ -404,13 +404,20 @@ async function withData(callback) {
   const run = async () => {
     ensureDataFiles();
 
+    const u = loadData('users');
+    const p = loadData('profiles');
+    const i = loadData('inventory');
+    const c = loadData('cooldowns');
+    const l = loadData('logs');
+    const g = loadData('groupStats');
+
     const store = {
-      users: loadData('users'),
-      profiles: loadData('profiles'),
-      inventory: loadData('inventory'),
-      cooldowns: loadData('cooldowns'),
-      logs: loadData('logs'),
-      groupStats: loadData('groupStats')
+      users: u,
+      profiles: p,
+      inventory: i,
+      cooldowns: c,
+      logs: l,
+      groupStats: g
     };
 
     // Synchronizacja dynamicznych adminów z config.admins
@@ -433,51 +440,60 @@ async function withData(callback) {
     // Oblicz odsetki bankowe co 12h (2% do salda z bonusami odznaki + Księga Inwestora)
     store.profiles.lastInterestPayout = store.profiles.lastInterestPayout || Date.now();
     const intervalMs = 12 * 60 * 60 * 1000;
+    if (Date.now() - store.profiles.lastInterestPayout > 5 * intervalMs) {
+      store.profiles.lastInterestPayout = Date.now() - 5 * intervalMs;
+    }
     let timePassed = Date.now() - store.profiles.lastInterestPayout;
-    while (timePassed >= intervalMs) {
-      for (const [userId, user] of Object.entries(store.users)) {
-        if (user && user.bank > 0) {
-          let rate = 0.02;
-          const userInv = store.inventory[userId] || {};
-          const hasKatalizator = (userInv['katalizator_bogactwa'] || 0) > 0;
-          if (hasKatalizator) {
-            rate *= 2;
-          }
-          const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
+    if (timePassed >= intervalMs) {
+      const { getBankInterestMultiplier } = require('./economy');
+      const interestMul = getBankInterestMultiplier();
 
-          if (user.badges) {
-            if (user.badges.includes(config.badges.bogacz)) {
-              rate += hasCzterolistna ? 0.015 : 0.005;
+      while (timePassed >= intervalMs) {
+        for (const [userId, user] of Object.entries(store.users)) {
+          if (user && user.bank > 0) {
+            let rate = 0.02;
+            const userInv = store.inventory[userId] || {};
+            const hasKatalizator = (userInv['katalizator_bogactwa'] || 0) > 0;
+            if (hasKatalizator) {
+              rate *= 2;
             }
-            if (user.badges.includes(config.badges.milioner)) {
-              rate += hasCzterolistna ? 0.02 : 0.01;
+            const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
+
+            if (user.badges) {
+              if (user.badges.includes(config.badges.bogacz)) {
+                rate += hasCzterolistna ? 0.015 : 0.005;
+              }
+              if (user.badges.includes(config.badges.milioner)) {
+                rate += hasCzterolistna ? 0.02 : 0.01;
+              }
+              if (user.badges.includes(config.badges.miliarder)) {
+                rate += hasCzterolistna ? 0.03 : 0.02;
+              }
             }
-            if (user.badges.includes(config.badges.miliarder)) {
-              rate += hasCzterolistna ? 0.03 : 0.02;
+
+            if ((userInv['ksiega_inwestora'] || 0) > 0) {
+              rate += hasCzterolistna ? 0.0075 : 0.0025; // +0.25% or +0.75% co 12h
             }
-          }
 
-          if ((userInv['ksiega_inwestora'] || 0) > 0) {
-            rate += hasCzterolistna ? 0.0075 : 0.0025; // +0.25% or +0.75% co 12h
-          }
+            const finalRate = rate * interestMul;
 
-          const { getBankInterestMultiplier } = require('./economy');
-          const interestMul = getBankInterestMultiplier();
-          const finalRate = rate * interestMul;
-
-          const interest = Math.floor(user.bank * finalRate);
-          if (interest > 0) {
-            user.balance = (user.balance || 0) + interest;
+            const interest = Math.floor(user.bank * finalRate);
+            if (interest > 0) {
+              user.balance = (user.balance || 0) + interest;
+            }
           }
         }
+        store.profiles.lastInterestPayout += intervalMs;
+        timePassed = Date.now() - store.profiles.lastInterestPayout;
       }
-      store.profiles.lastInterestPayout += intervalMs;
-      timePassed = Date.now() - store.profiles.lastInterestPayout;
     }
 
     // Oblicz odsetki z Czarnej Karty Bankowej co 6h
     store.profiles.lastCzarnaKartaPayout = store.profiles.lastCzarnaKartaPayout || Date.now();
     const czarnaIntervalMs = 6 * 60 * 60 * 1000;
+    if (Date.now() - store.profiles.lastCzarnaKartaPayout > 5 * czarnaIntervalMs) {
+      store.profiles.lastCzarnaKartaPayout = Date.now() - 5 * czarnaIntervalMs;
+    }
     let timePassedCzarna = Date.now() - store.profiles.lastCzarnaKartaPayout;
     while (timePassedCzarna >= czarnaIntervalMs) {
       for (const [userId, user] of Object.entries(store.users)) {
@@ -503,6 +519,9 @@ async function withData(callback) {
         // 1. Oblicz odsetki co 6h
         const loanIntervalMs = 6 * 60 * 60 * 1000;
         let lastInterest = user.activeLoan.lastInterestApplied || user.activeLoan.takenAt;
+        if (Date.now() - lastInterest > 5 * loanIntervalMs) {
+          lastInterest = Date.now() - 5 * loanIntervalMs;
+        }
         let timePassedLoan = Date.now() - lastInterest;
         while (timePassedLoan >= loanIntervalMs) {
           user.activeLoan.amount = Math.floor(user.activeLoan.amount * (1 + user.activeLoan.rate));
@@ -515,6 +534,62 @@ async function withData(callback) {
         if (Date.now() - user.activeLoan.takenAt >= 48 * 60 * 60 * 1000) {
           user.balance = (user.balance || 0) - user.activeLoan.amount;
           user.activeLoan = null;
+        }
+      }
+    }
+    // Naliczanie czynszu domów co 24h
+    const { HOUSE_TIERS } = require('./economy');
+    for (const [userId, user] of Object.entries(store.users)) {
+      if (user && user.house && user.house.tier) {
+        const rentIntervalMs = 24 * 60 * 60 * 1000;
+        user.house.lastRentPaid = user.house.lastRentPaid || Date.now();
+        if (Date.now() - user.house.lastRentPaid > 5 * rentIntervalMs) {
+          user.house.lastRentPaid = Date.now() - 5 * rentIntervalMs;
+        }
+        let timePassedRent = Date.now() - user.house.lastRentPaid;
+        
+        let downgraded = false;
+        let lostHouse = false;
+        let oldTierName = '';
+        let newTierName = '';
+
+        while (timePassedRent >= rentIntervalMs) {
+          const tierInfo = HOUSE_TIERS[user.house.tier];
+          if (!tierInfo) break;
+          
+          const rentCost = Math.round(tierInfo.price * 0.10);
+          if (user.balance >= rentCost) {
+            user.balance -= rentCost;
+            user.house.lastRentPaid += rentIntervalMs;
+          } else {
+            // Brak kasy na czynsz -> degradacja o 1 tier i reset ulepszeń
+            oldTierName = tierInfo.name;
+            user.house.upgrades = { warsztat: 0, zbrojownia: 0, silownia: 0 };
+            
+            if (user.house.tier > 1) {
+              user.house.tier -= 1;
+              const newTierInfo = HOUSE_TIERS[user.house.tier];
+              newTierName = newTierInfo.name;
+              downgraded = true;
+              user.house.lastRentPaid += rentIntervalMs;
+            } else {
+              // Utrata domu
+              delete user.house;
+              lostHouse = true;
+              break;
+            }
+          }
+          timePassedRent = Date.now() - user.house.lastRentPaid;
+        }
+
+        if (downgraded || lostHouse) {
+          user.houseNotifications = user.houseNotifications || [];
+          user.houseNotifications.push({
+            type: lostHouse ? 'lost' : 'downgraded',
+            oldTierName,
+            newTierName,
+            timestamp: Date.now()
+          });
         }
       }
     }

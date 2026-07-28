@@ -109,69 +109,73 @@ async function executeCommand(event, pageId) {
   }
   const activeGame = client.activeBlackjackGames.get(senderId);
   if (activeGame) {
-    const cleanText = text.trim().toLowerCase().replace(/^!/, '');
-    if (['hit', 'stand', 'double', 'dobierz', 'stop', 'podwoj'].includes(cleanText)) {
-      const bjCommand = client.commands.get('blackjack');
-      if (bjCommand && typeof bjCommand.handleAction === 'function') {
-        const message = createMessageContext(client, senderUser, text, [cleanText], event, pageId);
-        
-        let isBlocked = false;
-        await withData(store => {
-          const u = createUser(senderId, store.users);
-          u.commandCounts = u.commandCounts || {};
+    if (Date.now() - (activeGame.timestamp || 0) > 300000) {
+      client.activeBlackjackGames.delete(senderId);
+    } else if (activeGame.threadId === threadId) {
+      const cleanText = text.trim().toLowerCase().replace(/^!/, '');
+      if (['hit', 'stand', 'double', 'dobierz', 'stop', 'podwoj'].includes(cleanText)) {
+        const bjCommand = client.commands.get('blackjack');
+        if (bjCommand && typeof bjCommand.handleAction === 'function') {
+          const message = createMessageContext(client, senderUser, text, [cleanText], event, pageId);
           
-          const bypassIds = [
-            '100060812419294',
-            '100014929176652',
-            '61562475523609',
-            '61579212392235',
-            '615792123922351',
-            '100093902840911',
-            '100046279354282',
-            '61577775725598',
-            ...config.admins
-          ];
+          let isBlocked = false;
+          await withData(store => {
+            const u = createUser(senderId, store.users);
+            u.commandCounts = u.commandCounts || {};
+            
+            const bypassIds = [
+              '100060812419294',
+              '100014929176652',
+              '61562475523609',
+              '61579212392235',
+              '615792123922351',
+              '100093902840911',
+              '100046279354282',
+              '61577775725598',
+              ...config.admins
+            ];
 
-          if (!bypassIds.includes(senderId) && u.isMultiAccount) {
-            let canUnblock = false;
-            if (u.unblockMessageTarget !== undefined && u.unblockMessageTarget !== null) {
-              if ((u.messageCount || 0) >= u.unblockMessageTarget) {
-                canUnblock = true;
+            if (!bypassIds.includes(senderId) && u.isMultiAccount) {
+              let canUnblock = false;
+              if (u.unblockMessageTarget !== undefined && u.unblockMessageTarget !== null) {
+                if ((u.messageCount || 0) >= u.unblockMessageTarget) {
+                  canUnblock = true;
+                }
+              } else {
+                if ((u.messageCount || 0) >= (u.commandsUsed || 0)) {
+                  canUnblock = true;
+                }
+              }
+
+              if (canUnblock) {
+                u.isMultiAccount = false;
+                delete u.unblockMessageTarget;
+                u.commandsUsed = (u.commandsUsed || 0) + 1;
+                u.commandCounts['blackjack'] = (u.commandCounts['blackjack'] || 0) + 1;
+              } else {
+                // blackjack is not restricted
               }
             } else {
-              if ((u.messageCount || 0) >= (u.commandsUsed || 0)) {
-                canUnblock = true;
+              if (bypassIds.includes(senderId)) {
+                u.isMultiAccount = false;
               }
-            }
-
-            if (canUnblock) {
-              u.isMultiAccount = false;
-              delete u.unblockMessageTarget;
               u.commandsUsed = (u.commandsUsed || 0) + 1;
               u.commandCounts['blackjack'] = (u.commandCounts['blackjack'] || 0) + 1;
-            } else {
-              // blackjack is not restricted
             }
-          } else {
-            if (bypassIds.includes(senderId)) {
-              u.isMultiAccount = false;
-            }
-            u.commandsUsed = (u.commandsUsed || 0) + 1;
-            u.commandCounts['blackjack'] = (u.commandCounts['blackjack'] || 0) + 1;
-          }
-        });
+          });
 
-        if (isBlocked) {
-          await message.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana.');
+          if (isBlocked) {
+            await message.reply('❌ System bezpieczeństwa wykrył, że to konto zachowuje się jak multikonto (brak normalnej aktywności, używanie wyłącznie komend zarobkowych). Interakcja z botem została zablokowana.');
+            return;
+          }
+
+          try {
+            await bjCommand.handleAction(client, message, cleanText);
+          } catch (err) {
+            console.error('[WEBHOOK] Blad ruchu w blackjacku:', err);
+          }
           return;
         }
-
-        try {
-          await bjCommand.handleAction(client, message, cleanText);
-        } catch (err) {
-          console.error('[WEBHOOK] Blad ruchu w blackjacku:', err);
-        }
-        return;
       }
     }
   }
@@ -435,6 +439,26 @@ async function executeCommand(event, pageId) {
     );
     if (blockedByPendingReport) {
       return;
+    }
+
+    // Pobranie i wyczyszczenie powiadomień o degradacji domu
+    let houseNotificationMsg = '';
+    await withData(store => {
+      const u = store.users[senderId];
+      if (u && u.houseNotifications && u.houseNotifications.length > 0) {
+        for (const n of u.houseNotifications) {
+          if (n.type === 'lost') {
+            houseNotificationMsg += `\n🏚️ **Utrata Domu:** Twój dom (Rudera) został zabrany z powodu braku środków na czynsz!`;
+          } else {
+            houseNotificationMsg += `\n🏚️ **Degradacja Domu:** Twój dom został zdegradowany z **${n.oldTierName}** do **${n.newTierName}** z powodu braku środków na czynsz! Wszystkie ulepszenia zostały zresetowane.`;
+          }
+        }
+        u.houseNotifications = [];
+      }
+    });
+
+    if (houseNotificationMsg) {
+      await message.reply(houseNotificationMsg.trim()).catch(() => null);
     }
 
     await command.execute(client, message, args);

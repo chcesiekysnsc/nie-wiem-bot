@@ -141,6 +141,13 @@ module.exports = {
         reward = Math.floor(reward * 1.10);
       }
 
+      // Bonus mieszkaniowy (warsztat + tier domu)
+      const { getHouseWorkBonus } = require('../utils/economy');
+      const houseWorkBonus = getHouseWorkBonus(user);
+      if (houseWorkBonus > 0) {
+        reward = Math.floor(reward * (1 + houseWorkBonus));
+      }
+
       let prestigeBonusPct = 0;
       if (user.prestige && user.prestige > 0) {
         prestigeBonusPct = user.prestige * 0.04;

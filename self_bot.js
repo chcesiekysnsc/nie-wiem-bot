@@ -2836,9 +2836,12 @@ login({ appState }, (loginErr, api) => {
       client.activeBlackjackGames = new Map();
     }
     const activeGame = client.activeBlackjackGames.get(senderId);
-    if (activeGame && activeGame.threadId === threadId) {
-      const cleanText = text.trim().toLowerCase().replace(/^!/, '');
-      if (['hit', 'stand', 'double', 'dobierz', 'stop', 'podwoj'].includes(cleanText)) {
+    if (activeGame) {
+      if (Date.now() - (activeGame.timestamp || 0) > 300000) {
+        client.activeBlackjackGames.delete(senderId);
+      } else if (activeGame.threadId === threadId) {
+        const cleanText = text.trim().toLowerCase().replace(/^!/, '');
+        if (['hit', 'stand', 'double', 'dobierz', 'stop', 'podwoj'].includes(cleanText)) {
         const bjCommand = client.commands.get('blackjack');
         if (bjCommand && typeof bjCommand.handleAction === 'function') {
           console.log(`[SELF-BOT] Wykonanie ruchu w blackjacku: ${cleanText} przez ${senderId}`);
@@ -2939,6 +2942,7 @@ login({ appState }, (loginErr, api) => {
         }
       }
     }
+  }
 
     if (!client.pendingBails) client.pendingBails = new Map();
     const pendingBail = client.pendingBails.get(senderId);
@@ -3459,6 +3463,26 @@ login({ appState }, (loginErr, api) => {
         );
         if (blockedByPendingReport) {
           return;
+        }
+
+        // Pobranie i wyczyszczenie powiadomień o degradacji domu
+        let houseNotificationMsg = '';
+        await withData(store => {
+          const u = store.users[senderId];
+          if (u && u.houseNotifications && u.houseNotifications.length > 0) {
+            for (const n of u.houseNotifications) {
+              if (n.type === 'lost') {
+                houseNotificationMsg += `\n🏚️ **Utrata Domu:** Twój dom (Rudera) został zabrany z powodu braku środków na czynsz!`;
+              } else {
+                houseNotificationMsg += `\n🏚️ **Degradacja Domu:** Twój dom został zdegradowany z **${n.oldTierName}** do **${n.newTierName}** z powodu braku środków na czynsz! Wszystkie ulepszenia zostały zresetowane.`;
+              }
+            }
+            u.houseNotifications = [];
+          }
+        });
+
+        if (houseNotificationMsg) {
+          await messageContext.reply(houseNotificationMsg.trim()).catch(() => null);
         }
 
         await command.execute(client, messageContext, args);

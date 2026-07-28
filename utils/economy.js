@@ -307,6 +307,8 @@ function getBankCapacity(user, inventoryRecord) {
     capacity += 50000;
   }
 
+  capacity += getHouseBankCapacityBonus(user);
+
   return capacity;
 }
 
@@ -572,6 +574,74 @@ function getGlobalCooldownReduction(inventoryRecord) {
   return Math.min(reduction, 0.50);
 }
 
+const HOUSE_TIERS = {
+  1: { name: 'Rudera', emoji: '🏚️', price: 200000, workBonus: 0.025, crimeCooldown: 0, workCooldown: 0, bankCap: 0, maxUpgradeLvl: 1 },
+  2: { name: 'Domek', emoji: '🏠', price: 400000, workBonus: 0.05, crimeCooldown: 0, workCooldown: 0, bankCap: 0, maxUpgradeLvl: 2 },
+  3: { name: 'Apartament', emoji: '🏢', price: 800000, workBonus: 0.075, crimeCooldown: 0.05, workCooldown: 0, bankCap: 0, maxUpgradeLvl: 3 },
+  4: { name: 'Willa', emoji: '🏰', price: 1600000, workBonus: 0.10, crimeCooldown: 0.075, workCooldown: 0.075, bankCap: 100000, maxUpgradeLvl: 4 },
+  5: { name: 'Rezydencja', emoji: '👑', price: 3000000, workBonus: 0.125, crimeCooldown: 0.10, workCooldown: 0.10, bankCap: 250000, maxUpgradeLvl: 5 }
+};
+
+const WORKSHOP_BONUSES = {
+  0: 0, 1: 0.01, 2: 0.02, 3: 0.03, 4: 0.06, 5: 0.09
+};
+
+const ARMORY_BONUSES = {
+  0: { strength: 0, loot: 0 },
+  1: { strength: 0.05, loot: 0.02 },
+  2: { strength: 0.07, loot: 0.04 },
+  3: { strength: 0.12, loot: 0.07 },
+  4: { strength: 0.16, loot: 0.12 },
+  5: { strength: 0.22, loot: 0.18 }
+};
+
+const GYM_BONUSES = {
+  0: 0, 1: 0.02, 2: 0.03, 3: 0.06, 4: 0.08, 5: 0.12
+};
+
+function getHouseWorkBonus(user) {
+  if (!user || !user.house || !user.house.tier) return 0;
+  const tierInfo = HOUSE_TIERS[user.house.tier];
+  if (!tierInfo) return 0;
+  const houseBonus = tierInfo.workBonus || 0;
+  const workshopLvl = (user.house.upgrades && user.house.upgrades.warsztat) || 0;
+  const workshopBonus = WORKSHOP_BONUSES[workshopLvl] || 0;
+  return houseBonus + workshopBonus;
+}
+
+function getHouseCooldownReduction(user, commandName) {
+  if (!user || !user.house || !user.house.tier) return 0;
+  const tierInfo = HOUSE_TIERS[user.house.tier];
+  if (!tierInfo) return 0;
+  
+  let reduction = 0;
+  if (commandName === 'work') {
+    reduction += tierInfo.workCooldown || 0;
+  } else if (commandName === 'crime') {
+    reduction += tierInfo.crimeCooldown || 0;
+  }
+  
+  const gymLvl = (user.house.upgrades && user.house.upgrades.silownia) || 0;
+  const gymBonus = GYM_BONUSES[gymLvl] || 0;
+  reduction += gymBonus;
+  
+  return reduction;
+}
+
+function getHouseBankCapacityBonus(user) {
+  if (!user || !user.house || !user.house.tier) return 0;
+  const tierInfo = HOUSE_TIERS[user.house.tier];
+  if (!tierInfo) return 0;
+  return tierInfo.bankCap || 0;
+}
+
+function getHouseGangBonus(user) {
+  if (!user || !user.house || !user.house.tier) return { strength: 0, loot: 0 };
+  const armoryLvl = (user.house.upgrades && user.house.upgrades.zbrojownia) || 0;
+  const armoryBonus = ARMORY_BONUSES[armoryLvl] || { strength: 0, loot: 0 };
+  return armoryBonus;
+}
+
 module.exports = {
   randomInt,
   formatNumber,
@@ -604,5 +674,13 @@ module.exports = {
   getItemUpgradeLevel,
   getUpgradedLinearBonus,
   getUpgradedCapBonus,
-  getDealerBonusChance
+  getDealerBonusChance,
+  getHouseWorkBonus,
+  getHouseCooldownReduction,
+  getHouseBankCapacityBonus,
+  getHouseGangBonus,
+  HOUSE_TIERS,
+  WORKSHOP_BONUSES,
+  ARMORY_BONUSES,
+  GYM_BONUSES
 };

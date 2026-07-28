@@ -1416,12 +1416,17 @@ module.exports = {
 
           // Calculate success chance: base from override + gang role bonuses (boss/deputy)
           let successChance = Number.isFinite(gangHeistSuccessOverride) ? gangHeistSuccessOverride / 100 : 0.50;
+          const { getHouseGangBonus } = require('../utils/economy');
           for (const pid of listParticipants) {
             const pUser = createUser(pid, store.users);
             if (pUser.gangRole === 'boss') {
               successChance = Math.max(successChance, 0.55);
             } else if (pUser.gangRole === 'deputy') {
               successChance = Math.max(successChance, 0.525);
+            }
+            const gangBonus = getHouseGangBonus(pUser);
+            if (gangBonus && gangBonus.strength > 0) {
+              successChance += gangBonus.strength;
             }
           }
           const heistBonus = getGangBossShopMultiplier(currentGang, 'heist_success');
@@ -1505,7 +1510,15 @@ module.exports = {
             if (gangRewardsBonus > 0) {
               gangRewardsBonusAmt = Math.floor(finalReward * gangRewardsBonus);
             }
-            finalReward += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt;
+            
+            // Zbrojownia loot bonus
+            const gangBonus = getHouseGangBonus(pUser);
+            let zbrojowniaLootBonus = 0;
+            if (gangBonus && gangBonus.loot > 0) {
+              zbrojowniaLootBonus = Math.floor(finalReward * gangBonus.loot);
+            }
+            
+            finalReward += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt + zbrojowniaLootBonus;
             pUser.balance += finalReward;
             
             participantBonuses[pid] = godloBonus;

@@ -173,6 +173,15 @@ async function checkCooldown(commandName, userId) {
       }
     }
 
+    // Dom i Siłownia cooldown reduction
+    if (user) {
+      const { getHouseCooldownReduction } = require('./economy');
+      const houseReduction = getHouseCooldownReduction(user, commandName);
+      if (houseReduction > 0) {
+        duration = Math.floor(duration * (1 - houseReduction));
+      }
+    }
+
     const userCooldowns = store.cooldowns.commands[userId] && typeof store.cooldowns.commands[userId] === 'object'
       ? store.cooldowns.commands[userId]
       : {};

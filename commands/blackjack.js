@@ -39,13 +39,14 @@ function shuffle(deck) {
 function getHandValue(cards) {
   let value = 0;
   let acesCount = 0;
-  for (const card of cards) {
+  const validCards = (cards || []).filter(Boolean);
+  for (const card of validCards) {
     if (card.rank === 'A') {
       value += 11;
       acesCount++;
     } else if (['J', 'Q', 'K'].includes(card.rank)) {
       value += 10;
-    } else {
+    } else if (card.rank) {
       value += Number(card.rank);
     }
   }
@@ -57,13 +58,15 @@ function getHandValue(cards) {
 }
 
 function renderHand(cards, hideSecond = false) {
-  if (hideSecond && cards.length > 1) {
-    return `[${cards[0].rank}${cards[0].suit}] [❓]`;
+  const validCards = (cards || []).filter(Boolean);
+  if (hideSecond && validCards.length > 0) {
+    return `[${validCards[0].rank}${validCards[0].suit}] [❓]`;
   }
-  return cards.map(c => `[${c.rank}${c.suit}]`).join(' ');
+  return validCards.map(c => `[${c.rank}${c.suit}]`).join(' ');
 }
 
 function drawCardForPlayer(game, dealerCheatChance) {
+  if (game.deck.length === 0) return null;
   let card = game.deck.pop();
   if (dealerCheatChance > 0 && Math.random() < dealerCheatChance && game.deck.length > 0) {
     const nextCard = game.deck[game.deck.length - 1];
@@ -105,8 +108,18 @@ module.exports = {
     }
 
     if (client.activeBlackjackGames.has(authorId)) {
-      await message.reply('❌ Masz już aktywną grę w Blackjacka! Napisz **hit** (dobierz), **stand** (stop) lub **double** (podwój).');
-      return;
+      const activeGame = client.activeBlackjackGames.get(authorId);
+      if (Date.now() - (activeGame.timestamp || 0) > 300000) {
+        client.activeBlackjackGames.delete(authorId);
+      } else {
+        const action = String(args[0] || '').toLowerCase().trim();
+        if (['hit', 'stand', 'double', 'dobierz', 'stop', 'podwoj'].includes(action)) {
+          await this.handleAction(client, message, action);
+          return;
+        }
+        await message.reply('❌ Masz już aktywną grę w Blackjacka! Napisz **hit** (dobierz), **stand** (stop) lub **double** (podwój).');
+        return;
+      }
     }
 
     const rawBet = args[0];
@@ -347,7 +360,7 @@ module.exports = {
         client.activeBlackjackGames.delete(authorId);
       } else if (playerValue === 21) {
         // Automatyczny stand przy 21
-        await this.handleAction(client, message, 'stand');
+        await this.executeDealerTurn(client, message, game, playerValue, cheatNote);
       } else {
         // Gra toczy się dalej
         await message.reply(
@@ -500,7 +513,7 @@ module.exports = {
     let dealerValue = getHandValue(game.dealerCards);
 
     // Krupier dobiera do 17
-    while (dealerValue < 17) {
+    while (dealerValue < 17 && game.deck.length > 0) {
       game.dealerCards.push(game.deck.pop());
       dealerValue = getHandValue(game.dealerCards);
     }
