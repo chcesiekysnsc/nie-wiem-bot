@@ -978,16 +978,22 @@ app.post('/api/suspects/:id/analyze', async (req, res) => {
     } else {
       const user = users[targetId];
       const userLogs = logs
-        .filter(entry => entry.userId === targetId && (entry.type === 'command' || entry.type === 'message'))
+        .filter(entry => {
+          if (entry.userId === targetId) return true;
+          if (entry.threadId === targetId) return true; // Prywatne wiadomości (PV) z botem
+          if (entry.replyTo === targetId) return true; // Odpowiedzi bota/innych skierowane do użytkownika
+          return false;
+        })
         .slice(0, limit)
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
       transcriptLines = userLogs.map(entry => {
         const time = new Date(entry.timestamp).toLocaleString('pl-PL');
+        const sender = entry.userId === targetId ? 'Użytkownik' : (entry.userName || `Bot/Inny_${String(entry.userId || '?').slice(-6)}`);
         if (entry.type === 'command') {
-          return `[${time}] !${entry.command || '?'} ${entry.args || ''} (wątek: ${entry.threadId || '—'})`;
+          return `[${time}] ${sender}: !${entry.command || '?'} ${entry.args || ''} (wątek: ${entry.threadId || '—'})`;
         } else {
-          return `[${time}] ${entry.body || ''} (wątek: ${entry.threadId || '—'})`;
+          return `[${time}] ${sender}: ${entry.body || ''} (wątek: ${entry.threadId || '—'})`;
         }
       });
 

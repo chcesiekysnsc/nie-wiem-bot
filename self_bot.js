@@ -2289,12 +2289,14 @@ login({ appState }, (loginErr, api) => {
       // Logowanie całej konwersacji (historia wiadomości)
       try {
         const logs = loadData('logs');
+        const replyTo = event.messageReply ? String(event.messageReply.senderID) : null;
         appendLog(logs, {
           type: 'message',
           userId: senderId,
           userName: client.userNames.get(senderId) || null,
           body: cacheBody,
-          threadId
+          threadId,
+          replyTo
         });
         saveData('logs', logs);
       } catch (err) {
