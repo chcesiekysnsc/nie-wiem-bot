@@ -155,7 +155,7 @@ app.get('/api/players', (req, res) => {
   const limit = Math.min(parseInt(req.query.limit, 10) || 100, 1000);
 
   let players = Object.entries(users)
-    .filter(([, u]) => (u.commandsUsed || 0) >= 1)
+    .filter(([id, u]) => (u.commandsUsed || 0) >= 1 && !u.isAI && !String(id).startsWith('ai_'))
     .map(([id, u]) => ({
     id,
     name: userName(u, id),
@@ -536,7 +536,7 @@ app.get('/api/status', (req, res) => {
     online,
     botStatus,
     counts: {
-      users: Object.values(users).filter(u => (u.commandsUsed || 0) >= 1).length,
+      users: Object.entries(users).filter(([id, u]) => (u.commandsUsed || 0) >= 1 && !u.isAI && !String(id).startsWith('ai_')).length,
       gangs: Object.keys(profiles.gangs || {}).length,
       logs: logs.length,
       blacklisted: (profiles.blacklist || []).length + (profiles.trueBlacklist || []).length
