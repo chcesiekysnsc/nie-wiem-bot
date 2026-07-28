@@ -358,6 +358,7 @@ app.get('/api/logs', (req, res) => {
   const limit = Math.min(parseInt(req.query.limit, 10) || 200, 2000);
 
   let filtered = logs.filter(entry => {
+    if (entry.type !== 'command') return false;
     const ts = new Date(entry.timestamp).getTime();
     if (from && ts < from) return false;
     if (to && ts >= to) return false;
@@ -382,6 +383,7 @@ app.get('/api/logs/activity', (req, res) => {
     counts[d.toISOString().slice(0, 10)] = 0;
   }
   for (const entry of logs) {
+    if (entry.type !== 'command') continue;
     const day = String(entry.timestamp || '').slice(0, 10);
     if (day in counts) counts[day]++;
   }
