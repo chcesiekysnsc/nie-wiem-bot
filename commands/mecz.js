@@ -399,6 +399,7 @@ module.exports = {
           const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
           const taxRate = meczTaxRate / 100;
 
+          let sendGlobalNotify = false;
           if (won) {
             taxApplied = Math.round(potentialWin * taxRate);
             payoutApplied = potentialWin - taxApplied;
@@ -411,6 +412,15 @@ module.exports = {
             }
             net = payoutApplied - bet;
             user.balance += payoutApplied; // Dodajemy wygraną po odliczeniu podatku
+
+            if (odds > 80 && payoutApplied >= 8000000) {
+              const now = Date.now();
+              const cooldown = 48 * 60 * 60 * 1000;
+              if (!user.lastGlobalNotification || (now - user.lastGlobalNotification >= cooldown)) {
+                user.lastGlobalNotification = now;
+                sendGlobalNotify = true;
+              }
+            }
           } else {
             net = -bet;
           }
@@ -423,7 +433,9 @@ module.exports = {
             won,
             net,
             balance: user.balance,
-            xpResult
+            xpResult,
+            payoutApplied,
+            sendGlobalNotify
           };
         });
 
@@ -487,14 +499,14 @@ module.exports = {
           }
 
           // Powiadomienie na wszystkie aktywne grupy, jeśli kurs > 80 i wygrana >= 8mln
-          if (odds > 80 && payoutApplied >= 8000000) {
+          if (result.sendGlobalNotify) {
             try {
               const userName = (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
               const globalNotifyMsg = `🎰 **MEGA WYGRANA W MECZACH!** 🎰\n` +
                                      `👤 Gracz: **${userName}**\n` +
                                      `🏆 Trafiony kurs: **${odds}**\n` +
                                      `💰 Stawka: **${formatCurrency(bet)}**\n` +
-                                     `💸 Wygrana (bez podatku): **${formatCurrency(payoutApplied)}**`;
+                                     `💸 Wygrana (bez podatku): **${formatCurrency(result.payoutApplied)}**`;
               
               const targets = Array.from(client.activeThreadIds || []);
               if (targets.length > 0) {

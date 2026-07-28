@@ -955,14 +955,18 @@ app.post('/api/suspects/:id/analyze', async (req, res) => {
 
     if (isGroup) {
       const groupLogs = logs
-        .filter(entry => entry.threadId === targetId && entry.type === 'command')
+        .filter(entry => entry.threadId === targetId && (entry.type === 'command' || entry.type === 'message'))
         .slice(0, limit)
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
       transcriptLines = groupLogs.map(entry => {
         const time = new Date(entry.timestamp).toLocaleString('pl-PL');
         const name = entry.userName || `Użytkownik_${String(entry.userId || '?').slice(-6)}`;
-        return `[${time}] ${name}: !${entry.command || '?'} ${entry.args || ''}`;
+        if (entry.type === 'command') {
+          return `[${time}] ${name}: !${entry.command || '?'} ${entry.args || ''}`;
+        } else {
+          return `[${time}] ${name}: ${entry.body || ''}`;
+        }
       });
 
       const groupStats = loadData('groupStats');
@@ -972,13 +976,17 @@ app.post('/api/suspects/:id/analyze', async (req, res) => {
     } else {
       const user = users[targetId];
       const userLogs = logs
-        .filter(entry => entry.userId === targetId && entry.type === 'command')
+        .filter(entry => entry.userId === targetId && (entry.type === 'command' || entry.type === 'message'))
         .slice(0, limit)
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
       transcriptLines = userLogs.map(entry => {
         const time = new Date(entry.timestamp).toLocaleString('pl-PL');
-        return `[${time}] !${entry.command || '?'} ${entry.args || ''} (wątek: ${entry.threadId || '—'})`;
+        if (entry.type === 'command') {
+          return `[${time}] !${entry.command || '?'} ${entry.args || ''} (wątek: ${entry.threadId || '—'})`;
+        } else {
+          return `[${time}] ${entry.body || ''} (wątek: ${entry.threadId || '—'})`;
+        }
       });
 
       targetName = (user && user.name) || `Użytkownik_${String(targetId).slice(-6)}`;

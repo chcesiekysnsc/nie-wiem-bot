@@ -2263,6 +2263,21 @@ login({ appState }, (loginErr, api) => {
           client.messageCache.delete(firstKey);
         }
       }
+
+      // Logowanie całej konwersacji (historia wiadomości)
+      try {
+        const logs = loadData('logs');
+        appendLog(logs, {
+          type: 'message',
+          userId: senderId,
+          userName: client.userNames.get(senderId) || null,
+          body: cacheBody,
+          threadId
+        });
+        saveData('logs', logs);
+      } catch (err) {
+        console.error('[STORAGE] Błąd podczas logowania wiadomości:', err);
+      }
     }
 
     if (!['message', 'message_reply'].includes(event.type) || !event.body) {

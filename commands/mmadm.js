@@ -125,13 +125,22 @@ module.exports = {
       }
     }
 
-    // Dodanie wygranych na konto admina po symulacji
-    if (totalPayout > 0) {
-      await withData(store => {
-        const u = createUser(OWNER_ID, store.users);
+    // Dodanie wygranych na konto admina po symulacji + sprawdzenie limitu powiadomienia
+    let sendGlobalNotify = false;
+    await withData(store => {
+      const u = createUser(OWNER_ID, store.users);
+      if (totalPayout > 0) {
         u.balance += totalPayout;
-      });
-    }
+      }
+      if (wonRounds > 0) {
+        const now = Date.now();
+        const cooldown = 48 * 60 * 60 * 1000;
+        if (!u.lastGlobalNotification || (now - u.lastGlobalNotification >= cooldown)) {
+          u.lastGlobalNotification = now;
+          sendGlobalNotify = true;
+        }
+      }
+    });
 
     const finalBalance = totalGain - totalLoss;
     const balanceSign = finalBalance >= 0 ? '+' : '-';
@@ -147,8 +156,8 @@ module.exports = {
 
     await message.reply(responseText);
     
-    // Wysłanie globalnego powiadomienia, jeśli wygrano przynajmniej raz
-    if (wonRounds > 0 && client.activeThreadIds) {
+    // Wysłanie globalnego powiadomienia, jeśli wygrano przynajmniej raz i gracz nie jest na cooldownie 48h
+    if (wonRounds > 0 && sendGlobalNotify && client.activeThreadIds) {
       let senderName = (client.userNames && client.userNames.get(message.author.id));
       if (!senderName && typeof client.resolveUserName === 'function') {
         senderName = await client.resolveUserName(client.api, message.author.id);

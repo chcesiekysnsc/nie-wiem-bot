@@ -28,6 +28,17 @@ const FILE_DEFAULTS = {
 
 let writeQueue = Promise.resolve();
 
+// ========= In-Memory Cache =========
+const dataCache = {};
+const dirtyFlags = {};
+let savePending = false;
+let saveTimer = null;
+let dataFilesEnsured = false;
+
+const SAVE_DEBOUNCE_MS = 5000;     // Zapis na dysk co 5 sekund
+const HEAVY_LOOP_INTERVAL = 60000; // Ciężkie pętle (odsetki/czynsz/odznaki) co 60 sekund
+let lastHeavyLoopRun = 0;
+
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -42,6 +53,9 @@ function sanitizeInteger(value, fallback) {
 }
 
 function ensureDataFiles() {
+  if (dataFilesEnsured) return;
+  dataFilesEnsured = true;
+
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
@@ -105,7 +119,70 @@ function normalizeData(key, data) {
   return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
 }
 
+// ========= Debounced Save System =========
+function scheduleSave() {
+  if (savePending) return;
+  savePending = true;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    savePending = false;
+    flushDirtyToDisk();
+  }, SAVE_DEBOUNCE_MS);
+}
+
+function flushDirtyToDisk() {
+  const BACKUP_DIR = 'C:\\Users\\dupek\\.gemini\\antigravity\\db_backups';
+
+  for (const key of Object.keys(dirtyFlags)) {
+    if (!dirtyFlags[key]) continue;
+    dirtyFlags[key] = false;
+
+    const filePath = DATA_FILES[key];
+    if (!filePath || !dataCache[key]) continue;
+
+    try {
+      const content = JSON.stringify(dataCache[key], null, 2);
+      fs.writeFile(filePath, content, 'utf8', (err) => {
+        if (err) console.error(`[STORAGE] Błąd async zapisu ${key}.json:`, err);
+      });
+
+      if (process.platform === 'win32') {
+        const backupPath = path.join(BACKUP_DIR, `${key}.json`);
+        fs.writeFile(backupPath, content, 'utf8', () => {});
+      }
+    } catch (err) {
+      console.error(`[STORAGE] Błąd podczas zapisu ${key}:`, err);
+    }
+  }
+}
+
+function flushAllSync() {
+  const BACKUP_DIR = 'C:\\Users\\dupek\\.gemini\\antigravity\\db_backups';
+  for (const key of Object.keys(dataCache)) {
+    if (!DATA_FILES[key]) continue;
+    try {
+      const content = JSON.stringify(dataCache[key], null, 2);
+      fs.writeFileSync(DATA_FILES[key], content, 'utf8');
+      if (process.platform === 'win32') {
+        const backupPath = path.join(BACKUP_DIR, `${key}.json`);
+        try { fs.writeFileSync(backupPath, content, 'utf8'); } catch (_) {}
+      }
+    } catch (_) {}
+  }
+}
+
+// Zapisz dane synchronicznie na wyjście procesu
+process.on('exit', flushAllSync);
+process.on('SIGINT', () => { flushAllSync(); process.exit(0); });
+process.on('SIGTERM', () => { flushAllSync(); process.exit(0); });
+
+// ========= Load / Save Functions =========
 function loadData(key) {
+  if (dataCache[key] !== undefined) {
+    return dataCache[key];
+  }
+
   ensureDataFiles();
   const filePath = DATA_FILES[key];
 
@@ -116,38 +193,18 @@ function loadData(key) {
   try {
     const raw = fs.readFileSync(filePath, 'utf8');
     const parsed = raw.trim() ? JSON.parse(raw) : clone(FILE_DEFAULTS[key]);
-    return normalizeData(key, parsed);
+    dataCache[key] = normalizeData(key, parsed);
   } catch (error) {
-    const fallback = clone(FILE_DEFAULTS[key]);
-    saveData(key, fallback);
-    return fallback;
+    dataCache[key] = clone(FILE_DEFAULTS[key]);
   }
+
+  return dataCache[key];
 }
 
 function saveData(key, data) {
-  ensureDataFiles();
-  const filePath = DATA_FILES[key];
-
-  if (!filePath) {
-    throw new Error(`Unknown data key: ${key}`);
-  }
-
-  const normalized = normalizeData(key, data);
-  const content = JSON.stringify(normalized, null, 2);
-  fs.writeFileSync(filePath, content);
-
-  const BACKUP_DIR = 'C:\\Users\\dupek\\.gemini\\antigravity\\db_backups';
-  if (process.platform === 'win32') {
-    try {
-      if (!fs.existsSync(BACKUP_DIR)) {
-        fs.mkdirSync(BACKUP_DIR, { recursive: true });
-      }
-      const backupPath = path.join(BACKUP_DIR, `${key}.json`);
-      fs.writeFileSync(backupPath, content, 'utf8');
-    } catch (_) {}
-  }
-
-  return normalized;
+  dataCache[key] = data;
+  dirtyFlags[key] = true;
+  scheduleSave();
 }
 
 function sanitizeUser(user) {
@@ -251,8 +308,8 @@ function appendLog(logsData, entry) {
   };
 
   logsData.unshift(record);
-  if (logsData.length > 5000) {
-    logsData.length = 5000;
+  if (logsData.length > 80000) {
+    logsData.length = 80000;
   }
 
   return record;
@@ -400,6 +457,211 @@ function getPolandYearAndMonth(date) {
   return { year, month };
 }
 
+// ========= Throttled Heavy Loops =========
+// Te pętle iterują po WSZYSTKICH użytkownikach — wykonywane co najwyżej raz na minutę
+function runHeavyLoops(store) {
+  const now = Date.now();
+  if (now - lastHeavyLoopRun < HEAVY_LOOP_INTERVAL) return;
+  lastHeavyLoopRun = now;
+
+  // --- Odsetki bankowe co 12h ---
+  store.profiles.lastInterestPayout = store.profiles.lastInterestPayout || now;
+  const intervalMs = 12 * 60 * 60 * 1000;
+  if (now - store.profiles.lastInterestPayout > 5 * intervalMs) {
+    store.profiles.lastInterestPayout = now - 5 * intervalMs;
+  }
+  let timePassed = now - store.profiles.lastInterestPayout;
+  if (timePassed >= intervalMs) {
+    const { getBankInterestMultiplier } = require('./economy');
+    const interestMul = getBankInterestMultiplier();
+
+    while (timePassed >= intervalMs) {
+      for (const [userId, user] of Object.entries(store.users)) {
+        if (user && user.bank > 0) {
+          let rate = 0.02;
+          const userInv = store.inventory[userId] || {};
+          const hasKatalizator = (userInv['katalizator_bogactwa'] || 0) > 0;
+          if (hasKatalizator) {
+            rate *= 2;
+          }
+          const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
+
+          if (user.badges) {
+            if (user.badges.includes(config.badges.bogacz)) {
+              rate += hasCzterolistna ? 0.015 : 0.005;
+            }
+            if (user.badges.includes(config.badges.milioner)) {
+              rate += hasCzterolistna ? 0.02 : 0.01;
+            }
+            if (user.badges.includes(config.badges.miliarder)) {
+              rate += hasCzterolistna ? 0.03 : 0.02;
+            }
+          }
+
+          if ((userInv['ksiega_inwestora'] || 0) > 0) {
+            rate += hasCzterolistna ? 0.0075 : 0.0025; // +0.25% or +0.75% co 12h
+          }
+
+          const finalRate = rate * interestMul;
+
+          const interest = Math.floor(user.bank * finalRate);
+          if (interest > 0) {
+            user.balance = (user.balance || 0) + interest;
+          }
+        }
+      }
+      store.profiles.lastInterestPayout += intervalMs;
+      timePassed = now - store.profiles.lastInterestPayout;
+    }
+  }
+
+  // --- Odsetki z Czarnej Karty co 6h ---
+  store.profiles.lastCzarnaKartaPayout = store.profiles.lastCzarnaKartaPayout || now;
+  const czarnaIntervalMs = 6 * 60 * 60 * 1000;
+  if (now - store.profiles.lastCzarnaKartaPayout > 5 * czarnaIntervalMs) {
+    store.profiles.lastCzarnaKartaPayout = now - 5 * czarnaIntervalMs;
+  }
+  let timePassedCzarna = now - store.profiles.lastCzarnaKartaPayout;
+  while (timePassedCzarna >= czarnaIntervalMs) {
+    for (const [userId, user] of Object.entries(store.users)) {
+      if (user && user.bank > 0) {
+        const userInv = store.inventory[userId] || {};
+        if ((userInv['czarna_karta'] || 0) > 0) {
+          const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
+          const rate = hasCzterolistna ? 0.11 : 0.10; // +10% bazowo, +11% z Czterolistną Monetą co 6h
+          const interest = Math.floor(user.bank * rate);
+          if (interest > 0) {
+            user.balance = (user.balance || 0) + interest;
+          }
+        }
+      }
+    }
+    store.profiles.lastCzarnaKartaPayout += czarnaIntervalMs;
+    timePassedCzarna = now - store.profiles.lastCzarnaKartaPayout;
+  }
+
+  // --- Odsetki i auto-spłata pożyczek ---
+  for (const [userId, user] of Object.entries(store.users)) {
+    if (user && user.activeLoan) {
+      const loanIntervalMs = 6 * 60 * 60 * 1000;
+      let lastInterest = user.activeLoan.lastInterestApplied || user.activeLoan.takenAt;
+      if (now - lastInterest > 5 * loanIntervalMs) {
+        lastInterest = now - 5 * loanIntervalMs;
+      }
+      let timePassedLoan = now - lastInterest;
+      while (timePassedLoan >= loanIntervalMs) {
+        user.activeLoan.amount = Math.floor(user.activeLoan.amount * (1 + user.activeLoan.rate));
+        lastInterest += loanIntervalMs;
+        user.activeLoan.lastInterestApplied = lastInterest;
+        timePassedLoan = now - lastInterest;
+      }
+
+      if (now - user.activeLoan.takenAt >= 48 * 60 * 60 * 1000) {
+        user.balance = (user.balance || 0) - user.activeLoan.amount;
+        user.activeLoan = null;
+      }
+    }
+  }
+
+  // --- Czynsz domów co 24h ---
+  const { HOUSE_TIERS } = require('./economy');
+  for (const [userId, user] of Object.entries(store.users)) {
+    if (user && user.house && user.house.tier) {
+      const rentIntervalMs = 24 * 60 * 60 * 1000;
+      user.house.lastRentPaid = user.house.lastRentPaid || now;
+      if (now - user.house.lastRentPaid > 5 * rentIntervalMs) {
+        user.house.lastRentPaid = now - 5 * rentIntervalMs;
+      }
+      let timePassedRent = now - user.house.lastRentPaid;
+      
+      let downgraded = false;
+      let lostHouse = false;
+      let oldTierName = '';
+      let newTierName = '';
+
+      while (timePassedRent >= rentIntervalMs) {
+        const tierInfo = HOUSE_TIERS[user.house.tier];
+        if (!tierInfo) break;
+        
+        const rentCost = Math.round(tierInfo.price * 0.10);
+        if (user.balance >= rentCost) {
+          user.balance -= rentCost;
+          user.house.lastRentPaid += rentIntervalMs;
+        } else {
+          // Brak kasy na czynsz -> degradacja o 1 tier i reset ulepszeń
+          oldTierName = tierInfo.name;
+          user.house.upgrades = { warsztat: 0, zbrojownia: 0, silownia: 0 };
+          
+          if (user.house.tier > 1) {
+            user.house.tier -= 1;
+            const newTierInfo = HOUSE_TIERS[user.house.tier];
+            newTierName = newTierInfo.name;
+            downgraded = true;
+            user.house.lastRentPaid += rentIntervalMs;
+          } else {
+            // Utrata domu
+            delete user.house;
+            lostHouse = true;
+            break;
+          }
+        }
+        timePassedRent = now - user.house.lastRentPaid;
+      }
+
+      if (downgraded || lostHouse) {
+        user.houseNotifications = user.houseNotifications || [];
+        user.houseNotifications.push({
+          type: lostHouse ? 'lost' : 'downgraded',
+          oldTierName,
+          newTierName,
+          timestamp: now
+        });
+      }
+    }
+  }
+
+  // --- Blacklista za ujemny stan konta przez 7 dni ---
+  if (!store.profiles.blacklist) {
+    store.profiles.blacklist = [];
+  }
+  for (const [userId, user] of Object.entries(store.users)) {
+    if (user) {
+      if ((user.balance || 0) < 0) {
+        if (!user.negativeSince) {
+          user.negativeSince = now;
+        } else if (now - user.negativeSince >= 7 * 24 * 60 * 60 * 1000) {
+          if (!config.admins.includes(userId) && !store.profiles.blacklist.includes(userId)) {
+            store.profiles.blacklist.push(userId);
+            user.blacklistedForNegativeBalance = true;
+          }
+        }
+      } else {
+        user.negativeSince = null;
+      }
+    }
+  }
+
+  // --- Odznaki i zaległe kamienie milowe ---
+  const { refreshBadges, ensureInventoryRecord, giveMilestoneReward, MILESTONE_REWARDS } = require('./economy');
+  for (const [userId, user] of Object.entries(store.users)) {
+    if (user) {
+      user.claimedMilestones = user.claimedMilestones || [];
+      for (const milestoneStr of Object.keys(MILESTONE_REWARDS)) {
+        const milestone = parseInt(milestoneStr, 10);
+        if (user.level >= milestone && !user.claimedMilestones.includes(milestone)) {
+          const inv = ensureInventoryRecord(store.inventory, userId);
+          giveMilestoneReward(user, milestone, inv);
+          user.claimedMilestones.push(milestone);
+          console.log(`[RETROACTIVE] Przyznano zaległy kamień milowy ${milestone} dla użytkownika ${userId}`);
+        }
+      }
+
+      const inv = ensureInventoryRecord(store.inventory, userId);
+      refreshBadges(user, inv);
+    }
+  }
+}
+
 async function withData(callback) {
   const run = async () => {
     ensureDataFiles();
@@ -437,162 +699,8 @@ async function withData(callback) {
       store.profiles.lastResetMonth = currentMonth;
     }
 
-    // Oblicz odsetki bankowe co 12h (2% do salda z bonusami odznaki + Księga Inwestora)
-    store.profiles.lastInterestPayout = store.profiles.lastInterestPayout || Date.now();
-    const intervalMs = 12 * 60 * 60 * 1000;
-    if (Date.now() - store.profiles.lastInterestPayout > 5 * intervalMs) {
-      store.profiles.lastInterestPayout = Date.now() - 5 * intervalMs;
-    }
-    let timePassed = Date.now() - store.profiles.lastInterestPayout;
-    if (timePassed >= intervalMs) {
-      const { getBankInterestMultiplier } = require('./economy');
-      const interestMul = getBankInterestMultiplier();
-
-      while (timePassed >= intervalMs) {
-        for (const [userId, user] of Object.entries(store.users)) {
-          if (user && user.bank > 0) {
-            let rate = 0.02;
-            const userInv = store.inventory[userId] || {};
-            const hasKatalizator = (userInv['katalizator_bogactwa'] || 0) > 0;
-            if (hasKatalizator) {
-              rate *= 2;
-            }
-            const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
-
-            if (user.badges) {
-              if (user.badges.includes(config.badges.bogacz)) {
-                rate += hasCzterolistna ? 0.015 : 0.005;
-              }
-              if (user.badges.includes(config.badges.milioner)) {
-                rate += hasCzterolistna ? 0.02 : 0.01;
-              }
-              if (user.badges.includes(config.badges.miliarder)) {
-                rate += hasCzterolistna ? 0.03 : 0.02;
-              }
-            }
-
-            if ((userInv['ksiega_inwestora'] || 0) > 0) {
-              rate += hasCzterolistna ? 0.0075 : 0.0025; // +0.25% or +0.75% co 12h
-            }
-
-            const finalRate = rate * interestMul;
-
-            const interest = Math.floor(user.bank * finalRate);
-            if (interest > 0) {
-              user.balance = (user.balance || 0) + interest;
-            }
-          }
-        }
-        store.profiles.lastInterestPayout += intervalMs;
-        timePassed = Date.now() - store.profiles.lastInterestPayout;
-      }
-    }
-
-    // Oblicz odsetki z Czarnej Karty Bankowej co 6h
-    store.profiles.lastCzarnaKartaPayout = store.profiles.lastCzarnaKartaPayout || Date.now();
-    const czarnaIntervalMs = 6 * 60 * 60 * 1000;
-    if (Date.now() - store.profiles.lastCzarnaKartaPayout > 5 * czarnaIntervalMs) {
-      store.profiles.lastCzarnaKartaPayout = Date.now() - 5 * czarnaIntervalMs;
-    }
-    let timePassedCzarna = Date.now() - store.profiles.lastCzarnaKartaPayout;
-    while (timePassedCzarna >= czarnaIntervalMs) {
-      for (const [userId, user] of Object.entries(store.users)) {
-        if (user && user.bank > 0) {
-          const userInv = store.inventory[userId] || {};
-          if ((userInv['czarna_karta'] || 0) > 0) {
-            const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
-            const rate = hasCzterolistna ? 0.11 : 0.10; // +10% bazowo, +11% z Czterolistną Monetą co 6h
-            const interest = Math.floor(user.bank * rate);
-            if (interest > 0) {
-              user.balance = (user.balance || 0) + interest;
-            }
-          }
-        }
-      }
-      store.profiles.lastCzarnaKartaPayout += czarnaIntervalMs;
-      timePassedCzarna = Date.now() - store.profiles.lastCzarnaKartaPayout;
-    }
-
-    // Oblicz odsetki i auto-spłatę pożyczek (oprocentowanie co 6h, auto-spłata po 48h)
-    for (const [userId, user] of Object.entries(store.users)) {
-      if (user && user.activeLoan) {
-        // 1. Oblicz odsetki co 6h
-        const loanIntervalMs = 6 * 60 * 60 * 1000;
-        let lastInterest = user.activeLoan.lastInterestApplied || user.activeLoan.takenAt;
-        if (Date.now() - lastInterest > 5 * loanIntervalMs) {
-          lastInterest = Date.now() - 5 * loanIntervalMs;
-        }
-        let timePassedLoan = Date.now() - lastInterest;
-        while (timePassedLoan >= loanIntervalMs) {
-          user.activeLoan.amount = Math.floor(user.activeLoan.amount * (1 + user.activeLoan.rate));
-          lastInterest += loanIntervalMs;
-          user.activeLoan.lastInterestApplied = lastInterest;
-          timePassedLoan = Date.now() - lastInterest;
-        }
-
-        // 2. Auto-spłata po 48h
-        if (Date.now() - user.activeLoan.takenAt >= 48 * 60 * 60 * 1000) {
-          user.balance = (user.balance || 0) - user.activeLoan.amount;
-          user.activeLoan = null;
-        }
-      }
-    }
-    // Naliczanie czynszu domów co 24h
-    const { HOUSE_TIERS } = require('./economy');
-    for (const [userId, user] of Object.entries(store.users)) {
-      if (user && user.house && user.house.tier) {
-        const rentIntervalMs = 24 * 60 * 60 * 1000;
-        user.house.lastRentPaid = user.house.lastRentPaid || Date.now();
-        if (Date.now() - user.house.lastRentPaid > 5 * rentIntervalMs) {
-          user.house.lastRentPaid = Date.now() - 5 * rentIntervalMs;
-        }
-        let timePassedRent = Date.now() - user.house.lastRentPaid;
-        
-        let downgraded = false;
-        let lostHouse = false;
-        let oldTierName = '';
-        let newTierName = '';
-
-        while (timePassedRent >= rentIntervalMs) {
-          const tierInfo = HOUSE_TIERS[user.house.tier];
-          if (!tierInfo) break;
-          
-          const rentCost = Math.round(tierInfo.price * 0.10);
-          if (user.balance >= rentCost) {
-            user.balance -= rentCost;
-            user.house.lastRentPaid += rentIntervalMs;
-          } else {
-            // Brak kasy na czynsz -> degradacja o 1 tier i reset ulepszeń
-            oldTierName = tierInfo.name;
-            user.house.upgrades = { warsztat: 0, zbrojownia: 0, silownia: 0 };
-            
-            if (user.house.tier > 1) {
-              user.house.tier -= 1;
-              const newTierInfo = HOUSE_TIERS[user.house.tier];
-              newTierName = newTierInfo.name;
-              downgraded = true;
-              user.house.lastRentPaid += rentIntervalMs;
-            } else {
-              // Utrata domu
-              delete user.house;
-              lostHouse = true;
-              break;
-            }
-          }
-          timePassedRent = Date.now() - user.house.lastRentPaid;
-        }
-
-        if (downgraded || lostHouse) {
-          user.houseNotifications = user.houseNotifications || [];
-          user.houseNotifications.push({
-            type: lostHouse ? 'lost' : 'downgraded',
-            oldTierName,
-            newTierName,
-            timestamp: Date.now()
-          });
-        }
-      }
-    }
+    // Ciężkie pętle (odsetki/czynsz/odznaki) — throttled co 60 sekund
+    runHeavyLoops(store);
 
     // Snapshot sald PRZED wywołaniem callbacku (dla windykacji pożyczek)
     const balancesBefore = {};
@@ -663,48 +771,7 @@ async function withData(callback) {
       }
     }
 
-    // Blacklista za ujemny stan konta przez 7 dni
-    if (!store.profiles.blacklist) {
-      store.profiles.blacklist = [];
-    }
-    for (const [userId, user] of Object.entries(store.users)) {
-      if (user) {
-        if ((user.balance || 0) < 0) {
-          if (!user.negativeSince) {
-            user.negativeSince = Date.now();
-          } else if (Date.now() - user.negativeSince >= 7 * 24 * 60 * 60 * 1000) {
-            if (!config.admins.includes(userId) && !store.profiles.blacklist.includes(userId)) {
-              store.profiles.blacklist.push(userId);
-              user.blacklistedForNegativeBalance = true;
-            }
-          }
-        } else {
-          user.negativeSince = null;
-        }
-      }
-    }
-
-    // Automatyczne odświeżanie odznak i zaległych kamieni milowych dla wszystkich użytkowników na bieżąco
-    const { refreshBadges, ensureInventoryRecord, giveMilestoneReward, MILESTONE_REWARDS } = require('./economy');
-    for (const [userId, user] of Object.entries(store.users)) {
-      if (user) {
-        // Retroaktywne kamienie milowe
-        user.claimedMilestones = user.claimedMilestones || [];
-        for (const milestoneStr of Object.keys(MILESTONE_REWARDS)) {
-          const milestone = parseInt(milestoneStr, 10);
-          if (user.level >= milestone && !user.claimedMilestones.includes(milestone)) {
-            const inv = ensureInventoryRecord(store.inventory, userId);
-            giveMilestoneReward(user, milestone, inv);
-            user.claimedMilestones.push(milestone);
-            console.log(`[RETROACTIVE] Przyznano zaległy kamień milowy ${milestone} dla użytkownika ${userId}`);
-          }
-        }
-
-        const inv = ensureInventoryRecord(store.inventory, userId);
-        refreshBadges(user, inv);
-      }
-    }
-
+    // Zapis wszystkich zmienionych danych (debounced — co 5 sekund)
     saveData('users', store.users);
     saveData('profiles', store.profiles);
     saveData('inventory', store.inventory);
