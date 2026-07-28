@@ -354,8 +354,8 @@ function performMonthlyReset(store) {
   // 2. Distribute items to TOP 5 eligible users
   const rewards = [
     'krolewskie_insygnia',
-    'szwajcarski_zegarek',
     'licencja_monopolisty',
+    'szwajcarski_zegarek',
     'ksiega_monopolisty',
     'katalizator_bogactwa'
   ];
@@ -417,6 +417,14 @@ function performMonthlyReset(store) {
       user.company = null;
       user.company2 = null;
 
+      // Usuń posiadane domy
+      delete user.house;
+
+      // Zresetuj poziom pracy w !work i dopalacze pracy
+      user.workLevel = 1;
+      user.workBoostUntil = 0;
+      user.workBoostPercent = 0;
+
       // Reset last work time to allow working immediately in the new month
       user.lastWorkTime = 0;
 
@@ -430,15 +438,23 @@ function performMonthlyReset(store) {
     }
   }
 
-  // 4. Reset all gang vaults & upgrades
+  // 4. Resetuj oferty na rynku (!rynek)
+  store.profiles.market = [];
+
+  // 5. Zresetuj długi i pożyczki między graczami
+  store.profiles.playerLoans = [];
+
+  // 6. Reset all gang vaults & upgrades (poza dziuplą)
   if (store.profiles.gangs) {
     for (const gangId of Object.keys(store.profiles.gangs)) {
       const gang = store.profiles.gangs[gangId];
       if (gang) {
         gang.vault = 0;
-        gang.levelDziupla = 0;
+        // gang.levelDziupla zostaje nienaruszona
         gang.levelBiznesy = 0;
         gang.levelFach = 0;
+        gang.levelUzbrojenie = 0;
+        gang.levelObrona = 0;
       }
     }
   }

@@ -1539,7 +1539,28 @@ login({ appState }, (loginErr, api) => {
 
       if (resetTriggered && client.api) {
         console.log('[MONTHLY RESET] Detected justReset flag. Broadcasting announcement...');
+        
+        const date = new Date();
+        let prevMonthIdx = date.getMonth() - 1;
+        let prevMonthYear = date.getFullYear();
+        if (prevMonthIdx < 0) {
+          prevMonthIdx = 11;
+          prevMonthYear -= 1;
+        }
+
+        const MONTH_NAMES_PL = [
+          'STYCZEŃ', 'LUTY', 'MARZEC', 'KWIECIEŃ', 'MAJ', 'CZERWIEC',
+          'LIPIEC', 'SIERPIEŃ', 'WRZESIEŃ', 'PAŹDZIERNIK', 'LISTOPAD', 'GRUDZIEŃ'
+        ];
+        const monthStr = MONTH_NAMES_PL[prevMonthIdx];
+        const seasonNum = Math.max(1, (prevMonthYear - 2026) * 12 + prevMonthIdx - 2);
+
         const eventItems = {
+          'krolewskie_insygnia': { emoji: '👑', name: 'Królewskie Insygnia' },
+          'licencja_monopolisty': { emoji: '📜', name: 'Licencja Monopolisty' },
+          'szwajcarski_zegarek': { emoji: '⌚', name: 'Szwajcarski Zegarek' },
+          'ksiega_monopolisty': { emoji: '📖', name: 'Księga Monopolisty' },
+          'katalizator_bogactwa': { emoji: '🧪', name: 'Katalizator Bogactwa' },
           'szkarlatne_oko': { emoji: '👁️', name: 'Szkarłatne Oko Krupiera' },
           'cien_nocy': { emoji: '🥷', name: 'Cień Nocy' },
           'wampirzy_sztylet': { emoji: '🩸', name: 'Wampirzy Sztylet' },
@@ -1552,21 +1573,22 @@ login({ appState }, (loginErr, api) => {
           'czterolistna_moneta': { emoji: '🍀', name: 'Czterolistna Moneta' }
         };
 
+        const rankEmojis = ['🥇', '🥈', '🥉', '🏅', '🏅'];
         let winnerLines = [];
         for (let i = 0; i < winners.length; i++) {
           const w = winners[i];
           const name = await client.resolveUserName(client.api, w.userId);
           const item = eventItems[w.item] || { emoji: '🎁', name: w.item };
-          winnerLines.push(`${i + 1}. 👤 **${name}** (Majątek: **${(w.total || 0).toLocaleString()}**) — Otrzymuje: ${item.emoji} **${item.name}**`);
+          const rankEmoji = rankEmojis[i] || '🏅';
+          winnerLines.push(`${rankEmoji} ${name} (Majątek: ${Number(w.total || 0).toLocaleString('en-US')} VicCoinów) — Otrzymuje: ${item.emoji} ${item.name} `);
         }
 
         const announceMsg = 
-          `🎉 📅 **ROZPOCZĄŁ SIĘ NOWY MIESIĄC - WIELKI RESET EKONOMII** 📅 🎉\n\n` +
-          `Wszystkie portfele, banki i gangi zostały zresetowane do wartości początkowych!\n\n` +
-          `🏆 **Zwycięzcy Sezonu (Top 5 Graczy bez multikont):**\n` +
-          (winnerLines.length > 0 ? winnerLines.join('\n') : 'Brak kwalifikujących się graczy.') + `\n\n` +
-          `💪 Czas na nowy sezon! Powodzenia w zdobywaniu kolejnych szczytów ekonomii!\n\n` +
-          `ℹ️ Aby wyłączyć powiadomienia wpisz !zakaz powiadomienia`;
+          `🌍 **[GLOBALNY RESET EKONOMII - ${monthStr} ${prevMonthYear}]** 🌍\n` +
+          `Sezon ${seasonNum} został zakończony \n\n` +
+          `ZWYCIĘZCY POPRZEDNIEGO SEZONU (TOP 5):\n\n` +
+          (winnerLines.length > 0 ? winnerLines.join('\n') : 'Brak zwycięzców.') + `\n\n` +
+          `dziekujemy za granie w tym sezonie i życzymy powodzenia w nastepnym <3`;
 
         const recentTargets = await getRecentActiveThreads(client);
         const targets = recentTargets.length > 0 ? recentTargets : (client.lastThreadId ? [client.lastThreadId] : []);
@@ -1819,7 +1841,7 @@ login({ appState }, (loginErr, api) => {
     console.log(`[NEW GROUP] Wykryto dodanie do nowej grupy: ${groupName} (ID: ${threadId}, dodany przez: ${adderName} (${adderId || 'Nieznany'}), osób: ${memberCount}). Wysyłanie powitania i powiadomienia...`);
 
     // 1. Wyślij wiadomość powitalną do nowej grupy (akceptacja zaproszenia/żądania wiadomości)
-    const welcomeMsg = "dziekuje za dodanie na grupe, moj prefix to ! po wiecej informacji wpisz !help";
+    const welcomeMsg = "dziekuje za dodanie na grupe, moj prefix to ! po wiecej informacji wpisz !help\nrówniez polecam zobaczyc !zasady";
     api.sendMessage(welcomeMsg, threadId, (sendErr) => {
       if (sendErr) {
         console.error(`[NEW GROUP ERROR] Błąd podczas wysyłania powitania do grupy ${threadId}:`, sendErr);

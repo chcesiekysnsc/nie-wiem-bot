@@ -83,14 +83,14 @@ const eventItems = {
     name: 'Szwajcarski Zegarek',
     emoji: '⌚',
     desc: 'Skraca cooldown na wszystkie komendy ekonomiczne (!work, !crime, !rob, !daily) o 15%. Stackuje się z innymi bonusami.',
-    award: 'TOP 2 sezonu 3'
+    award: 'TOP 3 sezonu 3'
   },
   13: {
     id: 'licencja_monopolisty',
     name: 'Licencja Monopolisty',
     emoji: '🏢',
     desc: 'Pozwala posiadać drugą firmę jednocześnie. Druga firma musi być zawsze o jeden tier niższa niż pierwsza. Zarządzanie drugą firmą odbywa się przez komendy: !firma2 [kup <nr/ID> | sprzedaj | napraw | status]. Zysk z obu firm zbierasz komendą: !firma zbierz.',
-    award: 'TOP 3 sezonu 3'
+    award: 'TOP 2 sezonu 3'
   },
   14: {
     id: 'ksiega_monopolisty',
