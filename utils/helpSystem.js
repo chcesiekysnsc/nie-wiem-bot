@@ -389,7 +389,7 @@ const helpCommands = [
     name: "dom",
     category: "ECONOMY_GAMBLING",
     shortDescription: "🏰 twoja posiadłość i bonusy",
-    description: "🏰 Zarządzanie własną nieruchomością. Pozwala kupować domy, ulepszać w nich moduły dające potężne pasywne bonusy (do zarobków, cooldownów, pojemności banku oraz siły/łupów z napadów gangu) oraz sprzedawać domy.",
+    description: "🏰 Zarządzanie własną nieruchomością. Pozwala kupować domy.",
     usage: "!dom | !dom rynek | !dom kup <nazwa> | !dom ulepsz <warsztat/zbrojownia/silownia> | !dom sprzedaj",
     examples: ["!dom", "!dom rynek", "!dom kup domek", "!dom ulepsz warsztat", "!dom sprzedaj"],
     cooldown: "3 sekundy",
@@ -397,7 +397,7 @@ const helpCommands = [
     aliases: ["mieszkanie", "house"],
     additionalInfo: [
       "💰 **Czynsz:** Wynosi 10% wartości domu co 24h. Brak środków w portfelu powoduje degradację domu o 1 klasę w dół i reset wszystkich ulepszeń do poziomu 0!",
-      "⚙️ **Ulepszenia:** Każdy dom ogranicza maksymalny poziom ulepszeń (Rudera do lvl 1, Domek do lvl 2, Apartament do lvl 3, Willa do lvl 4, Rezydencja do lvl 5).",
+      "⚙️ **Ulepszenia:** Każdy dom ogranicza maksymalny poziom ulepszeń.",
       "🔧 **Warsztat:** Zwiększa zarobki z pracy !work (od +1% do +9%).",
       "⚔️ **Zbrojownia:** Zwiększa Twoją osobistą siłę (+5% do +22%) i zdobywany przez Ciebie łup (+2% do +18%) w skokach gangu.",
       "🏋️ **Siłownia:** Skraca odnowienie wszystkich komend (od -2% do -12%).",
