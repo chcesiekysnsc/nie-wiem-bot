@@ -167,51 +167,77 @@ module.exports = {
       }
 
       const isDealerBJ = dealerValue === 21 && dealerCards.length === 2;
-      let payout = 0;
-      let outcome = '';
-      let net = 0;
+      let basePayout = 0;
+      let baseOutcome = '';
 
       if (isDealerBJ) {
         // Remis (Push)
-        payout = bet;
-        outcome = 'Push! Zarówno Ty, jak i Krupier macie Blackjacka. Otrzymujesz zwrot stawki.';
-        net = 0;
+        basePayout = bet;
+        baseOutcome = 'Push! Zarówno Ty, jak i Krupier macie Blackjacka. Otrzymujesz zwrot stawki.';
       } else {
         // Wygrana z Blackjackiem (x2.5)
-        payout = Math.round(bet * 2.5);
-        outcome = `🎉 **BLACKJACK!** Wygrywasz z bonusem x2.5! Otrzymujesz **${formatCurrency(payout)}**!`;
-        net = payout - bet;
+        basePayout = Math.round(bet * 2.5);
+        baseOutcome = `🎉 **BLACKJACK!** Wygrywasz z bonusem x2.5! Otrzymujesz **${formatCurrency(basePayout)}**!`;
       }
 
       const dbResult = await withData(store => {
         const user = createUser(authorId, store.users);
         const inventory = ensureInventoryRecord(store.inventory, authorId);
-        if (payout > bet && user.badges && user.badges.includes(config.badges.uzalezniony)) {
-          const profit = payout - bet;
-          payout += Math.round(profit * 0.03);
-          net = payout - bet;
+
+        let finalPayout = basePayout;
+        let finalNet = finalPayout - bet;
+
+        // Uzależniony badge: +3% do profitu
+        if (finalPayout > bet && user.badges && user.badges.includes(config.badges.uzalezniony)) {
+          const profit = finalPayout - bet;
+          finalPayout += Math.round(profit * 0.03);
+          finalNet = finalPayout - bet;
         }
+
+        // Casino win multiplier (zestawy przedmiotów)
+        const casinoWinBonus = getCasinoWinMultiplier(inventory);
+        if (casinoWinBonus > 0 && finalPayout > bet) {
+          const profit = finalPayout - bet;
+          finalPayout += Math.floor(profit * casinoWinBonus);
+          finalNet = finalPayout - bet;
+        }
+
         let talizmanBonus = 0;
-        if (payout > bet) {
-          const profit = payout - bet;
+        if (finalPayout > bet) {
+          // Event multiplier
+          const evMul = getActiveEventMultiplier('casino');
+          if (evMul > 1) {
+            const profit = finalPayout - bet;
+            finalPayout = bet + Math.round(profit * evMul);
+          }
+          // Królewskie Insygnia: +10%
+          if (hasItem(inventory, 'krolewskie_insygnia')) {
+            const profit = finalPayout - bet;
+            if (profit > 0) {
+              finalPayout += Math.floor(profit * 0.10);
+            }
+          }
+          // Talizman Fortuny
+          const profit = finalPayout - bet;
           const { applyTalizmanBonus } = require('../utils/economy');
           talizmanBonus = applyTalizmanBonus(user, inventory, profit);
-          payout += talizmanBonus;
-          net = payout - bet;
+          finalPayout += talizmanBonus;
+          finalNet = finalPayout - bet;
         }
-        user.balance += payout;
-        const xpResult = recordGame(user, net, 25, inventory);
+
+        user.balance += finalPayout;
+        const xpResult = recordGame(user, finalNet, 25, inventory);
         refreshBadges(user, inventory);
-        return { balance: user.balance, xpResult, talizmanBonus, streak: user.gambleStreak || 0 };
+        return { balance: user.balance, xpResult, talizmanBonus, streak: user.gambleStreak || 0, finalPayout, finalNet };
       });
 
       let replyText = `🃏 **Gra w Blackjacka rozstrzygnięta!**\n\n` +
         `👨‍💼 Krupier: ${renderHand(dealerCards)} (Wartość: ${dealerValue} pkt)\n` +
         `👤 Twoja Ręka: ${renderHand(playerCards)} (Wartość: 21 pkt)\n\n` +
-        `${outcome}\n` +
+        `${baseOutcome}\n` +
         `Twój balans: **${formatCurrency(dbResult.balance)}**`;
 
-      if (payout > bet && dbResult.talizmanBonus > 0) {
+      if (dbResult.finalPayout > bet && dbResult.talizmanBonus > 0) {
         replyText += `\n📿 **Talizman Fortuny:** Otrzymujesz bonus **+${formatCurrency(dbResult.talizmanBonus)}** (seria: ${dbResult.streak} wygranych pod rząd)`;
       }
 
