@@ -83,16 +83,9 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: [],
     additionalInfo: [
-      "Awansujesz na wyższe poziomy pracy wykonując !work.",
-      "📈 **Ścieżka kariery (Progresja):**\n" +
-      " • 🟢 **Praktykant** (Lvl 1-4) ➔ Bonus do **+6%** do wypłaty\n" +
-      " • 🔵 **Specjalista** (Lvl 5-9) ➔ Bonus do **+16%** do wypłaty\n" +
-      " • 🟡 **Ekspert** (Lvl 10-14) ➔ Bonus do **+26%** do wypłaty\n" +
-      " • 🟠 **Mistrz** (Lvl 15-19) ➔ Bonus do **+40%** do wypłaty\n" +
-      " • 🔴 **Legenda Pracy** (Lvl 20+) ➔ Stały bonus **+45%** do wypłaty",
-      "Podczas pracy masz 2% szans na losowe wydarzenie: premia (+50%), wypadek, podwyżka lub podwójne XP.",
-      "Podwyżka z eventu działa 6 godzin i zwiększa wszystkie wynagrodzenia z !work.",
-      "Wypadek daje plaster, który skraca cooldown pracy o 20% przez 1 godzinę."
+      "Wykonując !work awansujesz na wyższe poziomy i zwiększasz swoje zarobki.",
+      "📈 **Kariera:** 🟢Praktykant (L1-4: do +6%) • 🔵Specjalista (L5-9: do +16%) • 🟡Ekspert (L10-14: do +26%) • 🟠Mistrz (L15-19: do +40%) • 🔴Legenda (L20+: +45%)",
+      "Losowe zdarzenia (2% szans): Premia (+50%), Wypadek (CD -20% na 1h), Podwyżka (płaca +10% na 6h) lub Podwójne XP."
     ]
   },
   {
