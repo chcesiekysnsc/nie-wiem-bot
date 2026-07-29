@@ -425,26 +425,7 @@ module.exports = {
             }
           }
 
-          // Powiadomienie na wszystkie aktywne grupy, jeśli kurs > 80 i wygrana > 10000
-          if (result.sendGlobalNotify) {
-            try {
-              const userName = (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
-              const globalNotifyMsg = `🔥 **MEGA WYGRANA W MULTI-BET!** 🔥\n` +
-                                     `👤 Gracz: **${userName}**\n` +
-                                     `🏆 Trafiony łączny kurs: **${combinedOdds}**\n` +
-                                     `💰 Stawka: **${formatCurrency(totalStake)}**\n` +
-                                     `💸 Wygrana (bez podatku): **${formatCurrency(result.payoutApplied)}**`;
-              
-              const targets = Array.from(client.activeThreadIds);
-              if (targets.length > 0) {
-                for (const tId of targets) {
-                  client.api.sendMessage(globalNotifyMsg, tId);
-                }
-              }
-            } catch (err) {
-              console.error('[MULTIOBSTAWIENIE] Failed to send global notification:', err);
-            }
-          }
+
         } else {
           replyText += `💀 **KUPON PRZEGRANY.**\nStrata: **-${formatCurrency(Math.abs(result.net))}**\n`;
         }

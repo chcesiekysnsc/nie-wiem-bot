@@ -156,36 +156,6 @@ module.exports = {
 
     await message.reply(responseText);
     
-    // Wysłanie globalnego powiadomienia, jeśli wygrano przynajmniej raz i gracz nie jest na cooldownie 48h
-    if (wonRounds > 0 && sendGlobalNotify && client.activeThreadIds) {
-      let senderName = (client.userNames && client.userNames.get(message.author.id));
-      if (!senderName && typeof client.resolveUserName === 'function') {
-        senderName = await client.resolveUserName(client.api, message.author.id);
-      }
-      senderName = senderName || `Gracz_${message.author.id.slice(-6)}`;
 
-      const globalMsg = 
-        `📢 **MEGA WYGRANA W MULTI-MECZU!** 📢\n` +
-        `👤 Gracz: **${senderName}**\n` +
-        `🎯 Trafiony łączny kurs: **${bestWonOdds}**\n` +
-        `💰 Stawka: **${formatCurrency(resolvedKwota)}**\n` +
-        `💵 Wygrana (bez podatku): **${formatCurrency(bestWonPayout)}**\n\n` +
-        `ℹ️ Aby wyłączyć powiadomienia wpisz !zakaz powiadomienia`;
-
-      const targets = Array.from(client.activeThreadIds);
-      if (targets.length > 0) {
-        for (const threadId of targets) {
-          if (threadId !== message.threadID) {
-            const { loadData } = require('../utils/storage');
-            const profiles = loadData('profiles');
-            const settings = (profiles.threadSettings || {})[threadId] || {};
-            if (settings.blockNotifications) continue;
-            try {
-              client.api.sendMessage(globalMsg, threadId);
-            } catch (err) {}
-          }
-        }
-      }
-    }
   }
 };
