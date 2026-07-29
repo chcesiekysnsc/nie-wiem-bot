@@ -2,13 +2,13 @@ module.exports = {
   name: 'poradnik',
   aliases: ['guide'],
   async execute(client, message, args) {
-    const poradnikText = `*keorkie wprwoadzenie*
-1. najlepiej sie zarabia komendą work
-2. warto upowac paczki w sklepie poniewaz kazda paczka zawiera rozne itemy ktore daja rozne bonusy (!artefakty)
-3. mozna okradac komendą !rob nawet po id wiec nie musi byc kogos na danej grp wystarczy miec jego id
-4.wojny gngow mozna wywoywac nawet przez nazwe gangu oraz warto przejmowac !trytoria oraz !gang skok
-5. warto byc w topce aby na koneic sezonu dsotac eventowe itemy (!eventitemy)
-6.warto kuowac firmy oraz domy`;
+    const poradnikText = `*krótkie wprowadzenie*
+1. najlepiej się zarabia komendą !work
+2. warto kupować paczki w sklepie ponieważ każda paczka zawiera różne itemy które dają różne bonusy (!artefakty)
+3. można okradać komendą !rob nawet po id więc nie musi być kogoś na danej grp wystarczy mieć jego id
+4. wojny gangów można wywoływać nawet przez nazwę gangu oraz warto przejmować !terytoria oraz !gang skok
+5. warto być w topce aby na końcu sezonu dostać eventowe itemy (!eventitemy)
+6. warto kupować firmy oraz domy`;
 
     await message.reply(poradnikText);
   }
