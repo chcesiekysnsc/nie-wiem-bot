@@ -662,6 +662,18 @@ const helpCommands = [
 
   // --- KATEGORIA 3: INNE I NARZĘDZIA ---
   {
+    name: "poradnik",
+    category: "UTILITY_ADMIN",
+    shortDescription: "📖 krótki poradnik dla nowych graczy",
+    description: "📖 Wyświetla krótki poradnik z najważniejszymi poradami ułatwiającymi start.",
+    usage: "!poradnik",
+    examples: ["!poradnik"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["guide"],
+    additionalInfo: []
+  },
+  {
     id: 43,
     name: "help",
     category: "UTILITY_ADMIN",

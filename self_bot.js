@@ -1841,7 +1841,7 @@ login({ appState }, (loginErr, api) => {
     console.log(`[NEW GROUP] Wykryto dodanie do nowej grupy: ${groupName} (ID: ${threadId}, dodany przez: ${adderName} (${adderId || 'Nieznany'}), osób: ${memberCount}). Wysyłanie powitania i powiadomienia...`);
 
     // 1. Wyślij wiadomość powitalną do nowej grupy (akceptacja zaproszenia/żądania wiadomości)
-    const welcomeMsg = "dziekuje za dodanie na grupe, moj prefix to ! po wiecej informacji wpisz !help\nrówniez polecam zobaczyc !zasady";
+    const welcomeMsg = "dziekuje za dodanie na grupe, moj prefix to ! po wiecej informacji wpisz !help\nrówniez polecam zobaczyc !zasady\nsprawdz tez !poradnik na start!";
     api.sendMessage(welcomeMsg, threadId, (sendErr) => {
       if (sendErr) {
         console.error(`[NEW GROUP ERROR] Błąd podczas wysyłania powitania do grupy ${threadId}:`, sendErr);
