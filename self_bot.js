@@ -3108,7 +3108,7 @@ login({ appState }, (loginErr, api) => {
           const def = config.gangSeasonRewards && config.gangSeasonRewards[rewardId];
           if (!def) continue;
           seasonRewards.push({
-            num: regularNum + i + 1,
+            num: i + 1,
             id: rewardId,
             name: def.name,
             emoji: def.emoji,

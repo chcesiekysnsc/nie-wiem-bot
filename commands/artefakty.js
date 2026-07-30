@@ -53,6 +53,8 @@ const getEventItems = () => {
 module.exports = {
   name: 'artefakty',
   aliases: ['artf', 'artefakt', 'itemy', 'przedmioty'],
+  getNonEventItems,
+  getEventItems,
   async execute(client, message, args) {
     const userId = message.author.id;
     const standardItems = getNonEventItems();
