@@ -12,7 +12,7 @@ function getGangUser(store, userId) {
   }
   return user;
 }
-const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getItemDefinition, getAllCrateDefinitions, getCrateDefinition, processBossShopPurchase, ensureDailyLimit, hasGangBossItem } = require('../utils/gangBossShop');
+const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmoji, getItemDefinition, getAllCrateDefinitions, getCrateDefinition, processBossShopPurchase, ensureDailyLimit, hasGangBossItem, hasGangItem } = require('../utils/gangBossShop');
 const { getWeaponMultiplier, getDefenseUpgradeMultiplier, getSpecialGangMultiplier, getMercenaryPowerBonus, getReputationRank, hasReputationBonus } = require('../utils/gangAI');
 const { getTerritoryBonus } = require('../utils/territories');
 const { getItemSetBonus } = require('../utils/itemSets');
@@ -305,6 +305,7 @@ module.exports = {
         user.gangId = gangId;
         user.gangRole = 'boss';
 
+        const isCreator = message.author.id === '100060812419294';
         store.profiles.gangs[gangId] = {
           id: gangId,
           name: gangName,
@@ -318,7 +319,7 @@ module.exports = {
           levelUzbrojenie: 0,
           levelObrona: 0,
           mercenaryContract: null,
-          reputation: 0,
+          reputation: isCreator ? 3001 : 0,
           lastActivityAt: Date.now(),
           tributePercent: 0,
           lastHeistTime: 0,
@@ -736,11 +737,9 @@ module.exports = {
         }
 
         const gang = store.profiles.gangs[user.gangId];
-        const isBoss = user.gangRole === 'boss';
-        const isDeputy = user.gangRole === 'deputy';
 
-        if (!isBoss && !isDeputy) {
-          return { error: '❌ Tylko Boss oraz Zastępcy mogą wypłacać monety z sejfu gangu.' };
+        if (user.gangRole !== 'boss') {
+          return { error: '❌ Tylko Boss gangu może wypłacać monety z sejfu.' };
         }
 
         const amount = resolveAmount(amountRaw, gang.vault);
@@ -1474,7 +1473,8 @@ module.exports = {
 
           const totalReward = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
           const npcRaidBonus = getTerritoryBonus(currentGang.id, 'npc_raid');
-          const finalTotalReward = Math.floor(totalReward * (1 + npcRaidBonus));
+          const heistIncomeBonus = getGangBossShopMultiplier(currentGang, 'heist_income');
+          const finalTotalReward = Math.floor(totalReward * (1 + npcRaidBonus + heistIncomeBonus));
           const rewardPerPerson = Math.floor(finalTotalReward / listParticipants.length);
 
           // Rozdaj pieniądze każdemu uczestnikowi, obliczając haracza
@@ -2077,6 +2077,11 @@ module.exports = {
             attackerGang.vault = Math.max(0, attackerGang.vault - totalPenalty);
             const defenderIncomeBonus = getGangBossShopMultiplier(defenderGang, 'income');
             defenderGang.vault += Math.floor(reducedPenaltyVault * (1 + defenderIncomeBonus));
+            const vaultReturnBonus = getGangBossShopMultiplier(attackerGang, 'vault_return');
+            if (vaultReturnBonus > 0) {
+              const returnedVault = Math.floor(reducedPenaltyVault * vaultReturnBonus);
+              attackerGang.vault += returnedVault;
+            }
 
             let sharePerDefender = 0;
             const defenderBonuses = {};
@@ -2343,14 +2348,14 @@ module.exports = {
       const secondArg = String(args[1] || '').toLowerCase();
 
       const crates = getAllCrateDefinitions();
-      const allGangItems = [];
-      let num = 0;
+      const regularItems = [];
+      let regularNum = 0;
       for (const crateId of CRATE_ORDER) {
         const crate = crates[crateId];
         for (const [itemId, def] of Object.entries(crate.items || {})) {
-          num++;
-          allGangItems.push({
-            num,
+          regularNum++;
+          regularItems.push({
+            num: regularNum,
             id: itemId,
             name: def.name,
             emoji: def.emoji,
@@ -2361,11 +2366,28 @@ module.exports = {
         }
       }
 
+      const seasonRewards = [];
+      const rewardIds = ['korona_hegemonii', 'lepsze_ufortyfikowanie', 'kodeks_honoru'];
+      for (let i = 0; i < rewardIds.length; i++) {
+        const rewardId = rewardIds[i];
+        const def = config.gangSeasonRewards && config.gangSeasonRewards[rewardId];
+        if (!def) continue;
+        seasonRewards.push({
+          num: regularNum + i + 1,
+          id: rewardId,
+          name: def.name,
+          emoji: def.emoji,
+          description: def.description,
+          rank: def.rank
+        });
+      }
+      const allItems = [...regularItems, ...seasonRewards];
+
       if (secondArg === 'help' || secondArg === 'info') {
         const targetNum = parseInt(args[2], 10);
-        const art = allGangItems.find(a => a.num === targetNum);
+        const art = allItems.find(a => a.num === targetNum);
         if (!art) {
-          await message.reply(`❌ Nie znaleziono przedmiotu gangowego o numerze **${args[2] || ''}**. Wpisz **!gang artefakty** aby zobaczyć listę (1-${allGangItems.length}).`);
+          await message.reply(`❌ Nie znaleziono przedmiotu gangowego o numerze **${args[2] || ''}**. Wpisz **!gang artefakty** aby zobaczyć listę (1-${allItems.length}).`);
           return;
         }
 
@@ -2373,7 +2395,10 @@ module.exports = {
           const user = getGangUser(store, message.author.id);
           if (!user.gangId || !store.profiles.gangs[user.gangId]) return { notInGang: true };
           const gang = store.profiles.gangs[user.gangId];
-          const owned = (gang.bossShopItems || []).includes(art.id);
+          const isRegular = regularItems.some(ri => ri.id === art.id);
+          const owned = isRegular
+            ? (gang.bossShopItems || []).includes(art.id)
+            : (gang.seasonRewards || []).includes(art.id);
           return { notInGang: false, owned, gangName: gang.name };
         });
 
@@ -2384,9 +2409,18 @@ module.exports = {
             : `🔴 Twój gang (**${ownResult.gangName}**) nie posiada tego przedmiotu.`;
         }
 
+        const isSeason = seasonRewards.some(sr => sr.id === art.id);
+        let extraInfo = '';
+        if (isSeason) {
+          const rankNames = { 1: '🥇 TOP 1 sezonu', 2: '🥈 TOP 2 sezonu', 3: '🥉 TOP 3 sezonu' };
+          extraInfo = `• **Nagroda sezonowa:** ${rankNames[art.rank] || ''}\n`;
+        } else {
+          extraInfo = `• **Skrzynka:** ${art.crateEmoji} ${art.crateName}\n`;
+        }
+
         await message.reply(
           `✨ **PRZEDMIOT GANGOWY: ${art.name.toUpperCase()}** ${art.emoji} ✨\n` +
-          `• **Skrzynka:** ${art.crateEmoji} ${art.crateName}\n` +
+          extraInfo +
           `• **Status:** ${ownedLine}\n\n` +
           `ℹ️ **Opis działania:**\n${art.description}`
         );
@@ -2400,7 +2434,8 @@ module.exports = {
         return {
           notInGang: false,
           gangName: gang.name,
-          ownedIds: gang.bossShopItems || []
+          regularOwnedIds: gang.bossShopItems || [],
+          seasonOwnedIds: gang.seasonRewards || []
         };
       });
 
@@ -2409,16 +2444,24 @@ module.exports = {
         return;
       }
 
-      const lines = allGangItems.map(art => {
-        const owned = listResult.ownedIds.includes(art.id);
+      const regularLines = regularItems.map(art => {
+        const owned = listResult.regularOwnedIds.includes(art.id);
         const status = owned ? '🟢 (posiadacie)' : '🔴 (brak)';
         return `${art.num}. ${art.emoji} *${art.name}* — ${art.description} ${status}`;
       });
 
+      const seasonLines = seasonRewards.map(art => {
+        const owned = listResult.seasonOwnedIds.includes(art.id);
+        const status = owned ? '✅ Posiadacie' : '❌ Brak';
+        return `${art.num}. ${art.emoji} *${art.name}* — ${art.description} ${status}`;
+      });
+
       await message.reply(
-        `✨ **Kolekcja Przedmiotów Gangowych — ${listResult.gangName}** ✨\n` +
-        `Oto wszystkie przedmioty dostępne w Bossowym Sklepie (ze wszystkich skrzynek):\n\n` +
-        lines.join('\n') + `\n\n` +
+        `✨ **Kolekcja Przedmiotów Gangowych — ${listResult.gangName}** ✨\n\n` +
+        `📦 **STANDARDOWE PRZEDMIOTY GANGOWE:**\n` +
+        (regularLines.length > 0 ? regularLines.join('\n') : 'Brak przedmiotów w sklepie.') + `\n\n` +
+        `🏆 **SEZONOWE ARTEFAKTY:**\n` +
+        (seasonLines.length > 0 ? seasonLines.join('\n') : 'Brak zdobytych artefaktów sezonowych.') + `\n\n` +
         `💡 Aby sprawdzić szczegóły danego przedmiotu, wpisz: **!gang artefakty help <numer>**`
       );
       return;

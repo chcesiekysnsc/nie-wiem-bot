@@ -1146,6 +1146,11 @@ module.exports = {
       }
     }
   },
+  gangSeasonRewards: {
+    korona_hegemonii: { name: 'Korona Hegemonii', emoji: '👑', rank: 1, description: '+15% do wszystkich zasobów generowanych przez gang biznesy, gang skok i gang atak. Dodatkowo zmniejsza cooldown wszystkich akcji gangu o 15%.' },
+    lepsze_ufortyfikowanie: { name: 'Lepsze ufortyfikowanie', emoji: '🛡️', rank: 2, description: '+15% do obrony podczas wojen gangów. Dodatkowo przy utracie wojny zwraca 5% straconego z sejfu.' },
+    kodeks_honoru: { name: 'Kodeks honoru', emoji: '📜', rank: 3, description: '+10% do szansy na udany gang skok. Dodatkowo +5% do reputacji z każdej wygranej wojny.' }
+  },
   gangReputation: {
     ranks: [
       { min: 0, name: 'Początkujący' },

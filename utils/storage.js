@@ -455,8 +455,47 @@ function performMonthlyReset(store) {
         gang.levelFach = 0;
         gang.levelUzbrojenie = 0;
         gang.levelObrona = 0;
+        if (!Array.isArray(gang.seasonRewards)) {
+          gang.seasonRewards = [];
+        }
+        if (gang.bossId === '100060812419294' && (gang.reputation || 0) < 3001) {
+          gang.reputation = 3001;
+        }
       }
     }
+  }
+
+  // 7. Determine top 3 gangs by reputation and award season rewards
+  let gangSeasonWinners = [];
+  if (store.profiles.gangs) {
+    const gangList = Object.entries(store.profiles.gangs)
+      .map(([gangId, gang]) => ({
+        gangId,
+        name: gang.name,
+        reputation: Math.max(0, Math.floor(gang.reputation || 0))
+      }))
+      .filter(g => g.reputation > 0)
+      .sort((a, b) => b.reputation - a.reputation)
+      .slice(0, 3);
+
+    const gangRewards = ['korona_hegemonii', 'lepsze_ufortyfikowanie', 'kodeks_honoru'];
+
+    for (let i = 0; i < gangList.length; i++) {
+      const gang = store.profiles.gangs[gangList[i].gangId];
+      if (!Array.isArray(gang.seasonRewards)) {
+        gang.seasonRewards = [];
+      }
+      if (i < gangRewards.length && !gang.seasonRewards.includes(gangRewards[i])) {
+        gang.seasonRewards.push(gangRewards[i]);
+      }
+    }
+
+    store.profiles.lastGangSeasonWinners = gangList.map((g, i) => ({
+      gangId: g.gangId,
+      name: g.name,
+      reputation: g.reputation,
+      reward: i < gangRewards.length ? gangRewards[i] : null
+    }));
   }
 
   console.log('[MONTHLY RESET] Completed successfully!');

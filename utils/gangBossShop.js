@@ -40,6 +40,10 @@ function hasItem(gang, itemId) {
   return Array.isArray(gang.bossShopItems) && gang.bossShopItems.includes(itemId);
 }
 
+function hasGangItem(gang, itemId) {
+  return hasItem(gang, itemId) || (Array.isArray(gang.seasonRewards) && gang.seasonRewards.includes(itemId));
+}
+
 function getMultiplier(gang, effectType) {
   if (!gang || !Array.isArray(gang.bossShopItems)) return 0;
   const items = gang.bossShopItems;
@@ -51,29 +55,42 @@ function getMultiplier(gang, effectType) {
       if (items.includes('celowniki_laserowe')) mult += 0.10;
       if (items.includes('sztab_dowodzenia')) mult += 0.05;
       if (items.includes('centrum_treningowe')) mult += 0.02;
+      if (hasGangItem(gang, 'korona_hegemonii')) mult += 0.15;
       break;
     case 'defense':
       if (items.includes('mobilna_barykada')) mult += 0.06;
       if (items.includes('sztab_dowodzenia')) mult += 0.05;
       if (items.includes('monitoring')) mult += 0.02;
+      if (hasGangItem(gang, 'lepsze_ufortyfikowanie')) mult += 0.15;
       break;
     case 'loot':
       if (items.includes('van_opancerzony')) mult += 0.15;
       if (items.includes('sztab_dowodzenia')) mult += 0.10;
+      if (hasGangItem(gang, 'korona_hegemonii')) mult += 0.15;
       break;
     case 'heist_success':
       if (items.includes('siec_informatorow')) mult += 0.10;
+      if (hasGangItem(gang, 'kodeks_honoru')) mult += 0.10;
       break;
     case 'cooldown':
       if (items.includes('falszywe_dokumenty')) mult += 0.10;
+      if (hasGangItem(gang, 'korona_hegemonii')) mult += 0.15;
+      break;
+    case 'heist_income':
+      if (hasGangItem(gang, 'korona_hegemonii')) mult += 0.15;
       break;
     case 'income':
       if (items.includes('ksiegowy_gangu')) mult += 0.05;
       if (items.includes('sztab_dowodzenia')) mult += 0.10;
       if (items.includes('pralnia_pieniedzy')) mult += 0.05;
+      if (hasGangItem(gang, 'korona_hegemonii')) mult += 0.15;
       break;
     case 'work':
       if (items.includes('warsztat')) mult += 0.10;
+      if (hasGangItem(gang, 'korona_hegemonii')) mult += 0.15;
+      break;
+    case 'vault_return':
+      if (hasGangItem(gang, 'lepsze_ufortyfikowanie')) mult += 0.05;
       break;
   }
 
@@ -224,6 +241,7 @@ module.exports = {
   getItemName,
   getItemEmoji,
   hasItem,
+  hasGangItem,
   getMultiplier,
   attemptStealBossItem,
   rollCrate,

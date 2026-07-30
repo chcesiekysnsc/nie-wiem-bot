@@ -1528,11 +1528,13 @@ login({ appState }, (loginErr, api) => {
     try {
       let resetTriggered = false;
       let winners = [];
+      let gangWinners = [];
 
       await withData(store => {
         if (store.profiles.justReset) {
           resetTriggered = true;
           winners = store.profiles.lastResetWinners || [];
+          gangWinners = store.profiles.lastGangSeasonWinners || [];
           store.profiles.justReset = false;
         }
       });
@@ -1570,7 +1572,10 @@ login({ appState }, (loginErr, api) => {
           'czarna_bandera': { emoji: '🏴', name: 'Czarna Bandera' },
           'czarna_karta': { emoji: '💳', name: 'Czarna Karta Bankowa' },
           'kosci_oszusta': { emoji: '🎲', name: 'Kości Oszusta' },
-          'czterolistna_moneta': { emoji: '🍀', name: 'Czterolistna Moneta' }
+          'czterolistna_moneta': { emoji: '🍀', name: 'Czterolistna Moneta' },
+          'korona_hegemonii': { emoji: '👑', name: 'Korona Hegemonii' },
+          'lepsze_ufortyfikowanie': { emoji: '🛡️', name: 'Lepsze ufortyfikowanie' },
+          'kodeks_honoru': { emoji: '📜', name: 'Kodeks honoru' }
         };
 
         const rankEmojis = ['🥇', '🥈', '🥉', '🏅', '🏅'];
@@ -1583,12 +1588,26 @@ login({ appState }, (loginErr, api) => {
           winnerLines.push(`${rankEmoji} ${name} (Majątek: ${Number(w.total || 0).toLocaleString('en-US')} VicCoinów) — Otrzymuje: ${item.emoji} ${item.name} `);
         }
 
-        const announceMsg = 
+        const gangRankEmojis = ['🥇', '🥈', '🥉'];
+        let gangWinnerLines = [];
+        for (let i = 0; i < gangWinners.length; i++) {
+          const gw = gangWinners[i];
+          const rewardItem = eventItems[gw.reward] || { emoji: '🎁', name: gw.reward };
+          const rankEmoji = gangRankEmojis[i] || '🏅';
+          gangWinnerLines.push(`${rankEmoji} Gang **${gw.name}** (REP: ${Number(gw.reputation || 0).toLocaleString('en-US')}) — Otrzymuje: ${rewardItem.emoji} ${rewardItem.name}`);
+        }
+
+        let announceMsg = 
           `🌍 **[GLOBALNY RESET EKONOMII - ${monthStr} ${prevMonthYear}]** 🌍\n` +
           `Sezon ${seasonNum} został zakończony \n\n` +
           `ZWYCIĘZCY POPRZEDNIEGO SEZONU (TOP 5):\n\n` +
-          (winnerLines.length > 0 ? winnerLines.join('\n') : 'Brak zwycięzców.') + `\n\n` +
-          `dziekujemy za granie w tym sezonie i życzymy powodzenia w nastepnym <3`;
+          (winnerLines.length > 0 ? winnerLines.join('\n') : 'Brak zwycięzców.') + `\n\n`;
+
+        if (gangWinnerLines.length > 0) {
+          announceMsg += `TOP 3 GANGI SEZONU:\n\n` + gangWinnerLines.join('\n') + `\n\n`;
+        }
+
+        announceMsg += `dziekujemy za granie w tym sezonie i życzymy powodzenia w nastepnym <3`;
 
         const recentTargets = await getRecentActiveThreads(client);
         const targets = recentTargets.length > 0 ? recentTargets : (client.lastThreadId ? [client.lastThreadId] : []);

@@ -379,6 +379,11 @@ function resolveWar(attackerGang, defenderGang, attackerPowerCount, defenderPowe
   attackerGang.reputation = Math.max(0, attackerRepBefore + attackerRepChange);
   defenderGang.reputation = Math.max(0, defenderRepBefore + defenderRepChange);
 
+  const hasKodeksHonoru = Array.isArray(attackerGang.seasonRewards) && attackerGang.seasonRewards.includes('kodeks_honoru');
+  if (hasKodeksHonoru && success) {
+    attackerGang.reputation = Math.max(0, attackerGang.reputation + Math.floor(attackerRepChange * 0.05));
+  }
+
   const attackerVaultBefore = attackerGang.vault || 0;
   const defenderVaultBefore = defenderGang.vault || 0;
 
