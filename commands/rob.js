@@ -1,5 +1,6 @@
 const config = require('../config/config');
-const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem, getPassiveMultiplier, getItemSetBonus, getItemUpgradeLevel } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem, getPassiveMultiplier, getItemUpgradeLevel } = require('../utils/economy');
+const { getItemSetBonus } = require('../utils/itemSets');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 
