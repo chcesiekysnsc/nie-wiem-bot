@@ -96,8 +96,9 @@ function calculateSuccessChance(robberInv, victimInv, robber, overrideChance) {
 
 function calculateStolenAmount(baseStolen, robberInv, gangFachLevel) {
   let stolen = baseStolen;
-  const gangBonus = [0, 0.04, 0.08, 0.12][gangFachLevel] || 0;
-  stolen = Math.floor(stolen * (1 + gangBonus));
+  const gangMultipliers = [0.0, 0.04, 0.08, 0.12];
+  const gangBonus = [0, 4, 8, 12][gangFachLevel] || 0;
+  stolen = Math.floor(stolen * (1 + (gangMultipliers[gangFachLevel] || 0)));
 
   if (hasItem(robberInv, 'krwawy_zeton')) {
     const level = getItemUpgradeLevel(robberInv, 'krwawy_zeton');
