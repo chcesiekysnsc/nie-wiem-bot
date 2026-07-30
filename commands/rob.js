@@ -555,7 +555,11 @@ module.exports = {
 
     // Wyślij odpowiedź w bieżącym wątku
     if (replyMsg) {
-      sendWithMention(replyMsg, targetName, targetId, currentThreadId, message.rawEvent.messageID);
+      if (currentThreadId) {
+        sendWithMention(replyMsg, targetName, targetId, currentThreadId, message.rawEvent?.messageID);
+      } else {
+        await message.reply(replyMsg);
+      }
     }
 
     // Wyślij powiadomienie na inną grupę
