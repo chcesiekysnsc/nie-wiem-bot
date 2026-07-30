@@ -274,6 +274,7 @@ module.exports = {
         // Check Czarna Bandera for second robbery!
         let secondRob = null;
         const banderaPct = getPassiveMultiplier(robberInv, 'czarna_bandera', 0.05);
+        const losePercent = hasBeer ? 0.40 : 0.30;
         if (banderaPct > 0 && Math.random() < banderaPct) {
           let secondStealable = victim.balance;
           if (victim.activeLoan) {
@@ -380,7 +381,6 @@ module.exports = {
           secondRob
         };
       } else {
-        const losePercent = hasBeer ? 0.40 : 0.30;
         let fine = Math.max(1, Math.floor(robber.balance * losePercent));
         if (robberHasZeton) {
           const level = getItemUpgradeLevel(robberInv, 'krwawy_zeton');
