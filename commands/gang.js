@@ -16,6 +16,11 @@ const { getGangBossShopMultiplier, attemptStealBossItem, getItemName, getItemEmo
 const { getWeaponMultiplier, getDefenseUpgradeMultiplier, getSpecialGangMultiplier, getMercenaryPowerBonus, getReputationRank, hasReputationBonus } = require('../utils/gangAI');
 const { getTerritoryBonus } = require('../utils/territories');
 const { getItemSetBonus } = require('../utils/itemSets');
+const {
+  buildGangArtefaktyCategoryPrompt,
+  buildGangArtefaktyCategoryList,
+  resolveGangArtefaktyCategory
+} = require('../utils/artefactHelpSystem');
 
 const CRATE_ORDER = Object.keys(config.bossShopCrates && config.bossShopCrates.crates ? config.bossShopCrates.crates : {});
 const MERCENARIES_PRICE = 2000000;
@@ -2383,6 +2388,86 @@ module.exports = {
       }
       const allItems = [...regularItems, ...seasonRewards];
 
+      if (!args[1] || (secondArg && resolveGangArtefaktyCategory(secondArg))) {
+        const categoryKey = args[1] ? resolveGangArtefaktyCategory(secondArg) : null;
+
+        if (!categoryKey) {
+          client.pendingGangArtefakty = client.pendingGangArtefakty || new Map();
+          const senderId = message.author.id;
+          const threadId = message.threadID;
+
+          const existing = client.pendingGangArtefakty.get(senderId);
+          if (existing) clearTimeout(existing.timeout);
+
+          const timeout = setTimeout(() => {
+            client.pendingGangArtefakty.delete(senderId);
+          }, 60000);
+
+          client.pendingGangArtefakty.set(senderId, { timeout, threadId });
+
+          await message.reply({ embeds: [buildGangArtefaktyCategoryPrompt()] });
+          return;
+        }
+
+        if (categoryKey === 'standardowe') {
+          const listResult = await withData(store => {
+            const user = getGangUser(store, message.author.id);
+            if (!user.gangId || !store.profiles.gangs[user.gangId]) return { notInGang: true };
+            const gang = store.profiles.gangs[user.gangId];
+            return {
+              notInGang: false,
+              gangName: gang.name,
+              ownedIds: gang.bossShopItems || []
+            };
+          });
+
+          if (listResult.notInGang) {
+            await message.reply('❌ Nie należysz do żadnego gangu, więc nie mogę pokazać przedmiotów gangowych. Wpisz **!gang stworz <nazwa>** lub dołącz do istniejącego gangu.');
+            return;
+          }
+
+          const lines = regularItems.map(art => {
+            const owned = listResult.ownedIds.includes(art.id);
+            const status = owned ? '🟢 (posiadacie)' : '🔴 (brak)';
+            return `${art.num}. ${art.emoji} *${art.name}* — ${art.description} ${status}`;
+          });
+
+          await message.reply({
+            embeds: [buildGangArtefaktyCategoryList('standardowe', regularItems)]
+          });
+          return;
+        }
+
+        if (categoryKey === 'sezonowe') {
+          const listResult = await withData(store => {
+            const user = getGangUser(store, message.author.id);
+            if (!user.gangId || !store.profiles.gangs[user.gangId]) return { notInGang: true };
+            const gang = store.profiles.gangs[user.gangId];
+            return {
+              notInGang: false,
+              gangName: gang.name,
+              ownedIds: gang.seasonRewards || []
+            };
+          });
+
+          if (listResult.notInGang) {
+            await message.reply('❌ Nie należysz do żadnego gangu, więc nie mogę pokazać przedmiotów gangowych. Wpisz **!gang stworz <nazwa>** lub dołącz do istniejącego gangu.');
+            return;
+          }
+
+          const lines = seasonRewards.map(art => {
+            const owned = listResult.ownedIds.includes(art.id);
+            const status = owned ? '✅ Posiadacie' : '❌ Brak';
+            return `${art.num}. ${art.emoji} *${art.name}* — ${art.description} ${status}`;
+          });
+
+          await message.reply({
+            embeds: [buildGangArtefaktyCategoryList('sezonowe', seasonRewards)]
+          });
+          return;
+        }
+      }
+
       if (secondArg === 'help' || secondArg === 'info') {
         const targetNum = parseInt(args[2], 10);
         const art = allItems.find(a => a.num === targetNum);
@@ -2427,43 +2512,7 @@ module.exports = {
         return;
       }
 
-      const listResult = await withData(store => {
-        const user = getGangUser(store, message.author.id);
-        if (!user.gangId || !store.profiles.gangs[user.gangId]) return { notInGang: true };
-        const gang = store.profiles.gangs[user.gangId];
-        return {
-          notInGang: false,
-          gangName: gang.name,
-          regularOwnedIds: gang.bossShopItems || [],
-          seasonOwnedIds: gang.seasonRewards || []
-        };
-      });
-
-      if (listResult.notInGang) {
-        await message.reply('❌ Nie należysz do żadnego gangu, więc nie mogę pokazać przedmiotów gangowych. Wpisz **!gang stworz <nazwa>** lub dołącz do istniejącego gangu.');
-        return;
-      }
-
-      const regularLines = regularItems.map(art => {
-        const owned = listResult.regularOwnedIds.includes(art.id);
-        const status = owned ? '🟢 (posiadacie)' : '🔴 (brak)';
-        return `${art.num}. ${art.emoji} *${art.name}* — ${art.description} ${status}`;
-      });
-
-      const seasonLines = seasonRewards.map(art => {
-        const owned = listResult.seasonOwnedIds.includes(art.id);
-        const status = owned ? '✅ Posiadacie' : '❌ Brak';
-        return `${art.num}. ${art.emoji} *${art.name}* — ${art.description} ${status}`;
-      });
-
-      await message.reply(
-        `✨ **Kolekcja Przedmiotów Gangowych — ${listResult.gangName}** ✨\n\n` +
-        `📦 **STANDARDOWE PRZEDMIOTY GANGOWE:**\n` +
-        (regularLines.length > 0 ? regularLines.join('\n') : 'Brak przedmiotów w sklepie.') + `\n\n` +
-        `🏆 **SEZONOWE ARTEFAKTY:**\n` +
-        (seasonLines.length > 0 ? seasonLines.join('\n') : 'Brak zdobytych artefaktów sezonowych.') + `\n\n` +
-        `💡 Aby sprawdzić szczegóły danego przedmiotu, wpisz: **!gang artefakty help <numer>**`
-      );
+      await message.reply(`❌ Nieprawidłowy argument. Użyj: **!gang artefakty** aby zobaczyć kategorie, lub **!gang artefakty <kategoria>** (standardowe/sezonowe).`);
       return;
     }
 

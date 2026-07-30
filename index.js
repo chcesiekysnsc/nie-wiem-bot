@@ -11,6 +11,7 @@ const { checkCooldown, checkSpam, checkAdminDailyLimit } = require('./utils/cool
 const { errorEmbed } = require('./utils/embeds');
 const { createMessageContext, createMessengerClient } = require('./utils/messenger');
 const { checkAndResetBalance, checkPendingBalanceBlock } = require('./utils/balanceMonitor');
+const { resolveArtefaktyCategory, resolveGangArtefaktyCategory, buildArtefaktyCategoryList, buildGangArtefaktyCategoryList } = require('./utils/artefactHelpSystem');
 
 const client = createMessengerClient(config);
 client.config = config;
@@ -86,13 +87,90 @@ async function executeCommand(event, pageId) {
     }
   }
 
+  if (!client.pendingArtefakty) client.pendingArtefakty = new Map();
+  const pendingArtefakty = client.pendingArtefakty.get(senderId);
+  if (pendingArtefakty && pendingArtefakty.threadId === (event.threadID || pageId)) {
+    const categoryKey = resolveArtefaktyCategory(text.trim());
+    if (categoryKey) {
+      clearTimeout(pendingArtefakty.timeout);
+      client.pendingArtefakty.delete(senderId);
+
+      const { getNonEventItems, getEventItems } = require('./commands/artefakty');
+      const standardItems = getNonEventItems();
+      const eventItemsList = getEventItems();
+
+      const embed = categoryKey === 'standardowe'
+        ? buildArtefaktyCategoryList('standardowe', standardItems)
+        : buildArtefaktyCategoryList('eventowe', eventItemsList);
+
+      const replyText = require('./utils/messenger').renderPayloadToText({ embeds: [embed] });
+      if (replyText) {
+        client.sendText(senderId, replyText, 'RESPONSE');
+      }
+      return;
+    }
+  }
+
+  if (!client.pendingGangArtefakty) client.pendingGangArtefakty = new Map();
+  const pendingGangArtefakty = client.pendingGangArtefakty.get(senderId);
+  if (pendingGangArtefakty && pendingGangArtefakty.threadId === (event.threadID || pageId)) {
+    const categoryKey = resolveGangArtefaktyCategory(text.trim());
+    if (categoryKey) {
+      clearTimeout(pendingGangArtefakty.timeout);
+      client.pendingGangArtefakty.delete(senderId);
+
+      const { getAllCrateDefinitions, getCrateOrder } = require('./utils/gangBossShop');
+      const config = require('./config/config');
+      const crates = getAllCrateDefinitions();
+      const regularItems = [];
+      let regularNum = 0;
+      for (const crateId of getCrateOrder()) {
+        const crate = crates[crateId];
+        for (const [itemId, def] of Object.entries(crate.items || {})) {
+          regularNum++;
+          regularItems.push({
+            num: regularNum,
+            id: itemId,
+            name: def.name,
+            emoji: def.emoji,
+            description: def.description
+          });
+        }
+      }
+
+      const seasonRewards = [];
+      const rewardIds = ['korona_hegemonii', 'lepsze_ufortyfikowanie', 'kodeks_honoru'];
+      for (let i = 0; i < rewardIds.length; i++) {
+        const rewardId = rewardIds[i];
+        const def = config.gangSeasonRewards && config.gangSeasonRewards[rewardId];
+        if (!def) continue;
+        seasonRewards.push({
+          num: regularNum + i + 1,
+          id: rewardId,
+          name: def.name,
+          emoji: def.emoji,
+          description: def.description
+        });
+      }
+
+      const items = categoryKey === 'standardowe' ? regularItems : seasonRewards;
+      const embed = buildGangArtefaktyCategoryList(categoryKey, items);
+
+      const replyText = require('./utils/messenger').renderPayloadToText({ embeds: [embed] });
+      if (replyText) {
+        client.sendText(senderId, replyText, 'RESPONSE');
+      }
+      return;
+    }
+  }
+
   const senderUser = await client.cacheUser(senderId);
-  const message = createMessageContext(client, senderUser, text, [], event, pageId);
+  const msgForBalanceReset = createMessageContext(client, senderUser, text, [], event, pageId);
 
   let blockedByBalanceReset = false;
   try {
     blockedByBalanceReset = await checkAndResetBalance(
-      payload => message.reply(payload).catch(() => null),
+      payload => msgForBalanceReset.reply(payload).catch(() => null),
       senderId
     );
   } catch (err) {

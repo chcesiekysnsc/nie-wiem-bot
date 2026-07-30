@@ -2,6 +2,11 @@ const config = require('../config/config');
 const { ensureInventoryRecord, getItemUpgradeLevel } = require('../utils/economy');
 const { withData } = require('../utils/storage');
 const { eventItems } = require('./eventitemy');
+const {
+  buildArtefaktyCategoryPrompt,
+  buildArtefaktyCategoryList,
+  resolveArtefaktyCategory
+} = require('../utils/artefactHelpSystem');
 
 const eventItemIds = [
   'szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia',
@@ -45,6 +50,27 @@ const getEventItems = () => {
   return list;
 };
 
+function getStandardItemsCount() {
+  return getNonEventItems().length;
+}
+
+function getEventItemsCount() {
+  return getEventItems().length;
+}
+
+function getItemByGlobalNum(num) {
+  const standardItems = getNonEventItems();
+  const eventItemsList = getEventItems();
+  if (num >= 1 && num <= standardItems.length) {
+    return { item: standardItems[num - 1], type: 'standard' };
+  }
+  const eventOffset = standardItems.length;
+  if (num > eventOffset && num <= eventOffset + eventItemsList.length) {
+    return { item: eventItemsList[num - eventOffset - 1], type: 'event' };
+  }
+  return null;
+}
+
 module.exports = {
   name: 'artefakty',
   aliases: ['artf', 'artefakt', 'itemy', 'przedmioty'],
@@ -53,85 +79,116 @@ module.exports = {
     const standardItems = getNonEventItems();
     const eventItemsList = getEventItems();
 
-    if (args[0] === 'help' || args[0] === 'info') {
-      const numParam = parseInt(args[1], 10);
-      const standardArt = standardItems.find(a => a.num === numParam);
-      const eventArt = eventItemsList.find(a => a.num === numParam);
+    if (!args.length) {
+      client.pendingArtefakty = client.pendingArtefakty || new Map();
+      const senderId = message.author.id;
+      const threadId = message.threadID;
 
-      if (standardArt) {
+      const existing = client.pendingArtefakty.get(senderId);
+      if (existing) clearTimeout(existing.timeout);
+
+      const timeout = setTimeout(() => {
+        client.pendingArtefakty.delete(senderId);
+      }, 60000);
+
+      client.pendingArtefakty.set(senderId, { timeout, threadId });
+
+      await message.reply({ embeds: [buildArtefaktyCategoryPrompt()] });
+      return;
+    }
+
+    const firstArg = String(args[0] || '').toLowerCase();
+    const categoryKey = resolveArtefaktyCategory(firstArg);
+
+    if (categoryKey === 'standardowe') {
+      const items = standardItems.map(art => {
+        const ownedStatus = withData(store => {
+          const inv = ensureInventoryRecord(store.inventory, userId);
+          const qty = inv[art.id] || 0;
+          const level = getItemUpgradeLevel(inv, art.id);
+          const upgradeStr = level > 0 ? ` +${level}` : '';
+          const status = qty > 0 ? `🟢 (${qty} szt.${upgradeStr})` : '🔴 (brak)';
+          return `${art.num}. ${art.emoji} *${art.name}* — ${art.shortDesc} ${status}`;
+        });
+        return ownedStatus;
+      });
+
+      const result = await withData(store => {
+        const inv = ensureInventoryRecord(store.inventory, userId);
+        return standardItems.map(art => {
+          const qty = inv[art.id] || 0;
+          const level = getItemUpgradeLevel(inv, art.id);
+          const upgradeStr = level > 0 ? ` +${level}` : '';
+          const status = qty > 0 ? `🟢 (${qty} szt.${upgradeStr})` : '🔴 (brak)';
+          return `${art.num}. ${art.emoji} *${art.name}* — ${art.shortDesc} ${status}`;
+        });
+      });
+
+      await message.reply({
+        embeds: [buildArtefaktyCategoryList('standardowe', standardItems)]
+      });
+      return;
+    }
+
+    if (categoryKey === 'eventowe') {
+      await message.reply({
+        embeds: [buildArtefaktyCategoryList('eventowe', eventItemsList)]
+      });
+      return;
+    }
+
+    if (firstArg === 'help' || firstArg === 'info') {
+      const numParam = parseInt(args[1], 10);
+      const resolved = getItemByGlobalNum(numParam);
+      if (!resolved) {
+        await message.reply(`❌ Nie znaleziono przedmiotu o takim numerze. Użyj: **!artefakty** aby zobaczyć listę (1-${standardItems.length + eventItemsList.length}).`);
+        return;
+      }
+
+      if (resolved.type === 'standard') {
+        const art = resolved.item;
         const ownedStatus = await withData(store => {
           const inv = ensureInventoryRecord(store.inventory, userId);
-          const qty = inv[standardArt.id] || 0;
-          const level = getItemUpgradeLevel(inv, standardArt.id);
+          const qty = inv[art.id] || 0;
+          const level = getItemUpgradeLevel(inv, art.id);
           const upgradeStr = level > 0 ? ` (poziom +${level})` : '';
           return qty > 0 ? `🟢 Posiadasz (sztuk: ${qty}${upgradeStr})` : '🔴 Nie posiadasz';
         });
 
         let response = 
-          `✨ **PRZEDMIOT: ${standardArt.name.toUpperCase()}** ${standardArt.emoji} ✨\n` +
-          `• **Typ:** ${standardArt.buyable ? 'Kupowalny w sklepie' : 'Pasywny / Drop'}\n` +
-          `• **Cena:** ${standardArt.price > 0 ? standardArt.price.toLocaleString() + ' viccoinów' : 'Niedostępny bezpośrednio w sklepie'}\n` +
+          `✨ **PRZEDMIOT: ${art.name.toUpperCase()}** ${art.emoji} ✨\n` +
+          `• **Typ:** ${art.buyable ? 'Kupowalny w sklepie' : 'Pasywny / Drop'}\n` +
+          `• **Cena:** ${art.price > 0 ? art.price.toLocaleString() + ' viccoinów' : 'Niedostępny bezpośrednio w sklepie'}\n` +
           `• **Status:** ${ownedStatus}\n\n` +
-          `ℹ️ **Opis działania:**\n${standardArt.longDesc}`;
+          `ℹ️ **Opis działania:**\n${art.longDesc}`;
 
-        if (standardArt.shopNote) {
-          response += `\n\n🔍 **Jak zdobyć:**\n${standardArt.shopNote}`;
+        if (art.shopNote) {
+          response += `\n\n🔍 **Jak zdobyć:**\n${art.shopNote}`;
         }
 
         await message.reply(response);
         return;
       }
 
-      if (eventArt) {
+      if (resolved.type === 'event') {
+        const art = resolved.item;
         const ownedStatus = await withData(store => {
           const inv = ensureInventoryRecord(store.inventory, userId);
-          const qty = inv[eventArt.id] || 0;
+          const qty = inv[art.id] || 0;
           return qty > 0 ? `🟢 Posiadasz (sztuk: ${qty})` : '🔴 Nie posiadasz';
         });
 
         const response = 
-          `✨ **PRZEDMIOT EVENTOWY: ${eventArt.name.toUpperCase()}** ${eventArt.emoji} ✨\n` +
-          `• **Nagroda za:** ${eventArt.award}\n` +
+          `✨ **PRZEDMIOT EVENTOWY: ${art.name.toUpperCase()}** ${art.emoji} ✨\n` +
+          `• **Nagroda za:** ${art.award}\n` +
           `• **Status:** ${ownedStatus}\n\n` +
-          `ℹ️ **Opis działania:**\n${eventArt.longDesc}`;
+          `ℹ️ **Opis działania:**\n${art.longDesc}`;
 
         await message.reply(response);
         return;
       }
-
-      await message.reply(`❌ Nie znaleziono przedmiotu o takim numerze. Użyj: **!artefakty** aby zobaczyć listę (1-${standardItems.length + eventItemsList.length}).`);
-      return;
     }
 
-    const standardResult = await withData(store => {
-      const inv = ensureInventoryRecord(store.inventory, userId);
-      return standardItems.map(art => {
-        const qty = inv[art.id] || 0;
-        const level = getItemUpgradeLevel(inv, art.id);
-        const upgradeStr = level > 0 ? ` +${level}` : '';
-        const status = qty > 0 ? `🟢 (${qty} szt.${upgradeStr})` : '🔴 (brak)';
-        return `${art.num}. ${art.emoji} *${art.name}* — ${art.shortDesc} ${status}`;
-      });
-    });
-
-    const eventResult = await withData(store => {
-      const inv = ensureInventoryRecord(store.inventory, userId);
-      return eventItemsList.map(art => {
-        const qty = inv[art.id] || 0;
-        const status = qty > 0 ? `🟢 (${qty} szt.)` : '🔴 (brak)';
-        return `${art.num}. ${art.emoji} *${art.name}* — *${art.shortDesc}* ${status}`;
-      });
-    });
-
-    const response = 
-      `✨ *Kolekcja Przedmiotów i Artefaktów* ✨\n` +
-      `Oto wszystkie standardowe przedmioty i artefakty, które możesz dropnąć z paczek lub zdobyć w grze:\n\n` +
-      `📦 **STANDARDOWE PRZEDMIOTY:**\n` +
-      standardResult.join('\n') + `\n\n` +
-      `🎁 **EVENTOWE PRZEDMIOTY:**\n` +
-      eventResult.join('\n') + `\n\n` +
-      `💡 Aby sprawdzić szczegółowe działanie danego przedmiotu, wpisz: *!artefakty help <numer>*`;
-
-    await message.reply(response);
+    await message.reply(`❌ Nieprawidłowy argument. Użyj: **!artefakty** aby zobaczyć kategorie, lub **!artefakty <kategoria>** (standardowe/eventowe).`);
   }
 };

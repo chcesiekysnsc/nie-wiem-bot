@@ -3048,6 +3048,85 @@ login({ appState }, (loginErr, api) => {
       }
     }
 
+    if (!client.pendingArtefakty) client.pendingArtefakty = new Map();
+    const pendingArtefakty = client.pendingArtefakty.get(senderId);
+    if (pendingArtefakty && pendingArtefakty.threadId === threadId) {
+      const { resolveArtefaktyCategory, buildArtefaktyCategoryList } = require('./utils/artefactHelpSystem');
+      const categoryKey = resolveArtefaktyCategory(text.trim());
+      if (categoryKey) {
+        clearTimeout(pendingArtefakty.timeout);
+        client.pendingArtefakty.delete(senderId);
+
+        const { getNonEventItems, getEventItems } = require('./commands/artefakty');
+        const standardItems = getNonEventItems();
+        const eventItemsList = getEventItems();
+
+        const embed = categoryKey === 'standardowe'
+          ? buildArtefaktyCategoryList('standardowe', standardItems)
+          : buildArtefaktyCategoryList('eventowe', eventItemsList);
+
+        const replyText = renderPayloadToText({ embeds: [embed] });
+        if (replyText) {
+          api.sendMessage(replyText, threadId, () => {}, messageId);
+        }
+        return;
+      }
+    }
+
+    if (!client.pendingGangArtefakty) client.pendingGangArtefakty = new Map();
+    const pendingGangArtefakty = client.pendingGangArtefakty.get(senderId);
+    if (pendingGangArtefakty && pendingGangArtefakty.threadId === threadId) {
+      const { resolveGangArtefaktyCategory, buildGangArtefaktyCategoryList } = require('./utils/artefactHelpSystem');
+      const categoryKey = resolveGangArtefaktyCategory(text.trim());
+      if (categoryKey) {
+        clearTimeout(pendingGangArtefakty.timeout);
+        client.pendingGangArtefakty.delete(senderId);
+
+        const { getAllCrateDefinitions, getCrateOrder } = require('./utils/gangBossShop');
+        const config = require('./config/config');
+        const crates = getAllCrateDefinitions();
+        const regularItems = [];
+        let regularNum = 0;
+        for (const crateId of getCrateOrder()) {
+          const crate = crates[crateId];
+          for (const [itemId, def] of Object.entries(crate.items || {})) {
+            regularNum++;
+            regularItems.push({
+              num: regularNum,
+              id: itemId,
+              name: def.name,
+              emoji: def.emoji,
+              description: def.description
+            });
+          }
+        }
+
+        const seasonRewards = [];
+        const rewardIds = ['korona_hegemonii', 'lepsze_ufortyfikowanie', 'kodeks_honoru'];
+        for (let i = 0; i < rewardIds.length; i++) {
+          const rewardId = rewardIds[i];
+          const def = config.gangSeasonRewards && config.gangSeasonRewards[rewardId];
+          if (!def) continue;
+          seasonRewards.push({
+            num: regularNum + i + 1,
+            id: rewardId,
+            name: def.name,
+            emoji: def.emoji,
+            description: def.description
+          });
+        }
+
+        const items = categoryKey === 'standardowe' ? regularItems : seasonRewards;
+        const embed = buildGangArtefaktyCategoryList(categoryKey, items);
+
+        const replyText = renderPayloadToText({ embeds: [embed] });
+        if (replyText) {
+          api.sendMessage(replyText, threadId, () => {}, messageId);
+        }
+        return;
+      }
+    }
+
     if (!text.startsWith(currentPrefix)) {
       console.log(`[MQTT-MSG] Message ignored (does not start with prefix ${currentPrefix}): "${text}"`);
       return;
