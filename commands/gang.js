@@ -2390,6 +2390,50 @@ module.exports = {
 
       const categoryKey = resolveGangArtefaktyCategory(secondArg);
 
+      if (secondArg === 'help' || secondArg === 'info') {
+        const targetNum = parseInt(args[2], 10);
+        const art = regularItems.find(a => a.num === targetNum) || seasonRewards.find(a => a.num === targetNum);
+        if (!art) {
+          await message.reply(`❌ Nie znaleziono przedmiotu gangowego o numerze **${args[2] || ''}**.`);
+          return;
+        }
+
+        const ownResult = await withData(store => {
+          const user = getGangUser(store, message.author.id);
+          if (!user.gangId || !store.profiles.gangs[user.gangId]) return { notInGang: true };
+          const gang = store.profiles.gangs[user.gangId];
+          const isRegular = regularItems.some(ri => ri.id === art.id);
+          const owned = isRegular
+            ? (gang.bossShopItems || []).includes(art.id)
+            : (gang.seasonRewards || []).includes(art.id);
+          return { notInGang: false, owned, gangName: gang.name };
+        });
+
+        let ownedLine = 'ℹ️ Nie należysz do gangu, więc nie mogę sprawdzić posiadania.';
+        if (!ownResult.notInGang) {
+          ownedLine = ownResult.owned
+            ? `🟢 Twój gang (**${ownResult.gangName}**) posiada ten przedmiot.`
+            : `🔴 Twój gang (**${ownResult.gangName}**) nie posiada tego przedmiotu.`;
+        }
+
+        const isSeason = seasonRewards.some(sr => sr.id === art.id);
+        let extraInfo = '';
+        if (isSeason) {
+          const rankNames = { 1: '🥇 TOP 1 sezonu', 2: '🥈 TOP 2 sezonu', 3: '🥉 TOP 3 sezonu' };
+          extraInfo = `• **Nagroda sezonowa:** ${rankNames[art.rank] || ''}\n`;
+        } else {
+          extraInfo = `• **Skrzynka:** ${art.crateEmoji} ${art.crateName}\n`;
+        }
+
+        await message.reply(
+          `✨ **PRZEDMIOT GANGOWY: ${art.name.toUpperCase()}** ${art.emoji} ✨\n` +
+          extraInfo +
+          `• **Status:** ${ownedLine}\n\n` +
+          `ℹ️ **Opis działania:**\n${art.description}`
+        );
+        return;
+      }
+
       if (categoryKey && thirdArg === 'help') {
         const targetNum = parseInt(args[3], 10);
         let art = null;
@@ -2508,50 +2552,6 @@ module.exports = {
           });
           return;
         }
-      }
-
-      if (secondArg === 'help' || secondArg === 'info') {
-        const targetNum = parseInt(args[2], 10);
-        const art = regularItems.find(a => a.num === targetNum) || seasonRewards.find(a => a.num === targetNum);
-        if (!art) {
-          await message.reply(`❌ Nie znaleziono przedmiotu gangowego o numerze **${args[2] || ''}**. Wpisz **!gang artefakty** aby zobaczyć listę.`);
-          return;
-        }
-
-        const ownResult = await withData(store => {
-          const user = getGangUser(store, message.author.id);
-          if (!user.gangId || !store.profiles.gangs[user.gangId]) return { notInGang: true };
-          const gang = store.profiles.gangs[user.gangId];
-          const isRegular = regularItems.some(ri => ri.id === art.id);
-          const owned = isRegular
-            ? (gang.bossShopItems || []).includes(art.id)
-            : (gang.seasonRewards || []).includes(art.id);
-          return { notInGang: false, owned, gangName: gang.name };
-        });
-
-        let ownedLine = 'ℹ️ Nie należysz do gangu, więc nie mogę sprawdzić posiadania.';
-        if (!ownResult.notInGang) {
-          ownedLine = ownResult.owned
-            ? `🟢 Twój gang (**${ownResult.gangName}**) posiada ten przedmiot.`
-            : `🔴 Twój gang (**${ownResult.gangName}**) nie posiada tego przedmiotu.`;
-        }
-
-        const isSeason = seasonRewards.some(sr => sr.id === art.id);
-        let extraInfo = '';
-        if (isSeason) {
-          const rankNames = { 1: '🥇 TOP 1 sezonu', 2: '🥈 TOP 2 sezonu', 3: '🥉 TOP 3 sezonu' };
-          extraInfo = `• **Nagroda sezonowa:** ${rankNames[art.rank] || ''}\n`;
-        } else {
-          extraInfo = `• **Skrzynka:** ${art.crateEmoji} ${art.crateName}\n`;
-        }
-
-        await message.reply(
-          `✨ **PRZEDMIOT GANGOWY: ${art.name.toUpperCase()}** ${art.emoji} ✨\n` +
-          extraInfo +
-          `• **Status:** ${ownedLine}\n\n` +
-          `ℹ️ **Opis działania:**\n${art.description}`
-        );
-        return;
       }
 
       await message.reply(`❌ Nieprawidłowy argument. Użyj: **!gang artefakty** aby zobaczyć kategorie, lub **!gang artefakty <kategoria>** (standardowe/sezonowe).`);
