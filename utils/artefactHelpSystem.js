@@ -15,9 +15,7 @@ function buildArtefaktyCategoryPrompt(prefix = '!') {
 function buildArtefaktyCategoryList(categoryKey, items, prefix = '!') {
   const title = categoryKey === 'standardowe' ? '📦 Standardowe Przedmioty' : '🎁 Eventowe Przedmioty';
   const listText = items.map(item => `${item.num}. ${item.emoji} *${item.name}* — ${item.shortDesc}`).join('\n');
-  const helpHint = categoryKey === 'standardowe'
-    ? `💡 Szczegóły przedmiotu: \`${prefix}artefakty help <numer>\``
-    : `💡 Szczegóły przedmiotu: \`${prefix}artefakty help <numer>\``;
+  const helpHint = `💡 Szczegóły przedmiotu: \`${prefix}artefakty help <numer>\``;
 
   return baseEmbed()
     .setTitle(title)
@@ -39,7 +37,7 @@ function buildGangArtefaktyCategoryPrompt(prefix = '!') {
 function buildGangArtefaktyCategoryList(categoryKey, items, prefix = '!') {
   const title = categoryKey === 'standardowe' ? '📦 Standardowe Przedmioty Gangowe' : '🏆 Sezonowe Artefakty';
   const listText = items.map(item => `${item.num}. ${item.emoji} *${item.name}* — ${item.description}`).join('\n');
-  const helpHint = `💡 Szczegóły przedmiotu: \`${prefix}gang artefakty help <numer>\``;
+  const helpHint = `💡 Szczegóły przedmiotu: \`${prefix}gang artefakty <kategoria> help <numer>\``;
 
   return baseEmbed()
     .setTitle(title)

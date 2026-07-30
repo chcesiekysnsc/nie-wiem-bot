@@ -2351,6 +2351,7 @@ module.exports = {
     // ==========================================
     if (sub === 'artefakty' || sub === 'artf') {
       const secondArg = String(args[1] || '').toLowerCase();
+      const thirdArg = String(args[2] || '').toLowerCase();
 
       const crates = getAllCrateDefinitions();
       const regularItems = [];
@@ -2378,7 +2379,7 @@ module.exports = {
         const def = config.gangSeasonRewards && config.gangSeasonRewards[rewardId];
         if (!def) continue;
         seasonRewards.push({
-          num: regularNum + i + 1,
+          num: i + 1,
           id: rewardId,
           name: def.name,
           emoji: def.emoji,
@@ -2386,7 +2387,59 @@ module.exports = {
           rank: def.rank
         });
       }
-      const allItems = [...regularItems, ...seasonRewards];
+
+      const categoryKey = resolveGangArtefaktyCategory(secondArg);
+
+      if (categoryKey && thirdArg === 'help') {
+        const targetNum = parseInt(args[3], 10);
+        let art = null;
+
+        if (categoryKey === 'standardowe') {
+          art = regularItems.find(a => a.num === targetNum);
+        } else if (categoryKey === 'sezonowe') {
+          art = seasonRewards.find(a => a.num === targetNum);
+        }
+
+        if (!art) {
+          await message.reply(`❌ Nie znaleziono przedmiotu gangowego o numerze **${args[3] || ''}** w kategorii **${categoryKey}**.`);
+          return;
+        }
+
+        const ownResult = await withData(store => {
+          const user = getGangUser(store, message.author.id);
+          if (!user.gangId || !store.profiles.gangs[user.gangId]) return { notInGang: true };
+          const gang = store.profiles.gangs[user.gangId];
+          const isRegular = regularItems.some(ri => ri.id === art.id);
+          const owned = isRegular
+            ? (gang.bossShopItems || []).includes(art.id)
+            : (gang.seasonRewards || []).includes(art.id);
+          return { notInGang: false, owned, gangName: gang.name };
+        });
+
+        let ownedLine = 'ℹ️ Nie należysz do gangu, więc nie mogę sprawdzić posiadania.';
+        if (!ownResult.notInGang) {
+          ownedLine = ownResult.owned
+            ? `🟢 Twój gang (**${ownResult.gangName}**) posiada ten przedmiot.`
+            : `🔴 Twój gang (**${ownResult.gangName}**) nie posiada tego przedmiotu.`;
+        }
+
+        const isSeason = seasonRewards.some(sr => sr.id === art.id);
+        let extraInfo = '';
+        if (isSeason) {
+          const rankNames = { 1: '🥇 TOP 1 sezonu', 2: '🥈 TOP 2 sezonu', 3: '🥉 TOP 3 sezonu' };
+          extraInfo = `• **Nagroda sezonowa:** ${rankNames[art.rank] || ''}\n`;
+        } else {
+          extraInfo = `• **Skrzynka:** ${art.crateEmoji} ${art.crateName}\n`;
+        }
+
+        await message.reply(
+          `✨ **PRZEDMIOT GANGOWY: ${art.name.toUpperCase()}** ${art.emoji} ✨\n` +
+          extraInfo +
+          `• **Status:** ${ownedLine}\n\n` +
+          `ℹ️ **Opis działania:**\n${art.description}`
+        );
+        return;
+      }
 
       if (!args[1] || (secondArg && resolveGangArtefaktyCategory(secondArg))) {
         const categoryKey = args[1] ? resolveGangArtefaktyCategory(secondArg) : null;
@@ -2394,7 +2447,8 @@ module.exports = {
         if (!categoryKey) {
           client.pendingGangArtefakty = client.pendingGangArtefakty || new Map();
           const senderId = message.author.id;
-          const threadId = message.threadID;
+          const rawThreadId = message.rawEvent?.threadID || message.guild?.id;
+          const threadId = rawThreadId === 'messenger' ? undefined : (rawThreadId?.replace?.('page:', '') || rawThreadId);
 
           const existing = client.pendingGangArtefakty.get(senderId);
           if (existing) clearTimeout(existing.timeout);
@@ -2426,12 +2480,6 @@ module.exports = {
             return;
           }
 
-          const lines = regularItems.map(art => {
-            const owned = listResult.ownedIds.includes(art.id);
-            const status = owned ? '🟢 (posiadacie)' : '🔴 (brak)';
-            return `${art.num}. ${art.emoji} *${art.name}* — ${art.description} ${status}`;
-          });
-
           await message.reply({
             embeds: [buildGangArtefaktyCategoryList('standardowe', regularItems)]
           });
@@ -2455,12 +2503,6 @@ module.exports = {
             return;
           }
 
-          const lines = seasonRewards.map(art => {
-            const owned = listResult.ownedIds.includes(art.id);
-            const status = owned ? '✅ Posiadacie' : '❌ Brak';
-            return `${art.num}. ${art.emoji} *${art.name}* — ${art.description} ${status}`;
-          });
-
           await message.reply({
             embeds: [buildGangArtefaktyCategoryList('sezonowe', seasonRewards)]
           });
@@ -2470,9 +2512,9 @@ module.exports = {
 
       if (secondArg === 'help' || secondArg === 'info') {
         const targetNum = parseInt(args[2], 10);
-        const art = allItems.find(a => a.num === targetNum);
+        const art = regularItems.find(a => a.num === targetNum) || seasonRewards.find(a => a.num === targetNum);
         if (!art) {
-          await message.reply(`❌ Nie znaleziono przedmiotu gangowego o numerze **${args[2] || ''}**. Wpisz **!gang artefakty** aby zobaczyć listę (1-${allItems.length}).`);
+          await message.reply(`❌ Nie znaleziono przedmiotu gangowego o numerze **${args[2] || ''}**. Wpisz **!gang artefakty** aby zobaczyć listę.`);
           return;
         }
 
