@@ -2667,15 +2667,18 @@ module.exports = {
           }
 
           const contractDef = MERCENARY_TYPES[contractType];
+          const isCreator = message.author.id === '100060812419294';
           const purchaseResult = await withData(store => {
             const gang = store.profiles.gangs[readResult.gangId];
             if (!gang) {
               return { error: '❌ Gang nie istnieje.' };
             }
             if (gang.mercenaryContract && gang.mercenaryContract.until > Date.now()) {
-              const leftMs = gang.mercenaryContract.until - Date.now();
-              const leftMin = Math.ceil(leftMs / 60000);
-              return { error: `❌ Macie już aktywny kontrakt najemników! Pozostało: **${leftMin} min**. Nie można kupić kolejnego, dopóki efekt trwa.` };
+              if (!isCreator) {
+                const leftMs = gang.mercenaryContract.until - Date.now();
+                const leftMin = Math.ceil(leftMs / 60000);
+                return { error: `❌ Macie już aktywny kontrakt najemników! Pozostało: **${leftMin} min**. Nie można kupić kolejnego, dopóki efekt trwa.` };
+              }
             }
             if (contractDef.minRep && (gang.reputation || 0) < contractDef.minRep) {
               return { error: `❌ Aby kupić **${contractDef.name}**, gang potrzebuje co najmniej **${contractDef.minRep} REP**. Obecnie: **${gang.reputation || 0} REP**.` };
@@ -2684,7 +2687,12 @@ module.exports = {
               return { error: `❌ Brak środków w sejfie gangu. Potrzeba: **${formatCurrency(contractDef.price)}**, posiadacie: **${formatCurrency(gang.vault || 0)}**.` };
             }
             gang.vault -= contractDef.price;
-            gang.mercenaryContract = { type: contractType, until: Date.now() + MERCENARIES_DURATION_MS };
+            if (isCreator && gang.mercenaryContract && gang.mercenaryContract.until > Date.now()) {
+              gang.mercenaryContract.until += MERCENARIES_DURATION_MS;
+              gang.mercenaryContract.type = contractType;
+            } else {
+              gang.mercenaryContract = { type: contractType, until: Date.now() + MERCENARIES_DURATION_MS };
+            }
             return { ok: true, type: contractType, until: gang.mercenaryContract.until };
           });
 
