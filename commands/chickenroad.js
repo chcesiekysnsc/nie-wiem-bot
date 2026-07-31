@@ -5,9 +5,9 @@ const { getEffectiveChance } = require('../utils/chances');
 
 const DIFFICULTIES = {
   easy:     { label: 'Łatwy',    emoji: '🟢', survivalProb: 0.94, maxLanes: 24 },
-  medium:   { label: 'Średni',   emoji: '🟡', survivalProb: 0.85, maxLanes: 20 },
-  hard:     { label: 'Trudny',   emoji: '🟠', survivalProb: 0.70, maxLanes: 15 },
-  hardcore: { label: 'Hardcore', emoji: '🔴', survivalProb: 0.50, maxLanes: 10 }
+  medium:   { label: 'Średni',   emoji: '🟡', survivalProb: 0.89, maxLanes: 20 },
+  hard:     { label: 'Trudny',   emoji: '🟠', survivalProb: 0.81, maxLanes: 15 },
+  hardcore: { label: 'Hardcore', emoji: '🔴', survivalProb: 0.65, maxLanes: 12 }
 };
 
 const DIFFICULTY_ALIASES = {
@@ -19,15 +19,15 @@ const DIFFICULTY_ALIASES = {
 
 const GAME_TIMEOUT_MS = 30 * 60 * 1000;
 
+const MULTIPLIER_TABLES = {
+  easy: [1, 1.02, 1.09, 1.16, 1.23, 1.31, 1.39, 1.48, 1.57, 1.67, 1.78, 1.89, 2.02, 2.15, 2.28, 2.43, 2.58, 2.75, 2.92, 3.11, 3.31, 3.52, 3.75, 3.99, 4.24],
+  medium: [1, 1.08, 1.21, 1.36, 1.53, 1.72, 1.93, 2.16, 2.44, 2.74, 3.08, 3.46, 3.89, 4.37, 4.91, 5.52, 6.19, 6.94, 7.82, 8.77, 9.87],
+  hard: [1, 1.19, 1.46, 1.81, 2.23, 2.75, 3.40, 4.20, 5.18, 6.40, 7.90, 9.74, 12.04, 14.84, 18.34, 22.65],
+  hardcore: [1, 1.48, 2.27, 3.50, 5.38, 8.27, 12.73, 19.58, 30.13, 46.37, 71.31, 109.75, 168.78]
+};
+
 function buildMultiplierTable(difficultyKey) {
-  const diff = DIFFICULTIES[difficultyKey];
-  const houseEdge = (config.casinoTaxRate || 15) / 100;
-  const perLaneMultiplier = (1 / diff.survivalProb) * (1 - houseEdge);
-  const table = [1];
-  for (let lane = 1; lane <= diff.maxLanes; lane++) {
-    table.push(table[lane - 1] * perLaneMultiplier);
-  }
-  return table;
+  return MULTIPLIER_TABLES[difficultyKey];
 }
 
 let multiplierTableCache = null;

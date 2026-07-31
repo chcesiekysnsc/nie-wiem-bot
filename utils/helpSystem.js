@@ -337,7 +337,7 @@ const helpCommands = [
     cooldown: "",
     aliases: ["kurczak", "chickenrun"],
     additionalInfo: [
-      "🟢 Łatwy (94% szansy na pas, 24 pasy) • 🟡 Średni (85%, 20 pasów) • 🟠 Trudny (70%, 15 pasów) • 🔴 Hardcore (50%, 10 pasów).",
+      "🟢 Łatwy (94% szansy na pas, 24 pasy) • 🟡 Średni (89%, 20 pasów) • 🟠 Trudny (81%, 15 pasów) • 🔴 Hardcore (65%, 12 pasów).",
       "Im dalej zajdzie kurczak, tym wyższy mnożnik stawki — ale rośnie też ryzyko utraty całego zakładu.",
       "W dowolnym momencie możesz napisać !odbierz, żeby zainkasować aktualną wygraną zamiast ryzykować kolejny pas.",
       "Aktywna gra wygasa po 5 minutach bezczynności, a stawka wtedy przepada."
