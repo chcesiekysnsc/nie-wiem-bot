@@ -1,5 +1,7 @@
 const config = require('../config/config');
-const { ensureInventoryRecord, formatCurrency, recordGame, refreshBadges, resolveAmount } = require('../utils/economy');
+const { ensureInventoryRecord, formatCurrency, recordGame, refreshBadges,   resolveAmount,
+  getRandomXp
+} = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 const CARD_NAMES = {
@@ -210,7 +212,7 @@ module.exports = {
                 winnerUser.balance += finalPot;
 
                 const net = finalPot - active.bet;
-                const xpResult = recordGame(winnerUser, net, 25, winnerInv);
+                const xpResult = recordGame(winnerUser, net, getRandomXp(), winnerInv);
                 refreshBadges(winnerUser, winnerInv);
 
                 const losersXp = [];
@@ -218,7 +220,7 @@ module.exports = {
                   if (pid !== winnerId) {
                     const loserUser = createUser(pid, store.users);
                     const loserInv = ensureInventoryRecord(store.inventory, pid);
-                    const lx = recordGame(loserUser, -active.bet, 25, loserInv);
+                    const lx = recordGame(loserUser, -active.bet, getRandomXp(), loserInv);
                     refreshBadges(loserUser, loserInv);
                     losersXp.push({ userId: pid, xpResult: lx });
                   }

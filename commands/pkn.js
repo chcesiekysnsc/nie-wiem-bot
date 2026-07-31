@@ -1,5 +1,7 @@
 const config = require('../config/config');
-const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, hasItem, getPassiveMultiplier, getDealerBonusChance } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, hasItem, getPassiveMultiplier,   getDealerBonusChance,
+  getRandomXp
+} = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 async function resolveName(client, userId) {
@@ -268,7 +270,7 @@ module.exports = {
         }
 
         const { recordGame } = require('../utils/economy');
-        const xpResult = recordGame(user, net, 25, inventory);
+        const xpResult = recordGame(user, net, getRandomXp(), inventory);
         refreshBadges(user, inventory);
 
         return {

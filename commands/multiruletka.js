@@ -6,7 +6,8 @@ const {
   recordGame,
   refreshBadges,
   getPassiveMultiplier,
-  getActiveEventMultiplier
+  getActiveEventMultiplier,
+  getRandomXp
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -189,7 +190,7 @@ module.exports = {
               user.balance += payout;
 
               const net = payout - bet.betAmount;
-              const xpResult = recordGame(user, net, 25, inventory);
+              const xpResult = recordGame(user, net, getRandomXp(), inventory);
               refreshBadges(user, inventory);
 
               processedBets.push({

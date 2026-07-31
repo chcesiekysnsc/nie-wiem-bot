@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const config = require('../config/config');
-const { ensureInventoryRecord, formatCurrency, getMilestoneRewardDescription, recordGame, refreshBadges, resolveAmount } = require('../utils/economy');
+const { ensureInventoryRecord, formatCurrency, getMilestoneRewardDescription, recordGame, refreshBadges,   resolveAmount,
+  getRandomXp
+} = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveLuck } = require('../utils/chances');
 
@@ -269,7 +271,7 @@ module.exports = {
               }
 
               const finalNet = finalPayout - inv.amount;
-              const xpResult = recordGame(user, finalNet, 25, inventory);
+              const xpResult = recordGame(user, finalNet, getRandomXp(), inventory);
               refreshBadges(user, inventory);
 
               results.push({

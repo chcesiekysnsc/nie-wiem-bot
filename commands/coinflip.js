@@ -1,5 +1,7 @@
 const config = require('../config/config');
-const { ensureInventoryRecord, formatCurrency, hasItem, recordGame, refreshBadges, resolveAmount, getPassiveMultiplier, getActiveEventMultiplier, getCasinoWinMultiplier, getDealerBonusChance } = require('../utils/economy');
+const { ensureInventoryRecord, formatCurrency, hasItem, recordGame, refreshBadges, resolveAmount, getPassiveMultiplier, getActiveEventMultiplier, getCasinoWinMultiplier,   getDealerBonusChance,
+  getRandomXp
+} = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 
@@ -140,7 +142,7 @@ module.exports = {
       user.balance += payout;
 
       const net = payout - bet;
-      const xpResult = recordGame(user, net, 25, inventory);
+      const xpResult = recordGame(user, net, getRandomXp(), inventory);
       refreshBadges(user, inventory);
 
       return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, ananasSaved, kosciRefunded, badgeUsed, dealerCheated, talizmanBonus, streak: user.gambleStreak || 0 };

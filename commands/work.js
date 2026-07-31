@@ -14,7 +14,8 @@ const {
   getCasinoWinMultiplier,
   getItemUpgradeLevel,
   getUpgradedLinearBonus,
-  getUpgradedCapBonus
+  getUpgradedCapBonus,
+  getRandomXp
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -262,7 +263,7 @@ module.exports = {
         user.balance += reward;
       }
 
-      const xpGain = Math.max(1, Math.floor(reward / 10));
+      const xpGain = getRandomXp();
       const xpResult = addXp(user, xpGain, inventory);
       const leveledUpWork = xpResult.leveledUp;
 

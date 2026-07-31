@@ -4,6 +4,10 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function getRandomXp() {
+  return randomInt(20, 30);
+}
+
 function formatNumber(value) {
   return new Intl.NumberFormat('pl-PL').format(Math.floor(Number(value) || 0));
 }
@@ -682,5 +686,6 @@ module.exports = {
   HOUSE_TIERS,
   WORKSHOP_BONUSES,
   ARMORY_BONUSES,
-  GYM_BONUSES
+  GYM_BONUSES,
+  getRandomXp
 };

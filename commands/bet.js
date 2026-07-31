@@ -10,7 +10,8 @@ const {
   resolveAmount,
   getPassiveMultiplier,
   getActiveEventMultiplier,
-  getCasinoWinMultiplier
+  getCasinoWinMultiplier,
+  getRandomXp
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -359,7 +360,7 @@ module.exports = {
         }
 
         const net = won ? payout - bet : -bet;
-        const xpResult = recordGame(user, net, 25, inventory);
+        const xpResult = recordGame(user, net, getRandomXp(), inventory);
         refreshBadges(user, inventory);
 
         return {
@@ -562,7 +563,7 @@ module.exports = {
         refreshBadges(user, inventory);
       }
 
-      const xpResult = addXp(user, 25, inventory);
+      const xpResult = addXp(user, getRandomXp(), inventory);
       if (xpResult.leveledUp && xpResult.milestonesGained) {
         accumulatedMilestones.push(...xpResult.milestonesGained);
       }

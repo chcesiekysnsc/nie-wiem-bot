@@ -10,7 +10,8 @@ const {
   getPassiveMultiplier,
   getActiveEventMultiplier,
   getCasinoWinMultiplier,
-  getDealerBonusChance
+  getDealerBonusChance,
+  getRandomXp
 } = require('../utils/economy');
 const { createUser, withData, loadData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -226,7 +227,7 @@ module.exports = {
         }
 
         user.balance += finalPayout;
-        const xpResult = recordGame(user, finalNet, 25, inventory);
+        const xpResult = recordGame(user, finalNet, getRandomXp(), inventory);
         refreshBadges(user, inventory);
         return { balance: user.balance, xpResult, talizmanBonus, streak: user.gambleStreak || 0, finalPayout, finalNet };
       });
@@ -362,7 +363,7 @@ module.exports = {
           }
 
           user.balance += payout;
-          const xpResult = recordGame(user, net, 25, inventory);
+          const xpResult = recordGame(user, net, getRandomXp(), inventory);
           refreshBadges(user, inventory);
           return { balance: user.balance, xpResult, outcomeText };
         });
@@ -495,7 +496,7 @@ module.exports = {
           }
 
           user.balance += payout;
-          const xpResult = recordGame(user, net, 25, inventory);
+          const xpResult = recordGame(user, net, getRandomXp(), inventory);
           refreshBadges(user, inventory);
           return { balance: user.balance, xpResult, outcomeText };
         });
@@ -671,7 +672,7 @@ module.exports = {
       }
 
       user.balance += finalPayout;
-      const xpResult = recordGame(user, finalNet, 25, inventory);
+      const xpResult = recordGame(user, finalNet, getRandomXp(), inventory);
       refreshBadges(user, inventory);
       return { balance: user.balance, xpResult, outcome: finalOutcome, talizmanBonus, streak: user.gambleStreak || 0 };
     });

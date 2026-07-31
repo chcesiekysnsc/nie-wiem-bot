@@ -1,4 +1,6 @@
-const { formatCurrency, refreshBadges, ensureInventoryRecord, recordGame } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord,   recordGame,
+  getRandomXp
+} = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const config = require('../config/config');
 const { getEffectiveChance } = require('../utils/chances');
@@ -83,8 +85,8 @@ module.exports = {
         const winnerInv = ensureInventoryRecord(store.inventory, winnerId);
         const loserInv = ensureInventoryRecord(store.inventory, loserId);
 
-        const winnerXpResult = recordGame(winner, winAmount, 25, winnerInv);
-        const loserXpResult = recordGame(loser, -request.amount, 25, loserInv);
+        const winnerXpResult = recordGame(winner, winAmount, getRandomXp(), winnerInv);
+        const loserXpResult = recordGame(loser, -request.amount, getRandomXp(), loserInv);
 
         refreshBadges(winner, winnerInv);
         refreshBadges(loser, loserInv);
@@ -234,7 +236,7 @@ module.exports = {
           net = win;
         }
 
-        const xpResult = recordGame(user, net, 25, ensureInventoryRecord(store.inventory, message.author.id));
+        const xpResult = recordGame(user, net, getRandomXp(), ensureInventoryRecord(store.inventory, message.author.id));
         refreshBadges(user, ensureInventoryRecord(store.inventory, message.author.id));
 
         return {

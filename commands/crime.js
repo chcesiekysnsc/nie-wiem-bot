@@ -1,5 +1,7 @@
 const config = require('../config/config');
-const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable, getCrimeSuccessMultiplier, hasItem, getGlobalIncomeMultiplier, getGlobalCooldownReduction, getItemUpgradeLevel } = require('../utils/economy');
+const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable, getCrimeSuccessMultiplier, hasItem, getGlobalIncomeMultiplier, getGlobalCooldownReduction,   getItemUpgradeLevel,
+  getRandomXp
+} = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { hasReputationBonus } = require('../utils/gangAI');
@@ -49,7 +51,7 @@ module.exports = {
           // Charged standard penalty and jailed since they spent the bribe money in the meantime
           user.balance -= pending.amount;
           user.jailUntil = Date.now() + 60 * 60 * 1000;
-          recordGame(user, -pending.amount, 25, inventory);
+          recordGame(user, -pending.amount, getRandomXp(), inventory);
           refreshBadges(user, inventory);
           return { error: `❌ Nie masz już wystarczającej ilości gotówki na łapówkę (${formatCurrency(bribeCost)}). Zapłaciłeś standardową karę i trafiłeś do więzienia: **-${formatCurrency(pending.amount)}**.` };
         }
@@ -60,7 +62,7 @@ module.exports = {
         if (refused) {
           user.balance -= bribeCost;
           user.jailUntil = Date.now() + 60 * 60 * 1000; // 1 hour jail
-          recordGame(user, -bribeCost, 25, inventory);
+          recordGame(user, -bribeCost, getRandomXp(), inventory);
           refreshBadges(user, inventory);
           return { success: false, bribeCost, jailUntil: user.jailUntil };
         } else {
@@ -68,7 +70,7 @@ module.exports = {
           user.balance -= bribeCost;
           user.balance += payout;
           const net = payout - bribeCost;
-          recordGame(user, net, 25, inventory);
+          recordGame(user, net, getRandomXp(), inventory);
           refreshBadges(user, inventory);
           return { success: true, bribeCost, payout, net };
         }
@@ -211,7 +213,7 @@ module.exports = {
           const bossUser = createUser(gang.bossId, store.users);
           bossUser.balance += tribute;
         }
-        const xpResult = recordGame(user, netAmount, 25, inventory);
+        const xpResult = recordGame(user, netAmount, getRandomXp(), inventory);
         refreshBadges(user, inventory);
         return {
           success: true,
@@ -271,7 +273,7 @@ module.exports = {
               const inventory = ensureInventoryRecord(store.inventory, authorId);
               user.balance -= pending.amount;
               user.jailUntil = Date.now() + 60 * 60 * 1000; // default jail
-              recordGame(user, -pending.amount, 25, inventory);
+              recordGame(user, -pending.amount, getRandomXp(), inventory);
               refreshBadges(user, inventory);
             });
 
@@ -300,7 +302,7 @@ module.exports = {
           const inventory = ensureInventoryRecord(store.inventory, authorId);
           user.balance -= result.amount;
           user.jailUntil = Date.now() + 60 * 60 * 1000; // default jail
-          const xpRes = recordGame(user, -result.amount, 25, inventory);
+          const xpRes = recordGame(user, -result.amount, getRandomXp(), inventory);
           refreshBadges(user, inventory);
           return { xpResult: xpRes };
         });

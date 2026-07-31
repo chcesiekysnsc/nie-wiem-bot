@@ -7,7 +7,8 @@ const {
   recordGame,
   refreshBadges,
   getActiveEventMultiplier,
-  getItemUpgradeLevel
+  getItemUpgradeLevel,
+  getRandomXp
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -98,7 +99,7 @@ module.exports = {
       user.lastGambleWin = 0;
 
       // Zapisz grę w statystykach
-      const xpResult = recordGame(user, netChange, 25, inventory);
+      const xpResult = recordGame(user, netChange, getRandomXp(), inventory);
       refreshBadges(user, inventory);
 
       return {
