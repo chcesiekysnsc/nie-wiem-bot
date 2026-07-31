@@ -16,13 +16,46 @@ function buildArtefaktyCategoryList(categoryKey, items, prefix = '!') {
   const title = categoryKey === 'standardowe' ? '📦 Standardowe Przedmioty' : '🎁 Eventowe Przedmioty';
   const listText = items.map(item => {
     const awardText = item.award ? `${item.award} — ` : '';
-    return `${item.num}. ${item.emoji} *${item.name}* — ${awardText}${item.shortDesc}`;
+    return `${item.num}. ${item.emoji} *${item.name}* — ${awardText}${item.shortDesc || item.description || ''}`;
   }).join('\n');
-  const helpHint = `💡 Szczegóły przedmiotu: \`${prefix}artefakty help <numer>\``;
+  const helpHint = categoryKey === 'standardowe'
+    ? `💡 Szczegóły przedmiotu: \`${prefix}artefakty help <numer>\``
+    : `💡 Szczegóły przedmiotu: \`${prefix}artefakty help <numer>\``;
 
   return baseEmbed()
     .setTitle(title)
     .setDescription(`${listText}\n\n${helpHint}`);
+}
+
+function buildArtefaktyDetail(categoryKey, item, ownedStatus) {
+  const isEvent = categoryKey === 'eventowe';
+  const title = isEvent
+    ? `✨ PRZEDMIOT EVENTOWY: ${item.name.toUpperCase()} ✨`
+    : `✨ PRZEDMIOT: ${item.name.toUpperCase()} ✨`;
+
+  let desc = '';
+  if (isEvent) {
+    desc += `• **Nagroda za:** ${item.award || 'Brak informacji'}\n`;
+  } else {
+    desc += `• **Typ:** ${item.buyable ? 'Kupowalny w sklepie' : 'Pasywny / Drop'}\n`;
+    desc += `• **Cena:** ${item.price > 0 ? item.price.toLocaleString() + ' viccoinów' : 'Niedostępny bezpośrednio w sklepie'}\n`;
+  }
+  desc += `• **Status:** ${ownedStatus}\n\n`;
+  desc += `ℹ️ **Opis działania:**\n${item.description || item.shortDesc || 'Brak opisu'}`;
+
+  if (!isEvent && item.shopNote) {
+    desc += `\n\n🔍 **Jak zdobyć:**\n${item.shopNote}`;
+  }
+
+  return baseEmbed()
+    .setTitle(`${title} ${item.emoji}`)
+    .setDescription(desc);
+}
+
+function buildArtefaktyError() {
+  return baseEmbed()
+    .setTitle('❌ Błąd')
+    .setDescription('Nieprawidłowy argument. Użyj: **!artefakty** aby zobaczyć kategorie, lub **!artefakty <kategoria>** (standardowe/eventowe).');
 }
 
 function buildGangArtefaktyCategoryPrompt(prefix = '!') {
@@ -40,7 +73,7 @@ function buildGangArtefaktyCategoryPrompt(prefix = '!') {
 function buildGangArtefaktyCategoryList(categoryKey, items, prefix = '!') {
   const title = categoryKey === 'standardowe' ? '📦 Standardowe Przedmioty Gangowe' : '🏆 Sezonowe Artefakty';
   const listText = items.map(item => `${item.num}. ${item.emoji} *${item.name}* — ${item.description}`).join('\n');
-  const helpHint = `💡 Szczegóły przedmiotu: \`${prefix}gang artefakty <kategoria> help <numer>\``;
+  const helpHint = `💡 Szczegóły przedmiotu: \`${prefix}gang artefakty help <numer>\``;
 
   return baseEmbed()
     .setTitle(title)
@@ -80,6 +113,8 @@ function resolveGangArtefaktyCategory(input) {
 module.exports = {
   buildArtefaktyCategoryPrompt,
   buildArtefaktyCategoryList,
+  buildArtefaktyDetail,
+  buildArtefaktyError,
   buildGangArtefaktyCategoryPrompt,
   buildGangArtefaktyCategoryList,
   resolveArtefaktyCategory,
