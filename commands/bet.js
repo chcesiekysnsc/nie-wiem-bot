@@ -276,16 +276,23 @@ module.exports = {
 
         let badgeBonus = 0;
         let activeBadgeName = '';
+        const hazardzistaBadge = config.badges.hazardzista;
+        const bogBadge = config.badges.bog;
+        const rekinBadge = config.badges.rekin;
+        const isBadgeEligible = chosenNumber > 2;
+        const isHazardzistaEligible = user.badges && user.badges.includes(hazardzistaBadge) && isBadgeEligible;
+        const isBogEligible = user.badges && user.badges.includes(bogBadge) && isBadgeEligible;
+        const isRekinEligible = user.badges && user.badges.includes(rekinBadge) && isBadgeEligible;
         if (user.badges) {
-          if (user.badges.includes(config.badges.bog)) {
+          if (isBogEligible) {
             badgeBonus = 1.5;
-            activeBadgeName = config.badges.bog;
-          } else if (user.badges.includes(config.badges.rekin)) {
+            activeBadgeName = bogBadge;
+          } else if (isRekinEligible) {
             badgeBonus = 1.0;
-            activeBadgeName = config.badges.rekin;
-          } else if (user.badges.includes(config.badges.hazardzista)) {
+            activeBadgeName = rekinBadge;
+          } else if (isHazardzistaEligible) {
             badgeBonus = 0.5;
-            activeBadgeName = config.badges.hazardzista;
+            activeBadgeName = hazardzistaBadge;
           }
         }
         const hasOko = hasItem(inventory, 'szkarlatne_oko');
@@ -476,12 +483,16 @@ module.exports = {
         }
 
         let badgeBonus = 0;
+        const isBadgeEligible = chosenNumber > 2;
+        const isHazardzistaEligible = user.badges && user.badges.includes(config.badges.hazardzista) && isBadgeEligible;
+        const isBogEligible = user.badges && user.badges.includes(config.badges.bog) && isBadgeEligible;
+        const isRekinEligible = user.badges && user.badges.includes(config.badges.rekin) && isBadgeEligible;
         if (user.badges) {
-          if (user.badges.includes(config.badges.bog)) {
+          if (isBogEligible) {
             badgeBonus = 0.25;
-          } else if (user.badges.includes(config.badges.rekin)) {
+          } else if (isRekinEligible) {
             badgeBonus = 0.12;
-          } else if (user.badges.includes(config.badges.hazardzista)) {
+          } else if (isHazardzistaEligible) {
             badgeBonus = 0.06;
           }
         }
