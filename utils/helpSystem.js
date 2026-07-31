@@ -331,7 +331,7 @@ const helpCommands = [
     name: "chickenroad",
     category: "ECONOMY_GAMBLING",
     shortDescription: "🐔 przeprowadź kurczaka przez ruchliwą drogę",
-    description: "🐔 Chicken Road — wybierz poziom ryzyka i poprowadź kurczaka przez kolejne pasy ruchu. Każdy bezpiecznie przebyty pas podbija mnożnik Twojej stawki, ale wystarczy jeden zły krok, żeby stracić wszystko. Ty decydujesz, kiedy się zatrzymać i odebrać wygraną.",
+    description: "🐔 Chicken Road — wybierz poziom ryzyka i poprowadź kurczaka przez kolejne pasy ruchu.",
     usage: "!chickenroad <poziom> <kwota> | !dalej | !odbierz",
     examples: ["!chickenroad latwy 5000", "!chickenroad sredni 10000", "!dalej", "!odbierz"],
     cooldown: "",
