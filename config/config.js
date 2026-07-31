@@ -1038,6 +1038,7 @@ module.exports = {
     ekspert: '🔥 Ekspert',
     mistrz: '👑 Mistrz',
     zwyciezca: '🏆 Zwycięzca',
+    placzek: '😭 Płaczka',
     boss: '👑 Boss Gangu',
     zastepca: '⭐ Zastępca',
     czlonek: '👤 Członek Gangu'

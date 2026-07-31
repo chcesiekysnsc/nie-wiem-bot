@@ -70,7 +70,7 @@ function getRobCooldownDuration(inv, baseDuration) {
   return Math.max(0, duration);
 }
 
-function calculateSuccessChance(robberInv, victimInv, robber, overrideChance) {
+function calculateSuccessChance(robberInv, victimInv, robber, overrideChance, victim) {
   const robberHasZeton = hasItem(robberInv, 'krwawy_zeton');
   let chance = robberHasZeton ? 0.66 : 0.60;
 
@@ -90,6 +90,10 @@ function calculateSuccessChance(robberInv, victimInv, robber, overrideChance) {
   chance += getPassiveMultiplier(robberInv, 'zestaw_wlamywacza', 0.03);
   chance -= getPassiveMultiplier(victimInv, 'alarm', 0.04);
   chance -= getItemSetBonus(victimInv, 'catch_chance');
+
+  if (victim && victim.badges && victim.badges.includes(config.badges.placzek)) {
+    chance -= 0.10;
+  }
 
   return Math.min(chance, 1);
 }
@@ -133,7 +137,7 @@ function calculateInsygniaBonus(robberInv, netAfterTribute) {
   return Math.floor(netAfterTribute * 0.10);
 }
 
-function calculateFailFine(robberBalance, robberInv, victimInv, beer) {
+function calculateFailFine(robberBalance, robberInv, victimInv, beer, victim) {
   const losePercent = beer ? 0.40 : 0.30;
   let fine = Math.max(1, Math.floor(robberBalance * losePercent));
 
@@ -150,6 +154,10 @@ function calculateFailFine(robberBalance, robberInv, victimInv, beer) {
   const catchPenaltyBonus = getItemSetBonus(victimInv, 'catch_penalty');
   if (catchPenaltyBonus > 0) {
     fine = Math.floor(fine * (1 + catchPenaltyBonus));
+  }
+
+  if (victim && victim.badges && victim.badges.includes(config.badges.placzek)) {
+    fine = Math.floor(fine * 1.05);
   }
 
   let payout = fine;
@@ -320,7 +328,7 @@ module.exports = {
             robber.piwoActive = false;
           }
 
-          const chance = calculateSuccessChance(robberInv, victimInv, robber, robSuccessOverride);
+          const chance = calculateSuccessChance(robberInv, victimInv, robber, robSuccessOverride, victim);
           const success = Math.random() < chance;
 
           const percent = hasBeer ? 0.25 : 0.20;
@@ -372,7 +380,7 @@ module.exports = {
                 secondStealable = Math.max(0, victim.balance - victim.activeLoan.originalAmount);
               }
               if (secondStealable >= 1000) {
-                const secondChance = calculateSuccessChance(robberInv, victimInv, robber, robSuccessOverride);
+                const secondChance = calculateSuccessChance(robberInv, victimInv, robber, robSuccessOverride, victim);
                 const secondSuccess = Math.random() < secondChance;
                 if (secondSuccess) {
                   const secondBase = Math.max(1, Math.floor(secondStealable * percent));
@@ -401,7 +409,7 @@ module.exports = {
                     insygniaBonus: secondInsygnia
                   };
                 } else {
-                  const secondFail = calculateFailFine(robber.balance, robberInv, victimInv, hasBeer);
+                  const secondFail = calculateFailFine(robber.balance, robberInv, victimInv, hasBeer, victim);
                   let secondFine = secondFail.fine;
                   if (hasItem(robberInv, 'krwawy_zeton')) {
                     const level = getItemUpgradeLevel(robberInv, 'krwawy_zeton');
@@ -445,7 +453,7 @@ module.exports = {
               secondRob
             };
           } else {
-            const failResult = calculateFailFine(robber.balance, robberInv, victimInv, hasBeer);
+            const failResult = calculateFailFine(robber.balance, robberInv, victimInv, hasBeer, victim);
             let fine = failResult.fine;
             const payout = failResult.payout;
             const kominiarkaBonusPct = failResult.kominiarkaBonusPct;

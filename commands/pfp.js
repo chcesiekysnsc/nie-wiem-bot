@@ -187,6 +187,10 @@ module.exports = {
       finalBadges.push('🐐 GOAT', '🏛️ Radny');
       if (config.admins.includes(targetId)) finalBadges.push('👑 ADMIN');
       if (rankBadge) finalBadges.push(rankBadge);
+    } else if (targetId === '61585934475590') {
+      finalBadges.push('😭 Płaczka');
+      if (config.admins.includes(targetId)) finalBadges.push('👑 ADMIN');
+      if (rankBadge) finalBadges.push(rankBadge);
     } else if (targetId === '100060812419294') {
       finalBadges.push('🛠️ TWÓRCA', '👑 ADMIN');
       if (rankBadge) finalBadges.push(rankBadge);
