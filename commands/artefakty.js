@@ -21,7 +21,8 @@ const getNonEventItems = () => {
   for (const [id, def] of Object.entries(config.shopItems || {})) {
     const isPermanent = def.type === 'permanent';
     const isPackage = id.startsWith('paczka_');
-    if (!isPermanent || isPackage) continue;
+    const isEvent = eventItemIds.includes(id);
+    if (!isPermanent || isPackage || isEvent) continue;
     list.push({
       num,
       id,

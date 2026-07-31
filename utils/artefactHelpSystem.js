@@ -14,17 +14,17 @@ function buildArtefaktyCategoryPrompt(prefix = '!') {
 
 function buildArtefaktyCategoryList(categoryKey, items, prefix = '!') {
   const title = categoryKey === 'standardowe' ? '📦 Standardowe Przedmioty' : '🎁 Eventowe Przedmioty';
+  const subtitle = categoryKey === 'eventowe' ? '🎁 Eventowe Przedmioty możliwe tylko do zdobycia za bycie top danego sezonu' : null;
   const listText = items.map(item => {
     const awardText = item.award ? `${item.award} — ` : '';
     return `${item.num}. ${item.emoji} *${item.name}* — ${awardText}${item.shortDesc || item.description || ''}`;
   }).join('\n');
-  const helpHint = categoryKey === 'standardowe'
-    ? `💡 Szczegóły przedmiotu: \`${prefix}artefakty help <numer>\``
-    : `💡 Szczegóły przedmiotu: \`${prefix}artefakty help <numer>\``;
+  const helpHint = `💡 Szczegóły przedmiotu: \`${prefix}artefakty help <nr kategorii> <numer>\``;
 
+  const desc = [subtitle, listText, '', helpHint].filter(Boolean).join('\n');
   return baseEmbed()
     .setTitle(title)
-    .setDescription(`${listText}\n\n${helpHint}`);
+    .setDescription(desc);
 }
 
 function buildArtefaktyDetail(categoryKey, item, ownedStatus) {
