@@ -21,6 +21,13 @@ function getAutoSelection(match, autoType) {
   }
 }
 
+function getMaxCombinedOdds(matchCount) {
+  if (matchCount <= 4) return 30;
+  if (matchCount <= 6) return 45;
+  if (matchCount <= 9) return 80;
+  return 300;
+}
+
 module.exports = {
   name: 'multiobstaw',
   aliases: ['mo', 'mm'],
@@ -174,7 +181,7 @@ module.exports = {
 
     const { totalStake, selectionsResolved } = setupResult;
 
-    // 5. Obliczenie łącznego kursu (mnożenie kursów)
+    // 5. Obliczenie łącznego kursu (mnożenie kursów) z limitem
     let combinedOdds = 1;
     const matchDetails = [];
     for (const sel of selectionsResolved) {
@@ -190,6 +197,17 @@ module.exports = {
         probabilities: match.probabilities,
         diff: match.diff
       });
+    }
+
+    const maxCombinedOdds = getMaxCombinedOdds(selectionsResolved.length);
+    let cappedNotification = null;
+    if (combinedOdds > maxCombinedOdds) {
+      const scaleFactor = maxCombinedOdds / combinedOdds;
+      for (const m of matchDetails) {
+        m.odds = parseFloat((m.odds * scaleFactor).toFixed(2));
+      }
+      combinedOdds = maxCombinedOdds;
+      cappedNotification = `⚠️ Łączny kurs został przycięty do limitu **${maxCombinedOdds}** dla ${selectionsResolved.length} meczy.`;
     }
 
     combinedOdds = parseFloat(combinedOdds.toFixed(2));
@@ -222,6 +240,9 @@ module.exports = {
       const typeLabels = { '1': m.home, 'x': 'Remis', '2': m.away };
       setupMsg += `• **Mecz ${m.matchIdx + 1}**: **${m.home}** 🆚 **${m.away}** (Typ: **${typeLabels[m.type]}**, kurs: **${m.odds}**)\n`;
     });
+    if (cappedNotification) {
+      setupMsg += `\n${cappedNotification}\n`;
+    }
     setupMsg += `\n📈 Łączny kurs: **${combinedOdds}**\n` +
                 `💰 Łączna stawka: **${formatCurrency(totalStake)}**\n` +
                 `🏆 Wygrana (bez podatku): **${formatCurrency(payout)}**\n` +

@@ -1,0 +1,269 @@
+const config = require('../config/config');
+const { formatCurrency, addXp, ensureInventoryRecord, refreshBadges, recordGame, getRandomXp } = require('../utils/economy');
+const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
+
+const DIFFICULTIES = {
+  easy:     { label: 'Łatwy',    emoji: '🟢', survivalProb: 0.94, maxLanes: 24 },
+  medium:   { label: 'Średni',   emoji: '🟡', survivalProb: 0.85, maxLanes: 20 },
+  hard:     { label: 'Trudny',   emoji: '🟠', survivalProb: 0.70, maxLanes: 15 },
+  hardcore: { label: 'Hardcore', emoji: '🔴', survivalProb: 0.50, maxLanes: 10 }
+};
+
+const DIFFICULTY_ALIASES = {
+  latwy: 'easy', łatwy: 'easy', easy: 'easy',
+  sredni: 'medium', średni: 'medium', medium: 'medium',
+  trudny: 'hard', hard: 'hard',
+  hardcore: 'hardcore', ekstremalny: 'hardcore'
+};
+
+const GAME_TIMEOUT_MS = 30 * 60 * 1000;
+
+function buildMultiplierTable(difficultyKey) {
+  const diff = DIFFICULTIES[difficultyKey];
+  const houseEdge = (config.casinoTaxRate || 15) / 100;
+  const perLaneMultiplier = (1 / diff.survivalProb) * (1 - houseEdge);
+  const table = [1];
+  for (let lane = 1; lane <= diff.maxLanes; lane++) {
+    table.push(table[lane - 1] * perLaneMultiplier);
+  }
+  return table;
+}
+
+let multiplierTableCache = null;
+function getMultiplierTables() {
+  if (!multiplierTableCache) {
+    multiplierTableCache = {};
+    for (const key of Object.keys(DIFFICULTIES)) {
+      multiplierTableCache[key] = buildMultiplierTable(key);
+    }
+  }
+  return multiplierTableCache;
+}
+
+function formatMultiplier(mult) {
+  return `x${mult.toFixed(2)}`;
+}
+
+function renderBoard(game) {
+  const diff = DIFFICULTIES[game.difficulty];
+  const lanes = [];
+  for (let i = 1; i <= diff.maxLanes; i++) {
+    if (i < game.lane + 1) lanes.push('🟩');
+    else if (i === game.lane + 1) lanes.push('🐔');
+    else lanes.push('⬜');
+  }
+  return lanes.join('');
+}
+
+module.exports = {
+  name: 'chickenroad',
+  aliases: ['kurczak', 'chickenrun'],
+  DIFFICULTIES,
+  GAME_TIMEOUT_MS,
+
+  async execute(client, message, args) {
+    const authorId = message.author.id;
+    const threadId = message.guild.id;
+
+    if (!client.activeChickenRoadGames) {
+      client.activeChickenRoadGames = new Map();
+    }
+
+    const existing = client.activeChickenRoadGames.get(authorId);
+    if (existing && Date.now() - existing.timestamp < GAME_TIMEOUT_MS) {
+      const potential = Math.floor(existing.bet * existing.multiplier);
+      await message.reply(
+        `⚠️ Masz już aktywną grę w Chicken Road!\n` +
+        `Napisz **!dalej** żeby iść dalej, albo **!odbierz** żeby zainkasować **${formatMultiplier(existing.multiplier)}** (${formatCurrency(potential)}).`
+      );
+      return;
+    }
+
+    const rawDifficulty = (args[0] || '').toLowerCase();
+    const difficultyKey = DIFFICULTY_ALIASES[rawDifficulty];
+
+    if (!difficultyKey) {
+      const list = Object.entries(DIFFICULTIES)
+        .map(([key, d]) => `${d.emoji} **${d.label}** (\`${key}\`) — szansa na pasie: **${Math.round(d.survivalProb * 100)}%**, max pasów: **${d.maxLanes}**`)
+        .join('\n');
+      await message.reply(
+        `🐔 **Chicken Road** — przeprowadź kurczaka przez ruchliwą drogę, im dalej tym wyższy mnożnik!\n\n` +
+        `Użycie: **!chickenroad <poziom> <zaklad>**\n\n${list}\n\n` +
+        `W trakcie gry: **!dalej** (kolejny pas) / **!odbierz** (wypłata).`
+      );
+      return;
+    }
+
+    const betArg = args[1];
+    const minBet = (config.economy && config.economy.chickenRoadMinBet) || 100;
+    const maxBet = (config.economy && config.economy.chickenRoadMaxBet) || 500000;
+
+    if (!betArg || (betArg.toLowerCase() !== 'all' && !/^\d+$/.test(betArg))) {
+      await message.reply(
+        `❌ Podaj poprawną kwotę zakładu. Przykład: **!chickenroad ${rawDifficulty} 5000** ` +
+        `(min: ${formatCurrency(minBet)}, max: ${formatCurrency(maxBet)})`
+      );
+      return;
+    }
+
+    const result = await withData(store => {
+      const user = createUser(authorId, store.users);
+
+      if (user.jailUntil && user.jailUntil > Date.now()) {
+        return { error: '❌ Jesteś w więzieniu! Nie możesz teraz grać.' };
+      }
+
+      const bet = betArg.toLowerCase() === 'all' ? user.balance : parseInt(betArg, 10);
+
+      if (!Number.isFinite(bet) || bet < minBet) {
+        return { error: `❌ Minimalny zakład to **${formatCurrency(minBet)}**.` };
+      }
+      if (bet > maxBet) {
+        return { error: `❌ Maksymalny zakład to **${formatCurrency(maxBet)}**.` };
+      }
+      if (bet > user.balance) {
+        return { error: `❌ Nie masz tyle na koncie! Twój stan konta: **${formatCurrency(user.balance)}**.` };
+      }
+
+      user.balance -= bet;
+      return { bet };
+    });
+
+    if (result.error) {
+      await message.reply(result.error);
+      return;
+    }
+
+    const game = {
+      threadId,
+      difficulty: difficultyKey,
+      bet: result.bet,
+      lane: 0,
+      multiplier: 1,
+      timestamp: Date.now()
+    };
+    client.activeChickenRoadGames.set(authorId, game);
+
+    const diff = DIFFICULTIES[difficultyKey];
+    await message.reply(
+      `🐔 **Chicken Road** — poziom: ${diff.emoji} **${diff.label}**\n` +
+      `Zakład: **${formatCurrency(game.bet)}**\n\n` +
+      `${renderBoard(game)}\n\n` +
+      `Aktualny mnożnik: **${formatMultiplier(game.multiplier)}**\n` +
+      `Napisz **!dalej** żeby przejść na kolejny pas, albo **!odbierz** żeby zabrać zakład z powrotem.`
+    );
+  },
+
+  async handleAction(client, message, rawAction) {
+    const authorId = message.author.id;
+    const threadId = message.guild.id;
+
+    if (!client.activeChickenRoadGames) {
+      client.activeChickenRoadGames = new Map();
+    }
+
+    const game = client.activeChickenRoadGames.get(authorId);
+    if (!game || game.threadId !== threadId) return;
+
+    const action = ['dalej', 'idz', 'przejdz', 'krok'].includes(rawAction) ? 'next' : (['odbierz', 'cashout', 'zbierz', 'stop'].includes(rawAction) ? 'cashout' : 'ignore');
+
+    if (action === 'ignore') {
+      return;
+    }
+
+    const withData = require('../utils/storage').withData;
+    const createUser = require('../utils/storage').createUser;
+
+    if (action === 'cashout') {
+      const payout = Math.floor(game.bet * game.multiplier);
+      client.activeChickenRoadGames.delete(authorId);
+
+      await withData(store => {
+        const user = createUser(authorId, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, authorId);
+        user.balance += payout;
+        const xpGain = getRandomXp();
+        const xpResult = addXp(user, xpGain, inventory);
+        recordGame(user, payout - game.bet, xpGain, inventory);
+        refreshBadges(user, inventory);
+      });
+
+      const profit = payout - game.bet;
+      const profitText = profit >= 0
+        ? `zysk: **+${formatCurrency(profit)}**`
+        : `strata: **${formatCurrency(profit)}**`;
+
+      await message.reply(
+        `💰 Odebrałeś wygraną na mnożniku **${formatMultiplier(game.multiplier)}**!\n` +
+        `Wypłata: **${formatCurrency(payout)}** (${profitText})`
+      );
+      return;
+    }
+
+    // action === 'next'
+    const diff = DIFFICULTIES[game.difficulty];
+    const table = getMultiplierTables()[game.difficulty];
+
+    const survivalOverride = await getEffectiveChance(authorId, 'chickenroad_survive');
+    let survivalProb = diff.survivalProb;
+    if (Number.isFinite(survivalOverride)) {
+      survivalProb = Math.max(0, Math.min(1, survivalOverride / 100));
+    }
+
+    const survived = Math.random() < survivalProb;
+
+    if (!survived) {
+      client.activeChickenRoadGames.delete(authorId);
+
+      await withData(store => {
+        const user = createUser(authorId, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, authorId);
+        const xpGain = getRandomXp();
+        addXp(user, xpGain, inventory);
+        recordGame(user, -game.bet, xpGain, inventory);
+        refreshBadges(user, inventory);
+      });
+
+      await message.reply(
+        `💥 **ROZJECHANO KURCZAKA!** Wypadek na pasie **${game.lane + 1}**!\n` +
+        `Straciłeś zakład: **-${formatCurrency(game.bet)}**\n\n` +
+        `Spróbuj ponownie: **!chickenroad ${game.difficulty} <zaklad>**`
+      );
+      return;
+    }
+
+    game.lane += 1;
+    game.multiplier = table[game.lane];
+    game.timestamp = Date.now();
+
+    if (game.lane >= diff.maxLanes) {
+      const payout = Math.floor(game.bet * game.multiplier);
+      client.activeChickenRoadGames.delete(authorId);
+
+      await withData(store => {
+        const user = createUser(authorId, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, authorId);
+        user.balance += payout;
+        const xpGain = getRandomXp();
+        const xpResult = addXp(user, xpGain, inventory);
+        recordGame(user, payout - game.bet, xpGain, inventory);
+        refreshBadges(user, inventory);
+      });
+
+      await message.reply(
+        `🏁 Kurczak dotarł na drugą stronę! **KONIEC TRASY** na mnożniku **${formatMultiplier(game.multiplier)}**!\n` +
+        `Wypłata: **${formatCurrency(payout)}**`
+      );
+      return;
+    }
+
+    const potentialPayout = Math.floor(game.bet * game.multiplier);
+    await message.reply(
+      `${renderBoard(game)}\n\n` +
+      `✅ Przeżyłeś pas **${game.lane}**! Mnożnik: **${formatMultiplier(game.multiplier)}**\n` +
+      `Odbiór teraz: **${formatCurrency(potentialPayout)}**\n\n` +
+      `Napisz **!dalej** albo **!odbierz**.`
+    );
+  }
+};

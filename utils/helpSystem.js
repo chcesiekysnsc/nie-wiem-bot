@@ -328,6 +328,22 @@ const helpCommands = [
     additionalInfo: ["Krupier dobiera karty do 17 punktów.","Idealny Blackjack (As + 10) wypłaca bonus 2.5x stawki."]
   },
   {
+    name: "chickenroad",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "🐔 przeprowadź kurczaka przez ruchliwą drogę",
+    description: "🐔 Chicken Road — wybierz poziom ryzyka i poprowadź kurczaka przez kolejne pasy ruchu. Każdy bezpiecznie przebyty pas podbija mnożnik Twojej stawki, ale wystarczy jeden zły krok, żeby stracić wszystko. Ty decydujesz, kiedy się zatrzymać i odebrać wygraną.",
+    usage: "!chickenroad <poziom> <kwota> | !dalej | !odbierz",
+    examples: ["!chickenroad latwy 5000", "!chickenroad sredni 10000", "!dalej", "!odbierz"],
+    cooldown: "",
+    aliases: ["kurczak", "chickenrun"],
+    additionalInfo: [
+      "🟢 Łatwy (94% szansy na pas, 24 pasy) • 🟡 Średni (85%, 20 pasów) • 🟠 Trudny (70%, 15 pasów) • 🔴 Hardcore (50%, 10 pasów).",
+      "Im dalej zajdzie kurczak, tym wyższy mnożnik stawki — ale rośnie też ryzyko utraty całego zakładu.",
+      "W dowolnym momencie możesz napisać !odbierz, żeby zainkasować aktualną wygraną zamiast ryzykować kolejny pas.",
+      "Aktywna gra wygasa po 5 minutach bezczynności, a stawka wtedy przepada."
+    ]
+  },
+  {
     id: 21,
     name: "rosyjska",
     category: "ECONOMY_GAMBLING",

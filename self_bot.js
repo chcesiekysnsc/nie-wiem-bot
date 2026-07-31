@@ -984,6 +984,14 @@ login({ appState }, (loginErr, api) => {
           }
         }
       }
+      if (client.activeChickenRoadGames) {
+        for (const [key, game] of client.activeChickenRoadGames.entries()) {
+          if (now - (game.timestamp || 0) > thirtyMinMs) {
+            client.activeChickenRoadGames.delete(key);
+            gameCleaned++;
+          }
+        }
+      }
       if (gameCleaned > 0) {
         console.log(`[MEMORY-CLEANUP] Usunięto ${gameCleaned} przeterminowanych gier.`);
       }
@@ -3001,6 +3009,59 @@ login({ appState }, (loginErr, api) => {
       }
     }
   }
+
+    // Interceptor dla aktywnej gry w Chicken Road
+    if (!client.activeChickenRoadGames) {
+      client.activeChickenRoadGames = new Map();
+    }
+    const activeChickenGame = client.activeChickenRoadGames.get(senderId);
+    if (activeChickenGame) {
+      const CHICKEN_TIMEOUT_MS = 30 * 60 * 1000;
+      if (Date.now() - (activeChickenGame.timestamp || 0) > CHICKEN_TIMEOUT_MS) {
+        client.activeChickenRoadGames.delete(senderId);
+      } else if (activeChickenGame.threadId === threadId) {
+        const cleanText = text.trim().toLowerCase().replace(/^!/, '');
+        if (['dalej', 'idz', 'przejdz', 'krok', 'odbierz', 'cashout', 'zbierz', 'stop'].includes(cleanText)) {
+          const chickenCommand = client.commands.get('chickenroad');
+          if (chickenCommand && typeof chickenCommand.handleAction === 'function') {
+            console.log(`[SELF-BOT] Wykonanie ruchu w Chicken Road: ${cleanText} przez ${senderId}`);
+
+            const senderName = await client.resolveUserName(api, senderId);
+            const senderUser = {
+              id: senderId,
+              username: senderName,
+              profile: { name: senderName }
+            };
+
+            const messageContext = {
+              client,
+              prefix: currentPrefix,
+              author: senderUser,
+              content: text,
+              guild: { id: threadId },
+              rawEvent: event,
+              reply: async (payload) => {
+                return new Promise((resolve, reject) => {
+                  const replyText = renderPayloadToText(payload);
+                  if (!replyText) return resolve(null);
+                  api.sendMessage(replyText, threadId, (sendErr, msgInfo) => {
+                    if (sendErr) return reject(sendErr);
+                    resolve(msgInfo);
+                  }, messageId);
+                });
+              }
+            };
+
+            try {
+              await chickenCommand.handleAction(client, messageContext, cleanText);
+            } catch (actionErr) {
+              console.error('[SELF-BOT] Blad ruchu w Chicken Road:', actionErr);
+            }
+            return;
+          }
+        }
+      }
+    }
 
     if (!client.pendingBails) client.pendingBails = new Map();
     const pendingBail = client.pendingBails.get(senderId);
