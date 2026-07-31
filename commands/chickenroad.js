@@ -5,10 +5,10 @@ const { getEffectiveChance } = require('../utils/chances');
 const { saveGameSessions } = require('../utils/gameStatePersistence');
 
 const DIFFICULTIES = {
-  easy:     { label: 'Łatwy',    emoji: '🟢', survivalProb: 0.94, maxLanes: 24 },
-  medium:   { label: 'Średni',   emoji: '🟡', survivalProb: 0.88, maxLanes: 20 },
-  hard:     { label: 'Trudny',   emoji: '🟠', survivalProb: 0.81, maxLanes: 15 },
-  hardcore: { label: 'Hardcore', emoji: '🔴', survivalProb: 0.65, maxLanes: 12 }
+  easy:     { label: 'Łatwy',    emoji: '🟢', survivalProb: 0.94, maxLanes: 24, decayPerLane: 0.004 },
+  medium:   { label: 'Średni',   emoji: '🟡', survivalProb: 0.88, maxLanes: 20, decayPerLane: 0.004 },
+  hard:     { label: 'Trudny',   emoji: '🟠', survivalProb: 0.81, maxLanes: 15, decayPerLane: 0.008 },
+  hardcore: { label: 'Hardcore', emoji: '🔴', survivalProb: 0.65, maxLanes: 12, decayPerLane: 0.01 }
 };
 
 const DIFFICULTY_ALIASES = {
@@ -24,11 +24,16 @@ const MULTIPLIER_TABLES = {
   easy: [1, 1.02, 1.09, 1.16, 1.23, 1.31, 1.39, 1.48, 1.57, 1.67, 1.78, 1.89, 2.02, 2.15, 2.28, 2.43, 2.58, 2.75, 2.92, 3.11, 3.31, 3.52, 3.75, 3.99, 4.24],
   medium: [1, 1.08, 1.21, 1.36, 1.53, 1.72, 1.93, 2.16, 2.44, 2.74, 3.08, 3.46, 3.89, 4.37, 4.91, 5.52, 6.19, 6.94, 7.82, 8.77, 9.87],
   hard: [1, 1.19, 1.46, 1.81, 2.23, 2.75, 3.40, 4.20, 5.18, 6.40, 7.90, 9.74, 12.04, 14.84, 18.34, 22.65],
-  hardcore: [1, 1.48, 2.27, 3.50, 5.38, 8.27, 12.73, 19.58, 30.13, 46.37, 71.31, 109.75, 168.78]
+  hardcore: [1, 1.33, 1.73, 2.30, 3.40, 5, 8.50, 14.00, 22.00, 32.00, 45.00, 65.00, 85.00]
 };
 
 function buildMultiplierTable(difficultyKey) {
   return MULTIPLIER_TABLES[difficultyKey];
+}
+
+function getSurvivalProb(difficultyKey, lane) {
+  const diff = DIFFICULTIES[difficultyKey];
+  return Math.max(0.01, diff.survivalProb - (lane - 1) * diff.decayPerLane);
 }
 
 let multiplierTableCache = null;
@@ -205,13 +210,9 @@ module.exports = {
     const table = getMultiplierTables()[game.difficulty];
 
     const survivalOverride = await getEffectiveChance(authorId, 'chickenroad_survive');
-    let survivalProb = diff.survivalProb;
+    let survivalProb = getSurvivalProb(game.difficulty, game.lane + 1);
     if (Number.isFinite(survivalOverride)) {
       survivalProb = Math.max(0, Math.min(1, survivalOverride / 100));
-    }
-    if (game.difficulty === 'easy') {
-      if (game.lane >= 16) survivalProb = Math.min(survivalProb, 0.925);
-      else if (game.lane >= 7) survivalProb = Math.min(survivalProb, 0.93);
     }
 
     const survived = Math.random() < survivalProb;
