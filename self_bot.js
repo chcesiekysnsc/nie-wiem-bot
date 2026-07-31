@@ -69,6 +69,7 @@ const { renderPayloadToText } = require('./utils/messenger');
 const { checkAndResetBalance, checkPendingBalanceBlock, checkOverdueBalanceReports } = require('./utils/balanceMonitor');
 const { formatCurrency, msToReadable } = require('./utils/economy');
 const { getCommandsByCategory } = require('./utils/helpSystem');
+const { saveGameSessions } = require('./utils/gameStatePersistence');
 const { extractTikTokLink, getTikTokVideoData, downloadFile } = require('./utils/tiktok');
 
 function isNotificationBlocked(threadId) {
@@ -994,6 +995,7 @@ login({ appState }, (loginErr, api) => {
       }
       if (gameCleaned > 0) {
         console.log(`[MEMORY-CLEANUP] Usunięto ${gameCleaned} przeterminowanych gier.`);
+        saveGameSessions(client);
       }
     }, 15 * 60 * 1000);
   }, jitter(15 * 60 * 1000, 0.2));
@@ -2905,6 +2907,7 @@ login({ appState }, (loginErr, api) => {
     if (activeGame) {
       if (Date.now() - (activeGame.timestamp || 0) > 300000) {
         client.activeBlackjackGames.delete(senderId);
+        saveGameSessions(client);
       } else if (activeGame.threadId === threadId) {
         const cleanText = text.trim().toLowerCase().replace(/^!/, '');
         if (['hit', 'stand', 'double', 'dobierz', 'stop', 'podwoj'].includes(cleanText)) {
@@ -3019,6 +3022,7 @@ login({ appState }, (loginErr, api) => {
       const CHICKEN_TIMEOUT_MS = 30 * 60 * 1000;
       if (Date.now() - (activeChickenGame.timestamp || 0) > CHICKEN_TIMEOUT_MS) {
         client.activeChickenRoadGames.delete(senderId);
+        saveGameSessions(client);
       } else if (activeChickenGame.threadId === threadId) {
         const cleanText = text.trim().toLowerCase().replace(/^!/, '');
         if (['dalej', 'idz', 'przejdz', 'krok', 'odbierz', 'cashout', 'zbierz', 'stop'].includes(cleanText)) {

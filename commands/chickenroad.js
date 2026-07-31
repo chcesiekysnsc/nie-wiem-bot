@@ -2,10 +2,11 @@ const config = require('../config/config');
 const { formatCurrency, addXp, ensureInventoryRecord, refreshBadges, recordGame, getRandomXp } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
+const { saveGameSessions } = require('../utils/gameStatePersistence');
 
 const DIFFICULTIES = {
   easy:     { label: 'Łatwy',    emoji: '🟢', survivalProb: 0.94, maxLanes: 24 },
-  medium:   { label: 'Średni',   emoji: '🟡', survivalProb: 0.89, maxLanes: 20 },
+  medium:   { label: 'Średni',   emoji: '🟡', survivalProb: 0.88, maxLanes: 20 },
   hard:     { label: 'Trudny',   emoji: '🟠', survivalProb: 0.81, maxLanes: 15 },
   hardcore: { label: 'Hardcore', emoji: '🔴', survivalProb: 0.65, maxLanes: 12 }
 };
@@ -96,13 +97,12 @@ module.exports = {
     }
 
     const betArg = args[1];
-    const minBet = (config.economy && config.economy.chickenRoadMinBet) || 100;
-    const maxBet = (config.economy && config.economy.chickenRoadMaxBet) || 500000;
+    const minBet = 10000;
 
     if (!betArg || (betArg.toLowerCase() !== 'all' && !/^\d+$/.test(betArg))) {
       await message.reply(
-        `❌ Podaj poprawną kwotę zakładu. Przykład: **!chickenroad ${rawDifficulty} 5000** ` +
-        `(min: ${formatCurrency(minBet)}, max: ${formatCurrency(maxBet)})`
+        `❌ Podaj poprawną kwotę zakładu. Przykład: **!chickenroad ${rawDifficulty} 50000** ` +
+        `(min: ${formatCurrency(minBet)})`
       );
       return;
     }
@@ -118,9 +118,6 @@ module.exports = {
 
       if (!Number.isFinite(bet) || bet < minBet) {
         return { error: `❌ Minimalny zakład to **${formatCurrency(minBet)}**.` };
-      }
-      if (bet > maxBet) {
-        return { error: `❌ Maksymalny zakład to **${formatCurrency(maxBet)}**.` };
       }
       if (bet > user.balance) {
         return { error: `❌ Nie masz tyle na koncie! Twój stan konta: **${formatCurrency(user.balance)}**.` };
@@ -144,6 +141,7 @@ module.exports = {
       timestamp: Date.now()
     };
     client.activeChickenRoadGames.set(authorId, game);
+    saveGameSessions(client);
 
     const diff = DIFFICULTIES[difficultyKey];
     await message.reply(
@@ -178,6 +176,7 @@ module.exports = {
     if (action === 'cashout') {
       const payout = Math.floor(game.bet * game.multiplier);
       client.activeChickenRoadGames.delete(authorId);
+      saveGameSessions(client);
 
       await withData(store => {
         const user = createUser(authorId, store.users);
@@ -210,11 +209,16 @@ module.exports = {
     if (Number.isFinite(survivalOverride)) {
       survivalProb = Math.max(0, Math.min(1, survivalOverride / 100));
     }
+    if (game.difficulty === 'easy') {
+      if (game.lane >= 16) survivalProb = Math.min(survivalProb, 0.925);
+      else if (game.lane >= 7) survivalProb = Math.min(survivalProb, 0.93);
+    }
 
     const survived = Math.random() < survivalProb;
 
     if (!survived) {
       client.activeChickenRoadGames.delete(authorId);
+      saveGameSessions(client);
 
       await withData(store => {
         const user = createUser(authorId, store.users);
@@ -240,6 +244,7 @@ module.exports = {
     if (game.lane >= diff.maxLanes) {
       const payout = Math.floor(game.bet * game.multiplier);
       client.activeChickenRoadGames.delete(authorId);
+      saveGameSessions(client);
 
       await withData(store => {
         const user = createUser(authorId, store.users);

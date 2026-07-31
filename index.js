@@ -12,6 +12,7 @@ const { errorEmbed } = require('./utils/embeds');
 const { createMessageContext, createMessengerClient } = require('./utils/messenger');
 const { checkAndResetBalance, checkPendingBalanceBlock } = require('./utils/balanceMonitor');
 const { resolveArtefaktyCategory, resolveGangArtefaktyCategory, buildArtefaktyCategoryList, buildGangArtefaktyCategoryList } = require('./utils/artefactHelpSystem');
+const { loadGameSessions, restoreGameSessions } = require('./utils/gameStatePersistence');
 
 const client = createMessengerClient(config);
 client.config = config;
@@ -735,6 +736,9 @@ async function handleBailResponse(client, message, pendingBail, action) {
 async function start() {
   ensureDataFiles();
   loadCommands();
+
+  const sessions = loadGameSessions();
+  restoreGameSessions(client, sessions);
 
   if (!process.env.MESSENGER_VERIFY_TOKEN?.trim()) {
     throw new Error('Missing MESSENGER_VERIFY_TOKEN in environment variables.');

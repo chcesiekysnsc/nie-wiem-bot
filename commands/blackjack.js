@@ -15,6 +15,7 @@ const {
 } = require('../utils/economy');
 const { createUser, withData, loadData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
+const { saveGameSessions } = require('../utils/gameStatePersistence');
 
 const SUITS = ['♠️', '♥️', '♦️', '♣️'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -112,6 +113,7 @@ module.exports = {
       const activeGame = client.activeBlackjackGames.get(authorId);
       if (Date.now() - (activeGame.timestamp || 0) > 300000) {
         client.activeBlackjackGames.delete(authorId);
+        saveGameSessions(client);
       } else {
         const action = String(args[0] || '').toLowerCase().trim();
         if (['hit', 'stand', 'double', 'dobierz', 'stop', 'podwoj'].includes(action)) {
@@ -265,6 +267,7 @@ module.exports = {
       threadId,
       timestamp: Date.now()
     });
+    saveGameSessions(client);
 
     await message.reply(
       `🃏 **Gra w Blackjacka rozpoczęta!**\n` +
@@ -385,6 +388,7 @@ module.exports = {
 
         await message.reply(replyText);
         client.activeBlackjackGames.delete(authorId);
+        saveGameSessions(client);
       } else if (playerValue === 21) {
         // Automatyczny stand przy 21
         await this.executeDealerTurn(client, message, game, playerValue, cheatNote);
@@ -518,6 +522,7 @@ module.exports = {
 
         await message.reply(replyText);
         client.activeBlackjackGames.delete(authorId);
+        saveGameSessions(client);
       } else {
         // Automatyczne zatrzymanie (stand) po dobraniu 1 karty przy double
         await this.executeDealerTurn(client, message, game, playerValue, cheatNote);
@@ -528,6 +533,7 @@ module.exports = {
   } catch (err) {
     console.error('[BLACKJACK] Błąd podczas obsługi ruchu:', err);
     client.activeBlackjackGames.delete(authorId);
+    saveGameSessions(client);
   } finally {
     if (client.activeBlackjackGames.has(authorId)) {
       game.processing = false;
@@ -705,5 +711,6 @@ module.exports = {
 
     await message.reply(replyText);
     client.activeBlackjackGames.delete(authorId);
+    saveGameSessions(client);
   }
 };

@@ -5,6 +5,7 @@ const { ensureInventoryRecord, formatCurrency, getMilestoneRewardDescription, re
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveLuck } = require('../utils/chances');
+const { saveGameSessions } = require('../utils/gameStatePersistence');
 
 function normalizeAsset(input) {
   const val = String(input || '').toLowerCase().trim();
@@ -185,6 +186,7 @@ module.exports = {
       };
 
       client.stockSessions.set(threadId, newSession);
+      saveGameSessions(client);
 
       const hostName = await client.resolveUserName(message.author.id);
 
@@ -206,6 +208,7 @@ module.exports = {
 
         active.state = 'investing';
         active.investStartTime = Date.now();
+        saveGameSessions(client);
 
         const tags = [];
         for (const pid of active.participants) {
@@ -231,6 +234,7 @@ module.exports = {
           if (!resolveSession || resolveSession.state !== 'investing') return;
 
           client.stockSessions.delete(threadId);
+          saveGameSessions(client);
 
           const rolledPercentages = {
             bank: rollAssetResult(resolveSession.assets.bank.min, resolveSession.assets.bank.max),
@@ -377,6 +381,7 @@ module.exports = {
       }
 
       session.participants.add(message.author.id);
+      saveGameSessions(client);
       await message.reply(`✅ Pomyślnie dołączyłeś do sesji giełdy! (**${session.participants.size}/8**).`);
       return;
     }
@@ -441,6 +446,7 @@ module.exports = {
         amount: investResult.bet,
         asset: normalizedAsset
       });
+      saveGameSessions(client);
 
       await message.reply(`✅ Pomyślnie zainwestowałeś **${formatCurrency(investResult.bet)}** w **${displayAsset(normalizedAsset)}**!`);
       return;
