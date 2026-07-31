@@ -14,7 +14,10 @@ function buildArtefaktyCategoryPrompt(prefix = '!') {
 
 function buildArtefaktyCategoryList(categoryKey, items, prefix = '!') {
   const title = categoryKey === 'standardowe' ? '📦 Standardowe Przedmioty' : '🎁 Eventowe Przedmioty';
-  const listText = items.map(item => `${item.num}. ${item.emoji} *${item.name}* — ${item.shortDesc}`).join('\n');
+  const listText = items.map(item => {
+    const awardText = item.award ? `${item.award} — ` : '';
+    return `${item.num}. ${item.emoji} *${item.name}* — ${awardText}${item.shortDesc}`;
+  }).join('\n');
   const helpHint = `💡 Szczegóły przedmiotu: \`${prefix}artefakty help <numer>\``;
 
   return baseEmbed()
