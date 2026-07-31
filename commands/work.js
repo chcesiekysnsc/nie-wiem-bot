@@ -22,6 +22,22 @@ const { getGangBossShopMultiplier } = require('../utils/gangBossShop');
 const { hasReputationBonus } = require('../utils/gangAI');
 const { getItemSetBonus } = require('../utils/itemSets');
 
+const workTimestamps = new Map();
+const WORK_BOT_WINDOW_SIZE = 6;
+const WORK_BOT_BAN_MIN = 10 * 60 * 60 * 1000;
+const WORK_BOT_BAN_MAX = 14 * 60 * 60 * 1000;
+const WORK_BOT_PATTERNS = {
+  tight: { min: 10 * 60, max: 11 * 60 + 30 },
+  loose: { min: 9 * 60, max: 12 * 60 }
+};
+
+async function resolveName(client, userId) {
+  if (typeof client.resolveUserName === 'function') {
+    return await client.resolveUserName(userId);
+  }
+  return (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
+}
+
 const jobs = [
   'Ogarnales nocna zmiane przy stolach pokerowych.',
   'Sprzedales premium wejscia do strefy VIP.',
@@ -34,6 +50,8 @@ module.exports = {
   aliases: [],
   async execute(client, message) {
     const workLuckOverride = await getEffectiveChance(message.author.id, 'work_luck');
+    const authorId = message.author.id;
+    const now = Date.now();
 
     function getWorkLevelBonus(level) {
       if (level <= 1) return 0;
@@ -48,7 +66,25 @@ module.exports = {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
-      const now = Date.now();
+      const storedTimestamps = store.profiles.workTimestamps && typeof store.profiles.workTimestamps === 'object'
+        ? store.profiles.workTimestamps
+        : {};
+      for (const [key, val] of workTimestamps.entries()) {
+        if (!storedTimestamps[key] || !Array.isArray(storedTimestamps[key])) {
+          storedTimestamps[key] = val;
+        }
+      }
+      for (const key of Object.keys(storedTimestamps)) {
+        if (Array.isArray(storedTimestamps[key])) {
+          workTimestamps.set(key, storedTimestamps[key]);
+        }
+      }
+
+      const activeBan = store.profiles.workBotBans && store.profiles.workBotBans[message.author.id];
+      if (activeBan && activeBan.until > now) {
+        return { error: 'ze względu na zautomatyzowane używanie work odebrano ci dostęp do tej komendy na jakiś czas. Jeśli uważasz, że ban jest niesłuszny, napisz !odwolanie <treść>' };
+      }
+
       if (user.jailUntil && user.jailUntil > now) {
         const msLeft = user.jailUntil - now;
         return { error: `❌ Jesteś w więzieniu! Odzyskasz wolność za **${msToReadable(msLeft)}**.` };
@@ -227,17 +263,53 @@ module.exports = {
         user.balance += reward;
       }
 
-      user.lastWorkTime = now;
-      const xpAmount = doubleXp ? randomInt(12, 24) * 2 : randomInt(12, 24);
-      const xpResult = addXp(user, xpAmount, inventory);
-      refreshBadges(user, inventory);
+      const xpGain = Math.max(1, Math.floor(reward / 10));
+      const xpResult = addXp(user, xpGain, inventory);
+      const leveledUpWork = xpResult.leveledUp;
 
-      let leveledUpWork = false;
-      const workLevelChance = workLevel <= 4 ? 0.15 : workLevel <= 9 ? 0.10 : workLevel <= 14 ? 0.07 : workLevel <= 19 ? 0.05 : 0.02;
-      if (Math.random() < workLevelChance) {
-        user.workLevel = workLevel + 1;
-        leveledUpWork = true;
+      user.lastWorkTime = now;
+
+      const timestamps = workTimestamps.get(authorId) || [];
+      timestamps.push(now);
+      if (timestamps.length > WORK_BOT_WINDOW_SIZE) {
+        timestamps.shift();
       }
+      workTimestamps.set(authorId, timestamps);
+
+      let botBanTriggered = false;
+      let botBanUntil = null;
+      let botPattern = null;
+
+      if (timestamps.length === WORK_BOT_WINDOW_SIZE) {
+        const diffs = [];
+        for (let i = 1; i < timestamps.length; i++) {
+          diffs.push((timestamps[i] - timestamps[i - 1]) / 1000);
+        }
+
+        const userBannedBefore = store.profiles.workBotBans && store.profiles.workBotBans[authorId];
+        const pattern = userBannedBefore ? WORK_BOT_PATTERNS.loose : WORK_BOT_PATTERNS.tight;
+
+        if (diffs.every(d => d >= pattern.min && d <= pattern.max)) {
+          const banDuration = randomInt(WORK_BOT_BAN_MIN, WORK_BOT_BAN_MAX);
+          botBanUntil = now + banDuration;
+          botPattern = userBannedBefore ? 'loose' : 'tight';
+
+          store.profiles.workBotBans = store.profiles.workBotBans || {};
+          store.profiles.workBotBans[authorId] = {
+            until: botBanUntil,
+            pattern: botPattern,
+            bannedAt: now
+          };
+
+          botBanTriggered = true;
+        }
+      }
+
+      const persistentTimestamps = {};
+      for (const [key, val] of workTimestamps.entries()) {
+        persistentTimestamps[key] = val;
+      }
+      store.profiles.workTimestamps = persistentTimestamps;
 
       return {
         reward,
@@ -250,13 +322,28 @@ module.exports = {
         newWorkLevel: user.workLevel,
         eventMessage,
         workBoostActive: !!(user.workBoostUntil && now < user.workBoostUntil),
-        workBoostPercent: user.workBoostPercent || 0
+        workBoostPercent: user.workBoostPercent || 0,
+        botBanTriggered,
+        botBanUntil,
+        botPattern
       };
     });
 
     if (result.error) {
       await message.reply(result.error);
       return;
+    }
+
+    if (result.botBanTriggered) {
+      const userName = await resolveName(client, authorId);
+      const adminGroupId = config.adminGroupId;
+      const banHours = Math.round((result.botBanUntil - now) / (60 * 60 * 1000));
+      const patternLabel = result.botPattern === 'loose' ? '9-12 min' : '10-11 min';
+      const notifyMsg = `🚨 **Wykryto automatyczne używanie !work**\nUżytkownik: **${userName}** (${authorId})\nKara: ban na !work przez **${banHours}h**\nWzorzec: ${patternLabel} między wykonaniami`;
+
+      if (client.api && adminGroupId) {
+        client.api.sendMessage(notifyMsg, adminGroupId);
+      }
     }
 
     const bonusText = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z biznesów gangu)` : '';
