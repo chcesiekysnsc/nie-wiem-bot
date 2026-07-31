@@ -22,12 +22,11 @@ const { getGangBossShopMultiplier } = require('../utils/gangBossShop');
 const { hasReputationBonus } = require('../utils/gangAI');
 const { getItemSetBonus } = require('../utils/itemSets');
 
-const workTimestamps = new Map();
 const WORK_BOT_WINDOW_SIZE = 6;
 const WORK_BOT_BAN_MIN = 10 * 60 * 60 * 1000;
 const WORK_BOT_BAN_MAX = 14 * 60 * 60 * 1000;
 const WORK_BOT_PATTERNS = {
-  tight: { min: 10 * 60, max: 11 * 60 + 30 },
+  tight: { min: 10 * 60, max: 12 * 60 },
   loose: { min: 9 * 60, max: 12 * 60 }
 };
 
@@ -66,17 +65,17 @@ module.exports = {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
 
-      const storedTimestamps = store.profiles.workTimestamps && typeof store.profiles.workTimestamps === 'object'
-        ? store.profiles.workTimestamps
-        : {};
-      for (const [key, val] of workTimestamps.entries()) {
-        if (!storedTimestamps[key] || !Array.isArray(storedTimestamps[key])) {
-          storedTimestamps[key] = val;
-        }
+      // Inicjalizuj workTimestamps w profiles jeśli nie istnieje
+      if (!store.profiles.workTimestamps || typeof store.profiles.workTimestamps !== 'object') {
+        store.profiles.workTimestamps = {};
       }
-      for (const key of Object.keys(storedTimestamps)) {
-        if (Array.isArray(storedTimestamps[key])) {
-          workTimestamps.set(key, storedTimestamps[key]);
+
+      // Wyczyść wygasłe bany
+      if (store.profiles.workBotBans) {
+        for (const uid of Object.keys(store.profiles.workBotBans)) {
+          if (store.profiles.workBotBans[uid].until <= now) {
+            delete store.profiles.workBotBans[uid];
+          }
         }
       }
 
@@ -269,12 +268,14 @@ module.exports = {
 
       user.lastWorkTime = now;
 
-      const timestamps = workTimestamps.get(authorId) || [];
+      const timestamps = Array.isArray(store.profiles.workTimestamps[authorId])
+        ? store.profiles.workTimestamps[authorId]
+        : [];
       timestamps.push(now);
       if (timestamps.length > WORK_BOT_WINDOW_SIZE) {
         timestamps.shift();
       }
-      workTimestamps.set(authorId, timestamps);
+      store.profiles.workTimestamps[authorId] = timestamps;
 
       let botBanTriggered = false;
       let botBanUntil = null;
@@ -301,15 +302,12 @@ module.exports = {
             bannedAt: now
           };
 
+          // Wyczyść timestamps po banie żeby nie dostał kolejnego od razu
+          delete store.profiles.workTimestamps[authorId];
+
           botBanTriggered = true;
         }
       }
-
-      const persistentTimestamps = {};
-      for (const [key, val] of workTimestamps.entries()) {
-        persistentTimestamps[key] = val;
-      }
-      store.profiles.workTimestamps = persistentTimestamps;
 
       return {
         reward,
@@ -336,7 +334,7 @@ module.exports = {
 
     if (result.botBanTriggered) {
       const userName = await resolveName(client, authorId);
-      const adminGroupId = config.adminGroupId;
+      const adminGroupId = config.adminGroupId || '5277347745703557';
       const banHours = Math.round((result.botBanUntil - now) / (60 * 60 * 1000));
       const patternLabel = result.botPattern === 'loose' ? '9-12 min' : '10-11 min';
       const notifyMsg = `🚨 **Wykryto automatyczne używanie !work**\nUżytkownik: **${userName}** (${authorId})\nKara: ban na !work przez **${banHours}h**\nWzorzec: ${patternLabel} między wykonaniami`;
