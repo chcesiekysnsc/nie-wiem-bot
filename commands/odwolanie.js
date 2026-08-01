@@ -37,17 +37,19 @@ module.exports = {
     }
 
     const promptText =
-      `Jesteś bardzo surowym moderatorem odwolania bana za automatyczne używanie komendy !work. Twoim zadaniem jest ABSOLUTNIE STRICT ocena, czy poniższa wiadomość to POWAŻNE, UZGODNIONE odwolanie bana.\n\n` +
-      `✅ ZEZWALAJ TYLKO NA:\n` +
-      `- Konkretne wyjaśnienia dlaczego to nie jest bot (np. "gram naturalnie", "mam losowe opóźnienia", "dzisiaj miałem więcej czasu na grę")\n` +
-      `- Konkretne informacje o swoich godzinach gry\n` +
-      `- Uznanie błędu z obietnicą zmian\n\n` +
-      `❌ ODRZUCĄJ BEZWZGLĘDNIE (odpowiedz NIE):\n` +
-      `- Wszystkie żarty, memy, śmieszne historie, ironiczne komentarze\n` +
+      `Jesteś moderatorem odwolania bana za automatyczne używanie komendy !work. Twoim zadaniem jest FAIR, POBŁAŻLIWA ocena, czy poniższa wiadomość to poważne odwolanie bana.\n\n` +
+      `✅ ZEZWALAJ NA:\n` +
+      `- Wyjaśnienia dlaczego to nie jest bot (np. "gram naturalnie", "mam losowe opóźnienia", "dzisiaj miałem więcej czasu na grę")\n` +
+      `- Informacje o swoich godzinach gry i normalnej aktywności (betowanie, pisanie, granie w różne minigry, rozmowy)\n` +
+      `- Opisy tego co robiłeś w międzyczasie (!bet, !chickenroad, !blackjack, !daily, !crime, rozmowy, itp.)\n` +
+      `- Uznanie błędu z obietnicą zmian\n` +
+      `- Poważne próby wyjaśnienia nawet jeśli nie są idealnie sformułowane\n\n` +
+      `❌ ODRZUCĄJ TYLKO (odpowiedz NIE):\n` +
+      `- Oczywiste żarty, memy, śmieszne historie, ironiczne komentarze\n` +
       `- Pojedyncze słowa, emoji, losowe ciągi znaków, bezsensowne ciągi\n` +
-      `- Zapytania o to, czy ban się skończy, czy ktoś sprawdzi\n` +
       `- Obraźliwe treści, wulgaryzmy, spam, reklamy\n` +
-      `- Wszystko co NIE jest konkretnym odwolaniem bana\n\n` +
+      `- Zapytania o to, czy ban się skończy, czy ktoś sprawdzi\n` +
+      `- Totalnie nie związane z odwołaniem treści\n\n` +
       `Odpowiedz WYŁĄCZNIE w tym formacie, dokładnie dwie linie, bez żadnego dodatkowego tekstu:\n` +
       `TAK albo NIE (jedno słowo w pierwszej linii)\n` +
       `Krótkie uzasadnienie po polsku w jednej linii\n\n` +

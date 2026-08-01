@@ -23,13 +23,11 @@ const { getGangBossShopMultiplier } = require('../utils/gangBossShop');
 const { hasReputationBonus } = require('../utils/gangAI');
 const { getItemSetBonus } = require('../utils/itemSets');
 
-const WORK_BOT_WINDOW_SIZE = 6;
+const WORK_BOT_WINDOW_SIZE = 9;
+const WORK_BOT_WINDOW_SIZE_FLAGGED = 7;
 const WORK_BOT_BAN_MIN = 10 * 60 * 60 * 1000;
 const WORK_BOT_BAN_MAX = 14 * 60 * 60 * 1000;
-const WORK_BOT_PATTERNS = {
-  tight: { min: 10 * 60, max: 12 * 60 },
-  loose: { min: 9 * 60, max: 12 * 60 }
-};
+const WORK_BOT_MARGIN = 90;
 
 async function resolveName(client, userId) {
   if (typeof client.resolveUserName === 'function') {
@@ -269,11 +267,14 @@ module.exports = {
 
       user.lastWorkTime = now;
 
+      const isFlagged = !!(store.profiles.workBotFlagged && store.profiles.workBotFlagged[authorId]);
+      const windowSize = isFlagged ? WORK_BOT_WINDOW_SIZE_FLAGGED : WORK_BOT_WINDOW_SIZE;
+
       const timestamps = Array.isArray(store.profiles.workTimestamps[authorId])
         ? store.profiles.workTimestamps[authorId]
         : [];
       timestamps.push(now);
-      if (timestamps.length > WORK_BOT_WINDOW_SIZE) {
+      while (timestamps.length > windowSize) {
         timestamps.shift();
       }
       store.profiles.workTimestamps[authorId] = timestamps;
@@ -282,19 +283,20 @@ module.exports = {
       let botBanUntil = null;
       let botPattern = null;
 
-      if (timestamps.length === WORK_BOT_WINDOW_SIZE) {
+      if (timestamps.length === windowSize) {
         const diffs = [];
         for (let i = 1; i < timestamps.length; i++) {
           diffs.push((timestamps[i] - timestamps[i - 1]) / 1000);
         }
 
-        const userBannedBefore = store.profiles.workBotBans && store.profiles.workBotBans[authorId];
-        const pattern = userBannedBefore ? WORK_BOT_PATTERNS.loose : WORK_BOT_PATTERNS.tight;
+        const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+        const margin = 90;
+        const allRegular = diffs.every(d => d >= avg - margin && d <= avg + margin);
 
-        if (diffs.every(d => d >= pattern.min && d <= pattern.max)) {
+        if (allRegular) {
           const banDuration = randomInt(WORK_BOT_BAN_MIN, WORK_BOT_BAN_MAX);
           botBanUntil = now + banDuration;
-          botPattern = userBannedBefore ? 'loose' : 'tight';
+          botPattern = 'regular';
 
           store.profiles.workBotBans = store.profiles.workBotBans || {};
           store.profiles.workBotBans[authorId] = {
@@ -303,7 +305,9 @@ module.exports = {
             bannedAt: now
           };
 
-          // Wyczyść timestamps po banie żeby nie dostał kolejnego od razu
+          store.profiles.workBotFlagged = store.profiles.workBotFlagged || {};
+          store.profiles.workBotFlagged[authorId] = true;
+
           delete store.profiles.workTimestamps[authorId];
 
           botBanTriggered = true;
@@ -337,7 +341,7 @@ module.exports = {
       const userName = await resolveName(client, authorId);
       const adminGroupId = config.adminGroupId || '5277347745703557';
       const banHours = Math.round((result.botBanUntil - now) / (60 * 60 * 1000));
-      const patternLabel = result.botPattern === 'loose' ? '9-12 min' : '10-11 min';
+      const patternLabel = 'regular ±1.5 min';
       const notifyMsg = `🚨 **Wykryto automatyczne używanie !work**\nUżytkownik: **${userName}** (${authorId})\nKara: ban na !work przez **${banHours}h**\nWzorzec: ${patternLabel} między wykonaniami`;
 
       if (client.api && adminGroupId) {
