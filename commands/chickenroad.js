@@ -5,10 +5,10 @@ const { getEffectiveChance } = require('../utils/chances');
 const { saveGameSessions } = require('../utils/gameStatePersistence');
 
 const DIFFICULTIES = {
-  easy:     { label: 'Łatwy',    emoji: '🟢', survivalProb: 0.94, maxLanes: 24, decayPerLane: 0.004 },
-  medium:   { label: 'Średni',   emoji: '🟡', survivalProb: 0.88, maxLanes: 20, decayPerLane: 0.004 },
-  hard:     { label: 'Trudny',   emoji: '🟠', survivalProb: 0.81, maxLanes: 15, decayPerLane: 0.008 },
-  hardcore: { label: 'Hardcore', emoji: '🔴', survivalProb: 0.65, maxLanes: 12, decayPerLane: 0.01 }
+  easy:     { label: 'Łatwy',    emoji: '🟢', survivalProb: 0.92, maxLanes: 24, phase1Lanes: 10, phase1Decay: 0.02, phase2Decay: 0.009 },
+  medium:   { label: 'Średni',   emoji: '🟡', survivalProb: 0.84, maxLanes: 20, phase1Lanes: 10, phase1Decay: 0.015, phase2Decay: 0.006 },
+  hard:     { label: 'Trudny',   emoji: '🟠', survivalProb: 0.76, maxLanes: 15, phase1Lanes: 15, phase1Decay: 0.008, phase2Decay: 0.008 },
+  hardcore: { label: 'Hardcore', emoji: '🔴', survivalProb: 0.65, maxLanes: 12, phase1Lanes: 12, phase1Decay: 0.01, phase2Decay: 0.01 }
 };
 
 const DIFFICULTY_ALIASES = {
@@ -33,7 +33,15 @@ function buildMultiplierTable(difficultyKey) {
 
 function getSurvivalProb(difficultyKey, lane) {
   const diff = DIFFICULTIES[difficultyKey];
-  return Math.max(0.01, diff.survivalProb - (lane - 1) * diff.decayPerLane);
+  if (lane <= (diff.phase1Lanes || Infinity)) {
+    const decay = diff.phase1Decay != null ? diff.phase1Decay : diff.decayPerLane;
+    return Math.max(0.01, diff.survivalProb - (lane - 1) * decay);
+  }
+  const phase1TotalDecay = (diff.phase1Decay != null ? diff.phase1Decay : diff.decayPerLane) * (diff.phase1Lanes || 0);
+  const phase2Lane = lane - (diff.phase1Lanes || 0);
+  const probAfterPhase1 = diff.survivalProb - phase1TotalDecay;
+  const phase2Decay = diff.phase2Decay != null ? diff.phase2Decay : diff.decayPerLane;
+  return Math.max(0.01, probAfterPhase1 - phase2Lane * phase2Decay);
 }
 
 let multiplierTableCache = null;
