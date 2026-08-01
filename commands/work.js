@@ -23,17 +23,65 @@ const { getGangBossShopMultiplier } = require('../utils/gangBossShop');
 const { hasReputationBonus } = require('../utils/gangAI');
 const { getItemSetBonus } = require('../utils/itemSets');
 
-const WORK_BOT_WINDOW_SIZE = 9;
-const WORK_BOT_WINDOW_SIZE_FLAGGED = 7;
+const WORK_BOT_WINDOW_SIZE = 6;
+const WORK_BOT_WINDOW_SIZE_FLAGGED = 5;
 const WORK_BOT_BAN_MIN = 10 * 60 * 60 * 1000;
 const WORK_BOT_BAN_MAX = 14 * 60 * 60 * 1000;
 const WORK_BOT_MARGIN = 90;
+const WORK_TIMESTAMP_MAX_AGE_MS = 8 * 60 * 60 * 1000;
+const WORK_BOT_FLAGGED_TTL_MS = 8 * 24 * 60 * 60 * 1000;
+const WORK_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+const WORK_MAX_TRACKED_USERS = 200;
+let lastWorkCleanup = 0;
 
 async function resolveName(client, userId) {
   if (typeof client.resolveUserName === 'function') {
     return await client.resolveUserName(userId);
   }
   return (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
+}
+
+function cleanupWorkData(store, now) {
+  if (now - lastWorkCleanup < WORK_CLEANUP_INTERVAL_MS) return;
+  lastWorkCleanup = now;
+
+  if (store.profiles.workTimestamps) {
+    const entries = Object.entries(store.profiles.workTimestamps);
+    for (const [uid, timestamps] of entries) {
+      if (!Array.isArray(timestamps) || timestamps.length === 0) {
+        delete store.profiles.workTimestamps[uid];
+        continue;
+      }
+      const last = timestamps[timestamps.length - 1];
+      if (now - last > WORK_TIMESTAMP_MAX_AGE_MS) {
+        delete store.profiles.workTimestamps[uid];
+      }
+    }
+    if (Object.keys(store.profiles.workTimestamps).length > WORK_MAX_TRACKED_USERS) {
+      const sorted = Object.entries(store.profiles.workTimestamps)
+        .sort((a, b) => (b[1][b[1].length - 1] || 0) - (a[1][a[1].length - 1] || 0));
+      const toRemove = sorted.slice(WORK_MAX_TRACKED_USERS);
+      for (const [uid] of toRemove) {
+        delete store.profiles.workTimestamps[uid];
+      }
+    }
+  }
+
+  if (store.profiles.workBotFlagged) {
+    for (const [uid, flaggedAt] of Object.entries(store.profiles.workBotFlagged)) {
+      if (!Number.isFinite(flaggedAt) || now - flaggedAt > WORK_BOT_FLAGGED_TTL_MS) {
+        delete store.profiles.workBotFlagged[uid];
+      }
+    }
+  }
+
+  if (store.profiles.workBotBans) {
+    for (const [uid, ban] of Object.entries(store.profiles.workBotBans)) {
+      if (ban && ban.until <= now) {
+        delete store.profiles.workBotBans[uid];
+      }
+    }
+  }
 }
 
 const jobs = [
@@ -82,6 +130,8 @@ module.exports = {
       if (activeBan && activeBan.until > now) {
         return { error: 'ze względu na zautomatyzowane używanie work odebrano ci dostęp do tej komendy na jakiś czas. Jeśli uważasz, że ban jest niesłuszny, napisz !odwolanie <treść>' };
       }
+
+      cleanupWorkData(store, now);
 
       if (user.jailUntil && user.jailUntil > now) {
         const msLeft = user.jailUntil - now;
@@ -267,7 +317,8 @@ module.exports = {
 
       user.lastWorkTime = now;
 
-      const isFlagged = !!(store.profiles.workBotFlagged && store.profiles.workBotFlagged[authorId]);
+      const flaggedAt = store.profiles.workBotFlagged && store.profiles.workBotFlagged[authorId];
+      const isFlagged = Number.isFinite(flaggedAt) && (now - flaggedAt < WORK_BOT_FLAGGED_TTL_MS);
       const windowSize = isFlagged ? WORK_BOT_WINDOW_SIZE_FLAGGED : WORK_BOT_WINDOW_SIZE;
 
       const timestamps = Array.isArray(store.profiles.workTimestamps[authorId])
@@ -306,7 +357,7 @@ module.exports = {
           };
 
           store.profiles.workBotFlagged = store.profiles.workBotFlagged || {};
-          store.profiles.workBotFlagged[authorId] = true;
+          store.profiles.workBotFlagged[authorId] = now;
 
           delete store.profiles.workTimestamps[authorId];
 
