@@ -28,11 +28,27 @@ module.exports = {
       }
 
       if (action === 'nagroda' || action === 'odbierz' || action === 'claim') {
-        if (!challenge || !challenge.completed) return { error: '❌ Nie masz ukończonego zadania do odbioru nagrody.' };
-        if (challenge.claimed) return { error: '❌ Nagroda za to zadanie została już odebrana.' };
-        const rewardResult = claimChallengeReward(userId, store);
-        if (!rewardResult) return { error: '❌ Nie udało się odebrać nagrody.' };
-        return { claimed: true, reward: rewardResult.reward, label: rewardResult.challenge.label };
+        const rewardResult = withData(store => {
+          const challenge = store.profiles.dailyChallenges && store.profiles.dailyChallenges[userId];
+          if (!challenge) return { error: '❌ Nie masz aktywnego zadania.' };
+          if (!challenge.completed) return { error: '❌ Zadanie nie zostało ukończone.' };
+          if (challenge.claimed) return { error: '❌ Nagroda została już odebrana.' };
+
+          const user = createUser(userId, store.users);
+          const reward = challenge.reward || 0;
+          user.balance = (user.balance || 0) + reward;
+          challenge.claimed = true;
+
+          return { success: true, reward, label: challenge.label };
+        });
+
+        if (rewardResult.error) {
+          await message.reply(rewardResult.error);
+          return;
+        }
+
+        await message.reply(`🎉 Zadanie **${rewardResult.label}** ukończone!\nOdebrano nagrodę: **${formatCurrency(rewardResult.reward)}**`);
+        return;
       }
 
       if (action === 'nowe' || action === 'new' || action === 'losuj') {

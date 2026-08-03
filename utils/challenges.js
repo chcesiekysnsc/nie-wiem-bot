@@ -131,7 +131,9 @@ function advanceChallenge(userId, store, type, amount = 1, meta = {}) {
 
 function claimChallengeReward(userId, store) {
   const challenge = store.profiles.dailyChallenges && store.profiles.dailyChallenges[userId];
-  if (!challenge || !challenge.completed || challenge.claimed) return null;
+  if (!challenge) return null;
+  if (!challenge.completed) return null;
+  if (challenge.claimed) return null;
 
   const user = createUser(userId, store.users);
   const inventory = ensureInventoryRecord(store.inventory, userId);
