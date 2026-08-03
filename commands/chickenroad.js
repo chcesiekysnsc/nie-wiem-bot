@@ -28,9 +28,7 @@ const MULTIPLIER_TABLES = {
   hardcore: [1, 1.33, 1.73, 2.30, 3.40, 5, 8.50, 14.00, 22.00, 32.00, 45.00, 65.00, 85.00]
 };
 
-function buildMultiplierTable(difficultyKey) {
-  return MULTIPLIER_TABLES[difficultyKey];
-}
+function buildMultiplierTable(k) { return MULTIPLIER_TABLES[k]; }
 
 function getSurvivalProb(difficultyKey, lane) {
   const diff = DIFFICULTIES[difficultyKey];
@@ -49,16 +47,12 @@ let multiplierTableCache = null;
 function getMultiplierTables() {
   if (!multiplierTableCache) {
     multiplierTableCache = {};
-    for (const key of Object.keys(DIFFICULTIES)) {
-      multiplierTableCache[key] = buildMultiplierTable(key);
-    }
+    for (const key of Object.keys(DIFFICULTIES)) multiplierTableCache[key] = buildMultiplierTable(key);
   }
   return multiplierTableCache;
 }
 
-function formatMultiplier(mult) {
-  return `x${mult.toFixed(2)}`;
-}
+function formatMultiplier(mult) { return `x${mult.toFixed(2)}`; }
 
 function renderBoard(game) {
   const diff = DIFFICULTIES[game.difficulty];
@@ -81,9 +75,7 @@ module.exports = {
     const authorId = message.author.id;
     const threadId = message.guild.id;
 
-    if (!client.activeChickenRoadGames) {
-      client.activeChickenRoadGames = new Map();
-    }
+    if (!client.activeChickenRoadGames) client.activeChickenRoadGames = new Map();
 
     const existing = client.activeChickenRoadGames.get(authorId);
     if (existing && Date.now() - existing.timestamp < GAME_TIMEOUT_MS) {
@@ -114,54 +106,32 @@ module.exports = {
     const minBet = 10000;
 
     if (!betArg || (betArg.toLowerCase() !== 'all' && !/^\d+$/.test(betArg))) {
-      await message.reply(
-        `❌ Podaj poprawną kwotę zakładu. Przykład: **!chickenroad ${rawDifficulty} 50000** ` +
-        `(min: ${formatCurrency(minBet)})`
-      );
+      await message.reply(`❌ Podaj poprawną kwotę zakładu. Przykład: **!chickenroad ${rawDifficulty} 50000** (min: ${formatCurrency(minBet)})`);
       return;
     }
 
     const result = await withData(store => {
       const user = createUser(authorId, store.users);
-
-      if (user.jailUntil && user.jailUntil > Date.now()) {
-        return { error: '❌ Jesteś w więzieniu! Nie możesz teraz grać.' };
-      }
+      if (user.jailUntil && user.jailUntil > Date.now()) return { error: '❌ Jesteś w więzieniu! Nie możesz teraz grać.' };
 
       const bet = betArg.toLowerCase() === 'all' ? user.balance : parseInt(betArg, 10);
-
-      if (!Number.isFinite(bet) || bet < minBet) {
-        return { error: `❌ Minimalny zakład to **${formatCurrency(minBet)}**.` };
-      }
-      if (bet > user.balance) {
-        return { error: `❌ Nie masz tyle na koncie! Twój stan konta: **${formatCurrency(user.balance)}**.` };
-      }
+      if (!Number.isFinite(bet) || bet < minBet) return { error: `❌ Minimalny zakład to **${formatCurrency(minBet)}**.` };
+      if (bet > user.balance) return { error: `❌ Nie masz tyle na koncie! Twój stan konta: **${formatCurrency(user.balance)}**.` };
 
       user.balance -= bet;
       return { bet };
     });
 
-    if (result.error) {
-      await message.reply(result.error);
-      return;
-    }
+    if (result.error) { await message.reply(result.error); return; }
 
-    const game = {
-      threadId,
-      difficulty: difficultyKey,
-      bet: result.bet,
-      lane: 0,
-      multiplier: 1,
-      timestamp: Date.now()
-    };
+    const game = { threadId, difficulty: difficultyKey, bet: result.bet, lane: 0, multiplier: 1, timestamp: Date.now() };
     client.activeChickenRoadGames.set(authorId, game);
     saveGameSessions(client);
 
     const diff = DIFFICULTIES[difficultyKey];
     await message.reply(
       `🐔 **Chicken Road** — poziom: ${diff.emoji} **${diff.label}**\n` +
-      `Zakład: **${formatCurrency(game.bet)}**\n\n` +
-      `${renderBoard(game)}\n\n` +
+      `Zakład: **${formatCurrency(game.bet)}**\n\n${renderBoard(game)}\n\n` +
       `Aktualny mnożnik: **${formatMultiplier(game.multiplier)}**\n` +
       `Napisz **!dalej** żeby przejść na kolejny pas, albo **!odbierz** żeby zabrać zakład z powrotem.`
     );
@@ -171,18 +141,15 @@ module.exports = {
     const authorId = message.author.id;
     const threadId = message.guild.id;
 
-    if (!client.activeChickenRoadGames) {
-      client.activeChickenRoadGames = new Map();
-    }
+    if (!client.activeChickenRoadGames) client.activeChickenRoadGames = new Map();
 
     const game = client.activeChickenRoadGames.get(authorId);
     if (!game || game.threadId !== threadId) return;
 
-    const action = ['dalej', 'idz', 'przejdz', 'krok'].includes(rawAction) ? 'next' : (['odbierz', 'cashout', 'zbierz', 'stop'].includes(rawAction) ? 'cashout' : 'ignore');
+    const action = ['dalej', 'idz', 'przejdz', 'krok'].includes(rawAction) ? 'next'
+      : (['odbierz', 'cashout', 'zbierz', 'stop'].includes(rawAction) ? 'cashout' : 'ignore');
 
-    if (action === 'ignore') {
-      return;
-    }
+    if (action === 'ignore') return;
 
     const withData = require('../utils/storage').withData;
     const createUser = require('../utils/storage').createUser;
@@ -197,16 +164,19 @@ module.exports = {
         const inventory = ensureInventoryRecord(store.inventory, authorId);
         user.balance += payout;
         const xpGain = getRandomXp();
-        const xpResult = addXp(user, xpGain, inventory);
+        addXp(user, xpGain, inventory);
         recordGame(user, payout - game.bet, xpGain, inventory);
         refreshBadges(user, inventory);
         advanceChallenge(authorId, store, 'chickenroad_wins', 1, { won: true });
+        advanceChallenge(authorId, store, 'chickenroad_hardcore_4', game.lane, {
+          difficulty: game.difficulty,
+          lanes: game.lane,
+          betAmount: game.bet
+        });
       });
 
       const profit = payout - game.bet;
-      const profitText = profit >= 0
-        ? `zysk: **+${formatCurrency(profit)}**`
-        : `strata: **${formatCurrency(profit)}**`;
+      const profitText = profit >= 0 ? `zysk: **+${formatCurrency(profit)}**` : `strata: **${formatCurrency(profit)}**`;
 
       await message.reply(
         `💰 Odebrałeś wygraną na mnożniku **${formatMultiplier(game.multiplier)}**!\n` +
@@ -215,15 +185,12 @@ module.exports = {
       return;
     }
 
-    // action === 'next'
     const diff = DIFFICULTIES[game.difficulty];
     const table = getMultiplierTables()[game.difficulty];
 
     const survivalOverride = await getEffectiveChance(authorId, 'chickenroad_survive');
     let survivalProb = getSurvivalProb(game.difficulty, game.lane + 1);
-    if (Number.isFinite(survivalOverride)) {
-      survivalProb = Math.max(0, Math.min(1, survivalOverride / 100));
-    }
+    if (Number.isFinite(survivalOverride)) survivalProb = Math.max(0, Math.min(1, survivalOverride / 100));
 
     const survived = Math.random() < survivalProb;
 
@@ -242,8 +209,7 @@ module.exports = {
 
       await message.reply(
         `💥 **ROZJECHANO KURCZAKA!** Wypadek na pasie **${game.lane + 1}**!\n` +
-        `Straciłeś zakład: **-${formatCurrency(game.bet)}**\n\n` +
-        `Spróbuj ponownie: **!chickenroad ${game.difficulty} <zaklad>**`
+        `Straciłeś zakład: **-${formatCurrency(game.bet)}**\n\nSpróbuj ponownie: **!chickenroad ${game.difficulty} <zaklad>**`
       );
       return;
     }
@@ -262,11 +228,13 @@ module.exports = {
         const inventory = ensureInventoryRecord(store.inventory, authorId);
         user.balance += payout;
         const xpGain = getRandomXp();
-        const xpResult = addXp(user, xpGain, inventory);
+        addXp(user, xpGain, inventory);
         recordGame(user, payout - game.bet, xpGain, inventory);
         refreshBadges(user, inventory);
         advanceChallenge(authorId, store, 'chickenroad_wins', 1, { won: true });
-        advanceChallenge(authorId, store, 'chickenroad_hardcore_4', game.lane >= 4 ? 4 : 0, { difficulty: game.difficulty, lanes: game.lane, betAmount: game.bet });
+        advanceChallenge(authorId, store, 'chickenroad_hardcore_4', game.lane, {
+          difficulty: game.difficulty, lanes: game.lane, betAmount: game.bet
+        });
       });
 
       await message.reply(
@@ -278,10 +246,8 @@ module.exports = {
 
     const potentialPayout = Math.floor(game.bet * game.multiplier);
     await message.reply(
-      `${renderBoard(game)}\n\n` +
-      `✅ Przeżyłeś pas **${game.lane}**! Mnożnik: **${formatMultiplier(game.multiplier)}**\n` +
-      `Odbiór teraz: **${formatCurrency(potentialPayout)}**\n\n` +
-      `Napisz **!dalej** albo **!odbierz**.`
+      `${renderBoard(game)}\n\n✅ Przeżyłeś pas **${game.lane}**! Mnożnik: **${formatMultiplier(game.multiplier)}**\n` +
+      `Odbiór teraz: **${formatCurrency(potentialPayout)}**\n\nNapisz **!dalej** albo **!odbierz**.`
     );
   }
 };

@@ -20,17 +20,9 @@ module.exports = {
         const hoursLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60)));
         const minutesLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)));
         return {
-          status: 'active',
-          label: challenge.label,
-          description: challenge.description,
-          progress: challenge.progress,
-          target: challenge.target,
-          percent,
-          remaining,
-          hoursLeft,
-          minutesLeft,
-          completed: challenge.completed,
-          claimed: challenge.claimed,
+          status: 'active', label: challenge.label, description: challenge.description,
+          progress: challenge.progress, target: challenge.target, percent, remaining,
+          hoursLeft, minutesLeft, completed: challenge.completed, claimed: challenge.claimed,
           reward: challenge.reward
         };
       }
@@ -40,11 +32,7 @@ module.exports = {
         if (challenge.claimed) return { error: '❌ Nagroda za to zadanie została już odebrana.' };
         const rewardResult = claimChallengeReward(userId, store);
         if (!rewardResult) return { error: '❌ Nie udało się odebrać nagrody.' };
-        return {
-          claimed: true,
-          reward: rewardResult.reward,
-          label: rewardResult.challenge.label
-        };
+        return { claimed: true, reward: rewardResult.reward, label: rewardResult.challenge.label };
       }
 
       if (action === 'nowe' || action === 'new' || action === 'losuj') {
@@ -75,18 +63,9 @@ module.exports = {
 
       if (existing && existing.completed && !existing.claimed) {
         return {
-          status: 'active',
-          label: existing.label,
-          description: existing.description,
-          progress: existing.progress,
-          target: existing.target,
-          percent: 100,
-          remaining: 0,
-          hoursLeft: 0,
-          minutesLeft: 0,
-          completed: true,
-          claimed: false,
-          reward: existing.reward
+          status: 'active', label: existing.label, description: existing.description,
+          progress: existing.progress, target: existing.target, percent: 100, remaining: 0,
+          hoursLeft: 0, minutesLeft: 0, completed: true, claimed: false, reward: existing.reward
         };
       }
 
@@ -103,16 +82,9 @@ module.exports = {
       const minutesLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)));
 
       return {
-        picked: true,
-        label: newChallenge.label,
-        description: newChallenge.description,
-        target: newChallenge.target,
-        progress: newChallenge.progress,
-        hoursLeft,
-        minutesLeft,
-        completed: newChallenge.completed,
-        claimed: newChallenge.claimed,
-        reward: newChallenge.reward
+        picked: true, label: newChallenge.label, description: newChallenge.description,
+        target: newChallenge.target, progress: newChallenge.progress, hoursLeft, minutesLeft,
+        completed: newChallenge.completed, claimed: newChallenge.claimed, reward: newChallenge.reward
       };
     });
 
@@ -120,42 +92,33 @@ module.exports = {
       await message.reply('📋 Nie masz aktywnego zadania. Wpisz **!zadanie** aby wziąć nowe.');
       return;
     }
-
     if (result.error) {
       await message.reply(result.error);
       return;
     }
-
     if (result.claimed) {
-      await message.reply(
-        `🎉 Zadanie **${result.label}** ukończone!\n` +
-        `Odebrano nagrodę: **${formatCurrency(result.reward)}**`
-      );
+      await message.reply(`🎉 Zadanie **${result.label}** ukończone!\nOdebrano nagrodę: **${formatCurrency(result.reward)}**`);
       return;
     }
-
     if (result.picked) {
-      let reply = `📋 **Nowe zadanie: ${result.label}**\n${result.description}\n` +
+      await message.reply(
+        `📋 **Nowe zadanie: ${result.label}**\n${result.description}\n` +
         `Nagroda: **${formatCurrency(result.reward)}**\n` +
         `Czas na wykonanie: **${result.hoursLeft}h ${result.minutesLeft}m**\n\n` +
         `Postęp: **${result.progress}/${result.target}** (${Math.min(100, Math.round((result.progress / result.target) * 100))}%)\n\n` +
-        `Sprawdz postep: **!zadanie postep**\n` +
-        `Odbierz nagrode po ukonczeniu: **!zadanie nagroda**`;
-      await message.reply(reply);
+        `Sprawdz postep: **!zadanie postep**\nOdbierz nagrode po ukonczeniu: **!zadanie nagroda**`
+      );
       return;
     }
 
     let reply = `📋 **${result.label}**\n${result.description}\n` +
       `Nagroda: **${formatCurrency(result.reward)}**\n` +
       `Postęp: **${result.progress}/${result.target}** (${result.percent}%)\n` +
-      `Pozostalo: **${result.remaining}**\n` +
-      `Czas: **${result.hoursLeft}h ${result.minutesLeft}m**\n`;
+      `Pozostalo: **${result.remaining}**\nCzas: **${result.hoursLeft}h ${result.minutesLeft}m**\n`;
 
-    if (result.completed) {
-      reply += `\n✅ Zadanie ukonczone! Odbierz nagrode: **!zadanie nagroda**`;
-    } else {
-      reply += `\nWykonuj komendy: !work, !bet, !coinflip, !chickenroad, !blackjack`;
-    }
+    reply += result.completed
+      ? `\n✅ Zadanie ukonczone! Odbierz nagrode: **!zadanie nagroda**`
+      : `\nWykonuj komendy: !work, !bet, !coinflip, !chickenroad, !blackjack`;
 
     await message.reply(reply);
   }
