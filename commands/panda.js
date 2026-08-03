@@ -2,7 +2,6 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { checkCooldown } = require('../utils/cooldowns');
-const { fetchRedditImage } = require('../utils/reddit');
 
 module.exports = {
   name: 'panda',
@@ -26,22 +25,14 @@ module.exports = {
     await message.reply('🐼 Szukam zdjęcia pandy...').catch(() => null);
 
     try {
-      const imageUrl = await fetchRedditImage('panda');
-
-      if (!imageUrl) {
-        await message.reply('❌ Nie udało się pobrać obrazka, spróbuj ponownie później.').catch(() => null);
-        return;
-      }
+      const imageUrl = 'https://loremflickr.com/640/480/panda';
 
       const threadId = message.guild?.id || message.rawEvent?.threadID;
       if (client.api && threadId) {
-        const urlPart = imageUrl.split('?')[0];
-        const extMatch = urlPart.match(/\.([a-zA-Z0-9]+)$/);
-        const ext = extMatch ? extMatch[1] : 'jpg';
-        const tempFile = path.join(__dirname, `temp_panda_${Date.now()}.${ext}`);
+        const tempFile = path.join(__dirname, `temp_panda_${Date.now()}.jpg`);
 
         try {
-          const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+          const response = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 15000, maxRedirects: 5 });
           fs.writeFileSync(tempFile, response.data);
 
           await new Promise((resolve, reject) => {
