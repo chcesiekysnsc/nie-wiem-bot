@@ -1,6 +1,8 @@
 const { withData, createUser, ensureInventoryRecord } = require('./storage');
 const { formatCurrency } = require('./economy');
 
+const CHALLENGE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
 const CHALLENGES = [
   {
     id: 'work_35',
@@ -128,7 +130,12 @@ const CHALLENGES = [
 
 function pickChallenge(userId, store) {
   const existing = store.profiles.dailyChallenges && store.profiles.dailyChallenges[userId];
+
   if (existing && existing.expiresAt > Date.now() && !existing.completed) {
+    return existing;
+  }
+
+  if (existing && existing.completed && !existing.claimed) {
     return existing;
   }
 
@@ -150,8 +157,8 @@ function pickChallenge(userId, store) {
     completed: false,
     claimed: false,
     pickedAt: Date.now(),
-    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-    nextAvailableAt: Date.now() + 24 * 60 * 60 * 1000,
+    expiresAt: Date.now() + CHALLENGE_COOLDOWN_MS,
+    nextAvailableAt: Date.now() + CHALLENGE_COOLDOWN_MS,
     minBet: challenge.minBet || 0,
     maxNumber: challenge.maxNumber || null,
     difficulty: challenge.difficulty || null,
@@ -248,6 +255,7 @@ function resetExpiredChallenges(store) {
 }
 
 module.exports = {
+  CHALLENGE_COOLDOWN_MS,
   CHALLENGES,
   pickChallenge,
   getActiveChallenge,

@@ -72,6 +72,24 @@ module.exports = {
 
       const now = Date.now();
       const existing = store.profiles.dailyChallenges && store.profiles.dailyChallenges[userId];
+
+      if (existing && existing.completed && !existing.claimed) {
+        return {
+          status: 'active',
+          label: existing.label,
+          description: existing.description,
+          progress: existing.progress,
+          target: existing.target,
+          percent: 100,
+          remaining: 0,
+          hoursLeft: 0,
+          minutesLeft: 0,
+          completed: true,
+          claimed: false,
+          reward: existing.reward
+        };
+      }
+
       if (existing && existing.claimed && now < existing.nextAvailableAt) {
         const left = existing.nextAvailableAt - now;
         const hoursLeft = Math.max(0, Math.floor(left / (1000 * 60 * 60)));
