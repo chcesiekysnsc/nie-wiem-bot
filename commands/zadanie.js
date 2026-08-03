@@ -28,19 +28,17 @@ module.exports = {
       }
 
       if (action === 'nagroda' || action === 'odbierz' || action === 'claim') {
-        return withData(store => {
-          const challenge = store.profiles.dailyChallenges && store.profiles.dailyChallenges[userId];
-          if (!challenge) return { error: '❌ Nie masz aktywnego zadania.' };
-          if (!challenge.completed) return { error: '❌ Zadanie nie zostało ukończone.' };
-          if (challenge.claimed) return { error: '❌ Nagroda została już odebrana.' };
+        const challenge = store.profiles.dailyChallenges && store.profiles.dailyChallenges[userId];
+        if (!challenge) return { error: '❌ Nie masz aktywnego zadania.' };
+        if (!challenge.completed) return { error: '❌ Zadanie nie zostało ukończone.' };
+        if (challenge.claimed) return { error: '❌ Nagroda została już odebrana.' };
 
-          const user = createUser(userId, store.users);
-          const reward = challenge.reward || 0;
-          user.balance = (user.balance || 0) + reward;
-          challenge.claimed = true;
+        const user = createUser(userId, store.users);
+        const reward = challenge.reward || 0;
+        user.balance = (user.balance || 0) + reward;
+        challenge.claimed = true;
 
-          return { claimed: true, reward, label: challenge.label };
-        });
+        return { claimed: true, reward, label: challenge.label };
       }
 
       if (action === 'nowe' || action === 'new' || action === 'losuj') {
