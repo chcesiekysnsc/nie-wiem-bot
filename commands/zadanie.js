@@ -70,6 +70,15 @@ module.exports = {
         }
       }
 
+      const now = Date.now();
+      const existing = store.profiles.dailyChallenges && store.profiles.dailyChallenges[userId];
+      if (existing && existing.claimed && now < existing.nextAvailableAt) {
+        const left = existing.nextAvailableAt - now;
+        const hoursLeft = Math.max(0, Math.floor(left / (1000 * 60 * 60)));
+        const minutesLeft = Math.max(0, Math.floor((left % (1000 * 60 * 60)) / (1000 * 60)));
+        return { error: `❌ Musisz poczekać jeszcze ${hoursLeft}h ${minutesLeft}m przed wzięciem nowego zadania.` };
+      }
+
       const newChallenge = pickChallenge(userId, store);
       const timeLeft = newChallenge.expiresAt - Date.now();
       const hoursLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60)));
@@ -112,7 +121,6 @@ module.exports = {
         `Nagroda: **${formatCurrency(result.reward)}**\n` +
         `Czas na wykonanie: **${result.hoursLeft}h ${result.minutesLeft}m**\n\n` +
         `Postęp: **${result.progress}/${result.target}** (${Math.min(100, Math.round((result.progress / result.target) * 100))}%)\n\n` +
-        `Wykonuj zwykle komendy (!work, !bet, !coinflip, !chickenroad, !blackjack) - postep bedzie liczony automatycznie.\n` +
         `Sprawdz postep: **!zadanie postep**\n` +
         `Odbierz nagrode po ukonczeniu: **!zadanie nagroda**`;
       await message.reply(reply);

@@ -181,9 +181,10 @@ function advanceChallenge(userId, store, type, amount = 1, meta = {}) {
       challenge.streak = (challenge.streak || 0) + 1;
       challenge.progress = Math.min(challenge.streak, challenge.target);
     } else {
-      challenge.streak = 0;
-      challenge.progress = 0;
-      return challenge;
+      if (store.profiles.dailyChallenges && store.profiles.dailyChallenges[userId]) {
+        delete store.profiles.dailyChallenges[userId];
+      }
+      return null;
     }
   } else if (type === 'chickenroad_hardcore_4') {
     const difficulty = meta.difficulty || '';

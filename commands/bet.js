@@ -373,7 +373,7 @@ module.exports = {
 
         const challengeUpdate = advanceChallenge(message.author.id, store, 'bet_count');
         const challengeVolumeUpdate = advanceChallenge(message.author.id, store, 'bet_volume', bet);
-        const challengeStreakUpdate = advanceChallenge(message.author.id, store, 'bet_streak_under74', won ? 1 : 0, { betAmount: bet, chosenNumber, won: result.won });
+        const challengeStreakUpdate = advanceChallenge(message.author.id, store, 'bet_streak_under74', won ? 1 : 0, { betAmount: bet, chosenNumber, won });
 
         return {
           won,
@@ -583,7 +583,7 @@ module.exports = {
         }
 
         refreshBadges(user, inventory);
-        challengeStreakUpdate = advanceChallenge(message.author.id, store, 'bet_streak_under74', won ? 1 : 0, { betAmount, chosenNumber, won: result.won });
+        challengeStreakUpdate = advanceChallenge(message.author.id, store, 'bet_streak_under74', won ? 1 : 0, { betAmount, chosenNumber, won });
       }
 
       const xpResult = addXp(user, getRandomXp(), inventory);
