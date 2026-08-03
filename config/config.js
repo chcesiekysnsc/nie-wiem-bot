@@ -70,6 +70,9 @@ module.exports = {
     analiza: 10,
     krolik: 0,
     kot: 0,
+    dog: 0,
+    fox: 0,
+    capybara: 0,
     afk: 3
   },
   adminDailyLimits: {

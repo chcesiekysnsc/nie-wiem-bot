@@ -1160,32 +1160,6 @@ const helpCommands = [
     additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
   },
   {
-    id: 74,
-    name: "foka",
-    category: "SOCIAL_GANGS",
-    shortDescription: "🦭 wysyła zdjęcie foki",
-    description: "🦭 Pobiera i wysyła losowe zdjęcie foki z Reddita (przefiltrowane - tylko formaty graficzne, bez wideo i treści drastycznych).",
-    usage: "!foka",
-    examples: ["!foka", "!foki", "!foczki"],
-    cooldown: "2 minuty",
-    requirements: "Brak.",
-    aliases: ["foki", "foczki", "seal"],
-    additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
-  },
-  {
-    id: 75,
-    name: "panda",
-    category: "SOCIAL_GANGS",
-    shortDescription: "🐼 wysyła zdjęcie pandy",
-    description: "🐼 Pobiera i wysyła losowe zdjęcie pandy z Reddita (przefiltrowane - tylko formaty graficzne, bez wideo i treści drastycznych).",
-    usage: "!panda",
-    examples: ["!panda", "!pandy"],
-    cooldown: "2 minuty",
-    requirements: "Brak.",
-    aliases: ["pandy", "pandka"],
-    additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
-  },
-  {
     name: "analiza",
     category: "UTILITY_ADMIN",
     shortDescription: "📊 analiza historii czatu i odpowiedzi",
