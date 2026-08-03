@@ -28,6 +28,28 @@ async function fetchRedditImage(subreddit) {
     }
   }
 
+  if (subreddit === 'dogpictures') {
+    try {
+      const response = await axios.get('https://dog.ceo/api/breeds/image/random', { timeout: 10000 });
+      if (response.data && response.data.message) {
+        return response.data.message;
+      }
+    } catch (err) {
+      console.error('[REDDIT API] Dog API failed, trying Reddit:', err.message);
+    }
+  }
+
+  if (subreddit === 'foxes') {
+    try {
+      const response = await axios.get('https://randomfox.ca/floof/', { timeout: 10000 });
+      if (response.data && response.data.image) {
+        return response.data.image;
+      }
+    } catch (err) {
+      console.error('[REDDIT API] Fox API failed, trying Reddit:', err.message);
+    }
+  }
+
   const maxAttempts = 10;
   let badStatusCount = 0;
   let emptyPostsCount = 0;

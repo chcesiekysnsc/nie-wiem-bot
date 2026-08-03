@@ -2,7 +2,6 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { checkCooldown } = require('../utils/cooldowns');
-const { fetchRedditImage } = require('../utils/reddit');
 
 module.exports = {
   name: 'capybara',
@@ -26,22 +25,14 @@ module.exports = {
     await message.reply('🦫 Szukam zdjęcia kapibary...').catch(() => null);
 
     try {
-      const imageUrl = await fetchRedditImage('capybara');
-
-      if (!imageUrl) {
-        await message.reply('❌ Nie udało się pobrać obrazka, spróbuj ponownie później.').catch(() => null);
-        return;
-      }
+      const imageUrl = 'https://api.capy.lol/v1/capybara';
 
       const threadId = message.guild?.id || message.rawEvent?.threadID;
       if (client.api && threadId) {
-        const urlPart = imageUrl.split('?')[0];
-        const extMatch = urlPart.match(/\.([a-zA-Z0-9]+)$/);
-        const ext = extMatch ? extMatch[1] : 'jpg';
-        const tempFile = path.join(__dirname, `temp_capybara_${Date.now()}.${ext}`);
+        const tempFile = path.join(__dirname, `temp_capybara_${Date.now()}.jpg`);
 
         try {
-          const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+          const response = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 10000 });
           fs.writeFileSync(tempFile, response.data);
 
           await new Promise((resolve, reject) => {
