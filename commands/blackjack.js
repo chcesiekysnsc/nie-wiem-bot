@@ -232,7 +232,7 @@ module.exports = {
         user.balance += finalPayout;
         const xpResult = recordGame(user, finalNet, getRandomXp(), inventory);
         refreshBadges(user, inventory);
-        const challengeUpdate = finalNet > 0 ? advanceChallenge(message.author.id, store, 'blackjack_wins') : null;
+        const challengeUpdate = finalNet > 0 ? advanceChallenge(message.author.id, store, 'blackjack_wins', 1, { won: true }) : advanceChallenge(message.author.id, store, 'blackjack_wins', 0, { won: false });
         return { balance: user.balance, xpResult, talizmanBonus, streak: user.gambleStreak || 0, finalPayout, finalNet, challengeUpdate };
       });
 
@@ -682,7 +682,7 @@ module.exports = {
       user.balance += finalPayout;
       const xpResult = recordGame(user, finalNet, getRandomXp(), inventory);
       refreshBadges(user, inventory);
-      const challengeUpdate = finalNet > 0 ? advanceChallenge(message.author.id, store, 'blackjack_wins') : null;
+      const challengeUpdate = finalNet > 0 ? advanceChallenge(message.author.id, store, 'blackjack_wins', 1, { won: true }) : advanceChallenge(message.author.id, store, 'blackjack_wins', 0, { won: false });
       return { balance: user.balance, xpResult, outcome: finalOutcome, talizmanBonus, streak: user.gambleStreak || 0, challengeUpdate };
     });
 

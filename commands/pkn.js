@@ -273,7 +273,9 @@ module.exports = {
         const { recordGame } = require('../utils/economy');
         const xpResult = recordGame(user, net, getRandomXp(), inventory);
         refreshBadges(user, inventory);
-        const challengeUpdate = state === 'win' ? advanceChallenge(message.author.id, store, 'pkn_wins', 1, { betAmount: bet }) : null;
+        const challengeUpdate = state === 'win'
+          ? advanceChallenge(message.author.id, store, 'pkn_streak', 1, { betAmount: bet, won: true })
+          : advanceChallenge(message.author.id, store, 'pkn_streak', 0, { betAmount: bet, won: false });
 
         return {
           state,

@@ -186,7 +186,7 @@ module.exports = {
       const net = payout - bet;
       const xpResult = recordGame(user, net, getRandomXp(), inventory);
       refreshBadges(user, inventory);
-      const challengeUpdate = net > 0 ? advanceChallenge(message.author.id, store, 'slots_streak', 1, { betAmount: bet, won: net > 0 }) : null;
+      const challengeUpdate = net > 0 ? advanceChallenge(message.author.id, store, 'slots_streak', 1, { betAmount: bet, won: true }) : advanceChallenge(message.author.id, store, 'slots_streak', 0, { betAmount: bet, won: false });
 
       return {
         symbols,

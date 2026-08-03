@@ -216,7 +216,7 @@ module.exports = {
                 const net = finalPot - active.bet;
                 const xpResult = recordGame(winnerUser, net, getRandomXp(), winnerInv);
                 refreshBadges(winnerUser, winnerInv);
-                advanceChallenge(winnerId, store, 'wojna_streak', 1, { betAmount: active.bet });
+                advanceChallenge(winnerId, store, 'wojna_streak', 1, { betAmount: active.bet, won: true });
 
                 const losersXp = [];
                 for (const pid of allParticipants) {

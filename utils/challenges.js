@@ -71,14 +71,14 @@ const CHALLENGES = [
     reward: 100000
   },
   {
-    id: 'bet_streak_8',
+    id: 'bet_streak_6',
     type: 'bet_streak_under74',
     label: 'Szczesciarz',
-    description: 'Wygrywaj !bet 8 razy pod rzad (min. 50k, tylko liczby 1-73)',
-    target: 8,
-    minBet: 50000,
+    description: 'Wygrywaj !bet 6 razy pod rzad (min. 25k, tylko liczby 1-73)',
+    target: 6,
+    minBet: 25000,
     maxNumber: 73,
-    reward: 450000
+    reward: 320000
   },
   {
     id: 'mecz_streak_3',
@@ -107,6 +107,22 @@ const CHALLENGES = [
     target: 3,
     minBet: 30000,
     reward: 100000
+  },
+  {
+    id: 'bj_3',
+    type: 'blackjack_wins',
+    label: 'Mistrz Blackjacka',
+    description: 'Wygrywaj w !blackjack 3 razy (kazda wygrana reka liczy sie)',
+    target: 3,
+    reward: 120000
+  },
+  {
+    id: 'cr_3',
+    type: 'chickenroad_wins',
+    label: 'Kurczak na trasie',
+    description: 'Ukończ 3 gry w !chickenroad (wyplac lub dojdz do konca)',
+    target: 3,
+    reward: 90000
   }
 ];
 
@@ -168,7 +184,7 @@ function advanceChallenge(userId, store, type, amount = 1, meta = {}) {
   const remaining = challenge.target - challenge.progress;
   if (remaining <= 0) return challenge;
 
-  if (type === 'bet_streak_under74' || type === 'coinflip_streak' || type === 'slots_streak' || type === 'ruletka_streak' || type === 'mecz_streak' || type === 'pkn_streak' || type === 'wojna_streak') {
+  if (type === 'bet_streak_under74' || type === 'coinflip_streak' || type === 'slots_streak' || type === 'ruletka_streak' || type === 'mecz_streak' || type === 'pkn_streak' || type === 'wojna_streak' || type === 'blackjack_wins') {
     const minBet = challenge.minBet || 0;
     const maxNumber = challenge.maxNumber || null;
     const betAmount = meta.betAmount || 0;
