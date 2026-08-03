@@ -116,9 +116,7 @@ function advanceChallenge(userId, store, type, amount = 1, meta = {}) {
 
     if (difficulty !== (challenge.difficulty || 'hardcore')) return challenge;
     if (betAmount < minBet) return challenge;
-    if (lanes >= challenge.target) {
-      challenge.progress = challenge.target;
-    }
+    challenge.progress = Math.max(challenge.progress, Math.min(lanes, challenge.target));
   } else {
     challenge.progress += Math.min(amount, remaining);
   }
