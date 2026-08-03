@@ -3,6 +3,8 @@ const { ensureInventoryRecord, formatCurrency, recordGame, refreshBadges,   reso
   getRandomXp
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getEffectiveChance } = require('../utils/chances');
+const { advanceChallenge } = require('../utils/challenges');
 
 const CARD_NAMES = {
   2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: '10',
@@ -214,6 +216,7 @@ module.exports = {
                 const net = finalPot - active.bet;
                 const xpResult = recordGame(winnerUser, net, getRandomXp(), winnerInv);
                 refreshBadges(winnerUser, winnerInv);
+                advanceChallenge(winnerId, store, 'wojna_streak', 1, { betAmount: active.bet });
 
                 const losersXp = [];
                 for (const pid of allParticipants) {

@@ -3,6 +3,7 @@ const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, has
   getRandomXp
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { advanceChallenge } = require('../utils/challenges');
 
 async function resolveName(client, userId) {
   if (typeof client.resolveUserName === 'function') {
@@ -272,6 +273,7 @@ module.exports = {
         const { recordGame } = require('../utils/economy');
         const xpResult = recordGame(user, net, getRandomXp(), inventory);
         refreshBadges(user, inventory);
+        const challengeUpdate = state === 'win' ? advanceChallenge(message.author.id, store, 'pkn_wins', 1, { betAmount: bet }) : null;
 
         return {
           state,
@@ -284,7 +286,8 @@ module.exports = {
           okoSaved,
           ananasSaved,
           activeBadgeName,
-          xpResult
+          xpResult,
+          challengeUpdate
         };
       });
 

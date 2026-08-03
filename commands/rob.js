@@ -11,6 +11,7 @@ const {
 const { getItemSetBonus } = require('../utils/itemSets');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
+const { advanceChallenge } = require('../utils/challenges');
 
 const robCooldowns = new Map();
 const caughtBan = new Map();
@@ -437,6 +438,7 @@ module.exports = {
             robber.gamesPlayed += 1;
             refreshBadges(robber, robberInv);
             refreshBadges(victim, victimInv);
+            advanceChallenge(authorId, store, 'rob_count');
             return {
               success: true,
               stolen: netStolen,

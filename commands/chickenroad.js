@@ -3,10 +3,11 @@ const { formatCurrency, addXp, ensureInventoryRecord, refreshBadges, recordGame,
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { saveGameSessions } = require('../utils/gameStatePersistence');
+const { advanceChallenge } = require('../utils/challenges');
 
 const DIFFICULTIES = {
-  easy:     { label: 'Łatwy',    emoji: '🟢', survivalProb: 0.92, maxLanes: 24, phase1Lanes: 10, phase1Decay: 0.02, phase2Decay: 0.009 },
-  medium:   { label: 'Średni',   emoji: '🟡', survivalProb: 0.84, maxLanes: 20, phase1Lanes: 10, phase1Decay: 0.015, phase2Decay: 0.006 },
+  easy:     { label: 'Łatwy',    emoji: '🟢', survivalProb: 0.92, maxLanes: 24, phase1Lanes: 10, phase1Decay: 0.011, phase2Decay: 0.006 },
+  medium:   { label: 'Średni',   emoji: '🟡', survivalProb: 0.84, maxLanes: 20, phase1Lanes: 10, phase1Decay: 0.01, phase2Decay: 0.005 },
   hard:     { label: 'Trudny',   emoji: '🟠', survivalProb: 0.76, maxLanes: 15, phase1Lanes: 15, phase1Decay: 0.008, phase2Decay: 0.008 },
   hardcore: { label: 'Hardcore', emoji: '🔴', survivalProb: 0.65, maxLanes: 12, phase1Lanes: 12, phase1Decay: 0.01, phase2Decay: 0.01 }
 };
@@ -263,6 +264,9 @@ module.exports = {
         const xpResult = addXp(user, xpGain, inventory);
         recordGame(user, payout - game.bet, xpGain, inventory);
         refreshBadges(user, inventory);
+        advanceChallenge(authorId, store, 'chickenroad_finishes');
+        advanceChallenge(authorId, store, 'chickenroad_lanes', game.lane);
+        advanceChallenge(authorId, store, 'chickenroad_hardcore_4', game.lane >= 4 ? 4 : 0, { difficulty: game.difficulty, lanes: game.lane, betAmount: game.bet });
       });
 
       await message.reply(

@@ -6,6 +6,7 @@ const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { hasReputationBonus } = require('../utils/gangAI');
 const { getItemSetBonus } = require('../utils/itemSets');
+const { advanceChallenge } = require('../utils/challenges');
 
 const successLines = [
   'Uciekłeś z sejfem bez zostawienia śladów.',
@@ -215,6 +216,7 @@ module.exports = {
         }
         const xpResult = recordGame(user, netAmount, getRandomXp(), inventory);
         refreshBadges(user, inventory);
+        advanceChallenge(authorId, store, 'crime_count');
         return {
           success: true,
           amount: netAmount,

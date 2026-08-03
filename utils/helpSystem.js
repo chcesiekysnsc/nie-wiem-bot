@@ -344,6 +344,23 @@ const helpCommands = [
     ]
   },
   {
+    name: "zadanie",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "📋 weź codzienne wyzwanie i zdobądź nagrodę",
+    description: "📋 Zadanie — weź jedno wyzwanie na 24h, wykonaj je w grach i odbierz nagrodę. Tylko jedno zadanie naraz, po odebraniu nagrody musisz czekać 24h na kolejne.",
+    usage: "!zadanie | !zadanie postep | !zadanie nagroda",
+    examples: ["!zadanie", "!zadanie postep", "!zadanie nagroda"],
+    cooldown: "24h na kolejne zadanie",
+    requirements: "Brak.",
+    aliases: ["quest", "challenge", "wyzwanie_daily"],
+    additionalInfo: [
+      "Zadania wymagają wykonania konkretnych akcji w grach: !work, !bet, !coinflip, !chickenroad, !blackjack, !crime, !rob, !pkn, !slots, !ruletka, !mecz, !wojna.",
+      "Niektóre zadania wymagają minimalnej stawki lub konkretnej liczby/specjalnych warunków (np. tylko liczby 1-73 w betach, Hardcore w kurczaku, serie wygranych pod rząd).",
+      "Postęp liczony jest automatycznie podczas normalnej gry. Sprawdź status przez !zadanie postep.",
+      "Po ukończeniu zadania odbierz nagrodę przez !zadanie nagroda. Nieukończone zadania wygasają po 24h."
+    ]
+  },
+  {
     id: 21,
     name: "rosyjska",
     category: "ECONOMY_GAMBLING",

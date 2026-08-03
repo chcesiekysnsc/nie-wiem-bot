@@ -14,6 +14,7 @@ const {
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
+const { advanceChallenge } = require('../utils/challenges');
 
 const SYMBOLS = {
   cherry: '🍒',
@@ -185,6 +186,7 @@ module.exports = {
       const net = payout - bet;
       const xpResult = recordGame(user, net, getRandomXp(), inventory);
       refreshBadges(user, inventory);
+      const challengeUpdate = net > 0 ? advanceChallenge(message.author.id, store, 'slots_streak', 1, { betAmount: bet, won: net > 0 }) : null;
 
       return {
         symbols,
@@ -198,7 +200,8 @@ module.exports = {
         ananasSaved,
         kosciRefunded,
         activeBadgeName,
-        dealerCheated
+        dealerCheated,
+        challengeUpdate
       };
     });
 

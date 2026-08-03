@@ -77,8 +77,7 @@ module.exports = {
     await message.reply(
       `⚙️ **Zakazy na grupie:**\n\n` +
       `• \`!zakaz economia\` — blokuje/odblokowuje wszystkie komendy ekonomiczne\n` +
-      `• \`!zakaz powiadomienia\` — blokuje/odblokowuje WSZYSTKIE globalne powiadomienia (podatki, loteria, eventy, gry, reminder, multimecz, reakcje, flagi itd.)\n\n` +
-      `💡 Komenda działa jako przełącznik (toggle).`
+      `• \`!zakaz powiadomienia\` — blokuje/odblokowuje WSZYSTKIE globalne powiadomienia (podatki, loteria, eventy, gry, reminder, multimecz, reakcje, flagi itd.)`
     );
   }
 };

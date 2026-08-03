@@ -15,6 +15,7 @@ const {
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
+const { advanceChallenge } = require('../utils/challenges');
 
 const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 
@@ -268,6 +269,7 @@ module.exports = {
       const net = payout - bet;
       const xpResult = recordGame(user, net, getRandomXp(), inventory);
       refreshBadges(user, inventory);
+      const challengeUpdate = won ? advanceChallenge(message.author.id, store, 'ruletka_streak', 1, { betAmount: bet, won }) : null;
 
       return {
         won,
@@ -283,7 +285,8 @@ module.exports = {
         ananasSaved,
         kosciRefunded,
         activeBadgeName,
-        dealerCheated
+        dealerCheated,
+        challengeUpdate
       };
     });
 

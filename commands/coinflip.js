@@ -4,6 +4,7 @@ const { ensureInventoryRecord, formatCurrency, hasItem, recordGame, refreshBadge
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
+const { advanceChallenge } = require('../utils/challenges');
 
 function normalizeChoice(input) {
   const value = String(input || '').toLowerCase();
@@ -40,7 +41,7 @@ module.exports = {
       user.balance -= bet;
 
       const crypto = require('crypto');
-      let baseChance = Number.isFinite(coinflipOverride) ? coinflipOverride / 100 : 0.485;
+      let baseChance = Number.isFinite(coinflipOverride) ? coinflipOverride / 100 : 0.493;
       let badgeUsed = '';
 
       if (user.badges) {
@@ -85,7 +86,7 @@ module.exports = {
       let szkarlatneOkoSaved = false;
       let ananasSaved = false;
       if (won && !dealerCheated) {
-        const baseThreshold = 0.485 * 10000;
+        const baseThreshold = 0.493 * 10000;
         const badgeThreshold = baseThreshold + (badgeBonusChance * 10000);
         const okoThreshold = badgeThreshold + (hasOko ? 150 : 0);
         const ananasThreshold = okoThreshold + (ananasBonus * 10000);
@@ -145,7 +146,9 @@ module.exports = {
       const xpResult = recordGame(user, net, getRandomXp(), inventory);
       refreshBadges(user, inventory);
 
-      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, ananasSaved, kosciRefunded, badgeUsed, dealerCheated, talizmanBonus, streak: user.gambleStreak || 0 };
+      const challengeUpdate = won ? advanceChallenge(message.author.id, store, 'coinflip_streak', 1, { betAmount: bet, won }) : advanceChallenge(message.author.id, store, 'coinflip_streak', 0, { betAmount: bet, won: false });
+
+      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, ananasSaved, kosciRefunded, badgeUsed, dealerCheated, talizmanBonus, streak: user.gambleStreak || 0, challengeUpdate };
     });
 
     if (result.error) {

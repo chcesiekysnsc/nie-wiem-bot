@@ -3,6 +3,7 @@ const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount,   r
   getRandomXp
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { advanceChallenge } = require('../utils/challenges');
 
 const TEAMS = {
   // === TOP 100 EUROPEJSKICH KLUBÓW WG UEFA 2025/2026 ===
@@ -430,6 +431,7 @@ module.exports = {
           const { recordGame } = require('../utils/economy');
           const xpResult = recordGame(user, net, getRandomXp(), inventory);
           refreshBadges(user, inventory);
+          const challengeUpdate = won ? advanceChallenge(message.author.id, store, 'mecz_streak', 1, { betAmount: bet }) : null;
 
           return {
             won,
@@ -437,7 +439,8 @@ module.exports = {
             balance: user.balance,
             xpResult,
             payoutApplied,
-            sendGlobalNotify
+            sendGlobalNotify,
+            challengeUpdate
           };
         });
 

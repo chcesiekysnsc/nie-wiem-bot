@@ -16,6 +16,7 @@ const {
 const { createUser, withData, loadData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { saveGameSessions } = require('../utils/gameStatePersistence');
+const { advanceChallenge } = require('../utils/challenges');
 
 const SUITS = ['♠️', '♥️', '♦️', '♣️'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -231,7 +232,8 @@ module.exports = {
         user.balance += finalPayout;
         const xpResult = recordGame(user, finalNet, getRandomXp(), inventory);
         refreshBadges(user, inventory);
-        return { balance: user.balance, xpResult, talizmanBonus, streak: user.gambleStreak || 0, finalPayout, finalNet };
+        const challengeUpdate = finalNet > 0 ? advanceChallenge(message.author.id, store, 'blackjack_wins') : null;
+        return { balance: user.balance, xpResult, talizmanBonus, streak: user.gambleStreak || 0, finalPayout, finalNet, challengeUpdate };
       });
 
       let replyText = `🃏 **Gra w Blackjacka rozstrzygnięta!**\n\n` +
@@ -680,7 +682,8 @@ module.exports = {
       user.balance += finalPayout;
       const xpResult = recordGame(user, finalNet, getRandomXp(), inventory);
       refreshBadges(user, inventory);
-      return { balance: user.balance, xpResult, outcome: finalOutcome, talizmanBonus, streak: user.gambleStreak || 0 };
+      const challengeUpdate = finalNet > 0 ? advanceChallenge(message.author.id, store, 'blackjack_wins') : null;
+      return { balance: user.balance, xpResult, outcome: finalOutcome, talizmanBonus, streak: user.gambleStreak || 0, challengeUpdate };
     });
 
     let replyText = `🃏 **Koniec gry w Blackjacka!**${cheatNote}\n\n` +

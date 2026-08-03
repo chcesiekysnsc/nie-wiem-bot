@@ -15,6 +15,7 @@ const {
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
+const { advanceChallenge } = require('../utils/challenges');
 
 const SINGLE_MULTIPLIERS = {
   1: 65,
@@ -370,6 +371,10 @@ module.exports = {
         const xpResult = recordGame(user, net, getRandomXp(), inventory);
         refreshBadges(user, inventory);
 
+        const challengeUpdate = advanceChallenge(message.author.id, store, 'bet_count');
+        const challengeVolumeUpdate = advanceChallenge(message.author.id, store, 'bet_volume', bet);
+        const challengeStreakUpdate = advanceChallenge(message.author.id, store, 'bet_streak_under74', won ? 1 : 0, { betAmount: bet, chosenNumber, won: result.won });
+
         return {
           won,
           rolledNumber,
@@ -382,7 +387,10 @@ module.exports = {
           kosciRefunded,
           activeBadgeName,
           talizmanBonus,
-          streak: user.gambleStreak || 0
+          streak: user.gambleStreak || 0,
+          challengeUpdate,
+          challengeVolumeUpdate,
+          challengeStreakUpdate
         };
       });
 
@@ -456,6 +464,8 @@ module.exports = {
       let ananasSaves = 0;
       let kosciRefunds = 0;
       let totalBets = 0;
+      let totalBetVolume = 0;
+      let challengeStreakUpdate = null;
       let accumulatedMilestones = [];
 
       let interrupted = false;
@@ -560,6 +570,7 @@ module.exports = {
         }
 
         totalBets++;
+        totalBetVolume += betAmount;
         const net = won ? winAmount : -betAmount;
         
         user.gamesPlayed += 1;
@@ -572,6 +583,7 @@ module.exports = {
         }
 
         refreshBadges(user, inventory);
+        challengeStreakUpdate = advanceChallenge(message.author.id, store, 'bet_streak_under74', won ? 1 : 0, { betAmount, chosenNumber, won: result.won });
       }
 
       const xpResult = addXp(user, getRandomXp(), inventory);
@@ -589,6 +601,9 @@ module.exports = {
         user.badges.includes(config.badges.rekin) || 
         user.badges.includes(config.badges.hazardzista)
       );
+
+      const challengeUpdate = advanceChallenge(message.author.id, store, 'bet_count', totalBets);
+      const challengeVolumeUpdate = advanceChallenge(message.author.id, store, 'bet_volume', totalBetVolume);
 
       return {
         initialBalance,
@@ -609,7 +624,10 @@ module.exports = {
         hasOko,
         hasBadge,
         hasAnanas: getPassiveMultiplier(inventory, 'ananas_na_pizzy', 0.02) > 0,
-        hasKosci: getPassiveMultiplier(inventory, 'kosci_oszusta', 0.02) > 0
+        hasKosci: getPassiveMultiplier(inventory, 'kosci_oszusta', 0.02) > 0,
+        challengeUpdate,
+        challengeVolumeUpdate,
+        challengeStreakUpdate
       };
     });
 

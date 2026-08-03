@@ -22,6 +22,7 @@ const { getEffectiveChance } = require('../utils/chances');
 const { getGangBossShopMultiplier } = require('../utils/gangBossShop');
 const { hasReputationBonus } = require('../utils/gangAI');
 const { getItemSetBonus } = require('../utils/itemSets');
+const { advanceChallenge } = require('../utils/challenges');
 
 const WORK_BOT_WINDOW_SIZE = 6;
 const WORK_BOT_WINDOW_SIZE_FLAGGED = 5;
@@ -365,6 +366,8 @@ module.exports = {
         }
       }
 
+      const challengeUpdate = advanceChallenge(authorId, store, 'work_count');
+
       return {
         reward,
         tributeAmount,
@@ -379,7 +382,8 @@ module.exports = {
         workBoostPercent: user.workBoostPercent || 0,
         botBanTriggered,
         botBanUntil,
-        botPattern
+        botPattern,
+        challengeUpdate
       };
     });
 
