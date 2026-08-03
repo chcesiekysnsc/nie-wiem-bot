@@ -78,7 +78,8 @@ function getActiveChallenge(userId, store) {
 
 function advanceChallenge(userId, store, type, amount = 1, meta = {}) {
   const challenge = getActiveChallenge(userId, store);
-  if (!challenge || challenge.completed || challenge.type !== type) return null;
+  if (!challenge || challenge.type !== type) return null;
+  if (challenge.completed) return challenge;
 
   const remaining = challenge.target - challenge.progress;
   if (remaining <= 0) return challenge;
@@ -116,7 +117,7 @@ function advanceChallenge(userId, store, type, amount = 1, meta = {}) {
 
     if (difficulty !== (challenge.difficulty || 'hardcore')) return challenge;
     if (betAmount < minBet) return challenge;
-    challenge.progress = Math.max(challenge.progress, Math.min(lanes, challenge.target));
+    challenge.progress = lanes;
   } else {
     challenge.progress += Math.min(amount, remaining);
   }
