@@ -1121,6 +1121,45 @@ const helpCommands = [
     additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
   },
   {
+    id: 71,
+    name: "dog",
+    category: "SOCIAL_GANGS",
+    shortDescription: "🐶 wysyła zdjęcie psa",
+    description: "🐶 Pobiera i wysyła losowe zdjęcie psa (przefiltrowane - tylko formaty graficzne, bez wideo i treści drastycznych).",
+    usage: "!dog",
+    examples: ["!dog", "!pies"],
+    cooldown: "2 minuty",
+    requirements: "Brak.",
+    aliases: ["pies", "piesek", "puppy", "doggo"],
+    additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
+  },
+  {
+    id: 72,
+    name: "fox",
+    category: "SOCIAL_GANGS",
+    shortDescription: "🦊 wysyła zdjęcie liska",
+    description: "🦊 Pobiera i wysyła losowe zdjęcie liska (przefiltrowane - tylko formaty graficzne, bez wideo i treści drastycznych).",
+    usage: "!fox",
+    examples: ["!fox", "!lis"],
+    cooldown: "2 minuty",
+    requirements: "Brak.",
+    aliases: ["lis", "liszka", "vulpes"],
+    additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
+  },
+  {
+    id: 73,
+    name: "capybara",
+    category: "SOCIAL_GANGS",
+    shortDescription: "🦫 wysyła zdjęcie kapibary",
+    description: "🦫 Pobiera i wysyła losowe zdjęcie kapibary (przefiltrowane - tylko formaty graficzne, bez wideo i treści drastycznych).",
+    usage: "!capybara",
+    examples: ["!capybara", "!kapibara"],
+    cooldown: "2 minuty",
+    requirements: "Brak.",
+    aliases: ["capy", "kapibara"],
+    additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
+  },
+  {
     name: "analiza",
     category: "UTILITY_ADMIN",
     shortDescription: "📊 analiza historii czatu i odpowiedzi",

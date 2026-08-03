@@ -50,7 +50,7 @@ const CHALLENGES = [
     description: 'Wygrywaj !pkn 3 razy pod rzad (min. 20k stawka)',
     target: 3,
     minBet: 20000,
-    reward: 100000
+    reward: 220000
   },
   {
     id: 'slots_streak_5',
@@ -122,7 +122,7 @@ const CHALLENGES = [
     label: 'Kurczak na trasie',
     description: 'Ukończ 3 gry w !chickenroad (wyplac lub dojdz do konca)',
     target: 3,
-    reward: 90000
+    reward: 425000
   }
 ];
 
