@@ -267,9 +267,11 @@ module.exports = {
       }
 
       if (user.workBoostUntil && now < user.workBoostUntil && Number(user.workBoostPercent) > 0) {
-        reward = Math.floor(reward * (1 + Number(user.workBoostPercent)));
+        reward = Math.floor(reward * (1 + Number(user.workBoostPercent) / 100));
       }
 
+      let eventMessage;
+      let doubleXp = false;
       const forcedEvent = store.profiles.forcedWorkEvent && store.profiles.forcedWorkEvent[authorId];
       if (forcedEvent) {
         delete store.profiles.forcedWorkEvent[authorId];
