@@ -266,30 +266,49 @@ module.exports = {
         }
       }
 
-      if (user.workBoostUntil && now < user.workBoostUntil && user.workBoostPercent > 0) {
-        reward = Math.floor(reward * (1 + user.workBoostPercent));
+      if (user.workBoostUntil && now < user.workBoostUntil && Number(user.workBoostPercent) > 0) {
+        reward = Math.floor(reward * (1 + Number(user.workBoostPercent)));
       }
 
-      const EVENT_CHANCE = 0.02;
-      let eventMessage = null;
-      let doubleXp = false;
-      if (Math.random() < EVENT_CHANCE) {
-        const roll = Math.random();
-        if (roll < 0.35) {
+      const forcedEvent = store.profiles.forcedWorkEvent && store.profiles.forcedWorkEvent[authorId];
+      if (forcedEvent) {
+        delete store.profiles.forcedWorkEvent[authorId];
+        if (forcedEvent === 1) {
           reward = Math.floor(reward * 1.5);
           eventMessage = '🎉 Szef był w dobrym nastroju — dostałeś premię **+50%** do nagrody!';
-        } else if (roll < 0.60) {
+        } else if (forcedEvent === 2) {
           reward = Math.floor(reward * 0.7);
           user.tempCooldownReductionUntil = now + 60 * 60 * 1000;
           eventMessage = '⚠️ Potknąłeś się w pracy i straciłeś **-30%** nagrody, ale szef dał Ci plaster — przez następną godzinę cooldown pracy jest skrócony o **20%**!';
-        } else if (roll < 0.75) {
-          const newBoost = Math.min(50, (user.workBoostPercent || 0) + 10);
+        } else if (forcedEvent === 3) {
+          const newBoost = Math.min(50, Number(user.workBoostPercent || 0) + 10);
           user.workBoostUntil = now + 6 * 60 * 60 * 1000;
-          user.workBoostPercent = newBoost;
+          user.workBoostPercent = Number(newBoost);
           eventMessage = `💸 Szef dał Ci podwyżkę! Przez następne **6h** wszystkie prace są opłacane o **${newBoost}%** więcej.`;
-        } else {
+        } else if (forcedEvent === 4) {
           doubleXp = true;
           eventMessage = '⭐ Szef zauważył Twój talent! Zdobywasz **podwójne XP** z tej pracy!';
+        }
+      } else {
+        const EVENT_CHANCE = 0.02;
+        if (Math.random() < EVENT_CHANCE) {
+          const roll = Math.random();
+          if (roll < 0.35) {
+              reward = Math.floor(reward * 1.5);
+              eventMessage = '🎉 Szef był w dobrym nastroju — dostałeś premię **+50%** do nagrody!';
+            } else if (roll < 0.60) {
+              reward = Math.floor(reward * 0.7);
+              user.tempCooldownReductionUntil = now + 60 * 60 * 1000;
+              eventMessage = '⚠️ Potknąłeś się w pracy i straciłeś **-30%** nagrody, ale szef dał Ci plaster — przez następną godzinę cooldown pracy jest skrócony o **20%**!';
+            } else if (roll < 0.75) {
+              const newBoost = Math.min(50, Number(user.workBoostPercent || 0) + 10);
+              user.workBoostUntil = now + 6 * 60 * 60 * 1000;
+              user.workBoostPercent = Number(newBoost);
+              eventMessage = `💸 Szef dał Ci podwyżkę! Przez następne **6h** wszystkie prace są opłacane o **${newBoost}%** więcej.`;
+            } else {
+              doubleXp = true;
+              eventMessage = '⭐ Szef zauważył Twój talent! Zdobywasz **podwójne XP** z tej pracy!';
+            }
         }
       }
 
@@ -380,6 +399,7 @@ module.exports = {
         eventMessage,
         workBoostActive: !!(user.workBoostUntil && now < user.workBoostUntil),
         workBoostPercent: user.workBoostPercent || 0,
+        workBoostUntil: user.workBoostUntil || 0,
         botBanTriggered,
         botBanUntil,
         botPattern,

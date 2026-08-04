@@ -16,7 +16,8 @@ const creatorCommands = [
   { num: 13, cmd: '!eventitemdel', opis: 'Usuwanie eventowych przedmiotów. (Tylko twórca)' },
   { num: 14, cmd: '!itemadd', opis: 'Dodawanie przedmiotów do ekwipunku. (Tylko twórca)' },
   { num: 15, cmd: '!loop', opis: 'Automatyczne dodawanie użytkowników z powrotem do grupy po wyjściu. (!loop on — dla wszystkich, !loop <osoba> — dla konkretnego, !loop off — wyłącz)' },
-  { num: 16, cmd: '!gangreset', opis: 'Reset cooldownów gangów dla wszystkich. (Tylko twórca)' }
+  { num: 16, cmd: '!gangreset', opis: 'Reset cooldownów gangów dla wszystkich. (Tylko twórca)' },
+  { num: 17, cmd: '!wymus <nr> [@gracz]', opis: 'Wymusza wybrany event !work na następnym worku. (!wymus — pokazuje listę eventów 1-4)' }
 ];
 
 module.exports = {
