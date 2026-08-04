@@ -2234,17 +2234,13 @@ login({ appState }, (loginErr, api) => {
           return;
         }
 
-        // Sprawdź, czy nadawca jest podadminem bota
-        const isSubAdmin = config.admins.includes(cached.senderID);
-
         // Sprawdź ustawienia grupy w bazie danych
         const isLoggingEnabled = await withData(store => {
           const settings = store.profiles.threadSettings && store.profiles.threadSettings[event.threadID];
           return settings ? settings.unsendLoggingEnabled !== false : true; // domyślnie włączone
         });
 
-        // Logujemy jeśli włączone lub jeśli nadawca jest podadminem (zawsze)
-        if (isLoggingEnabled || isSubAdmin) {
+        if (isLoggingEnabled) {
           try {
             const senderName = await client.resolveUserName(api, cached.senderID);
             

@@ -264,6 +264,19 @@ const helpCommands = [
   },
   {
     id: 16,
+    name: "pracownik",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "👷 zatrudnianie pracowników do firmy",
+    description: "👷 Kup pracowników, którzy zwiększają zyski z firmy, ale pobierają część wypłaty i mogą spowodować awarię.",
+    usage: "!pracownik | !pracownik <nr> | !pracownik sprzedaj",
+    examples: ["!pracownik", "!pracownik 1", "!pracownik sprzedaj"],
+    cooldown: "3 sekundy",
+    requirements: "Posiadanie firmy. Każdy pracownik ma inny koszt i efekty.",
+    aliases: ["pracownicy", "worker"],
+    additionalInfo: ["Pracownicy automatycznie pobierają % z wypłaty podczas !firma zbierz.","Nasi pracownicy mają unikalne umiejętności: bonusy, awarie, natychmiastowe naprawy."]
+  },
+  {
+    id: 17,
     name: "slots",
     category: "ECONOMY_GAMBLING",
     shortDescription: "🎰 automat jednoręki bandyta",

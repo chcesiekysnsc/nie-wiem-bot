@@ -4,6 +4,92 @@ const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { getItemSetBonus } = require('../utils/itemSets');
 
+const WORKER_ORDER = ['lary', 'alan', 'rafal', 'wojtek', 'eryk'];
+
+function getWorkerDef(id) {
+  return config.economy.workers && config.economy.workers[id] ? { id, ...config.economy.workers[id] } : null;
+}
+
+function applyWorkerEffects(payout, workers, compDef, companyObj, inventory, breakChanceOverride) {
+  if (!workers || workers.length === 0) {
+    return { payout, workerSalary: 0, totalBreakChanceBonus: 0, instantRepair: false, repairDiscount: false, broke: false, bonusTriggered: false, skipSalary: false };
+  }
+
+  let totalSalaryPercent = 0;
+  let totalBreakChanceBonus = 0;
+  let bonusChance = 0;
+  let bonusPercent = 0;
+  let skipSalary = false;
+  let instantRepair = false;
+  let repairDiscount = false;
+  let doubleBonus = false;
+
+  for (const wid of workers) {
+    const def = getWorkerDef(wid);
+    if (!def) continue;
+
+    totalSalaryPercent += def.salaryPercent;
+    totalBreakChanceBonus += def.breakChanceBonus;
+    bonusChance += def.bonusChance;
+    bonusPercent += def.bonusPercent;
+
+    if (def.skipSalaryChance && Math.random() < def.skipSalaryChance) {
+      skipSalary = true;
+    }
+    if (def.instantRepairChance && Math.random() < def.instantRepairChance) {
+      instantRepair = true;
+    }
+    if (def.repairDiscountChance && Math.random() < def.repairDiscountChance) {
+      repairDiscount = true;
+    }
+    if (def.doubleBonusChance && Math.random() < def.doubleBonusChance) {
+      doubleBonus = true;
+    }
+  }
+
+  // Apply bonus
+  let bonusTriggered = false;
+  if (bonusChance > 0 && Math.random() < bonusChance) {
+    bonusTriggered = true;
+    if (doubleBonus) {
+      payout = Math.floor(payout * (1 + bonusPercent * 2));
+    } else {
+      payout = Math.floor(payout * (1 + bonusPercent));
+    }
+  }
+
+  // Calculate and deduct salary
+  let workerSalary = 0;
+  if (!skipSalary) {
+    workerSalary = Math.floor(payout * totalSalaryPercent);
+    payout -= workerSalary;
+  }
+
+  // Check for instant repair
+  if (instantRepair && companyObj.isBroken) {
+    companyObj.isBroken = false;
+  }
+
+  // Check break chance
+  let broke = false;
+  if (!companyObj.isBroken) {
+    let breakChance = compDef.breakChance + totalBreakChanceBonus;
+    const hasKsiega = hasItem(inventory, 'ksiega_monopolisty');
+    if (hasKsiega) {
+      breakChance = Math.max(0, breakChance - 0.02);
+    }
+    if (breakChanceOverride !== undefined && breakChanceOverride !== null && breakChanceOverride !== '' && Number(breakChanceOverride) !== 50) {
+      breakChance = Number(breakChanceOverride) / 100;
+    }
+    broke = Math.random() < breakChance;
+    if (broke) {
+      companyObj.isBroken = true;
+    }
+  }
+
+  return { payout, workerSalary, totalBreakChanceBonus, instantRepair, repairDiscount, broke, bonusTriggered, skipSalary };
+}
+
 module.exports = {
   name: 'firma',
   aliases: ['przedsiebiorstwo', 'company'],
@@ -180,7 +266,7 @@ module.exports = {
         let errors = [];
 
         // Helper to calculate company payout
-        const calcPayout = (compDef, companyObj, label, naprawCmd) => {
+        const calcPayout = (compDef, companyObj, label, naprawCmd, userWorkers) => {
           if (!compDef) return null;
           if (companyObj.isBroken) {
             const repairCost = compDef.payout * 4;
@@ -223,16 +309,14 @@ module.exports = {
           }
 
           companyObj.lastPayout = now;
-          let breakChance = hasBreakdownOverride ? Number(breakChanceOverride) / 100 : compDef.breakChance;
-          if (hasKsiega) {
-            breakChance = Math.max(0, breakChance - 0.02);
-          }
-          const broke = Math.random() < breakChance;
-          if (broke) {
-            companyObj.isBroken = true;
-          }
 
-          return { compDef, payout, garniturBonus, kaczkaBonus, ksiegaBonus, insygniaBonus, globalBonus, setBonus, broke };
+          // Apply worker effects
+          const workerResult = applyWorkerEffects(payout, userWorkers, compDef, companyObj, inventory, breakChanceOverride);
+          payout = workerResult.payout;
+
+          const broke = workerResult.broke;
+
+          return { compDef, payout, garniturBonus, kaczkaBonus, ksiegaBonus, insygniaBonus, globalBonus, setBonus, workerSalary: workerResult.workerSalary, bonusTriggered: workerResult.bonusTriggered, skipSalary: workerResult.skipSalary, instantRepair: workerResult.instantRepair, repairDiscount: workerResult.repairDiscount, broke };
         };
 
         // Check company 1
@@ -241,7 +325,7 @@ module.exports = {
           if (!compDef) {
             user.company = null;
           } else {
-            collected1 = calcPayout(compDef, user.company, 'Twoja pierwsza firma', '!firma napraw');
+            collected1 = calcPayout(compDef, user.company, 'Twoja pierwsza firma', '!firma napraw', user.workers);
           }
         }
 
@@ -251,7 +335,7 @@ module.exports = {
           if (!compDef) {
             user.company2 = null;
           } else {
-            collected2 = calcPayout(compDef, user.company2, 'Twoja druga firma', '!firma2 napraw');
+            collected2 = calcPayout(compDef, user.company2, 'Twoja druga firma', '!firma2 napraw', user.workers);
           }
         }
 
@@ -306,6 +390,21 @@ module.exports = {
         } else {
           txt += `   ➕ Zysk z firmy: **+${formatCurrency(col.payout)}**\n`;
         }
+        if (col.workerSalary > 0) {
+          txt += `   👷 **Wynagrodzenie pracowników:** **-${formatCurrency(col.workerSalary)}**\n`;
+        }
+        if (col.skipSalary) {
+          txt += `   🎲 **Pracownik odważył się nie pobrać wypłaty!**\n`;
+        }
+        if (col.bonusTriggered) {
+          txt += `   🎉 **Bonus pracowniczy!** Zysk został zwiększony!\n`;
+        }
+        if (col.instantRepair) {
+          txt += `   🔧 **Pracownik naprawił firmę za darmo!**\n`;
+        }
+        if (col.repairDiscount) {
+          txt += `   🛠️ **Pracownik znalazł tanią naprawę!**\n`;
+        }
         if (col.broke) {
           const repairCost = col.compDef.payout * 4;
           txt += `   ⚠️ **AWARIA!** Doszło do usterki sprzętu w tej firmie.\n   🔧 Wymagana naprawa za **${formatCurrency(repairCost)}**.\n`;
@@ -349,7 +448,21 @@ module.exports = {
           return { error: '✅ Twoja firma jest sprawna i nie wymaga żadnych napraw!' };
         }
 
-        const repairCost = compDef.payout * 4;
+        const baseRepairCost = compDef.payout * 4;
+        
+        // Check for worker repair discount
+        let repairDiscount = false;
+        const workers = user.workers || [];
+        for (const wid of workers) {
+          const def = getWorkerDef(wid);
+          if (def && def.repairDiscountChance && Math.random() < def.repairDiscountChance) {
+            repairDiscount = true;
+            break;
+          }
+        }
+        
+        const repairCost = repairDiscount ? Math.floor(baseRepairCost * 0.9) : baseRepairCost;
+        
         if (user.balance < repairCost) {
           return { error: `❌ Nie stać Cię na naprawę firmy! Koszt to **${formatCurrency(repairCost)}**, a w portfelu masz tylko **${formatCurrency(user.balance)}**.` };
         }
@@ -357,7 +470,7 @@ module.exports = {
         user.balance -= repairCost;
         user.company.isBroken = false;
 
-        return { success: true, compDef, cost: repairCost, balance: user.balance };
+        return { success: true, compDef, cost: repairCost, balance: user.balance, repairDiscount };
       });
 
       if (result.error) {
@@ -365,7 +478,12 @@ module.exports = {
         return;
       }
 
-      await message.reply(`🔧 Pomyślnie naprawiono firmę **${result.compDef.emoji} ${result.compDef.name}** za kwotę **${formatCurrency(result.cost)}**!\n⚙️ Maszyna ruszyła na nowo i jest gotowa do pracy. Twoje saldo: **${formatCurrency(result.balance)}**.`);
+      let replyText = `🔧 Pomyślnie naprawiono firmę **${result.compDef.emoji} ${result.compDef.name}** za kwotę **${formatCurrency(result.cost)}**!\n`;
+      if (result.repairDiscount) {
+        replyText += `🛠️ Pracownik znalazł tanią naprawę! (10% zniżki)\n`;
+      }
+      replyText += `⚙️ Maszyna ruszyła na nowo i jest gotowa do pracy. Twoje saldo: **${formatCurrency(result.balance)}**.`;
+      await message.reply(replyText);
       return;
     }
 
@@ -428,6 +546,19 @@ module.exports = {
       }
       if (user.company) {
         statusMsg += `• 💸 **!firma sprzedaj** — sprzedaj firmę (50% ceny)\n`;
+      }
+
+      if (user.workers && user.workers.length > 0) {
+        statusMsg += `\n👷 **TWOI PRACOWNICY:**\n`;
+        for (const wid of user.workers) {
+          const def = getWorkerDef(wid);
+          if (def) {
+            statusMsg += `• ${def.stars} **${def.name}** — pobiera ${Math.round(def.salaryPercent * 100)}% wypłaty\n`;
+          }
+        }
+        statusMsg += `\n💡 Zarządzaj pracownikami: **!pracownik**\n`;
+      } else {
+        statusMsg += `\n💡 Kup pracowników: **!pracownik**\n`;
       }
 
       await message.reply(statusMsg);

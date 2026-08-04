@@ -2,6 +2,10 @@ const config = require('../config/config');
 const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
+function getWorkerDef(id) {
+  return config.economy.workers && config.economy.workers[id] ? { id, ...config.economy.workers[id] } : null;
+}
+
 module.exports = {
   name: 'firma2',
   aliases: ['przedsiebiorstwo2', 'company2'],
@@ -235,6 +239,16 @@ module.exports = {
       statusMsg += `• 🔧 **!firma2 napraw** — napraw usterkę drugiej firmy\n`;
       statusMsg += `• 💸 **!firma2 sprzedaj** — sprzedaj drugą firmę za 50% ceny (zwrot: **${formatCurrency(compDef.price * 0.5)}**)\n\n`;
       statusMsg += `💡 Zysk z obu firm zbierasz komendą: **!firma zbierz**!`;
+
+      if (user.workers && user.workers.length > 0) {
+        statusMsg += `\n\n👷 **TWOI PRACOWNICY:**\n`;
+        for (const wid of user.workers) {
+          const def = getWorkerDef(wid);
+          if (def) {
+            statusMsg += `• ${def.stars} **${def.name}** — pobiera ${Math.round(def.salaryPercent * 100)}% wypłaty\n`;
+          }
+        }
+      }
 
       await message.reply(statusMsg);
     });

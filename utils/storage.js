@@ -249,6 +249,9 @@ function sanitizeUser(user) {
   merged.workBoostUntil = Math.max(0, sanitizeInteger(merged.workBoostUntil, 0));
   merged.workBoostPercent = Math.max(0, Math.min(50, sanitizeInteger(merged.workBoostPercent, 0)));
   merged.tempCooldownReductionUntil = Math.max(0, sanitizeInteger(merged.tempCooldownReductionUntil, 0));
+  merged.workers = Array.isArray(merged.workers)
+    ? [...new Set(merged.workers.filter(w => typeof w === 'string'))]
+    : [];
 
   return merged;
 }

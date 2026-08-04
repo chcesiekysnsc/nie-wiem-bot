@@ -154,6 +154,74 @@ module.exports = {
         description: 'Najwyższe zyski przy najwyższym ryzyku. 13% szans na awarię. Zwrot kosztów w około 15.3 dnia.'
       }
     },
+    workers: {
+      lary: {
+        name: 'Lary',
+        stars: '⭐️',
+        cost: 500000,
+        breakChanceBonus: 0.05,
+        salaryPercent: 0.05,
+        bonusChance: 0.005,
+        bonusPercent: 0.05,
+        skipSalaryChance: 0.05,
+        repairDiscountChance: 0,
+        instantRepairChance: 0,
+        description: 'Pobiera 5% wypłaty z firmy. +5% szans na awarię firmy. 0.5% szans na bonus +5% do zysków. 5% szans na niepobranie wypłaty.'
+      },
+      alan: {
+        name: 'Alan zjomeczku',
+        stars: '⭐️⭐️',
+        cost: 750000,
+        breakChanceBonus: 0.04,
+        salaryPercent: 0.06,
+        bonusChance: 0.01,
+        bonusPercent: 0.10,
+        skipSalaryChance: 0,
+        repairDiscountChance: 0,
+        instantRepairChance: 0,
+        doubleBonusChance: 0.10,
+        description: 'Pobiera 6% wypłaty z firmy. +4% szans na awarię firmy. 1% szans na bonus +10% do zysków. 10% szans na podwojenie bonusu.'
+      },
+      rafal: {
+        name: 'Rafal Oleksy',
+        stars: '⭐️⭐️⭐️',
+        cost: 1500000,
+        breakChanceBonus: 0.03,
+        salaryPercent: 0.075,
+        bonusChance: 0.02,
+        bonusPercent: 0.15,
+        skipSalaryChance: 0,
+        repairDiscountChance: 0.10,
+        instantRepairChance: 0,
+        description: 'Pobiera 7.5% wypłaty z firmy. +3% szans na awarię firmy. 2% szans na bonus +15% do zysków. 10% szans na tanią naprawę firmy.'
+      },
+      wojtek: {
+        name: 'Wojciech wisnia',
+        stars: '⭐️⭐️⭐️⭐️',
+        cost: 2500000,
+        breakChanceBonus: 0.02,
+        salaryPercent: 0.085,
+        bonusChance: 0.03,
+        bonusPercent: 0.20,
+        skipSalaryChance: 0,
+        repairDiscountChance: 0,
+        instantRepairChance: 0.05,
+        description: 'Pobiera 8.5% wypłaty z firmy. +2% szans na awarię firmy. 3% szans na bonus +20% do zysków. 5% szans na natychmiastową naprawę firmy.'
+      },
+      eryk: {
+        name: 'Eryczeki kochanowski',
+        stars: '⭐️⭐️⭐️⭐️⭐️',
+        cost: 4000000,
+        breakChanceBonus: 0,
+        salaryPercent: 0.10,
+        bonusChance: 0.04,
+        bonusPercent: 0.25,
+        skipSalaryChance: 0,
+        repairDiscountChance: 0,
+        instantRepairChance: 0.03,
+        description: 'Pobiera 10% wypłaty z firmy. Nie zwiększa szans na awarię. 4% szans na bonus +25% do zysków. 3% szans na natychmiastową naprawę firmy.'
+      }
+    },
     maxBet: 100000,
     dailyMin: 900,
     dailyMax: 2200,

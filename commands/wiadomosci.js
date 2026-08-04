@@ -55,7 +55,7 @@ module.exports = {
       if (enabled) {
         await message.reply('✅ Oznaczanie usuniętych wiadomości zostało **WŁĄCZONE** w tej grupie.');
       } else {
-        await message.reply('❌ Oznaczanie usuniętych wiadomości zostało **WYŁĄCZONE** w tej grupie.\n*(Powiadomienia o usunięciu wiadomości przez podadminów bota będą wysyłane zawsze)*');
+        await message.reply('❌ Oznaczanie usuniętych wiadomości zostało **WYŁĄCZONE** w tej grupie.');
       }
 
     } catch (err) {
