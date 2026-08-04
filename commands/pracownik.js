@@ -1,17 +1,15 @@
 const config = require('../config/config');
 const { formatCurrency } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { getWorkerDef } = require('../utils/workerEffects');
 
 const WORKERS_ORDER = ['lary', 'alan', 'rafal', 'wojtek', 'eryk'];
-
-function getWorkerDef(id) {
-  return config.economy.workers && config.economy.workers[id] ? { id, ...config.economy.workers[id] } : null;
-}
 
 function renderWorkerList(userWorkers) {
   const workers = config.economy.workers || {};
   let text = '👷 **PRACOWNICY (SYSTEM PRACOWNIKÓW)**\n';
-  text += 'Kup pracowników, aby zwiększyć zyski z firmy!\n\n';
+  text += 'Kup pracownika, aby zwiększyć zyski z firmy!\n';
+  text += '⚠️ Możesz zatrudnić tylko **1 pracownika**.\n\n';
   text += '📋 **Oferta pracowników:**\n';
 
   let i = 1;
@@ -48,7 +46,7 @@ function renderWorkerList(userWorkers) {
 
   text += '━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
   text += 'Kup pracownika wpisując: **!pracownik <numer>**\n';
-  text += 'Sprzedaj wszystkich pracowników: **!pracownik sprzedaj**';
+  text += 'Sprzedaj pracownika: **!pracownik sprzedaj**';
   return text;
 }
 
@@ -73,7 +71,7 @@ module.exports = {
         const user = createUser(message.author.id, store.users);
 
         if (!user.workers || user.workers.length === 0) {
-          return { error: '❌ Nie posiadasz żadnych pracowników do sprzedania!' };
+          return { error: '❌ Nie posiadasz żadnego pracownika do sprzedania!' };
         }
 
         let totalRefund = 0;
@@ -96,7 +94,7 @@ module.exports = {
         return;
       }
 
-      await message.reply(`💸 Sprzedano wszystkich pracowników za **${formatCurrency(result.totalRefund)}** (50% ceny zakupu).\n💰 Twój portfel: **${formatCurrency(result.balance)}**.`);
+      await message.reply(`💸 Sprzedano pracownika za **${formatCurrency(result.totalRefund)}** (50% ceny zakupu).\n💰 Twój portfel: **${formatCurrency(result.balance)}**.`);
       return;
     }
 
@@ -121,6 +119,10 @@ module.exports = {
         return { error: '❌ Musisz najpierw posiadać firmę, aby zatrudnić pracownika! Kup firmę za pomocą **!firma kup <nr>**.' };
       }
 
+      if (user.workers && user.workers.length >= 1) {
+        return { error: '❌ Możesz zatrudnić tylko 1 pracownika!' };
+      }
+
       if (user.workers && user.workers.includes(workerId)) {
         return { error: `❌ Już zatrudniłeś **${workerDef.name}**!` };
       }
@@ -133,6 +135,12 @@ module.exports = {
       user.workers = user.workers || [];
       user.workers.push(workerId);
 
+      if (user.company) {
+        user.company.lastPayout = Date.now() - 3 * 3600 * 1000;
+      } else if (user.company2) {
+        user.company2.lastPayout = Date.now() - 3 * 3600 * 1000;
+      }
+
       return { success: true, workerDef, balance: user.balance };
     });
 
@@ -141,6 +149,6 @@ module.exports = {
       return;
     }
 
-    await message.reply(`🎉 Pomyślnie zatrudniono **${result.workerDef.stars} ${result.workerDef.name}** za **${formatCurrency(result.workerDef.cost)}**!\n💰 Pozostało w portfelu: **${formatCurrency(result.balance)}**.`);
+    await message.reply(`🎉 Pomyślnie zatrudniono **${result.workerDef.stars} ${result.workerDef.name}** za **${formatCurrency(result.workerDef.cost)}**!\n💰 Pozostało w portfelu: **${formatCurrency(result.balance)}**.\n💡 Możesz już odebrać wypłatę z efektyami pracownika komendą: **!firma zbierz**!`);
   }
 };

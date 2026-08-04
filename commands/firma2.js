@@ -1,10 +1,7 @@
 const config = require('../config/config');
 const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
-
-function getWorkerDef(id) {
-  return config.economy.workers && config.economy.workers[id] ? { id, ...config.economy.workers[id] } : null;
-}
+const { getWorkerDef } = require('../utils/workerEffects');
 
 module.exports = {
   name: 'firma2',

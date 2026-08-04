@@ -32,11 +32,10 @@ module.exports = {
       };
 
       const threadInfo = await getThreadInfo(client.api, threadId);
-      const adminIDs = threadInfo.adminIDs || [];
+      const adminIDs = (threadInfo.adminIDs || []).map(String);
 
-      // Sprawdź uprawnienia: admin grupy na FB lub admin bota w configu
-      const isGroupAdmin = adminIDs.includes(senderId);
-      const isBotAdmin = config.admins.includes(senderId);
+      const isGroupAdmin = adminIDs.includes(String(senderId));
+      const isBotAdmin = config.admins.map(String).includes(String(senderId));
 
       if (!isGroupAdmin && !isBotAdmin) {
         await message.reply('❌ Tylko administratorzy tej grupy mogą zmieniać to ustawienie.');

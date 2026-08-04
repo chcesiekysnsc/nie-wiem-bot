@@ -67,7 +67,9 @@ const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
 const { checkAndResetBalance, checkPendingBalanceBlock, checkOverdueBalanceReports } = require('./utils/balanceMonitor');
-const { formatCurrency, msToReadable } = require('./utils/economy');
+const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier, getGlobalIncomeMultiplier, getItemUpgradeLevel } = require('./utils/economy');
+const { getItemSetBonus } = require('./utils/itemSets');
+const { getWorkerDef, applyWorkerEffects } = require('./utils/workerEffects');
 const { getCommandsByCategory } = require('./utils/helpSystem');
 const { saveGameSessions } = require('./utils/gameStatePersistence');
 const { extractTikTokLink, getTikTokVideoData, downloadFile } = require('./utils/tiktok');
@@ -755,6 +757,121 @@ try {
   process.exit(1);
 }
 
+// ===== AUTO-COLLECT WYPŁAT Z FIRMY =====
+
+async function autoCollectPayout(userId, api, notifyThreadId) {
+  let totalCollected = 0;
+  const events = [];
+
+  await withData(store => {
+    const user = store.users[userId];
+    if (!user) return;
+
+    const inventory = ensureInventoryRecord(store.inventory, userId);
+    const companyMul = getCompanyPayoutMultiplier();
+    const hasKsiega = hasItem(inventory, 'ksiega_monopolisty');
+    const hasInsygnia = hasItem(inventory, 'krolewskie_insygnia');
+    const now = Date.now();
+    const cooldownMs = 3 * 3600 * 1000;
+
+    const overrides = (store.profiles && store.profiles.chanceOverrides && store.profiles.chanceOverrides[userId]) || {};
+    const breakChanceOverride = overrides['company_breakdown'];
+
+    const slots = [
+      { compObj: user.company, name: 'Pierwsza firma' },
+      { compObj: user.company2, name: 'Druga firma' }
+    ];
+
+    for (const slot of slots) {
+      const { compObj, name } = slot;
+      if (!compObj) continue;
+
+      const compDef = config.economy.companies[compObj.id];
+      if (!compDef) continue;
+
+      if (compObj.isBroken) continue;
+
+      const diff = now - (compObj.lastPayout || 0);
+      if (diff < cooldownMs) continue;
+
+      let payout = compDef.payout;
+      if (companyMul !== 1) {
+        payout = Math.floor(payout * companyMul);
+      }
+
+      const garniturBonusPct = getPassiveMultiplier(inventory, 'garnitur', 0.10);
+      let garniturBonus = garniturBonusPct > 0 ? Math.floor(compDef.payout * garniturBonusPct) : 0;
+      const kaczkaBonusPct = getPassiveMultiplier(inventory, 'kaczka_biznesu', 0.05);
+      let kaczkaBonus = kaczkaBonusPct > 0 ? Math.floor(compDef.payout * kaczkaBonusPct) : 0;
+      let ksiegaBonus = hasKsiega ? Math.floor(compDef.payout * 0.15) : 0;
+      payout += garniturBonus + kaczkaBonus + ksiegaBonus;
+
+      const globalIncomeBonus = getGlobalIncomeMultiplier(inventory);
+      let globalBonus = globalIncomeBonus > 0 ? Math.floor(compDef.payout * globalIncomeBonus) : 0;
+      payout += globalBonus;
+
+      const setBonusPct = getItemSetBonus(inventory, 'firm_income');
+      let setBonus = setBonusPct > 0 ? Math.floor(compDef.payout * setBonusPct) : 0;
+      payout += setBonus;
+
+      let insygniaBonus = 0;
+      if (hasInsygnia) {
+        const level = getItemUpgradeLevel(inventory, 'krolewskie_insygnia');
+        const bonus = 0.10 + level * 0.01;
+        insygniaBonus = Math.floor(payout * bonus);
+        payout += insygniaBonus;
+      }
+
+      compObj.lastPayout = now;
+
+      const workerResult = applyWorkerEffects(payout, user.workers || [], compDef, compObj, inventory, breakChanceOverride);
+      payout = workerResult.payout;
+
+      user.balance += payout;
+      totalCollected += payout;
+
+      if (workerResult.broke) {
+        events.push({ type: 'broke', label: name, emoji: compDef.emoji, companyName: compDef.name });
+      }
+      if (workerResult.bonusTriggered) {
+        events.push({ type: 'bonus', label: name, emoji: compDef.emoji, companyName: compDef.name });
+      }
+      if (workerResult.skipSalary) {
+        events.push({ type: 'skipSalary', label: name, emoji: compDef.emoji, companyName: compDef.name });
+      }
+      if (workerResult.instantRepair) {
+        events.push({ type: 'instantRepair', label: name, emoji: compDef.emoji, companyName: compDef.name });
+      }
+      if (workerResult.repairDiscount) {
+        events.push({ type: 'repairDiscount', label: name, emoji: compDef.emoji, companyName: compDef.name });
+      }
+    }
+  });
+
+  if (totalCollected > 0 && events.length > 0 && api && notifyThreadId) {
+    const eventLabels = {
+      broke: '🔴 Uległa awarii',
+      bonus: '✨ Bonus zarobków aktywowany',
+      skipSalary: '💼 Pracownik nie pobrał wypłaty',
+      instantRepair: '🔧 Natychmiastowa naprawa',
+      repairDiscount: '💰 Tania naprawa dostępna'
+    };
+
+    const lines = events.map(e => `• ${eventLabels[e.type] || e.type} w **${e.emoji} ${e.companyName}**`);
+    const msg = `🏢 **Automatyczna wypłata z firmy:**\n${lines.join('\n')}\n💰 Zebrano: **${formatCurrency(totalCollected)}**`;
+
+    try {
+      api.sendMessage(msg, notifyThreadId);
+    } catch (err) {
+      console.error('[AUTO-COLLECT] Błąd wysyłania powiadomienia:', err);
+    }
+  }
+
+  return { collected: totalCollected > 0, events };
+}
+
+// ===== KONIEC AUTO-COLLECT WYPŁAT Z FIRMY =====
+
 // ===== KONIEC APPSTATE =====
 
 console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
@@ -892,6 +1009,108 @@ login({ appState }, (loginErr, api) => {
       if (client.api && !isNotificationBlocked(threadId)) client.api.sendMessage(msg, threadId);
     });
   }, 60 * 1000);
+
+  setInterval(() => {
+    if (!client.api) return;
+    withData(store => {
+      const users = store.users || {};
+      if (!store.inventory) store.inventory = {};
+      const inventory = store.inventory;
+      const now = Date.now();
+      const cooldownMs = 3 * 3600 * 1000;
+      const companyMul = getCompanyPayoutMultiplier();
+      
+      for (const userId of Object.keys(users)) {
+        const user = users[userId];
+        if (!user || (!user.company && !user.company2)) continue;
+        
+        const userInventory = ensureInventoryRecord(inventory, userId);
+        const hasKsiega = hasItem(userInventory, 'ksiega_monopolisty');
+        const hasInsygnia = hasItem(userInventory, 'krolewskie_insygnia');
+        
+        const overrides = (store.profiles && store.profiles.chanceOverrides && store.profiles.chanceOverrides[userId]) || {};
+        const breakChanceOverride = overrides['company_breakdown'];
+        
+        const slots = [
+          { compObj: user.company, name: 'Pierwsza firma' },
+          { compObj: user.company2, name: 'Druga firma' }
+        ];
+        
+        for (const slot of slots) {
+          const { compObj, name } = slot;
+          if (!compObj) continue;
+          
+          const compDef = config.economy.companies[compObj.id];
+          if (!compDef) continue;
+          
+          if (compObj.isBroken) continue;
+          
+          const diff = now - (compObj.lastPayout || 0);
+          if (diff < cooldownMs) continue;
+          
+          let payout = compDef.payout;
+          if (companyMul !== 1) {
+            payout = Math.floor(payout * companyMul);
+          }
+          
+          const garniturBonusPct = getPassiveMultiplier(userInventory, 'garnitur', 0.10);
+          let garniturBonus = garniturBonusPct > 0 ? Math.floor(compDef.payout * garniturBonusPct) : 0;
+          const kaczkaBonusPct = getPassiveMultiplier(userInventory, 'kaczka_biznesu', 0.05);
+          let kaczkaBonus = kaczkaBonusPct > 0 ? Math.floor(compDef.payout * kaczkaBonusPct) : 0;
+          let ksiegaBonus = hasKsiega ? Math.floor(compDef.payout * 0.15) : 0;
+          payout += garniturBonus + kaczkaBonus + ksiegaBonus;
+          
+          const globalIncomeBonus = getGlobalIncomeMultiplier(userInventory);
+          let globalBonus = globalIncomeBonus > 0 ? Math.floor(compDef.payout * globalIncomeBonus) : 0;
+          payout += globalBonus;
+          
+          const setBonusPct = getItemSetBonus(userInventory, 'firm_income');
+          let setBonus = setBonusPct > 0 ? Math.floor(compDef.payout * setBonusPct) : 0;
+          payout += setBonus;
+          
+          let insygniaBonus = 0;
+          if (hasInsygnia) {
+            const level = getItemUpgradeLevel(userInventory, 'krolewskie_insygnia');
+            const bonus = 0.10 + level * 0.01;
+            insygniaBonus = Math.floor(payout * bonus);
+            payout += insygniaBonus;
+          }
+          
+          compObj.lastPayout = now;
+          
+          const workerResult = applyWorkerEffects(payout, user.workers || [], compDef, compObj, userInventory, breakChanceOverride);
+          payout = workerResult.payout;
+          
+          user.balance += payout;
+          
+          const events = [];
+          if (workerResult.broke) events.push({ type: 'broke', emoji: compDef.emoji, companyName: compDef.name });
+          if (workerResult.bonusTriggered) events.push({ type: 'bonus', emoji: compDef.emoji, companyName: compDef.name });
+          if (workerResult.skipSalary) events.push({ type: 'skipSalary', emoji: compDef.emoji, companyName: compDef.name });
+          if (workerResult.instantRepair) events.push({ type: 'instantRepair', emoji: compDef.emoji, companyName: compDef.name });
+          if (workerResult.repairDiscount) events.push({ type: 'repairDiscount', emoji: compDef.emoji, companyName: compDef.name });
+          
+          if (events.length > 0 && client.api) {
+            const eventLabels = {
+              broke: '🔴 Uległa awarii',
+              bonus: '✨ Bonus zarobków aktywowany',
+              skipSalary: '💼 Pracownik nie pobrał wypłaty',
+              instantRepair: '🔧 Natychmiastowa naprawa',
+              repairDiscount: '💰 Tania naprawa dostępna'
+            };
+            const lines = events.map(e => `• ${eventLabels[e.type] || e.type} w **${e.emoji} ${e.companyName}**`);
+            const msg = `🏢 **Automatyczna wypłata z firmy:**\n${lines.join('\n')}\n💰 Zebrano: **${formatCurrency(payout)}**`;
+            
+            try {
+              client.api.sendMessage(msg, userId);
+            } catch (err) {
+              console.error('[AUTO-COLLECT] Błąd wysyłania powiadomienia:', err);
+            }
+          }
+        }
+      }
+    });
+  }, 300 * 1000);
 
 
   const jitter = (ms, fraction = 0.1) => ms + Math.floor(Math.random() * ms * fraction);
@@ -2337,6 +2556,10 @@ login({ appState }, (loginErr, api) => {
 
     const text = event.body.trim();
     const messageId = event.messageID;
+
+    if (senderId && client.api) {
+      autoCollectPayout(senderId, client.api, threadId).catch(err => console.error('[AUTO-COLLECT] Error:', err));
+    }
 
     let currentPrefix = client.config.prefix;
     if (isGroup && threadId) {
