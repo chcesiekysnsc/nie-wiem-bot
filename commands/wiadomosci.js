@@ -32,7 +32,12 @@ module.exports = {
       };
 
       const threadInfo = await getThreadInfo(client.api, threadId);
-      const adminIDs = (threadInfo.adminIDs || []).map(String);
+      const adminIDs = (threadInfo.adminIDs || []).map(admin => {
+        if (typeof admin === 'object' && admin !== null) {
+          return admin.id || admin.userID;
+        }
+        return admin;
+      }).filter(Boolean).map(String);
 
       const isGroupAdmin = adminIDs.includes(String(senderId));
       const isBotAdmin = config.admins.map(String).includes(String(senderId));

@@ -137,6 +137,8 @@ module.exports = {
     // 4. Walidacja i potrącenie stawki
     const setupResult = await withData(store => {
       const user = createUser(userId, store.users);
+      const originalBalance = user.balance;
+      const minRequiredStake = Math.floor(originalBalance * 0.10);
       let totalStake = 0;
       let selectionsResolved = [];
 
@@ -149,8 +151,6 @@ module.exports = {
           return { error: `❌ Nie masz tylu monet. Posiadasz: ${formatCurrency(user.balance)}` };
         }
         totalStake = resolved;
-        user.balance -= totalStake;
-        selectionsResolved = selections.map(s => ({ ...s, stake: resolved }));
       } else {
         // triplets format
         let currentBalance = user.balance;
@@ -166,7 +166,18 @@ module.exports = {
           totalStake += resolved;
           selectionsResolved.push({ ...sel, stake: resolved });
         }
-        user.balance = currentBalance;
+      }
+
+      if (totalStake < minRequiredStake) {
+        return { error: `❌ Do multi-meczu musisz użyć minimum 10% swojego salda (stawka min. ${formatCurrency(minRequiredStake)}).` };
+      }
+
+      // Potrącenie stawki z salda
+      if (formatType === 'auto' || formatType === 'pairs') {
+        user.balance -= totalStake;
+        selectionsResolved = selections.map(s => ({ ...s, stake: totalStake }));
+      } else {
+        user.balance = originalBalance - totalStake;
       }
 
       const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
