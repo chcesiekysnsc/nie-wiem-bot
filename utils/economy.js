@@ -646,7 +646,38 @@ function getHouseGangBonus(user) {
   return armoryBonus;
 }
 
+function getPolandOffsetMs(date) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hour12: false
+  });
+  const parts = formatter.formatToParts(date);
+  const getVal = type => Number(parts.find(p => p.type === type).value);
+  
+  const utcDate = Date.UTC(
+    getVal('year'),
+    getVal('month') - 1,
+    getVal('day'),
+    getVal('hour'),
+    getVal('minute'),
+    getVal('second')
+  );
+  
+  return utcDate - date.getTime();
+}
+
+function getPolishMidnight(date) {
+  const offset = getPolandOffsetMs(date);
+  const polandTime = date.getTime() + offset;
+  const todayMidnight = new Date(polandTime);
+  todayMidnight.setUTCHours(0, 0, 0, 0);
+  return todayMidnight.getTime() - offset;
+}
+
 module.exports = {
+  getPolishMidnight,
   randomInt,
   formatNumber,
   formatCurrency,

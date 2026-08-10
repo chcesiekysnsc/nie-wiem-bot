@@ -290,7 +290,7 @@ module.exports = {
 
             if (resolveSession.investments.size === 0 && resolveSession.hostId) {
               const hostUser = createUser(resolveSession.hostId, store.users);
-              hostUser.gieldaHostCooldownUntil = Date.now() + 10 * 60 * 1000;
+              hostUser.gieldaHostCooldownUntil = Date.now() + 20 * 60 * 1000;
             }
 
             return { results };
@@ -298,7 +298,7 @@ module.exports = {
 
           if (resolution.results.length === 0) {
             const cooldownKey = `${threadId}:${resolveSession.hostId}`;
-            client.gieldaHostCooldowns.set(cooldownKey, Date.now() + 10 * 60 * 1000);
+            client.gieldaHostCooldowns.set(cooldownKey, Date.now() + 20 * 60 * 1000);
           }
 
           let resultMsg = `📈 **WYNIKI GIEŁDY** 📈\n\n`;

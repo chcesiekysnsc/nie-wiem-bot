@@ -1,6 +1,6 @@
 const config = require('../config/config');
-const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount,   randomInt,
-  getRandomXp
+const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, randomInt,
+  getRandomXp, getPolishMidnight
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { advanceChallenge } = require('../utils/challenges');
@@ -274,8 +274,21 @@ module.exports = {
         return { error: `❌ Maksymalna stawka na jeden mecz to 10% Twojego salda. Twój limit wynosi: ${formatCurrency(maxBetAllowed)}.` };
       }
 
-      // Potrącamy stawkę z góry
+      // Sprawdzenie limitu 10 kuponów dziennie
+      const now = Date.now();
+      const todayMidnight = getPolishMidnight(new Date(now));
+      if (!user.lastMatchPlayMidnight || user.lastMatchPlayMidnight < todayMidnight) {
+        user.lastMatchPlayMidnight = todayMidnight;
+        user.matchCountToday = 0;
+      }
+
+      if (user.matchCountToday >= 10) {
+        return { error: '❌ Osiągnąłeś już dzienny limit 10 kuponów na mecze i multimecze. Kolejne możesz obstawiać po północy!' };
+      }
+
+      // Potrącamy stawkę z góry i zwiększamy licznik dzienny
       user.balance -= bet;
+      user.matchCountToday = (user.matchCountToday || 0) + 1;
       const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
       return { bet, newBalance: user.balance, meczTaxRate };
     });

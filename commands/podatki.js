@@ -6,8 +6,8 @@ const TAX_BRACKETS = [
   { min: 500_000, max: 2_000_000, rate: 0.05, label: '500k-2mln' },
   { min: 2_000_000, max: 10_000_000, rate: 0.08, label: '2mln-10mln' },
   { min: 10_000_000, max: 50_000_000, rate: 0.12, label: '10mln-50mln' },
-  { min: 50_000_000, max: 100_000_000, rate: 0.14, label: '50mln-100mln' },
-  { min: 100_000_000, max: Infinity, rate: 0.16, label: '100mln+' }
+  { min: 50_000_000, max: 100_000_000, rate: 0.18, label: '50mln-100mln' },
+  { min: 100_000_000, max: Infinity, rate: 0.25, label: '100mln+' }
 ];
 
 function calculateProgressiveTax(wealth, hasKsiegowa = false) {
@@ -32,7 +32,7 @@ function getBracketInfo(wealth) {
       return { label: bracket.label, rate: bracket.rate };
     }
   }
-  return { label: '100mln+', rate: 0.16 };
+  return { label: '100mln+', rate: 0.25 };
 }
 
 module.exports = {

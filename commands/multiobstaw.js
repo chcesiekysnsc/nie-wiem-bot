@@ -1,6 +1,6 @@
 const config = require('../config/config');
-const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount,   randomInt,
-  getRandomXp
+const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, randomInt,
+  getRandomXp, getPolishMidnight
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -172,13 +172,26 @@ module.exports = {
         return { error: `❌ Do multi-meczu musisz użyć minimum 10% swojego salda (stawka min. ${formatCurrency(minRequiredStake)}).` };
       }
 
-      // Potrącenie stawki z salda
+      // Sprawdzenie limitu 10 kuponów dziennie
+      const now = Date.now();
+      const todayMidnight = getPolishMidnight(new Date(now));
+      if (!user.lastMatchPlayMidnight || user.lastMatchPlayMidnight < todayMidnight) {
+        user.lastMatchPlayMidnight = todayMidnight;
+        user.matchCountToday = 0;
+      }
+
+      if (user.matchCountToday >= 10) {
+        return { error: '❌ Osiągnąłeś już dzienny limit 10 kuponów na mecze i multimecze. Kolejne możesz obstawiać po północy!' };
+      }
+
+      // Potrącenie stawki z salda i zwiększenie licznika dziennego
       if (formatType === 'auto' || formatType === 'pairs') {
         user.balance -= totalStake;
         selectionsResolved = selections.map(s => ({ ...s, stake: totalStake }));
       } else {
         user.balance = originalBalance - totalStake;
       }
+      user.matchCountToday = (user.matchCountToday || 0) + 1;
 
       const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
       return { totalStake, selectionsResolved, newBalance: user.balance, meczTaxRate };
