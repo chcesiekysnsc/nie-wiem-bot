@@ -269,6 +269,11 @@ module.exports = {
         return { error: `❌ Nie masz tylu monet. Posiadasz: ${formatCurrency(user.balance)}` };
       }
 
+      const maxBetAllowed = Math.floor(user.balance * 0.10);
+      if (bet > maxBetAllowed) {
+        return { error: `❌ Maksymalna stawka na jeden mecz to 10% Twojego salda. Twój limit wynosi: ${formatCurrency(maxBetAllowed)}.` };
+      }
+
       // Potrącamy stawkę z góry
       user.balance -= bet;
       const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
