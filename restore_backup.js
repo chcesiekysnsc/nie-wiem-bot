@@ -43,12 +43,6 @@ function main() {
       continue;
     }
 
-    if (fileName === 'appstate.json') {
-      console.log(`ℹ️  Pomijam appstate.json (aby zachować nowe cookies logowania)`);
-      skippedCount++;
-      continue;
-    }
-
     const targetPath = path.join(OUTPUT_DIR, fileName);
     const content = backup[fileName];
 
