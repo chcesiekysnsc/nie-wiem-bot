@@ -665,7 +665,8 @@ function getPolandOffsetMs(date) {
     getVal('second')
   );
   
-  return utcDate - date.getTime();
+  // Floor to full seconds to eliminate millisecond jitter
+  return Math.round((utcDate - date.getTime()) / 1000) * 1000;
 }
 
 function getPolishMidnight(date) {
@@ -673,7 +674,8 @@ function getPolishMidnight(date) {
   const polandTime = date.getTime() + offset;
   const todayMidnight = new Date(polandTime);
   todayMidnight.setUTCHours(0, 0, 0, 0);
-  return todayMidnight.getTime() - offset;
+  // Floor to full seconds for stable comparisons
+  return Math.floor((todayMidnight.getTime() - offset) / 1000) * 1000;
 }
 
 module.exports = {

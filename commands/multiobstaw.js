@@ -1,6 +1,6 @@
 const config = require('../config/config');
 const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, randomInt,
-  getRandomXp, getPolishMidnight
+  getRandomXp, getPolishMidnight, msToReadable
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
@@ -181,7 +181,16 @@ module.exports = {
       }
 
       if (user.matchCountToday >= 10) {
-        return { error: '❌ Osiągnąłeś już dzienny limit 10 kuponów na mecze i multimecze. Kolejne możesz obstawiać po północy!' };
+        const tomorrowMidnight = todayMidnight + 24 * 60 * 60 * 1000;
+        const timeRemaining = tomorrowMidnight - now;
+        return { error: 
+          `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `🚫 **LIMIT KUPONÓW PRZEKROCZONY** 🚫\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `Zagrałeś już dzisiaj maksymalną liczbę **10 kuponów** na mecze i multimecze.\n\n` +
+          `⏳ Nowy limit otrzymasz za: **${msToReadable(timeRemaining)}** (o północy).\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━`
+        };
       }
 
       // Potrącenie stawki z salda i zwiększenie licznika dziennego
