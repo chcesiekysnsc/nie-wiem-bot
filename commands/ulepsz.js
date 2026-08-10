@@ -46,7 +46,7 @@ function renderUpgradeInfo(itemId, inventoryRecord) {
   text += `\n🎯 **Następne ulepszenie (+${currentLevel + 1}):**\n`;
   text += `   • Nowy bonus: ${formatBonusText(itemId, nextBonus)}\n`;
   text += `   • Koszt: **${formatCurrency(reqs.coins)}**\n`;
-  text += `   • Wymagania: 1x ${def.emoji} ${def.name} + 1x **${reqs.material}**\n`;
+  text += `   • Wymagania: 1x **${reqs.material}** + **${formatCurrency(reqs.coins)}**\n`;
 
   return text;
 }
@@ -199,7 +199,7 @@ module.exports = {
         reply += `🎁 **Nowy bonus:** ${bonusText}\n`;
       }
       reply += `💰 Portfel: **${formatCurrency(upgradeResult.balance)}**\n`;
-      reply += `🔧 Zużyto: 1x ${def.emoji} ${def.name} + 1x **${upgradeResult.materialUsed}**\n`;
+      reply += `🔧 Zużyto: 1x **${upgradeResult.materialUsed}** + **${formatCurrency(check.requirements.coins)}**\n`;
       if (maxed) {
         reply += `\n🏆 **MAKSYMALNY POZIOM OSIĄGNIĘTY!**`;
       }

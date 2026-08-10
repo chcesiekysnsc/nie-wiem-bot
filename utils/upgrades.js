@@ -105,7 +105,8 @@ async function upgradeItem(userId, itemId) {
     }
 
     user.balance -= requirements.coins;
-    removeItem(inventory, itemId, copiesNeeded);
+    // NIE usuwamy samego przedmiotu - ulepszanie go wzmacnia, a nie niszczy.
+    // Zużywamy tylko materiał ulepszeniowy.
     removeItem(inventory, requirements.materialId, 1);
 
     if (!inventory._upgrades) {
