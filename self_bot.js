@@ -1027,6 +1027,9 @@ login({ appState }, (loginErr, api) => {
         const user = users[userId];
         if (!user || (!user.company && !user.company2)) continue;
         
+        // Automatyczne zbieranie tylko dla użytkowników z pracownikami
+        if (!user.workers || user.workers.length === 0) continue;
+        
         const userInventory = ensureInventoryRecord(inventory, userId);
         const hasKsiega = hasItem(userInventory, 'ksiega_monopolisty');
         const hasInsygnia = hasItem(userInventory, 'krolewskie_insygnia');

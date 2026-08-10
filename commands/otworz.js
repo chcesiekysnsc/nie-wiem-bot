@@ -23,6 +23,7 @@ const PACZKI = {
     drops: [
       { chance: 100, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] }, // 10%
       { chance: 30,  items: [{ id: 'walizka', qty: 1, label: '💼 Walizka', permanent: true }] }, // 3%
+      { chance: 15, items: [{ id: 'kostka_losu', qty: 1, label: '🎲 Kostka Losu', permanent: true }] }, // 1.5%
       { chance: 10, items: [{ id: 'material_upgrade_1', qty: 1, label: '🔩 Żelazo' }] }, // 1%
       { chance: 10, items: [{ id: 'material_upgrade_2', qty: 1, label: '🔧 Miedź' }] } // 1%
     ]
@@ -38,6 +39,8 @@ const PACZKI = {
       { chance: 50, items: [{ id: 'piwo',   qty: 1, label: '🍺 Piwo'   }] },
       { chance: 25, items: [{ id: 'kominiarka', qty: 1, label: '🥷 Kominiarka', permanent: true }] }, // 2.5%
       { chance: 25, items: [{ id: 'podrecznik_praktykanta', qty: 1, label: '📘 Podręcznik Praktykanta', permanent: true }] }, // 2.5%
+      { chance: 7.5, items: [{ id: 'inwestor', qty: 1, label: '📊 Inwestor', permanent: true }] }, // 0.75%
+      { chance: 5, items: [{ id: 'drukarka_pieniedzy', qty: 1, label: '🖨️ Drukarka Pieniędzy', permanent: true }] }, // 0.5%
       { chance: 10, items: [{ id: 'material_upgrade_1', qty: 1, label: '🔩 Żelazo' }] },
       { chance: 10, items: [{ id: 'material_upgrade_2', qty: 1, label: '🔧 Miedź' }] },
       { chance: 10, items: [{ id: 'material_upgrade_3', qty: 1, label: '⚙️ Tytan' }] }
@@ -99,6 +102,7 @@ const PACZKI = {
       { chance: 150, items: [{ id: 'piwo',  qty: 1, label: '🍺 Piwo'  }] },
       { chance: 100, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] },
       { chance: 30, items: [{ id: 'kosc_ryzyka', qty: 1, label: '🎲 Kostka Ryzyka', permanent: true }] },
+      { chance: 10, items: [{ id: 'magiczna_sakiewka', qty: 1, label: '🎁 Magiczna Sakiewka', permanent: true }] }, // 1.0%
       { chance: 30, items: [{ id: 'insygnia_gang', qty: 1, label: '🏴‍☠️ Insygnia Gangu', permanent: true }] }, // 3.0%
       { chance: 7.5, items: [{ id: 'dobra_ksiegowa', qty: 1, label: '👩‍💼 Dobra Księgowa', permanent: true }] }, // 0.75%
       { chance: 15, items: [{ id: 'odznaka_komendanta', qty: 1, label: '🎖️ Odznaka Komendanta', permanent: true }] }, // 1.5%
@@ -136,7 +140,11 @@ const FALLBACKS = {
   z_drive: [{ id: 'klodka', qty: 2, label: '🔒 Kłódka x2' }],
   rekawice_robotnika: [{ id: 'piwo', qty: 1, label: '🍺 Piwo' }],
   patrol_policji: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }],
-  mocna_kawa: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }]
+  mocna_kawa: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }],
+  inwestor: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }, { id: 'klodka', qty: 1, label: '🔒 Kłódka' }],
+  drukarka_pieniedzy: [{ id: 'piwo', qty: 1, label: '🍺 Piwo' }],
+  kostka_losu: [{ id: 'ticket', qty: 2, label: '🎟️ Bilet Loterii x2' }],
+  magiczna_sakiewka: [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }]
 };
 
 // Losuje drop na podstawie tabeli szans (1-1000)

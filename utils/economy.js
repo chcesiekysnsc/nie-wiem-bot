@@ -443,7 +443,9 @@ function getPassiveMultiplier(inventoryRecord, itemId, baseBonus) {
     mocna_kawa: 0.01,
     podrecznik_praktykanta: 0.01,
     krysztal_doswiadczenia: 0.02,
-    rekawice_robotnika: 0.005
+    rekawice_robotnika: 0.005,
+    inwestor: 0.005,
+    drukarka_pieniedzy: 0.01
   };
   
   const perLevel = upgradePerLevel[itemId] || 0;

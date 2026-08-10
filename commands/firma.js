@@ -205,8 +205,10 @@ module.exports = {
           let garniturBonus = garniturBonusPct > 0 ? Math.floor(compDef.payout * garniturBonusPct) : 0;
           const kaczkaBonusPct = getPassiveMultiplier(inventory, 'kaczka_biznesu', 0.05);
           let kaczkaBonus = kaczkaBonusPct > 0 ? Math.floor(compDef.payout * kaczkaBonusPct) : 0;
+          const inwestorBonusPct = getPassiveMultiplier(inventory, 'inwestor', 0.03);
+          let inwestorBonus = inwestorBonusPct > 0 ? Math.floor(compDef.payout * inwestorBonusPct) : 0;
           let ksiegaBonus = hasKsiega ? Math.floor(compDef.payout * 0.15) : 0;
-          payout += garniturBonus + kaczkaBonus + ksiegaBonus;
+          payout += garniturBonus + kaczkaBonus + inwestorBonus + ksiegaBonus;
 
           const globalIncomeBonus = getGlobalIncomeMultiplier(inventory);
           let globalBonus = globalIncomeBonus > 0 ? Math.floor(compDef.payout * globalIncomeBonus) : 0;

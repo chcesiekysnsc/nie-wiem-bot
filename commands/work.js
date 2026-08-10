@@ -197,6 +197,11 @@ module.exports = {
         reward = Math.floor(reward * (1 + walizkaBonus));
       }
 
+      const drukarkaBonus = getPassiveMultiplier(inventory, 'drukarka_pieniedzy', 0.05);
+      if (drukarkaBonus > 0) {
+        reward = Math.floor(reward * (1 + drukarkaBonus));
+      }
+
       const globalIncomeBonus = getGlobalIncomeMultiplier(inventory);
       if (globalIncomeBonus > 0) {
         reward = Math.floor(reward * (1 + globalIncomeBonus));

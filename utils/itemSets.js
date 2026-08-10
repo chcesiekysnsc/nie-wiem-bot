@@ -84,6 +84,17 @@ const SET_DEFINITIONS = [
     bonuses: [
       { type: 'crime_catch_reduction', value: 0.04, label: '-4% szansy na przyłapanie w !crime' }
     ]
+  },
+  {
+    id: 'inwestora',
+    name: 'Zestaw Inwestora',
+    emoji: '📊',
+    requiredItems: ['inwestor', 'ksiega_inwestora', 'dobra_ksiegowa', 'zlota_karta'],
+    bonuses: [
+      { type: 'firm_income', value: 0.05, label: '+5% do zysków z firm' },
+      { type: 'bank_interest', value: 0.04, label: '+4% do odsetek bankowych' },
+      { type: 'bank_capacity', value: 100000, label: '+100 000 miejsca w banku' }
+    ]
   }
 ];
 

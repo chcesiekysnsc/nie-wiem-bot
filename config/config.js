@@ -449,6 +449,36 @@ module.exports = {
         { streakBonus: 0.02, maxStreakBonus: 0.20 }
       ]
     },
+    inwestor: {
+      bonuses: [
+        { companyIncomeBonus: 0.03 },
+        { companyIncomeBonus: 0.035 },
+        { companyIncomeBonus: 0.04 },
+        { companyIncomeBonus: 0.045 },
+        { companyIncomeBonus: 0.05 },
+        { companyIncomeBonus: 0.06 }
+      ]
+    },
+    drukarka_pieniedzy: {
+      bonuses: [
+        { workBonus: 0.05 },
+        { workBonus: 0.055 },
+        { workBonus: 0.06 },
+        { workBonus: 0.065 },
+        { workBonus: 0.07 },
+        { workBonus: 0.08 }
+      ]
+    },
+    magiczna_sakiewka: {
+      bonuses: [
+        { minBonus: 25000, maxBonus: 400000 },
+        { minBonus: 30000, maxBonus: 450000 },
+        { minBonus: 35000, maxBonus: 500000 },
+        { minBonus: 40000, maxBonus: 550000 },
+        { minBonus: 45000, maxBonus: 600000 },
+        { minBonus: 50000, maxBonus: 700000 }
+      ]
+    },
     godlo_gangu: {
       bonuses: [
         { gangAttackBonus: 0.10, gangWarBonus: 0.05 },
@@ -926,6 +956,46 @@ module.exports = {
       type: 'permanent',
       buyable: false,
       shopNote: 'Dostępna tylko ze Złotej Paczki (1.0%).'
+    },
+    inwestor: {
+      name: 'Inwestor',
+      emoji: '📊',
+      price: 0,
+      shortDesc: '+3% do zysków z firm.',
+      description: 'Pasywny przedmiot. Zwiększa zyski zbierane z Twoich firm (!firma zbierz) o 3%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko ze Srebrnej Paczki (0.75%).'
+    },
+    drukarka_pieniedzy: {
+      name: 'Drukarka Pieniędzy',
+      emoji: '🖨️',
+      price: 0,
+      shortDesc: '+5% do zarobków z !work.',
+      description: 'Pasywny przedmiot. Zwiększa bazowe zarobki z komendy !work o 5%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko ze Srebrnej Paczki (0.5%).'
+    },
+    kostka_losu: {
+      name: 'Kostka Losu',
+      emoji: '🎲',
+      price: 0,
+      shortDesc: 'Raz dziennie: rzut 50/50 - podwój lub strać ostatnią wygraną.',
+      description: 'Specjalny przedmiot. Raz na dobę pozwala zaryzykować ostatnią wygraną kwotę netto z kasyna (do 500k) w rzucie 50/50 - możesz ją podwoić lub stracić. Użyj komendą !kosc.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępna tylko z Brązowej Paczki (1.5%).'
+    },
+    magiczna_sakiewka: {
+      name: 'Magiczna Sakiewka',
+      emoji: '🎁',
+      price: 0,
+      shortDesc: 'Losowy bonus co 24h (25k-400k).',
+      description: 'Magiczny przedmiot. Co 24 godzin losowo generuje bonus od 25 000 do 400 000 viccoinów. Sakiewka sama się otwiera o losowej porze dnia.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko z Tytanowej Paczki (1.0%).'
     },
     zestaw_wlamywacza: {
       name: 'Zestaw Włamywacza',
