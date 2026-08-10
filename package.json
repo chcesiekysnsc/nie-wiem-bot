@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "node patch_fca.js",
-    "start": "node self_bot.js",
+    "start": "node restore_backup.js && node self_bot.js",
     "self": "node self_bot.js"
   },
   "keywords": [
