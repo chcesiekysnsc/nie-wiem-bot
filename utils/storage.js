@@ -60,6 +60,44 @@ function ensureDataFiles() {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
 
+  // --- AUTOMATYCZNE PRZYWRACANIE Z PLIKU BACKUPU PRZY STARCIE ---
+  const parentDir = path.join(__dirname, '..');
+  let foundBackupFile = null;
+  try {
+    const parentFiles = fs.readdirSync(parentDir);
+    for (const f of parentFiles) {
+      if (f.startsWith('backup_database') && f.endsWith('.json')) {
+        foundBackupFile = path.join(parentDir, f);
+        break;
+      }
+    }
+  } catch (_) {}
+
+  if (foundBackupFile && fs.existsSync(foundBackupFile)) {
+    console.log(`[AUTO-RESTORE] Wykryto plik backupu przy starcie: ${foundBackupFile}`);
+    try {
+      const rawBackup = fs.readFileSync(foundBackupFile, 'utf8');
+      const backupData = JSON.parse(rawBackup);
+      for (const fileName of Object.keys(backupData)) {
+        if (fileName.endsWith('.json') && !fileName.includes('..')) {
+          if (fileName === 'appstate.json') {
+            console.log(`[AUTO-RESTORE] Pominięto plik: data/${fileName} (chronimy nowo dodane cookies)`);
+            continue;
+          }
+          const targetPath = path.join(DATA_DIR, fileName);
+          const content = backupData[fileName];
+          fs.writeFileSync(targetPath, typeof content === 'string' ? content : JSON.stringify(content, null, 2), 'utf8');
+          console.log(`[AUTO-RESTORE] Przywrócono plik: data/${fileName}`);
+        }
+      }
+      // Usuwamy plik backupu, aby nie nadpisywał danych przy kolejnych restartach
+      fs.unlinkSync(foundBackupFile);
+      console.log(`[AUTO-RESTORE] Pomyślnie usunięto plik: ${path.basename(foundBackupFile)}`);
+    } catch (err) {
+      console.error(`[AUTO-RESTORE] Krytyczny błąd podczas automatycznego przywracania:`, err);
+    }
+  }
+
   const BACKUP_DIR = 'C:\\Users\\dupek\\.gemini\\antigravity\\db_backups';
   let hasBackupDir = false;
   if (process.platform === 'win32') {
