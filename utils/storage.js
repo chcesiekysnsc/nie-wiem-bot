@@ -60,6 +60,44 @@ function ensureDataFiles() {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
 
+  // JEDNORAZOWE AUTOMATYCZNE PRZYWRACANIE Z BACKUPU (BEZ COOKIES)
+  const backupFilePath = path.join(__dirname, '..', 'backup_database.json');
+  const importMarkerPath = path.join(DATA_DIR, '.backup_imported');
+
+  if (fs.existsSync(backupFilePath) && !fs.existsSync(importMarkerPath)) {
+    console.log('[AUTO-RESTORE] Wykryto plik backup_database.json. Rozpoczynam automatyczne przywracanie...');
+    try {
+      const rawBackup = fs.readFileSync(backupFilePath, 'utf8');
+      const backupData = JSON.parse(rawBackup);
+      
+      let restoredCount = 0;
+      for (const fileName of Object.keys(backupData)) {
+        if (!fileName.endsWith('.json') || fileName.includes('..') || fileName.includes('/') || fileName.includes('\\')) {
+          continue;
+        }
+        
+        const targetPath = path.join(DATA_DIR, fileName);
+        
+        // Zabezpieczenie przed nadpisaniem istniejących, działających cookies
+        if (fileName === 'appstate.json' && fs.existsSync(targetPath)) {
+          console.log('[AUTO-RESTORE] Pomijam plik appstate.json (istnieją już nowsze cookies)');
+          continue;
+        }
+        
+        const content = backupData[fileName];
+        const outputText = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+        fs.writeFileSync(targetPath, outputText, 'utf8');
+        restoredCount++;
+      }
+      
+      // Zapisujemy marker w wolumenie chmurowym, by zapobiec nadpisaniu przy kolejnych restartach
+      fs.writeFileSync(importMarkerPath, new Date().toISOString(), 'utf8');
+      console.log(`[AUTO-RESTORE] Pomyślnie automatycznie zaimportowano ${restoredCount} plików bazy danych!`);
+    } catch (restoreErr) {
+      console.error('[AUTO-RESTORE] Błąd automatycznego przywracania:', restoreErr);
+    }
+  }
+
   const BACKUP_DIR = 'C:\\Users\\dupek\\.gemini\\antigravity\\db_backups';
   let hasBackupDir = false;
   if (process.platform === 'win32') {
