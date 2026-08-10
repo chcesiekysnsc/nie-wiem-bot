@@ -2,6 +2,10 @@
   "blacklist": [
     "61587917025132",
     "61568591880516",
+    "61583610843927",
+    "100058279567414",
+    "61564492711890",
+    "100057815070720",
     "61560227271099"
   ],
   "showIds": [],
@@ -27,10 +31,10 @@
         "61569567502615",
         "100012858159027"
       ],
-      "vault": 0,
+      "vault": 64348,
       "levelDziupla": 3,
-      "levelBiznesy": 0,
-      "levelFach": 0,
+      "levelBiznesy": 3,
+      "levelFach": 3,
       "lastHeistTime": 1783443148821,
       "deposits": {
         "100060812419294": 81196012,
@@ -46,18 +50,12 @@
         "100012858159027": 250000
       },
       "tributePercent": 10,
-      "reputation": 3001,
       "lastAttackTime": 0,
       "alliances": [
         "taksiczuj"
       ],
       "allianceRequests": [],
-      "lastSupportTime": 1783638159296,
-      "levelUzbrojenie": 0,
-      "levelObrona": 0,
-      "seasonRewards": [
-        "korona_hegemonii"
-      ]
+      "lastSupportTime": 1783638159296
     },
     "sympatycylarego": {
       "name": "sympatycy larego",
@@ -72,7 +70,7 @@
         "100071703912091",
         "100077231122056"
       ],
-      "vault": 0,
+      "vault": 36313,
       "levelDziupla": 0,
       "levelBiznesy": 0,
       "levelFach": 0,
@@ -85,10 +83,7 @@
         "100012709246650": 1310001,
         "61564076458500": 16661
       },
-      "lastSupportTime": 0,
-      "levelUzbrojenie": 0,
-      "levelObrona": 0,
-      "seasonRewards": []
+      "lastSupportTime": 0
     },
     "taksiczuj": {
       "name": "Tak Się Czuję",
@@ -104,9 +99,9 @@
         "100055028388595",
         "61572761931589"
       ],
-      "vault": 0,
+      "vault": 103146,
       "levelDziupla": 3,
-      "levelBiznesy": 0,
+      "levelBiznesy": 3,
       "levelFach": 0,
       "tributePercent": 0,
       "lastHeistTime": 1783808590104,
@@ -120,10 +115,7 @@
         "wkf"
       ],
       "allianceRequests": [],
-      "lastSupportTime": 1783267032868,
-      "levelUzbrojenie": 0,
-      "levelObrona": 0,
-      "seasonRewards": []
+      "lastSupportTime": 1783267032868
     },
     "nowohuckieswiry": {
       "name": "NowohuckieSwiry",
@@ -143,224 +135,10 @@
       "lastHeistTime": 0,
       "lastAttackTime": 0,
       "shieldUntil": 0,
-      "lastSupportTime": 0,
-      "levelUzbrojenie": 0,
-      "levelObrona": 0,
-      "seasonRewards": []
-    },
-    "arasaka": {
-      "id": "arasaka",
-      "name": "Arasaka",
-      "bossId": "ai_arasaka_boss",
-      "deputies": [],
-      "members": [
-        "ai_arasaka_boss",
-        "ai_arasaka_m1",
-        "ai_arasaka_m2"
-      ],
-      "vault": 88780,
-      "maxVault": 8997321,
-      "levelDziupla": 0,
-      "levelBiznesy": 0,
-      "levelFach": 0,
-      "levelUzbrojenie": 0,
-      "levelObrona": 0,
-      "mercenaryContract": null,
-      "reputation": 0,
-      "lastActivityAt": 1786328631140,
-      "tributePercent": 0,
-      "lastHeistTime": 0,
-      "lastAttackTime": 0,
-      "shieldUntil": 0,
-      "isAI": true,
-      "aiPersonality": "agresywny",
-      "aiNextActionTime": 1786331331140,
-      "aiLastActionType": null,
-      "aiActionLog": [],
-      "alliances": [],
-      "allianceRequests": [],
-      "bossShopItems": [],
-      "bossShopPurchasesToday": 0,
-      "bossShopPurchasesDate": null
-    },
-    "militech": {
-      "id": "militech",
-      "name": "Militech",
-      "bossId": "ai_militech_boss",
-      "deputies": [],
-      "members": [
-        "ai_militech_boss",
-        "ai_militech_m1"
-      ],
-      "vault": 94464,
-      "maxVault": 8914766,
-      "levelDziupla": 0,
-      "levelBiznesy": 0,
-      "levelFach": 0,
-      "levelUzbrojenie": 0,
-      "levelObrona": 0,
-      "mercenaryContract": null,
-      "reputation": 0,
-      "lastActivityAt": 1786328631141,
-      "tributePercent": 0,
-      "lastHeistTime": 0,
-      "lastAttackTime": 0,
-      "shieldUntil": 0,
-      "isAI": true,
-      "aiPersonality": "bogacz",
-      "aiNextActionTime": 1786331331141,
-      "aiLastActionType": null,
-      "aiActionLog": [],
-      "alliances": [],
-      "allianceRequests": [],
-      "bossShopItems": [],
-      "bossShopPurchasesToday": 0,
-      "bossShopPurchasesDate": null
-    },
-    "kiramann": {
-      "id": "kiramann",
-      "name": "Kiramann",
-      "bossId": "ai_kiramann_boss",
-      "deputies": [],
-      "members": [
-        "ai_kiramann_boss",
-        "ai_kiramann_m1",
-        "ai_kiramann_m2",
-        "ai_kiramann_m3"
-      ],
-      "vault": 185841,
-      "maxVault": 7376289,
-      "levelDziupla": 0,
-      "levelBiznesy": 0,
-      "levelFach": 0,
-      "levelUzbrojenie": 0,
-      "levelObrona": 0,
-      "mercenaryContract": null,
-      "reputation": 0,
-      "lastActivityAt": 1786328631141,
-      "tributePercent": 0,
-      "lastHeistTime": 0,
-      "lastAttackTime": 0,
-      "shieldUntil": 0,
-      "isAI": true,
-      "aiPersonality": "bogacz",
-      "aiNextActionTime": 1786331331141,
-      "aiLastActionType": null,
-      "aiActionLog": [],
-      "alliances": [],
-      "allianceRequests": [],
-      "bossShopItems": [],
-      "bossShopPurchasesToday": 0,
-      "bossShopPurchasesDate": null
-    },
-    "barostatniakropla": {
-      "id": "barostatniakropla",
-      "name": "Bar Ostatnia Kropla",
-      "bossId": "ai_barostatniakropla_boss",
-      "deputies": [],
-      "members": [
-        "ai_barostatniakropla_boss",
-        "ai_barostatniakropla_m1",
-        "ai_barostatniakropla_m2",
-        "ai_barostatniakropla_m3"
-      ],
-      "vault": 248438,
-      "maxVault": 9028872,
-      "levelDziupla": 0,
-      "levelBiznesy": 0,
-      "levelFach": 0,
-      "levelUzbrojenie": 0,
-      "levelObrona": 0,
-      "mercenaryContract": null,
-      "reputation": 0,
-      "lastActivityAt": 1786328631141,
-      "tributePercent": 0,
-      "lastHeistTime": 0,
-      "lastAttackTime": 0,
-      "shieldUntil": 0,
-      "isAI": true,
-      "aiPersonality": "rekruter",
-      "aiNextActionTime": 1786331331141,
-      "aiLastActionType": null,
-      "aiActionLog": [],
-      "alliances": [],
-      "allianceRequests": [],
-      "bossShopItems": [],
-      "bossShopPurchasesToday": 0,
-      "bossShopPurchasesDate": null
-    },
-    "chembarons": {
-      "id": "chembarons",
-      "name": "Chem Barons",
-      "bossId": "ai_chembarons_boss",
-      "deputies": [],
-      "members": [
-        "ai_chembarons_boss",
-        "ai_chembarons_m1"
-      ],
-      "vault": 221162,
-      "maxVault": 7193134,
-      "levelDziupla": 0,
-      "levelBiznesy": 0,
-      "levelFach": 0,
-      "levelUzbrojenie": 0,
-      "levelObrona": 0,
-      "mercenaryContract": null,
-      "reputation": 0,
-      "lastActivityAt": 1786328631141,
-      "tributePercent": 0,
-      "lastHeistTime": 0,
-      "lastAttackTime": 0,
-      "shieldUntil": 0,
-      "isAI": true,
-      "aiPersonality": "zbalansowany",
-      "aiNextActionTime": 1786331331141,
-      "aiLastActionType": null,
-      "aiActionLog": [],
-      "alliances": [],
-      "allianceRequests": [],
-      "bossShopItems": [],
-      "bossShopPurchasesToday": 0,
-      "bossShopPurchasesDate": null
-    },
-    "izraelici": {
-      "id": "izraelici",
-      "name": "Izraelici",
-      "bossId": "ai_izraelici_boss",
-      "deputies": [],
-      "members": [
-        "ai_izraelici_boss",
-        "ai_izraelici_m1",
-        "ai_izraelici_m2",
-        "ai_izraelici_m3"
-      ],
-      "vault": 195392,
-      "maxVault": 9955506,
-      "levelDziupla": 0,
-      "levelBiznesy": 0,
-      "levelFach": 0,
-      "levelUzbrojenie": 0,
-      "levelObrona": 0,
-      "mercenaryContract": null,
-      "reputation": 0,
-      "lastActivityAt": 1786328631141,
-      "tributePercent": 0,
-      "lastHeistTime": 0,
-      "lastAttackTime": 0,
-      "shieldUntil": 0,
-      "isAI": true,
-      "aiPersonality": "agresywny_izraelici",
-      "aiNextActionTime": 1786331331141,
-      "aiLastActionType": null,
-      "aiActionLog": [],
-      "alliances": [],
-      "allianceRequests": [],
-      "bossShopItems": [],
-      "bossShopPurchasesToday": 0,
-      "bossShopPurchasesDate": null
+      "lastSupportTime": 0
     }
   },
-  "lastInterestPayout": 1786328626180,
+  "lastInterestPayout": 1783836722607,
   "marriageBanks": {
     "100012709246650-100028592110425": {
       "balance": 0,
@@ -383,9 +161,17 @@
     }
   },
   "trueBlacklist": [],
-  "market": [],
+  "market": [
+    {
+      "listingId": "1783465981992-wp0s",
+      "sellerId": "61572761931589",
+      "itemId": "podrecznik_praktykanta",
+      "price": 1000000,
+      "listedAt": 1783465981992
+    }
+  ],
   "lastResetYear": 2026,
-  "lastResetMonth": 7,
+  "lastResetMonth": 6,
   "lastfmConnections": {
     "100088863765243": {
       "username": "oklamaa",
@@ -732,7 +518,7 @@
       "threadId": "7596572000383742"
     }
   },
-  "lastCzarnaKartaPayout": 1786328626180,
+  "lastCzarnaKartaPayout": 1783833430012,
   "allowedAI": [
     "61573228601016",
     {
@@ -791,28 +577,28 @@
   "lastResetWinners": [
     {
       "userId": "100060812419294",
-      "total": 207964517,
-      "item": "krolewskie_insygnia"
+      "total": 17091329,
+      "item": "ananas_na_pizzy"
+    },
+    {
+      "userId": "100012709246650",
+      "total": 7585257,
+      "item": "czarna_bandera"
     },
     {
       "userId": "100012870817390",
-      "total": 92147872,
-      "item": "licencja_monopolisty"
+      "total": 3525000,
+      "item": "kosci_oszusta"
     },
     {
       "userId": "100011378042556",
-      "total": 41477094,
-      "item": "szwajcarski_zegarek"
+      "total": 2159000,
+      "item": "czterolistna_moneta"
     },
     {
-      "userId": "61573228601016",
-      "total": 7978000,
-      "item": "ksiega_monopolisty"
-    },
-    {
-      "userId": "100016685764834",
-      "total": 1983181,
-      "item": "katalizator_bogactwa"
+      "userId": "100056878188995",
+      "total": 1349939,
+      "item": "czarna_karta"
     }
   ],
   "justReset": false,
@@ -1017,7 +803,7 @@
     "firma"
   ],
   "pendingLoanNotifications": [],
-  "nextTaxCollectionAt": 1786350226202,
+  "nextTaxCollectionAt": 1783856478394,
   "proposalModeration": {
     "100060812419294": {
       "warnings": 3,
@@ -1067,53 +853,5 @@
       "bal": false,
       "help": false
     }
-  },
-  "lastGangSeasonWinners": [
-    {
-      "gangId": "wkf",
-      "name": "WKF",
-      "reputation": 3001,
-      "reward": "korona_hegemonii"
-    }
-  ],
-  "territories": {
-    "activeIds": [
-      "sklad_zaopatrzenia",
-      "rezydencja_bossa",
-      "fabryka_broni",
-      "twierdza",
-      "warsztat_terytorium"
-    ],
-    "owners": {
-      "sklad_zaopatrzenia": null,
-      "rezydencja_bossa": null,
-      "fabryka_broni": null,
-      "twierdza": null,
-      "warsztat_terytorium": null,
-      "centrum_finansowe": null,
-      "slumsy": null,
-      "szlaki_przemytnicze": null,
-      "rafineria": null,
-      "bank_centralny": null,
-      "centrum_wywiadu": null,
-      "centrum_dowodzenia": null,
-      "dworzec_towarowy": null,
-      "szpital_polowy": null,
-      "magazyny": null,
-      "port": null,
-      "posterunek_policji": null,
-      "dzielnica_kasyn": null,
-      "centrum_miasta": null,
-      "strefa_przemyslowa": null
-    },
-    "nextRotationAt": 1786933426204
-  },
-  "nextGangReputationDecayAt": 1786933426204,
-  "gangAILogs": [
-    {
-      "gangId": "system",
-      "message": "Zainicjalizowano stałe gangi AI.",
-      "timestamp": 1786328631141
-    }
-  ]
+  }
 }
