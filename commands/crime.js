@@ -125,7 +125,7 @@ module.exports = {
       const user = createUser(authorId, store.users);
       const inventory = ensureInventoryRecord(store.inventory, authorId);
 
-      let baseSuccessChance = Number.isFinite(crimeSuccessOverride) ? crimeSuccessOverride / 100 : 0.50;
+      let baseSuccessChance = Number.isFinite(crimeSuccessOverride) ? crimeSuccessOverride / 100 : 0.75;
       const crimeMul = getCrimeSuccessMultiplier();
       if (crimeMul !== 1) {
         baseSuccessChance = Math.min(baseSuccessChance * crimeMul, 1);
