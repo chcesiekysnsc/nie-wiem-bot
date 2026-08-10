@@ -1,4 +1,7 @@
 const { generateMatch } = require('./mecz');
+const { createUser, withData } = require('../utils/storage');
+const { getPolishMidnight, msToReadable } = require('../utils/economy');
+const { isMatchBanned } = require('../utils/matchBanSystem');
 
 module.exports = {
   name: 'multimecz',
@@ -9,6 +12,12 @@ module.exports = {
     }
 
     const userId = message.author.id;
+
+    const banCheck = await isMatchBanned(userId);
+    if (banCheck.banned) {
+      await message.reply(banCheck.error);
+      return;
+    }
 
     // Check if there is an active proposal already to prevent rerolling
     let activeMulti = client.activeMultiMatches.get(userId);

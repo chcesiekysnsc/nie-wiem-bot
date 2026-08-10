@@ -3,6 +3,7 @@ const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, ran
   getRandomXp, getPolishMidnight, msToReadable
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { isMatchBanned } = require('../utils/matchBanSystem');
 
 function getAutoSelection(match, autoType) {
   const odds = match.odds;
@@ -41,6 +42,12 @@ module.exports = {
     }
 
     const userId = message.author.id;
+
+    const banCheck = await isMatchBanned(userId);
+    if (banCheck.banned) {
+      await message.reply(banCheck.error);
+      return;
+    }
 
     // 1. Sprawdzenie czy użytkownik ma aktywną ofertę
     const activeMulti = client.activeMultiMatches.get(userId);
@@ -135,7 +142,7 @@ module.exports = {
     client.meczInProgress.add(userId);
 
     // 4. Walidacja i potrącenie stawki
-    const setupResult = await withData(store => {
+    const setupResult = await withData(async store => {
       const user = createUser(userId, store.users);
       const originalBalance = user.balance;
       const minRequiredStake = Math.floor(originalBalance * 0.10);
@@ -172,35 +179,13 @@ module.exports = {
         return { error: `❌ Do multi-meczu musisz użyć minimum 10% swojego salda (stawka min. ${formatCurrency(minRequiredStake)}).` };
       }
 
-      // Sprawdzenie limitu 10 kuponów dziennie
-      const now = Date.now();
-      const todayMidnight = getPolishMidnight(new Date(now));
-      if (!user.lastMatchPlayMidnight || user.lastMatchPlayMidnight < todayMidnight) {
-        user.lastMatchPlayMidnight = todayMidnight;
-        user.matchCountToday = 0;
-      }
-
-      if (user.matchCountToday >= 10) {
-        const tomorrowMidnight = todayMidnight + 24 * 60 * 60 * 1000;
-        const timeRemaining = tomorrowMidnight - now;
-        return { error: 
-          `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `🚫 **LIMIT KUPONÓW PRZEKROCZONY** 🚫\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `Zagrałeś już dzisiaj maksymalną liczbę **10 kuponów** na mecze i multimecze.\n\n` +
-          `⏳ Nowy limit otrzymasz za: **${msToReadable(timeRemaining)}** (o północy).\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━`
-        };
-      }
-
-      // Potrącenie stawki z salda i zwiększenie licznika dziennego
+      // Potrącenie stawki z salda
       if (formatType === 'auto' || formatType === 'pairs') {
         user.balance -= totalStake;
         selectionsResolved = selections.map(s => ({ ...s, stake: totalStake }));
       } else {
         user.balance = originalBalance - totalStake;
       }
-      user.matchCountToday = (user.matchCountToday || 0) + 1;
 
       const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
       return { totalStake, selectionsResolved, newBalance: user.balance, meczTaxRate };
@@ -261,6 +246,17 @@ module.exports = {
       matchDetails,
       simulations,
       isMulti: true
+    });
+
+    await withData(store => {
+      const user = createUser(userId, store.users);
+      const now = Date.now();
+      const todayMidnight = getPolishMidnight(new Date(now));
+      if (!user.lastMatchPlayMidnight || user.lastMatchPlayMidnight < todayMidnight) {
+        user.lastMatchPlayMidnight = todayMidnight;
+        user.matchCountToday = 0;
+      }
+      user.matchCountToday = (user.matchCountToday || 0) + 1;
     });
 
     // Czyszczenie oferty gracza

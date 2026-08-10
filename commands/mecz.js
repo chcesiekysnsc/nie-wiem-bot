@@ -4,6 +4,7 @@ const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, ran
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { advanceChallenge } = require('../utils/challenges');
+const { isMatchBanned } = require('../utils/matchBanSystem');
 
 const TEAMS = {
   // === TOP 100 EUROPEJSKICH KLUBÓW WG UEFA 2025/2026 ===
@@ -184,6 +185,12 @@ module.exports = {
 
     const userId = message.author.id;
 
+    const banCheck = await isMatchBanned(userId);
+    if (banCheck.banned) {
+      await message.reply(banCheck.error);
+      return;
+    }
+
     // 1. Sprawdzenie oferty (wywołanie !mecz bez argumentów)
     if (args.length === 0) {
       let match = client.activeMatches.get(userId);
@@ -257,7 +264,7 @@ module.exports = {
     // Wyczyszczenie oferty
     client.activeMatches.delete(userId);
 
-    const setupResult = await withData(store => {
+    const setupResult = await withData(async store => {
       const user = createUser(userId, store.users);
       const bet = resolveAmount(rawBet, user.balance);
 
@@ -274,30 +281,8 @@ module.exports = {
         return { error: `❌ Maksymalna stawka na jeden mecz to 10% Twojego salda. Twój limit wynosi: ${formatCurrency(maxBetAllowed)}.` };
       }
 
-      // Sprawdzenie limitu 10 kuponów dziennie
-      const now = Date.now();
-      const todayMidnight = getPolishMidnight(new Date(now));
-      if (!user.lastMatchPlayMidnight || user.lastMatchPlayMidnight < todayMidnight) {
-        user.lastMatchPlayMidnight = todayMidnight;
-        user.matchCountToday = 0;
-      }
-
-      if (user.matchCountToday >= 10) {
-        const tomorrowMidnight = todayMidnight + 24 * 60 * 60 * 1000;
-        const timeRemaining = tomorrowMidnight - now;
-        return { error: 
-          `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `🚫 **LIMIT KUPONÓW PRZEKROCZONY** 🚫\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `Zagrałeś już dzisiaj maksymalną liczbę **10 kuponów** na mecze i multimecze.\n\n` +
-          `⏳ Nowy limit otrzymasz za: **${msToReadable(timeRemaining)}** (o północy).\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━`
-        };
-      }
-
-      // Potrącamy stawkę z góry i zwiększamy licznik dzienny
+      // Potrącamy stawkę z góry
       user.balance -= bet;
-      user.matchCountToday = (user.matchCountToday || 0) + 1;
       const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
       return { bet, newBalance: user.balance, meczTaxRate };
     });
@@ -331,6 +316,17 @@ module.exports = {
       match,
       simulation: sim,
       isMulti: false
+    });
+
+    await withData(store => {
+      const user = createUser(userId, store.users);
+      const now = Date.now();
+      const todayMidnight = getPolishMidnight(new Date(now));
+      if (!user.lastMatchPlayMidnight || user.lastMatchPlayMidnight < todayMidnight) {
+        user.lastMatchPlayMidnight = todayMidnight;
+        user.matchCountToday = 0;
+      }
+      user.matchCountToday = (user.matchCountToday || 0) + 1;
     });
 
     await message.reply(
