@@ -46,6 +46,12 @@ function main() {
     const targetPath = path.join(OUTPUT_DIR, fileName);
     const content = backup[fileName];
 
+    if (fileName === 'appstate.json' && fs.existsSync(targetPath)) {
+      console.log(`   ↳ Pomijam przywracanie appstate.json (plik z sesją już istnieje na dysku)`);
+      skippedCount++;
+      continue;
+    }
+
     let outputText;
     if (typeof content === 'string') {
       outputText = content;

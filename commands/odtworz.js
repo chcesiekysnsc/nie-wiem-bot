@@ -64,6 +64,12 @@ module.exports = {
 
           const fileKey = fileName.replace('.json', '');
           const content = backup[fileName];
+          const targetPath = path.join(__dirname, '../data', fileName);
+
+          if (fileName === 'appstate.json' && fs.existsSync(targetPath)) {
+            skippedCount++;
+            continue;
+          }
 
           if (store[fileKey] !== undefined) {
             const target = store[fileKey];
