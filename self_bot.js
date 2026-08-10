@@ -10,9 +10,17 @@ require('dotenv').config();
 function ensureSeededData() {
   const dataDir = path.join(__dirname, 'data');
   const seedDir = path.join(__dirname, 'data_seed');
+  const markerPath = path.join(dataDir, '.baseline_imported');
   
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
+  }
+  
+  // Jeśli marker już istnieje, oznacza to, że jednorazowy import został wykonany.
+  // Pomijamy nadpisywanie plików, aby nie resetować postępów graczy przy restartach.
+  if (fs.existsSync(markerPath)) {
+    console.log('[SEED] Dane zostały już wcześniej zainicjalizowane. Pomijam nadpisywanie.');
+    return;
   }
   
   if (fs.existsSync(seedDir)) {
@@ -27,9 +35,13 @@ function ensureSeededData() {
         const targetPath = path.join(dataDir, file);
         const seedPath = path.join(seedDir, file);
         
-        console.log(`[SEED] Jednorazowe wymuszenie kopiowania stanu bazowego: ${file}`);
+        console.log(`[SEED] Kopiowanie stanu bazowego (jednorazowo): ${file}`);
         fs.copyFileSync(seedPath, targetPath);
       }
+      
+      // Zapisujemy marker na wolumenie, aby zapobiec ponownemu kopiowaniu przy restartach
+      fs.writeFileSync(markerPath, new Date().toISOString(), 'utf8');
+      console.log('[SEED] Pomyślnie zaimportowano bazę danych i utworzono marker startowy.');
     } catch (err) {
       console.error('[SEED] Failed to seed data directory:', err);
     }
