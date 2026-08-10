@@ -11,33 +11,24 @@ function ensureSeededData() {
   const dataDir = path.join(__dirname, 'data');
   const seedDir = path.join(__dirname, 'data_seed');
   
-  // appstate jest wczytywane z pliku appstate.json w katalogu glownym
-  
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
-  
-  const forceRestore = process.env.FORCE_RESTORE_SEED === 'true';
   
   if (fs.existsSync(seedDir)) {
     try {
       const seedFiles = fs.readdirSync(seedDir).filter(f => f.endsWith('.json'));
       for (const file of seedFiles) {
+        // ZABEZPIECZENIE: Nigdy nie nadpisujemy appstate.json z folderu seedów, aby zachować aktywne logowanie
+        if (file === 'appstate.json') {
+          continue;
+        }
+
         const targetPath = path.join(dataDir, file);
-        const targetExists = fs.existsSync(targetPath);
-        let targetEmpty = true;
-        if (targetExists) {
-          const content = fs.readFileSync(targetPath, 'utf8').trim();
-          if (content && content !== '[]' && content !== '{}') {
-            targetEmpty = false;
-          }
-        }
+        const seedPath = path.join(seedDir, file);
         
-        if (targetEmpty || forceRestore) {
-          const seedPath = path.join(seedDir, file);
-          console.log(`[SEED] Copying data seed file ${file} to data/ (forceRestore=${forceRestore})`);
-          fs.copyFileSync(seedPath, targetPath);
-        }
+        console.log(`[SEED] Jednorazowe wymuszenie kopiowania stanu bazowego: ${file}`);
+        fs.copyFileSync(seedPath, targetPath);
       }
     } catch (err) {
       console.error('[SEED] Failed to seed data directory:', err);
