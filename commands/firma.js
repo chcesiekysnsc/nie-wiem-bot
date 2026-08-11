@@ -197,11 +197,6 @@ module.exports = {
             return null;
           }
 
-          if (!userWorkers || userWorkers.length === 0) {
-            errors.push(`❌ ${label} **${compDef.emoji} ${compDef.name}** nie może wygenerować zysku bez pracownika! Zatrudnij pracownika komendą **!pracownik**.`);
-            return null;
-          }
-
           let payout = compDef.payout;
           if (companyMul !== 1) {
             payout = Math.floor(payout * companyMul);
@@ -234,11 +229,12 @@ module.exports = {
 
           companyObj.lastPayout = now;
 
-          // Apply worker effects
-          const workerResult = applyWorkerEffects(payout, userWorkers, compDef, companyObj, inventory, breakChanceOverride);
-          payout = workerResult.payout;
-
-          const broke = workerResult.broke;
+          // Apply worker effects only if workers exist
+          let workerResult = { payout, broke: false, workerSalary: 0, bonusTriggered: false, skipSalary: false, instantRepair: false, repairDiscount: false };
+          if (userWorkers && userWorkers.length > 0) {
+            workerResult = applyWorkerEffects(payout, userWorkers, compDef, companyObj, inventory, breakChanceOverride);
+            payout = workerResult.payout;
+          }
 
           return { compDef, payout, garniturBonus, kaczkaBonus, ksiegaBonus, insygniaBonus, globalBonus, setBonus, workerSalary: workerResult.workerSalary, bonusTriggered: workerResult.bonusTriggered, skipSalary: workerResult.skipSalary, instantRepair: workerResult.instantRepair, repairDiscount: workerResult.repairDiscount, broke };
         };

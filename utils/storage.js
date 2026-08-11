@@ -682,8 +682,16 @@ function runHeavyLoops(store) {
         if (!tierInfo) break;
         
         const rentCost = Math.round(tierInfo.price * 0.10);
-        if (user.balance >= rentCost) {
-          user.balance -= rentCost;
+        const totalFunds = user.balance + (user.bank || 0);
+        if (totalFunds >= rentCost) {
+          // Pobierz najpierw z portfela, potem z banku jeśli trzeba
+          if (user.balance >= rentCost) {
+            user.balance -= rentCost;
+          } else {
+            const fromBank = rentCost - user.balance;
+            user.balance = 0;
+            user.bank = (user.bank || 0) - fromBank;
+          }
           user.house.lastRentPaid += rentIntervalMs;
         } else {
           // Brak kasy na czynsz -> degradacja o 1 tier i reset ulepszeń
