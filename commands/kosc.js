@@ -45,17 +45,33 @@ function getPolishMidnight(date) {
 module.exports = {
   name: 'kosc',
   aliases: ['dice', 'kostka'],
-  async execute(client, message) {
+  async execute(client, message, args) {
     const authorId = message.author.id;
+    const variant = String(args && args[0] || '').toLowerCase();
 
     const result = await withData(store => {
       const user = createUser(authorId, store.users);
       const inventory = ensureInventoryRecord(store.inventory, authorId);
       const now = Date.now();
 
-      // 1. Sprawdzenie posiadania Kostki Ryzyka
-      if (!hasItem(inventory, 'kosc_ryzyka')) {
-        return { error: '❌ Musisz posiadać 🎲 **Kostkę Ryzyka** w swoim ekwipunku, aby użyć tej komendy!' };
+      // 1. Wybór wariantu i sprawdzenie przedmiotu
+      let requiredItem = null;
+      let winAmount = 500000;
+
+      if (variant === 'ryzyka') {
+        requiredItem = 'kosc_ryzyka';
+        winAmount = 750000;
+      } else if (variant === 'losu') {
+        requiredItem = 'kostka_losu';
+        winAmount = 500000;
+      } else {
+        requiredItem = 'kosc_ryzyka';
+        winAmount = 500000;
+      }
+
+      if (!hasItem(inventory, requiredItem)) {
+        const itemName = requiredItem === 'kosc_ryzyka' ? 'Kostkę Ryzyka' : 'Kostkę Losu';
+        return { error: `❌ Musisz posiadać 🎲 **${itemName}** w swoim ekwipunku, aby użyć tej komendy!` };
       }
 
       // 2. Cooldown (reset o północy w Polsce)
@@ -73,25 +89,29 @@ module.exports = {
         return { error: '❌ Nie masz żadnej zapisanej ostatniej wygranej netto z kasyna (np. z !bet, !cf, !bj), którą mógłbyś zaryzykować!' };
       }
 
-      const koscLevel = getItemUpgradeLevel(inventory, 'kosc_ryzyka');
-      const maxBet = 500000 + koscLevel * 50000;
-      const stake = Math.min(maxBet, lastWin);
+      const maxStake = 500000;
+      const stake = Math.min(maxStake, lastWin);
 
       // Losowanie 50/50
       const won = Math.random() < 0.5;
 
       let netChange = 0;
+      let loseAmount = 0;
+      let winAmountFinal = 0;
       if (won) {
         const evMul = getActiveEventMultiplier('casino');
-        let finalStake = evMul > 1 ? Math.round(stake * evMul) : stake;
+        let finalWin = evMul > 1 ? Math.round(winAmount * evMul) : winAmount;
         if (hasItem(inventory, 'krolewskie_insygnia')) {
-          finalStake = Math.floor(finalStake * 1.10);
+          finalWin = Math.floor(finalWin * 1.10);
         }
-        user.balance += finalStake;
-        netChange = finalStake;
+        winAmountFinal = finalWin;
+        user.balance += finalWin;
+        netChange = finalWin;
       } else {
-        user.balance -= stake;
-        netChange = -stake;
+        const loss = variant === 'losu' ? 250000 : stake;
+        loseAmount = loss;
+        user.balance -= loss;
+        netChange = -loss;
       }
 
       // Zapisz czas i wyczyść ostatnią wygraną
@@ -105,6 +125,8 @@ module.exports = {
       return {
         won,
         stake,
+        loseAmount,
+        winAmount: winAmountFinal,
         balance: user.balance,
         xpResult
       };
@@ -115,9 +137,15 @@ module.exports = {
       return;
     }
 
-    const rollText = result.won ? `✅ **SUKCES!** Wygrana! Podwoiłeś stawkę i zyskujesz **+${formatCurrency(result.stake)}**!` : `❌ **PRZEGRANA!** Straciłeś stawkę **-${formatCurrency(result.stake)}**!`;
-    let replyText = `🎲 **RZUT KOSTKĄ RYZYKA** 🎲\n` +
-      `Stawka ryzyka (ostatnia wygrana netto do 500k): **${formatCurrency(result.stake)}**\n\n` +
+    const rollText = result.won
+      ? `✅ **SUKCES!** Wygrana! Zyskujesz **+${formatCurrency(result.winAmount)}**!`
+      : `❌ **PRZEGRANA!** Straciłeś **-${formatCurrency(result.loseAmount)}**!`;
+    const variantLabel = variant === 'losu' ? 'Losu' : 'Ryzyka';
+    const stakeLabel = variant === 'losu'
+      ? `Ryzykujesz 500 000 viccoinów: wygrywasz **300 000** lub tracisz **250 000**`
+      : `Ryzykujesz 500 000 viccoinów: wygrywasz **750 000** lub tracisz **500 000**`;
+    let replyText = `🎲 **RZUT KOSTKĄ ${variantLabel.toUpperCase()}** 🎲\n` +
+      `${stakeLabel}\n\n` +
       `${rollText}\n` +
       `👛 Portfel: **${formatCurrency(result.balance)}**`;
 

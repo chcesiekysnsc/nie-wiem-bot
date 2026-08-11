@@ -261,9 +261,6 @@ module.exports = {
 
     client.meczInProgress.add(userId);
 
-    // Wyczyszczenie oferty
-    client.activeMatches.delete(userId);
-
     const setupResult = await withData(async store => {
       const user = createUser(userId, store.users);
       const bet = resolveAmount(rawBet, user.balance);
@@ -281,8 +278,17 @@ module.exports = {
         return { error: `❌ Maksymalna stawka na jeden mecz to 10% Twojego salda. Twój limit wynosi: ${formatCurrency(maxBetAllowed)}.` };
       }
 
-      // Potrącamy stawkę z góry
+      // Potrącamy stawkę z góry i zwiększamy licznik gier
       user.balance -= bet;
+
+      const now = Date.now();
+      const todayMidnight = getPolishMidnight(new Date(now));
+      if (!user.lastMatchPlayMidnight || user.lastMatchPlayMidnight < todayMidnight) {
+        user.lastMatchPlayMidnight = todayMidnight;
+        user.matchCountToday = 0;
+      }
+      user.matchCountToday = (user.matchCountToday || 0) + 1;
+
       const meczTaxRate = store.profiles.meczTaxRate !== undefined ? store.profiles.meczTaxRate : 15;
       return { bet, newBalance: user.balance, meczTaxRate };
     });
@@ -292,6 +298,9 @@ module.exports = {
       await message.reply(setupResult.error);
       return;
     }
+
+    // Wyczyszczenie oferty dopiero po pomyślnym obstawieniu
+    client.activeMatches.delete(userId);
 
     const bet = setupResult.bet;
     const typeLabels = {
@@ -316,17 +325,6 @@ module.exports = {
       match,
       simulation: sim,
       isMulti: false
-    });
-
-    await withData(store => {
-      const user = createUser(userId, store.users);
-      const now = Date.now();
-      const todayMidnight = getPolishMidnight(new Date(now));
-      if (!user.lastMatchPlayMidnight || user.lastMatchPlayMidnight < todayMidnight) {
-        user.lastMatchPlayMidnight = todayMidnight;
-        user.matchCountToday = 0;
-      }
-      user.matchCountToday = (user.matchCountToday || 0) + 1;
     });
 
     await message.reply(

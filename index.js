@@ -682,6 +682,19 @@ function createServer() {
       return;
     }
 
+    if (req.method === 'GET' && url.pathname === '/spotify/callback') {
+      try {
+        const { handleSpotifyCallback } = require('./commands/spotify');
+        await handleSpotifyCallback(req, res);
+        return;
+      } catch (error) {
+        console.error('[SPOTIFY] Callback error:', error);
+        res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end('<h1>❌ Błąd serwera</h1>');
+        return;
+      }
+    }
+
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Not found.');
   }).listen(port, '0.0.0.0', () => {

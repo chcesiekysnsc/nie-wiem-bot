@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-const { withData } = require('../utils/storage');
+const { withData, DATA_DIR } = require('../utils/storage');
 
 module.exports = {
   name: 'odtworz',
@@ -64,7 +64,7 @@ module.exports = {
 
           const fileKey = fileName.replace('.json', '');
           const content = backup[fileName];
-          const targetPath = path.join(__dirname, '../data', fileName);
+          const targetPath = path.join(DATA_DIR, fileName);
 
           if (fileName === 'appstate.json' && fs.existsSync(targetPath)) {
             skippedCount++;

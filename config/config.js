@@ -12,6 +12,21 @@ module.exports = {
     pageId: '',
     botAvatarUrl: ''
   },
+  spotify: {
+    clientId: process.env.SPOTIFY_CLIENT_ID || '',
+    clientSecret: process.env.SPOTIFY_CLIENT_SECRET || '',
+    redirectUri: process.env.SPOTIFY_REDIRECT_URI || 'https://nie-wiem-bot-production-0007.up.railway.app/spotify/callback',
+    scopes: [
+      'user-read-currently-playing',
+      'user-read-playback-state',
+      'user-modify-playback-state',
+      'user-top-read',
+      'user-read-recently-played',
+      'playlist-read-private',
+      'playlist-modify-public',
+      'playlist-modify-private'
+    ]
+  },
   embed: {
     primary: 0xD4AF37
   },
@@ -831,11 +846,11 @@ module.exports = {
       name: 'Kostka Ryzyka',
       emoji: '🎲',
       price: 0,
-      shortDesc: 'Odblokowuje !kosc (raz na 24h ryzykujesz ostatnią wygraną 50/50).',
-      description: 'Odblokowuje specjalną komendę !kosc. Raz na dobę pozwala zaryzykować ostatnią wygraną kwotę netto z kasyna (do 500k) w rzucie 50/50 - możesz ją podwoić lub stracić.',
-      type: 'stackable',
+      shortDesc: 'Odblokowuje !kosc ryzyka (raz na 24h: ryzykuj 500k, wygraj 750k lub strać).',
+      description: 'Specjalny przedmiot aktywacyjny. Daje dostęp do komendy !kosc ryzyka, która raz na dobę pozwala zaryzykować 500 000 viccoinów w rzucie 50/50 — możesz wygrać 750 000 lub stracić całą stawkę. Dostępna wyłącznie z 🩶 Tytanowej Paczki.',
+      type: 'permanent',
       buyable: false,
-      shopNote: 'Dostępna tylko z Tytanowej Paczki (3.0%).'
+      shopNote: 'Dostępna tylko z 🩶 Tytanowej Paczki (3.0%).'
     },
     szkarlatne_oko: {
       name: 'Szkarłatne Oko Krupiera',
@@ -981,11 +996,11 @@ module.exports = {
       name: 'Kostka Losu',
       emoji: '🎲',
       price: 0,
-      shortDesc: 'Raz dziennie: rzut 50/50 - podwój lub strać ostatnią wygraną.',
-      description: 'Specjalny przedmiot. Raz na dobę pozwala zaryzykować ostatnią wygraną kwotę netto z kasyna (do 500k) w rzucie 50/50 - możesz ją podwoić lub stracić. Użyj komendą !kosc.',
-      type: 'stackable',
+      shortDesc: 'Odblokowuje !kosc losu (raz na 24h: ryzykuj 500k, wygraj 300k lub strać 250k).',
+      description: 'Specjalny przedmiot aktywacyjny. Daje dostęp do komendy !kosc losu, która raz na dobę pozwala zaryzykować 500 000 viccoinów w rzucie 50/50 — możesz wygrać 300 000 lub stracić 250 000. Dostępna wyłącznie z 🟫 Brązowej Paczki.',
+      type: 'permanent',
       buyable: false,
-      shopNote: 'Dostępna tylko z Brązowej Paczki (1.5%).'
+      shopNote: 'Dostępna tylko z 🟫 Brązowej Paczki (1.5%).'
     },
     magiczna_sakiewka: {
       name: 'Magiczna Sakiewka',

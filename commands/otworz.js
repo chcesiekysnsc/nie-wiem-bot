@@ -303,7 +303,11 @@ module.exports = {
       }
 
       if (result.itemsSummary['kosc_ryzyka'] && result.fallbackCount === 0) {
-        dropLine += `\n\n🎲 **Kostka Ryzyka:** Odblokowałeś nową komendę **!kosc**! Pozwala ona raz na 24h zaryzykować ostatnią wygraną z kasyna (do 500k) w rzucie 50/50.`;
+        dropLine += `\n\n🎲 **Kostka Ryzyka:** Odblokowałeś nową komendę **!kosc ryzyka**! Raz na 24h możesz zaryzykować 500 000 viccoinów — wygrać 750 000 lub stracić całą stawkę w rzucie 50/50.`;
+      }
+
+      if (result.itemsSummary['kostka_losu'] && result.fallbackCount === 0) {
+        dropLine += `\n\n🎲 **Kostka Losu:** Odblokowałeś nową komendę **!kosc losu**! Raz na 24h możesz zaryzykować 500 000 viccoinów — wygrać 300 000 lub stracić 250 000 w rzucie 50/50.`;
       }
 
       await message.reply(
@@ -329,7 +333,11 @@ module.exports = {
       }
 
       if (result.itemsSummary['kosc_ryzyka'] && result.fallbackCount === 0) {
-        dropLine += `\n\n🎲 **Kostka Ryzyka:** Odblokowałeś nową komendę **!kosc**! Pozwala ona raz na 24h zaryzykować ostatnią wygraną z kasyna (do 500k) w rzucie 50/50.`;
+        dropLine += `\n\n🎲 **Kostka Ryzyka:** Odblokowałeś nową komendę **!kosc ryzyka**! Raz na 24h możesz zaryzykować 500 000 viccoinów — wygrać 750 000 lub stracić całą stawkę w rzucie 50/50.`;
+      }
+
+      if (result.itemsSummary['kostka_losu'] && result.fallbackCount === 0) {
+        dropLine += `\n\n🎲 **Kostka Losu:** Odblokowałeś nową komendę **!kosc losu**! Raz na 24h możesz zaryzykować 500 000 viccoinów — wygrać 300 000 lub stracić 250 000 w rzucie 50/50.`;
       }
 
       await message.reply(

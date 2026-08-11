@@ -3,14 +3,15 @@ const path = require('path');
 
 const config = require('../config/config');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const DATA_DIR = fs.existsSync('/app/data') ? '/app/data' : path.join(__dirname, '..', 'data');
 const DATA_FILES = {
   users: path.join(DATA_DIR, 'users.json'),
   profiles: path.join(DATA_DIR, 'profiles.json'),
   inventory: path.join(DATA_DIR, 'inventory.json'),
   cooldowns: path.join(DATA_DIR, 'cooldowns.json'),
   logs: path.join(DATA_DIR, 'logs.json'),
-  groupStats: path.join(DATA_DIR, 'groupStats.json')
+  groupStats: path.join(DATA_DIR, 'groupStats.json'),
+  spotify: path.join(DATA_DIR, 'spotify.json')
 };
 
 const FILE_DEFAULTS = {
@@ -23,7 +24,8 @@ const FILE_DEFAULTS = {
     cooldownNotifications: {}
   },
   logs: [],
-  groupStats: {}
+  groupStats: {},
+  spotify: {}
 };
 
 let writeQueue = Promise.resolve();
