@@ -1282,22 +1282,6 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: ["manga-info", "mangainfo"],
     additionalInfo: ["Dane pochodzą z AniList (GraphQL, bez klucza, bez restrykcyjnych limitów Jikan).","W razie problemów z API spróbuj ponownie za chwilę."]
-  },
-  {
-    id: 1004,
-    name: "spotify",
-    category: "SOCIAL_GANGS",
-    shortDescription: "🎛️ integracja ze Spotify",
-    description: "🎛️ Komendy do integracji z Spotify: połącz konto, sprawdź co słuchasz, top utwory/artysci, kolejka i odtwarzanie.",
-    usage: "!spotify [podkomenda]",
-    examples: ["!spotify połącz", "!spotify aktualnie", "!spotify toputwory 6m"],
-    cooldown: "Brak.",
-    requirements: "Połączenie konta Spotify przez !spotify połącz.",
-    aliases: ["sp"],
-    additionalInfo: [
-      "Dostępne podkomendy: połącz, odłącz, profil, grupa, aktualnie, toputwory, topartysci, ostatnie, incognito, kolejka, play, youtube.",
-      "Tokeny są przechowywane automatycznie i odświeżane."
-    ]
   }
 ];
 

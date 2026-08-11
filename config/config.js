@@ -12,21 +12,6 @@ module.exports = {
     pageId: '',
     botAvatarUrl: ''
   },
-  spotify: {
-    clientId: process.env.SPOTIFY_CLIENT_ID || '',
-    clientSecret: process.env.SPOTIFY_CLIENT_SECRET || '',
-    redirectUri: process.env.SPOTIFY_REDIRECT_URI || 'https://nie-wiem-bot-production-0007.up.railway.app/spotify/callback',
-    scopes: [
-      'user-read-currently-playing',
-      'user-read-playback-state',
-      'user-modify-playback-state',
-      'user-top-read',
-      'user-read-recently-played',
-      'playlist-read-private',
-      'playlist-modify-public',
-      'playlist-modify-private'
-    ]
-  },
   embed: {
     primary: 0xD4AF37
   },
