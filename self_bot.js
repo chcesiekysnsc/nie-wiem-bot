@@ -709,20 +709,28 @@ function calculateProgressiveTax(wealth, hasKsiegowa = false) {
     { min: 500_000, max: 2_000_000, rate: 0.05, label: '500k-2mln' },
     { min: 2_000_000, max: 10_000_000, rate: 0.08, label: '2mln-10mln' },
     { min: 10_000_000, max: 50_000_000, rate: 0.12, label: '10mln-50mln' },
-    { min: 50_000_000, max: 100_000_000, rate: 0.14, label: '50mln-100mln' },
-    { min: 100_000_000, max: Infinity, rate: 0.16, label: '100mln+' }
+    { min: 50_000_000, max: 100_000_000, rate: 0.18, label: '50mln-100mln' },
+    { min: 100_000_000, max: 200_000_000, rate: 0.25, label: '100mln-200mln' },
+    { min: 200_000_000, max: 300_000_000, rate: 0.28, label: '200mln-300mln' },
+    { min: 300_000_000, max: 400_000_000, rate: 0.32, label: '300mln-400mln' },
+    { min: 400_000_000, max: 600_000_000, rate: 0.36, label: '400mln-600mln' },
+    { min: 600_000_000, max: 800_000_000, rate: 0.40, label: '600mln-800mln' },
+    { min: 800_000_000, max: 999_000_000, rate: 0.45, label: '800mln-999mln' },
+    { min: 999_000_000, max: Infinity, rate: 0.50, label: '999mln+' }
   ];
 
   let tax = 0;
   let topLabel = brackets[0].label;
+  let topRate = 0;
   for (const bracket of brackets) {
     if (wealth <= bracket.min) break;
     const taxableInThisBracket = Math.min(wealth, bracket.max) - bracket.min;
     const effectiveRate = hasKsiegowa ? Math.max(0, bracket.rate - 0.02) : bracket.rate;
     tax += taxableInThisBracket * effectiveRate;
     topLabel = bracket.label;
+    topRate = effectiveRate;
   }
-  return { tax: Math.round(tax), topLabel };
+  return { tax: Math.round(tax), topLabel, rate: topRate };
 }
 
 function getMsUntilNextProgressiveTax() {

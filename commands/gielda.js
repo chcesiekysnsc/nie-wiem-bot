@@ -24,8 +24,9 @@ function displayAsset(asset) {
   return asset;
 }
 
-function rollAssetResult(min, max) {
-  const isNegative = crypto.randomInt(0, 100) < 52;
+function rollAssetResult(min, max, isMostBetOn = false) {
+  const negativeChance = isMostBetOn ? 52.5 : 52;
+  const isNegative = crypto.randomInt(0, 100) < negativeChance;
   if (isNegative) {
     const worstCase = Math.max(1, Math.abs(min));
     return -crypto.randomInt(0, worstCase + 1);
@@ -236,11 +237,27 @@ module.exports = {
           client.stockSessions.delete(threadId);
           saveGameSessions(client);
 
+          // Zlicz ile osób obstawiło na każde aktywo
+          const assetCounts = { bank: 0, srebro: 0, zloto: 0, diamenty: 0 };
+          for (const [userId, inv] of resolveSession.investments.entries()) {
+            assetCounts[inv.asset]++;
+          }
+
+          // Znajdź najpopularniejsze aktywo
+          let mostBetOnAsset = null;
+          let maxCount = 0;
+          for (const [asset, count] of Object.entries(assetCounts)) {
+            if (count > maxCount) {
+              maxCount = count;
+              mostBetOnAsset = asset;
+            }
+          }
+
           const rolledPercentages = {
-            bank: rollAssetResult(resolveSession.assets.bank.min, resolveSession.assets.bank.max),
-            srebro: rollAssetResult(resolveSession.assets.srebro.min, resolveSession.assets.srebro.max),
-            zloto: rollAssetResult(resolveSession.assets.zloto.min, resolveSession.assets.zloto.max),
-            diamenty: rollAssetResult(resolveSession.assets.diamenty.min, resolveSession.assets.diamenty.max)
+            bank: rollAssetResult(resolveSession.assets.bank.min, resolveSession.assets.bank.max, mostBetOnAsset === 'bank'),
+            srebro: rollAssetResult(resolveSession.assets.srebro.min, resolveSession.assets.srebro.max, mostBetOnAsset === 'srebro'),
+            zloto: rollAssetResult(resolveSession.assets.zloto.min, resolveSession.assets.zloto.max, mostBetOnAsset === 'zloto'),
+            diamenty: rollAssetResult(resolveSession.assets.diamenty.min, resolveSession.assets.diamenty.max, mostBetOnAsset === 'diamenty')
           };
 
           const hostCooldownKey = `${threadId}:${resolveSession.hostId}`;
