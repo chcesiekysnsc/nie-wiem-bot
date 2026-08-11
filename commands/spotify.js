@@ -14,7 +14,9 @@ const {
   addToQueue,
   playTrack,
   searchTrack,
-  getTimeRangeLabel
+  getTimeRangeLabel,
+  stateStore,
+  saveSpotifyTokens
 } = require('../utils/spotify');
 const { withData, createUser } = require('../utils/storage');
 const { formatCurrency, ensureInventoryRecord, hasItem } = require('../utils/economy');
@@ -124,7 +126,7 @@ async function handleConnect(client, message) {
     return;
   }
 
-  if (!spotifyConfig.clientId || !spotifyConfig.clientSecret) {
+  if (!config.spotify.clientId || !config.spotify.clientSecret) {
     await message.reply('❌ Integracja Spotify nie jest skonfigurowana. Skontaktuj się z administratorem bota.');
     return;
   }

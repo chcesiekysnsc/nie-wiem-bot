@@ -401,5 +401,6 @@ module.exports = {
   addToQueue,
   playTrack,
   searchTrack,
-  getTimeRangeLabel
+  getTimeRangeLabel,
+  stateStore
 };
