@@ -197,6 +197,11 @@ module.exports = {
             return null;
           }
 
+          if (!userWorkers || userWorkers.length === 0) {
+            errors.push(`❌ ${label} **${compDef.emoji} ${compDef.name}** nie może wygenerować zysku bez pracownika! Zatrudnij pracownika komendą **!pracownik**.`);
+            return null;
+          }
+
           let payout = compDef.payout;
           if (companyMul !== 1) {
             payout = Math.floor(payout * companyMul);
