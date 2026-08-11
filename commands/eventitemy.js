@@ -26,7 +26,7 @@ const eventItems = {
     id: 'szwajcarski_klucz',
     name: 'Szwajcarski Klucz',
     emoji: '🔑',
-    desc: 'Zwiększa pojemność banku o 100 000 monet. Stackuje się z innymi bonusami.',
+    desc: 'Zwiększa pojemność banku o 250 000 monet. Stackuje się z innymi bonusami.',
     award: 'TOP 4 sezonu 1'
   },
   5: {

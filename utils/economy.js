@@ -301,7 +301,7 @@ function getBankCapacity(user, inventoryRecord) {
   }
 
   if (hasItem(inventoryRecord, 'szwajcarski_klucz')) {
-    capacity += 100000;
+    capacity += 250000;
   }
 
   if (user.badges && user.badges.includes(config.badges.milioner)) {

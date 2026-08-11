@@ -597,7 +597,7 @@ function runHeavyLoops(store) {
           }
 
           if ((userInv['ksiega_inwestora'] || 0) > 0) {
-            rate += hasCzterolistna ? 0.0075 : 0.0025; // +0.25% or +0.75% co 12h
+            rate += hasCzterolistna ? 0.0575 : 0.05; // +5% or +5.75% co 12h
           }
 
           const finalRate = rate * interestMul;
