@@ -770,6 +770,7 @@ async function withData(callback) {
     const c = loadData('cooldowns');
     const l = loadData('logs');
     const g = loadData('groupStats');
+    const s = loadData('spotify');
 
     const store = {
       users: u,
@@ -777,7 +778,8 @@ async function withData(callback) {
       inventory: i,
       cooldowns: c,
       logs: l,
-      groupStats: g
+      groupStats: g,
+      spotify: s
     };
 
     // Synchronizacja dynamicznych adminów z config.admins
@@ -876,6 +878,7 @@ async function withData(callback) {
     saveData('cooldowns', store.cooldowns);
     saveData('logs', store.logs);
     saveData('groupStats', store.groupStats);
+    saveData('spotify', store.spotify);
 
     return result;
   };

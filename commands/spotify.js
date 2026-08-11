@@ -1,4 +1,5 @@
 const config = require('../config/config');
+const { EmbedBuilder } = require('../utils/messenger');
 const {
   getAuthUrl,
   exchangeCodeForTokens,
@@ -28,11 +29,9 @@ const EMBED_COLORS = {
 };
 
 function baseSpotifyEmbed() {
-  return {
-    title: 'Spotify Integration',
-    color: EMBED_COLORS.spotify,
-    footer: { text: 'Powered by Spotify API' }
-  };
+  return new EmbedBuilder()
+    .setColor(EMBED_COLORS.spotify)
+    .setFooter({ text: 'Powered by Spotify API' });
 }
 
 module.exports = {
@@ -45,24 +44,23 @@ module.exports = {
 
     if (!sub) {
       await message.reply({
-        embeds: [{
-          ...baseSpotifyEmbed(),
-          title: '🎛️ Spotify Komendy',
-          description: [
+        embeds: [baseSpotifyEmbed()
+          .setTitle('🎛️ Spotify Komendy')
+          .setDescription([
             '🔌 `' + prefix + 'spotify połącz` — Połącz profil z Spotify',
             '🔥 `' + prefix + 'spotify odłącz` — Odłącz profil od Spotify',
             '🤠 `' + prefix + 'spotify profil [@użytkownik]` — Sprawdź profil Spotify',
             '🧐 `' + prefix + 'spotify grupa` — Sprawdź co słuchają członkowie grupy',
             '🎧 `' + prefix + 'spotify aktualnie [@użytkownik]` — Sprawdź co aktualnie słuchasz',
             '⭐ `' + prefix + 'spotify toputwory 1m/6m/12m [@użytkownik]` — Najczęściej słuchane utwory',
-            '🤩 `' + prefix + 'spotify topartyści 1m/6m/12m [@użytkownik]` — Najczęściej słuchani artyści',
+            '🤩 `' + prefix + 'spotify topartysci 1m/6m/12m [@użytkownik]` — Najczęściej słuchani artyści',
             '🕰 `' + prefix + 'spotify ostatnie [@użytkownik]` — Ostatnio słuchane utwory',
             '🥸 `' + prefix + 'spotify incognito on/off` — Tryb prywatności',
             '📋 `' + prefix + 'spotify kolejka <utwór lub @użytkownik>` — Dodaj do kolejki',
             '💿 `' + prefix + 'spotify play <utwór lub @użytkownik>` — Odtwórz utwór',
             '🎶 `' + prefix + 'spotify youtube [@użytkownik]` — Wyślij utwór z YouTube'
-          ].join('\n')
-        }]
+          ].join('\n'))
+        ]
       });
       return;
     }
@@ -126,23 +124,24 @@ async function handleConnect(client, message) {
     return;
   }
 
+  if (!spotifyConfig.clientId || !spotifyConfig.clientSecret) {
+    await message.reply('❌ Integracja Spotify nie jest skonfigurowana. Skontaktuj się z administratorem bota.');
+    return;
+  }
+
   const state = Buffer.from(`${userId}:${Date.now()}`).toString('base64').slice(0, 32);
   stateStore.set(state, { userId, createdAt: Date.now() });
 
   const authUrl = getAuthUrl(userId, state);
-  const expiryTime = new Date(Date.now() + SPOTIFY_LINK_EXPIRY_MS);
 
   await message.reply({
-    embeds: [{
-      ...baseSpotifyEmbed(),
-      title: '🔌 Połączenie Spotify',
-      description: 'Kliknij poniższy link aby połączyć swoje konto Spotify:\n\n' +
+    embeds: [baseSpotifyEmbed()
+      .setTitle('🔌 Połączenie Spotify')
+      .setDescription('Kliknij poniższy link aby połączyć swoje konto Spotify:\n\n' +
         `[🔗 Połącz z Spotify](${authUrl})\n\n` +
-        `⏳ Link wygaśnie za **10 minut**.`,
-      fields: [
-        { name: 'Ważne', value: 'Nie udostępniaj tego linku innym osobom.' }
-      ]
-    }]
+        `⏳ Link wygaśnie za **10 minut**.`)
+      .addFields({ name: 'Ważne', value: 'Nie udostępniaj tego linku innym osobom.' })
+    ]
   });
 }
 
@@ -163,21 +162,19 @@ async function handleProfile(client, message, args) {
   }
 
   const profile = result.data;
-  await message.reply({
-    embeds: [{
-      ...baseSpotifyEmbed(),
-      title: `🤠 Profil Spotify: ${profile.display_name || 'Nieznany'}`,
-      description: [
-        `🆔 ID: \`${profile.id}\``,
-        `📧 Email: ${profile.email || 'N/A'}`,
-        `🌍 Kraj: ${profile.country || 'N/A'}`,
-        `💎 Plan: ${profile.product || 'N/A'}`,
-        `👥 Obserwujący: ${profile.followers.toLocaleString()}`,
-        profile.image ? `🖼️ [Avatar](${profile.image})` : '',
-        profile.url ? `🔗 [Profil](${profile.url})` : ''
-      ].filter(Boolean).join('\n')
-    }]
-  });
+  const embed = baseSpotifyEmbed()
+    .setTitle(`🤠 Profil Spotify: ${profile.display_name || 'Nieznany'}`)
+    .setDescription([
+      `🆔 ID: \`${profile.id}\``,
+      `📧 Email: ${profile.email || 'N/A'}`,
+      `🌍 Kraj: ${profile.country || 'N/A'}`,
+      `💎 Plan: ${profile.product || 'N/A'}`,
+      `👥 Obserwujący: ${profile.followers.toLocaleString()}`,
+      profile.image ? `🖼️ [Avatar](${profile.image})` : '',
+      profile.url ? `🔗 [Profil](${profile.url})` : ''
+    ].filter(Boolean).join('\n'));
+
+  await message.reply({ embeds: [embed] });
 }
 
 async function handleGroup(client, message) {
@@ -206,11 +203,10 @@ async function handleGroup(client, message) {
   }).join('\n\n');
 
   await message.reply({
-    embeds: [{
-      ...baseSpotifyEmbed(),
-      title: '🧐 Co słuchają w tej grupie',
-      description
-    }]
+    embeds: [baseSpotifyEmbed()
+      .setTitle('🧐 Co słuchają w tej grupie')
+      .setDescription(description)
+    ]
   });
 }
 
@@ -232,20 +228,21 @@ async function handleCurrentlyPlaying(client, message, args) {
   const { track, isPlaying, progress_ms } = result.data;
   const progressPercent = Math.round((progress_ms / track.duration_ms) * 100);
 
-  await message.reply({
-    embeds: [{
-      ...baseSpotifyEmbed(),
-      title: `🎧 Aktualnie słucha: ${track.name}`,
-      description: [
-        `🎤 Artysta: ${track.artists}`,
-        `💿 Album: ${track.album}`,
-        `▶️ Status: ${isPlaying ? 'Odtwarzanie' : 'Pauza'}`,
-        `⏱️ Postęp: ${progressPercent}%`,
-        track.url ? `🔗 [Otwórz w Spotify](${track.url})` : ''
-      ].filter(Boolean).join('\n'),
-      thumbnail: track.cover ? { url: track.cover } : undefined
-    }]
-  });
+  const embed = baseSpotifyEmbed()
+    .setTitle(`🎧 Aktualnie słucha: ${track.name}`)
+    .setDescription([
+      `🎤 Artysta: ${track.artists}`,
+      `💿 Album: ${track.album}`,
+      `▶️ Status: ${isPlaying ? 'Odtwarzanie' : 'Pauza'}`,
+      `⏱️ Postęp: ${progressPercent}%`,
+      track.url ? `🔗 [Otwórz w Spotify](${track.url})` : ''
+    ].filter(Boolean).join('\n'));
+
+  if (track.cover) {
+    embed.setThumbnail(track.cover);
+  }
+
+  await message.reply({ embeds: [embed] });
 }
 
 async function handleTopTracks(client, message, args) {
@@ -272,11 +269,10 @@ async function handleTopTracks(client, message, args) {
   }).join('\n');
 
   await message.reply({
-    embeds: [{
-      ...baseSpotifyEmbed(),
-      title: `⭐ Top utwory — ${getTimeRangeLabel(timeRange)}`,
-      description
-    }]
+    embeds: [baseSpotifyEmbed()
+      .setTitle(`⭐ Top utwory — ${getTimeRangeLabel(timeRange)}`)
+      .setDescription(description)
+    ]
   });
 }
 
@@ -305,11 +301,10 @@ async function handleTopArtists(client, message, args) {
   }).join('\n');
 
   await message.reply({
-    embeds: [{
-      ...baseSpotifyEmbed(),
-      title: `🤩 Top artyści — ${getTimeRangeLabel(timeRange)}`,
-      description
-    }]
+    embeds: [baseSpotifyEmbed()
+      .setTitle(`🤩 Top artyści — ${getTimeRangeLabel(timeRange)}`)
+      .setDescription(description)
+    ]
   });
 }
 
@@ -335,11 +330,10 @@ async function handleRecent(client, message, args) {
   }).join('\n');
 
   await message.reply({
-    embeds: [{
-      ...baseSpotifyEmbed(),
-      title: '🕰 Ostatnio słuchane utwory',
-      description
-    }]
+    embeds: [baseSpotifyEmbed()
+      .setTitle('🕰 Ostatnio słuchane utwory')
+      .setDescription(description)
+    ]
   });
 }
 
@@ -473,18 +467,19 @@ async function handleYoutube(client, message, args) {
   const query = encodeURIComponent(`${track.name} ${track.artists}`);
   const youtubeUrl = `https://www.youtube.com/results?search_query=${query}`;
 
-  await message.reply({
-    embeds: [{
-      ...baseSpotifyEmbed(),
-      title: `🎶 ${track.name}`,
-      description: [
-        `🎤 Artysta: ${track.artists}`,
-        `💿 Album: ${track.album}`,
-        `🔗 [Szukaj na YouTube](${youtubeUrl})`
-      ].join('\n'),
-      thumbnail: track.cover ? { url: track.cover } : undefined
-    }]
-  });
+  const embed = baseSpotifyEmbed()
+    .setTitle(`🎶 ${track.name}`)
+    .setDescription([
+      `🎤 Artysta: ${track.artists}`,
+      `💿 Album: ${track.album}`,
+      `🔗 [Szukaj na YouTube](${youtubeUrl})`
+    ].join('\n'));
+
+  if (track.cover) {
+    embed.setThumbnail(track.cover);
+  }
+
+  await message.reply({ embeds: [embed] });
 }
 
 async function resolveTargetUserId(client, message, args) {
@@ -500,10 +495,10 @@ async function handleSpotifyCallback(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
-  const error = url.searchParams.get('error');
+  const errorParam = url.searchParams.get('error');
 
-  if (error) {
-    res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+  if (errorParam) {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end('<h1>❌ Błąd autoryzacji Spotify</h1><p>Nie udało się połączyć konta Spotify.</p>');
     return;
   }
