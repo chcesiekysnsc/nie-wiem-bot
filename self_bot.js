@@ -805,6 +805,10 @@ async function autoCollectPayout(userId, api, notifyThreadId) {
       const diff = now - (compObj.lastPayout || 0);
       if (diff < cooldownMs) continue;
 
+      if (!user.workers || user.workers.length === 0) {
+        continue;
+      }
+
       let payout = compDef.payout;
       if (companyMul !== 1) {
         payout = Math.floor(payout * companyMul);
