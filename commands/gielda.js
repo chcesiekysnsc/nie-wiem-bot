@@ -25,7 +25,7 @@ function displayAsset(asset) {
 }
 
 function rollAssetResult(min, max, isMostBetOn = false) {
-  const negativeChance = isMostBetOn ? 52.5 : 52;
+  const negativeChance = 51;
   const isNegative = crypto.randomInt(0, 100) < negativeChance;
   if (isNegative) {
     const worstCase = Math.max(1, Math.abs(min));
@@ -53,9 +53,16 @@ module.exports = {
   async execute(client, message, args) {
     client.stockSessions = client.stockSessions || new Map();
     client.gieldaHostCooldowns = client.gieldaHostCooldowns || new Map();
+    client.activeGieldaHosts = client.activeGieldaHosts || new Map();
 
     for (const [key, expiry] of client.gieldaHostCooldowns.entries()) {
       if (Date.now() >= expiry) client.gieldaHostCooldowns.delete(key);
+    }
+
+    for (const [userId, sessionKey] of client.activeGieldaHosts.entries()) {
+      if (!client.stockSessions.has(sessionKey)) {
+        client.activeGieldaHosts.delete(userId);
+      }
     }
 
     const threadId = message.guild?.id || message.rawEvent?.threadID || 'default_thread';
@@ -140,6 +147,12 @@ module.exports = {
         return;
       }
 
+      const existingHostSession = client.activeGieldaHosts.get(message.author.id);
+      if (existingHostSession && client.stockSessions.has(existingHostSession)) {
+        await message.reply('❌ Masz już aktywną sesję giełdy w innej grupie. Możesz hostować tylko jedną giełdę naraz.');
+        return;
+      }
+
       const startCooldownKey = `${threadId}:${message.author.id}`;
       const startCooldownUntil = getCooldownRemaining(client.gieldaHostCooldowns, startCooldownKey);
       if (startCooldownUntil) {
@@ -187,6 +200,7 @@ module.exports = {
       };
 
       client.stockSessions.set(threadId, newSession);
+      client.activeGieldaHosts.set(message.author.id, threadId);
       saveGameSessions(client);
 
       const hostName = await client.resolveUserName(message.author.id);
@@ -235,6 +249,9 @@ module.exports = {
           if (!resolveSession || resolveSession.state !== 'investing') return;
 
           client.stockSessions.delete(threadId);
+          if (resolveSession.hostId) {
+            client.activeGieldaHosts.delete(resolveSession.hostId);
+          }
           saveGameSessions(client);
 
           // Zlicz ile osób obstawiło na każde aktywo
