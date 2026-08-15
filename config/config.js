@@ -73,6 +73,9 @@ module.exports = {
     dog: 0,
     fox: 0,
     capybara: 0,
+    kameleon: 0,
+    jaszczurka: 0,
+    waz: 0,
     afk: 3
   },
   adminDailyLimits: {

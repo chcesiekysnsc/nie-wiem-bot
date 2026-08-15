@@ -50,6 +50,39 @@ async function fetchRedditImage(subreddit) {
     }
   }
 
+  if (subreddit === 'snakes') {
+    try {
+      const response = await axios.get('https://some-random-api.com/animal/snake', { timeout: 10000 });
+      if (response.data && response.data.image) {
+        return response.data.image;
+      }
+    } catch (err) {
+      console.error('[REDDIT API] Snake API failed, trying Reddit:', err.message);
+    }
+  }
+
+  if (subreddit === 'lizards') {
+    try {
+      const response = await axios.get('https://some-random-api.com/animal/lizard', { timeout: 10000 });
+      if (response.data && response.data.image) {
+        return response.data.image;
+      }
+    } catch (err) {
+      console.error('[REDDIT API] Lizard API failed, trying Reddit:', err.message);
+    }
+  }
+
+  if (subreddit === 'chameleons') {
+    try {
+      const response = await axios.get('https://some-random-api.com/animal/chameleon', { timeout: 10000 });
+      if (response.data && response.data.image) {
+        return response.data.image;
+      }
+    } catch (err) {
+      console.error('[REDDIT API] Chameleon API failed, trying Reddit:', err.message);
+    }
+  }
+
   const maxAttempts = 10;
   let badStatusCount = 0;
   let emptyPostsCount = 0;
