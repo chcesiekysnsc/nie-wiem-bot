@@ -767,6 +767,9 @@ app.get('/api/commands', async (req, res) => {
         if (!command.name || typeof command.execute !== 'function') {
           return null;
         }
+        if (command.hidden) {
+          return null;
+        }
         return {
           name: command.name,
           aliases: command.aliases || [],
