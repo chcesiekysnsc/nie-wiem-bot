@@ -1,4 +1,4 @@
-const { formatCurrency, refreshBadges, ensureInventoryRecord } = require('../utils/economy');
+const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 module.exports = {
@@ -23,16 +23,34 @@ module.exports = {
 
     const snapshot = await withData(store => {
       const user = createUser(targetId, store.users);
-      refreshBadges(user, ensureInventoryRecord(store.inventory, targetId));
+      const inventory = ensureInventoryRecord(store.inventory, targetId);
+      refreshBadges(user, inventory);
       
       const lastPayout = store.profiles.lastInterestPayout || Date.now();
       const nextPayout = lastPayout + 6 * 60 * 60 * 1000;
       const nextInterestMs = Math.max(0, nextPayout - Date.now());
       
-      // Oblicz procent odsetek
+      // Oblicz rzeczywisty procent odsetek dla użytkownika
       const { getBankInterestMultiplier } = require('../utils/economy');
-      const interestRate = getBankInterestMultiplier();
-      const interestPercent = Math.round(interestRate * 100);
+      const eventInterestMul = getBankInterestMultiplier();
+      const baseInterestRate = 0.05; // 5% bazowo
+      
+      // Dodaj bonusy z itemów
+      let itemBonus = 0;
+      if (hasItem(inventory, 'ksiega_inwestora')) {
+        itemBonus += 0.05; // +5% z Księgi Inwestora
+      }
+      if (hasItem(inventory, 'czarna_karta')) {
+        itemBonus += 0.10; // +10% z Czarnej Karty
+      }
+      
+      // Dodaj bonusy z setów
+      const { getItemSetBonus } = require('../utils/itemSets');
+      const setBonus = getItemSetBonus(inventory, 'bank_interest');
+      
+      const totalInterestRate = baseInterestRate + itemBonus + setBonus;
+      const finalInterestRate = totalInterestRate * eventInterestMul;
+      const interestPercent = Math.round(finalInterestRate * 100);
 
       return {
         balance: user.balance,
@@ -74,7 +92,7 @@ module.exports = {
       `👛 Portfel: ${walletText}\n` +
       loanInfo +
       `🏦 Bank: ${formatCurrency(snapshot.bank)}\n` +
-      `📈 Kolejne odsetki <${snapshot.interestPercent}%>: za *${formatTimeLeft(snapshot.nextInterestMs)}*`
+      `📈 Kolejne odsetki ${snapshot.interestPercent}%: za *${formatTimeLeft(snapshot.nextInterestMs)}*`
     );
   }
 };
