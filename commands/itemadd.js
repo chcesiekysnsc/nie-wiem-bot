@@ -10,15 +10,18 @@ const eventItemIds = [
 const getNonEventItems = () => {
   const list = [];
   let num = 1;
-  for (const [id, item] of Object.entries(config.shopItems)) {
-    if (eventItemIds.includes(id)) continue;
-    if (item.buyable !== false) continue;
+  for (const [id, def] of Object.entries(config.shopItems || {})) {
+    const isPermanent = def.type === 'permanent';
+    const isPackage = id.startsWith('paczka_');
+    const isEvent = eventItemIds.includes(id);
+    if (!isPermanent || isPackage || isEvent) continue;
     list.push({
-      num: num++,
-      id: id,
-      name: item.name,
-      emoji: item.emoji || '📦'
+      num,
+      id,
+      name: def.name,
+      emoji: def.emoji || '📦'
     });
+    num++;
   }
   return list;
 };
