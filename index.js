@@ -306,6 +306,39 @@ async function executeCommand(event, pageId) {
     }
   }
 
+  if (commandName === 'kubl') {
+    const isAuthorized = senderId === creatorId || config.admins.includes(senderId);
+    if (!isAuthorized) {
+      await client.sendText(threadId, '❌ Ta komenda jest tylko dla administratorów bota.', 'RESPONSE').catch(() => null);
+      return;
+    }
+
+    const mentioned = event.message?.mentions && event.message.mentions[0];
+    const mentionedId = mentioned ? String(mentioned.id) : null;
+    const argId = String(args[0] || '').match(/\d{8,32}/)?.[0] || null;
+    const targetId = argId || mentionedId;
+
+    if (!targetId) {
+      await client.sendText(threadId, '❌ Podaj ID lub oznacz użytkownika: `!kubl <id>`', 'RESPONSE').catch(() => null);
+      return;
+    }
+
+    await withData(store => {
+      if (!store.profiles.blacklist) store.profiles.blacklist = [];
+      if (!store.profiles.trueBlacklist) store.profiles.trueBlacklist = [];
+
+      store.profiles.blacklist = store.profiles.blacklist.filter(id => id !== targetId);
+      store.profiles.trueBlacklist = store.profiles.trueBlacklist.filter(id => id !== targetId);
+
+      if (store.users[targetId]) {
+        store.users[targetId].blacklistedForNegativeBalance = false;
+      }
+    });
+
+    await client.sendText(threadId, `✅ Użytkownik \`${targetId}\` został usunięty z czarnej listy.`, 'RESPONSE').catch(() => null);
+    return;
+  }
+
   const command = client.commands.get(commandName);
   const message = createMessageContext(client, senderUser, text, args, event, pageId);
 

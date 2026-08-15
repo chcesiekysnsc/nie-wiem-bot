@@ -1173,6 +1173,45 @@ const helpCommands = [
     additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
   },
   {
+    id: 74,
+    name: "kameleon",
+    category: "SOCIAL_GANGS",
+    shortDescription: "🦎 wysyła zdjęcie kameleona",
+    description: "🦎 Pobiera i wysyła losowe zdjęcie kameleona (przefiltrowane - tylko formaty graficzne, bez wideo i treści drastycznych).",
+    usage: "!kameleon",
+    examples: ["!kameleon"],
+    cooldown: "2 minuty",
+    requirements: "Brak.",
+    aliases: ["chameleon"],
+    additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
+  },
+  {
+    id: 75,
+    name: "jaszczurka",
+    category: "SOCIAL_GANGS",
+    shortDescription: "🦎 wysyła zdjęcie jaszczurki",
+    description: "🦎 Pobiera i wysyła losowe zdjęcie jaszczurki (przefiltrowane - tylko formaty graficzne, bez wideo i treści drastycznych).",
+    usage: "!jaszczurka",
+    examples: ["!jaszczurka"],
+    cooldown: "2 minuty",
+    requirements: "Brak.",
+    aliases: ["lizard", "lizardi"],
+    additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
+  },
+  {
+    id: 76,
+    name: "waz",
+    category: "SOCIAL_GANGS",
+    shortDescription: "🐍 wysyła zdjęcie węża",
+    description: "🐍 Pobiera i wysyła losowe zdjęcie węża (przefiltrowane - tylko formaty graficzne, bez wideo i treści drastycznych).",
+    usage: "!waz",
+    examples: ["!waz"],
+    cooldown: "2 minuty",
+    requirements: "Brak.",
+    aliases: ["snake"],
+    additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
+  },
+  {
     name: "analiza",
     category: "UTILITY_ADMIN",
     shortDescription: "📊 analiza historii czatu i odpowiedzi",
