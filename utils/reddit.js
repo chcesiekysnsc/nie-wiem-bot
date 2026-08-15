@@ -52,10 +52,11 @@ async function fetchRedditImage(subreddit) {
 
   if (subreddit === 'snakes') {
     try {
-      const response = await axios.get('https://some-random-api.com/animal/snake', { timeout: 10000 });
-      if (response.data && response.data.image) {
-        return response.data.image;
+      const response = await axios.get('https://loremflickr.com/640/480/snake', { timeout: 10000 });
+      if (response.request && response.request.res && response.request.res.responseUrl) {
+        return response.request.res.responseUrl;
       }
+      return 'https://loremflickr.com/640/480/snake?' + Date.now();
     } catch (err) {
       console.error('[REDDIT API] Snake API failed, trying Reddit:', err.message);
     }
@@ -63,10 +64,11 @@ async function fetchRedditImage(subreddit) {
 
   if (subreddit === 'lizards') {
     try {
-      const response = await axios.get('https://some-random-api.com/animal/lizard', { timeout: 10000 });
-      if (response.data && response.data.image) {
-        return response.data.image;
+      const response = await axios.get('https://loremflickr.com/640/480/lizard', { timeout: 10000 });
+      if (response.request && response.request.res && response.request.res.responseUrl) {
+        return response.request.res.responseUrl;
       }
+      return 'https://loremflickr.com/640/480/lizard?' + Date.now();
     } catch (err) {
       console.error('[REDDIT API] Lizard API failed, trying Reddit:', err.message);
     }
@@ -74,10 +76,11 @@ async function fetchRedditImage(subreddit) {
 
   if (subreddit === 'chameleons') {
     try {
-      const response = await axios.get('https://some-random-api.com/animal/chameleon', { timeout: 10000 });
-      if (response.data && response.data.image) {
-        return response.data.image;
+      const response = await axios.get('https://loremflickr.com/640/480/chameleon', { timeout: 10000 });
+      if (response.request && response.request.res && response.request.res.responseUrl) {
+        return response.request.res.responseUrl;
       }
+      return 'https://loremflickr.com/640/480/chameleon?' + Date.now();
     } catch (err) {
       console.error('[REDDIT API] Chameleon API failed, trying Reddit:', err.message);
     }
