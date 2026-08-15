@@ -102,14 +102,30 @@ const PACZKI = {
       { chance: 150, items: [{ id: 'piwo',  qty: 1, label: '🍺 Piwo'  }] },
       { chance: 100, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] },
       { chance: 30, items: [{ id: 'kosc_ryzyka', qty: 1, label: '🎲 Kostka Ryzyka', permanent: true }] },
-      { chance: 10, items: [{ id: 'magiczna_sakiewka', qty: 1, label: '🎁 Magiczna Sakiewka', permanent: true }] }, // 1.0%
-      { chance: 30, items: [{ id: 'insygnia_gang', qty: 1, label: '🏴‍☠️ Insygnia Gangu', permanent: true }] }, // 3.0%
-      { chance: 7.5, items: [{ id: 'dobra_ksiegowa', qty: 1, label: '👩‍💼 Dobra Księgowa', permanent: true }] }, // 0.75%
-      { chance: 15, items: [{ id: 'odznaka_komendanta', qty: 1, label: '🎖️ Odznaka Komendanta', permanent: true }] }, // 1.5%
-      { chance: 5, items: [{ id: 'klucz_wiezienny', qty: 1, label: '🔑 Klucz Więzienny' }] }, // 0.5%
-      { chance: 7.5, items: [{ id: 'sakiewka_kolekcjonera', qty: 1, label: '💰 Sakiewka Kolekcjonera', permanent: true }] }, // 0.75%
-      { chance: 10, items: [{ id: 'z_drive', qty: 1, label: '⏳ Z-drive', permanent: true }] }, // 1.0%
-      { chance: 10, items: [{ id: 'rekawice_robotnika', qty: 1, label: '🧤 Rękawice Robotnika', permanent: true }] }, // 1.0%
+      { chance: 10, items: [{ id: 'magiczna_sakiewka', qty: 1, label: '🎁 Magiczna Sakiewka', permanent: true }] },
+      { chance: 30, items: [{ id: 'insygnia_gang', qty: 1, label: '🏴‍☠️ Insygnia Gangu', permanent: true }] },
+      { chance: 7.5, items: [{ id: 'dobra_ksiegowa', qty: 1, label: '👩‍💼 Dobra Księgowa', permanent: true }] },
+      { chance: 15, items: [{ id: 'odznaka_komendanta', qty: 1, label: '🎖️ Odznaka Komendanta', permanent: true }] },
+      { chance: 5, items: [{ id: 'klucz_wiezienny', qty: 1, label: '🔑 Klucz Więzienny' }] },
+      { chance: 10, items: [{ id: 'rekawice_robotnika', qty: 1, label: '🧤 Rękawice Robotnika', permanent: true }] },
+      { chance: 10, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] },
+      { chance: 10, items: [{ id: 'material_upgrade_5', qty: 1, label: '⚛️ Inżelit' }] }
+    ]
+  },
+  kosmiczna: {
+    id: 'paczka_kosmiczna',
+    name: 'Kosmiczna Paczka',
+    emoji: '🚀',
+    minCash: 486000,
+    maxCash: 1566000,
+    drops: [
+      { chance: 20, items: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }] },
+      { chance: 20, items: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }] },
+      { chance: 20, items: [{ id: 'piwo', qty: 1, label: '🍺 Piwo' }] },
+      { chance: 20, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] },
+      { chance: 10, items: [{ id: 'sakiewka_kolekcjonera', qty: 1, label: '💰 Sakiewka Kolekcjonera', permanent: true }] },
+      { chance: 10, items: [{ id: 'z_drive', qty: 1, label: '⏳ Z-drive', permanent: true }] },
+      { chance: 20, items: [{ id: 'dynamit', qty: 1, label: '💥 Dynamit' }] },
       { chance: 10, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] },
       { chance: 10, items: [{ id: 'material_upgrade_5', qty: 1, label: '⚛️ Inżelit' }] }
     ]
@@ -144,7 +160,14 @@ const FALLBACKS = {
   inwestor: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }, { id: 'klodka', qty: 1, label: '🔒 Kłódka' }],
   drukarka_pieniedzy: [{ id: 'piwo', qty: 1, label: '🍺 Piwo' }],
   kostka_losu: [{ id: 'ticket', qty: 2, label: '🎟️ Bilet Loterii x2' }],
-  magiczna_sakiewka: [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }]
+  magiczna_sakiewka: [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }],
+  automat_do_kawy: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }],
+  terminal_gieldowy: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }],
+  kalkulator_finansowy: [{ id: 'piwo', qty: 1, label: '🍺 Piwo' }],
+  certyfikat_inwestora: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }],
+  nowe_abibasy: [{ id: 'piwo', qty: 1, label: '🍺 Piwo' }],
+  falszer: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }],
+  karty_tarota: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }]
 };
 
 // Losuje drop na podstawie tabeli szans (1-1000)
@@ -175,16 +198,18 @@ module.exports = {
     else if (['zlota', 'zlo', 'gold'].includes(input))                  packKey = 'zlota';
     else if (['diamentowa', 'diament', 'diamo', 'diamond', 'dia'].includes(input)) packKey = 'diamentowa';
     else if (['tytanowa', 'tytan', 'titanium', 'titan', 't'].includes(input)) packKey = 'tytanowa';
+    else if (['kosmiczna', 'kosmic', 'cosmic', 'space', 'rakieta'].includes(input)) packKey = 'kosmiczna';
 
     if (!packKey) {
       await message.reply(
         `📦 **System Paczek**\n` +
-        `Użyj: **!otworz <brazowa|srebrna|zlota|diamentowa|tytanowa>**\n\n` +
+        `Użyj: **!otworz <brazowa|srebrna|zlota|diamentowa|tytanowa|kosmiczna>**\n\n` +
         `🟫 **Brązowa** (50k)    — 20 250 – 65 250 + 10% Bilet Loterii\n` +
         `⬜ **Srebrna** (100k)   — 64 125 – 131 625 + 10% Kłódka lub Piwo\n` +
         `🟨 **Złota** (200k)     — 130 500 – 220 500 + 10% szans: Bomba, Kłódka+Piwo, Bilet, 2% Złota Karta, 1% Kamera, 1% Talizman Fortuny\n` +
         `🟦 **Diamentowa** (500k) — 202 500 – 652 500 + 10% szans: VIP, Sejf, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur\n` +
-        `🩶 **Tytanowa** (800k)   — 495 000 – 900 000 + 2% Przekupiony Krupier, 3% Kostka Ryzyka, 0.75% Dobra Księgowa, 40% Bomba/Piwo/Kłódka\n\n` +
+        `🩶 **Tytanowa** (800k)   — 495 000 – 900 000 + 2% Przekupiony Krupier, 3% Kostka Ryzyka, 0.75% Dobra Księgowa, 40% Bomba/Piwo/Kłódka\n` +
+        `🚀 **Kosmiczna** (1.2M)  — 486 000 – 1 566 000 + 2% Dynamit, 2% Sakiewka Kolekcjonera, 2% Z-drive\n\n` +
         `💡 Kup paczki w sklepie: **!sklep**`
       );
       return;

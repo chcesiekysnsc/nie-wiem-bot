@@ -142,6 +142,7 @@ module.exports = {
       const hasZegar = hasItem(inventory, 'stary_zegar');
       const hasSzwajcar = hasItem(inventory, 'szwajcarski_zegarek');
       const hasEnergetyk = hasItem(inventory, 'energetyk');
+      const hasAutomat = hasItem(inventory, 'automat_do_kawy');
       const baseCd = config.cooldowns.work || 600;
       let actualCd = baseCd;
       if (hasZegar) {
@@ -170,6 +171,10 @@ module.exports = {
 
       if (user.tempCooldownReductionUntil && now < user.tempCooldownReductionUntil) {
         actualCd = Math.floor(actualCd * 0.8);
+      }
+
+      if (hasAutomat) {
+        actualCd = Math.floor(actualCd * 0.95);
       }
 
       const cdMs = actualCd * 1000;
@@ -218,6 +223,11 @@ module.exports = {
       const setWorkBonus = getItemSetBonus(inventory, 'work_xp');
       if (setWorkBonus > 0) {
         reward = Math.floor(reward * (1 + setWorkBonus));
+      }
+
+      const automatBonus = getPassiveMultiplier(inventory, 'automat_do_kawy', 0.04);
+      if (automatBonus > 0) {
+        reward = Math.floor(reward * (1 + automatBonus));
       }
 
       const tripleChance = getItemSetBonus(inventory, 'work_triple_chance');
@@ -363,6 +373,14 @@ module.exports = {
       const leveledUpWork = xpResult.leveledUp;
 
       user.lastWorkTime = now;
+
+      if (hasAutomat) {
+        user.automatDoKawyUses = (user.automatDoKawyUses || 0) + 1;
+        if (user.automatDoKawyUses >= 25) {
+          removeItem(inventory, 'automat_do_kawy', 1);
+          user.automatDoKawyUses = 0;
+        }
+      }
 
       const flaggedAt = store.profiles.workBotFlagged && store.profiles.workBotFlagged[authorId];
       const isFlagged = Number.isFinite(flaggedAt) && (now - flaggedAt < WORK_BOT_FLAGGED_TTL_MS);

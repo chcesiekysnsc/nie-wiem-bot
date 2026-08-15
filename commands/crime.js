@@ -146,6 +146,10 @@ module.exports = {
       if (crimeCatchReduction > 0) {
         baseSuccessChance += crimeCatchReduction;
       }
+      const abibasyBonus = getPassiveMultiplier(inventory, 'nowe_abibasy', 0.03);
+      if (abibasyBonus > 0) {
+        baseSuccessChance += abibasyBonus;
+      }
       const { getTerritoryBonus } = require('../utils/territories');
       if (user.gangId && store.profiles.gangs && store.profiles.gangs[user.gangId]) {
         const crimeChanceBonus = getTerritoryBonus(user.gangId, 'crime_chance');
@@ -156,6 +160,11 @@ module.exports = {
       let amount = randomInt(5000, 30000);
       if (hasItem(inventory, 'krolewskie_insygnia')) {
         amount = Math.floor(amount * 1.10);
+      }
+
+      const falszerBonus = getPassiveMultiplier(inventory, 'falszer', 0.03);
+      if (falszerBonus > 0 && Math.random() < falszerBonus) {
+        amount = amount * 2;
       }
 
       const hasOdznakaKomendanta = hasItem(inventory, 'odznaka_komendanta');

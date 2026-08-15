@@ -264,6 +264,12 @@ module.exports = {
           payout += Math.floor(profit * casinoWinBonus);
         }
       }
+
+      const kartyTarotaBonus = getPassiveMultiplier(inventory, 'karty_tarota', 0.03);
+      if (kartyTarotaBonus > 0 && won && !kosciRefunded && Math.random() < kartyTarotaBonus) {
+        payout = payout * 2;
+      }
+
       user.balance += payout;
 
       const net = payout - bet;

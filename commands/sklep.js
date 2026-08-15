@@ -37,7 +37,8 @@ function renderShopList(inventory) {
     paczka_srebrna: 'srebrna',
     paczka_zlota: 'zlota',
     paczka_diamentowa: 'diamentowa',
-    paczka_tytanowa: 'tytanowa'
+    paczka_tytanowa: 'tytanowa',
+    paczka_kosmiczna: 'kosmiczna'
   };
 
   return SHOP_ITEMS_ORDERED

@@ -83,9 +83,9 @@ const SET_DEFINITIONS = [
     id: 'komendanta',
     name: 'Zestaw Komendanta',
     emoji: '🎖️',
-    requiredItems: ['odznaka_komendanta', 'patrol_policji', 'kamera'],
+    requiredItems: ['odznaka_komendanta', 'patrol_policji', 'kamera', 'nowe_abibasy'],
     bonuses: [
-      { type: 'crime_catch_reduction', value: 0.04, label: '-4% szansy na przyłapanie w !crime' }
+      { type: 'crime_catch_reduction', value: 0.06, label: '-6% szansy na przyłapanie w !crime' }
     ]
   },
   {

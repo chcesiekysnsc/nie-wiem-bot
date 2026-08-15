@@ -600,6 +600,10 @@ function runHeavyLoops(store) {
             rate += hasCzterolistna ? 0.0575 : 0.05; // +5% or +5.75% co 12h
           }
 
+          if ((userInv['certyfikat_inwestora'] || 0) > 0) {
+            rate += 0.02;
+          }
+
           const finalRate = rate * interestMul;
 
           const interest = Math.floor(user.bank * finalRate);

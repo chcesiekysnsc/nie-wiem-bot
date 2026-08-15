@@ -1259,6 +1259,94 @@ module.exports = {
       type: 'permanent',
       buyable: false,
       shopNote: 'Dostępny tylko z Brązowej Paczki (1.4%).'
+    },
+    paczka_kosmiczna: {
+      name: 'Kosmiczna Paczka',
+      emoji: '🚀',
+      price: 1200000,
+      shortDesc: 'Lootbox: 486k–1.566M + szansa na unikalne itemy kosmiczne.',
+      description: 'Otwórz komendą: !otworz kosmiczna\nZawartość: losowa kwota od 486 000 do 1 566 000 viccoinów (średnio ~1 026 000).\nBonus drop: 2% Dynamit, 2% Sakiewka Kolekcjonera, 2% Z-drive.',
+      type: 'stackable'
+    },
+    automat_do_kawy: {
+      name: 'Automat do Kawy',
+      emoji: '☕',
+      price: 0,
+      shortDesc: '+4% do !work, -5% cooldown !work, zużywa się po 25 użyciach.',
+      description: 'Zużywalny przedmiot. Daje +4% do nagród z !work oraz skraca cooldown pracy o 5%. Po 25 użyciach automat jest zużywany i znika z ekwipunku.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🟨 Złotej Paczki (2%).'
+    },
+    terminal_gieldowy: {
+      name: 'Terminal Giełdowy',
+      emoji: '📈',
+      price: 0,
+      shortDesc: '3% szans na 2x wypłatę z firmy.',
+      description: 'Pasywny przedmiot biznesowy. Daje 3% szans na podwojenie wypłaty z firmy (!firma zbierz). Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🟨 Złotej Paczki (1%).'
+    },
+    kalkulator_finansowy: {
+      name: 'Kalkulator Finansowy',
+      emoji: '🔢',
+      price: 0,
+      shortDesc: '+3% do zysków z firm.',
+      description: 'Pasywny przedmiot biznesowy. Zwiększa zyski zbierane z Twoich firm o 3%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🟨 Złotej Paczki (1.5%).'
+    },
+    certyfikat_inwestora: {
+      name: 'Certyfikat Inwestora',
+      emoji: '📜',
+      price: 0,
+      shortDesc: '+2% do odsetek bankowych.',
+      description: 'Pasywny przedmiot inwestycyjny. Zwiększa odsetki bankowe o 2%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🟫 Brązowej Paczki (2.5%).'
+    },
+    nowe_abibasy: {
+      name: 'Nowe Abibasy',
+      emoji: '👟',
+      price: 0,
+      shortDesc: '-3% szansy na przyłapanie w !crime.',
+      description: 'Pasywny przedmiot sportowy. Zmniejsza szansę na przyłapanie podczas !crime o 3 punktu procentowego. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępne tylko z 🟫 Brązowej Paczki (1.5%).'
+    },
+    falszer: {
+      name: 'Falszer',
+      emoji: '🖊️',
+      price: 0,
+      shortDesc: '3% szans na podwojenie łupu z !crime.',
+      description: 'Pasywny przedmiot przestępczy. Daje 3% szans na podwojenie łupu z komendy !crime. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z ⬜ Srebrnej Paczki (1.5%).'
+    },
+    dynamit: {
+      name: 'Dynamit',
+      emoji: '💥',
+      price: 0,
+      shortDesc: 'Zużywalny: !wysadz - niszczy firmę ofiary na 6h.',
+      description: 'Zużywalny przedmiot wybuchowy. Użycie komendy !wysadz <osoba> niszczy firmę wskazanej osoby na 6 godzin — firma nie generuje zysków w tym czasie. Zużywa się po użyciu.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🚀 Kosmicznej Paczki (2%).'
+    },
+    karty_tarota: {
+      name: 'Karty Tarota',
+      emoji: '🃏',
+      price: 0,
+      shortDesc: '3% szans na podwojenie wygranej w ruletce.',
+      description: 'Pasywny przedmiot hazardowy. Daje 3% szans na podwojenie wygranej w komendzie !ruletka. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępne tylko z 🟨 Złotej Paczki (1.4%).'
     }
   },
   badges: {

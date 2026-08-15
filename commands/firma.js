@@ -190,6 +190,11 @@ module.exports = {
             errors.push(`❌ ${label} **${compDef.emoji} ${compDef.name}** uległa awarii! Koszt naprawy: **${formatCurrency(repairCost)}** (Użyj: **${naprawCmd}**)`);
             return null;
           }
+          if (companyObj.destroyedUntil && now < companyObj.destroyedUntil) {
+            const remaining = msToReadable(companyObj.destroyedUntil - now);
+            errors.push(`💥 ${label} **${compDef.emoji} ${compDef.name}** została zniszczona! Wróci do działania za **${remaining}**.`);
+            return null;
+          }
           const diff = now - (companyObj.lastPayout || 0);
           if (diff < cooldownMs) {
             const timeLeft = cooldownMs - diff;
@@ -220,6 +225,17 @@ module.exports = {
           let setBonus = setBonusPct > 0 ? Math.floor(compDef.payout * setBonusPct) : 0;
           payout += setBonus;
 
+          const kalkulatorBonusPct = getPassiveMultiplier(inventory, 'kalkulator_finansowy', 0.03);
+          let kalkulatorBonus = kalkulatorBonusPct > 0 ? Math.floor(compDef.payout * kalkulatorBonusPct) : 0;
+          payout += kalkulatorBonus;
+
+          const terminalBonusPct = getPassiveMultiplier(inventory, 'terminal_gieldowy', 0.03);
+          let terminalDoubled = false;
+          if (terminalBonusPct > 0 && Math.random() < terminalBonusPct) {
+            payout = payout * 2;
+            terminalDoubled = true;
+          }
+
           // Królewskie Insygnia: +10% do zysku z firmy
           let insygniaBonus = 0;
           if (hasInsygnia) {
@@ -238,7 +254,7 @@ module.exports = {
             payout = workerResult.payout;
           }
 
-          return { compDef, payout, garniturBonus, kaczkaBonus, ksiegaBonus, insygniaBonus, globalBonus, setBonus, workerSalary: workerResult.workerSalary, bonusTriggered: workerResult.bonusTriggered, skipSalary: workerResult.skipSalary, instantRepair: workerResult.instantRepair, repairDiscount: workerResult.repairDiscount, broke };
+          return { compDef, payout, garniturBonus, kaczkaBonus, ksiegaBonus, insygniaBonus, globalBonus, setBonus, kalkulatorBonus, terminalDoubled, workerSalary: workerResult.workerSalary, bonusTriggered: workerResult.bonusTriggered, skipSalary: workerResult.skipSalary, instantRepair: workerResult.instantRepair, repairDiscount: workerResult.repairDiscount, broke };
         };
 
         // Check company 1
@@ -307,6 +323,12 @@ module.exports = {
           }
           if (col.setBonus > 0) {
             txt += `   🧩 **Zestaw Biznesmena (+4%):** **+${formatCurrency(col.setBonus)}**\n`;
+          }
+          if (col.kalkulatorBonus > 0) {
+            txt += `   🔢 **Kalkulator Finansowy (+3%):** **+${formatCurrency(col.kalkulatorBonus)}**\n`;
+          }
+          if (col.terminalDoubled) {
+            txt += `   📈 **Terminal Giełdowy (2x)!** Wypłata podwojona!\n`;
           }
           txt += `   ➕ Zysk z firmy: **+${formatCurrency(col.payout)}**\n`;
         } else {
