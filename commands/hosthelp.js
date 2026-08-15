@@ -1,29 +1,21 @@
 const config = require('../config/config');
-
-const creatorCommands = [
-  { num: 1, cmd: '!thx', opis: 'Dodawanie/zarządzanie listą osób które pomogły przy bocie.' },
-  { num: 2, cmd: '!zezwol', opis: 'Zezwalanie na specjalne uprawnienia.' },
-  { num: 3, cmd: '!wersja', opis: 'Ustawianie wersji bota.' },
-  { num: 4, cmd: '!uadm', opis: 'Usuwanie administratorów bota.' },
-  { num: 5, cmd: '!adm', opis: 'Komenda administratora twórcy.' },
-  { num: 6, cmd: '!guardnick', opis: 'Blokowanie pseudonimu wybranego gracza.' },
-  { num: 7, cmd: '!danegrpinfo', opis: 'Sprawdzanie postępu analizy danych grup.' },
-  { num: 8, cmd: '!danegrp', opis: 'Błyskawiczna analiza bazodanowa wszystkich grup.' },
-  { num: 9, cmd: '!dane', opis: 'Zarządzanie danymi bota.' },
-  { num: 10, cmd: '!checkspam', opis: 'Sprawdzanie spamu.' },
-  { num: 11, cmd: '!backup', opis: 'Tworzenie backupu danych.' },
-  { num: 12, cmd: '!eventitemadd', opis: 'Dodawanie eventowych przedmiotów. (Tylko twórca)' },
-  { num: 13, cmd: '!eventitemdel', opis: 'Usuwanie eventowych przedmiotów. (Tylko twórca)' },
-  { num: 14, cmd: '!itemadd', opis: 'Dodawanie przedmiotów do ekwipunku. (Tylko twórca)' },
-  { num: 15, cmd: '!loop', opis: 'Automatyczne dodawanie użytkowników z powrotem do grupy po wyjściu. (!loop on — dla wszystkich, !loop <osoba> — dla konkretnego, !loop off — wyłącz)' },
-  { num: 16, cmd: '!gangreset', opis: 'Reset cooldownów gangów dla wszystkich. (Tylko twórca)' },
-  { num: 17, cmd: '!wymus <nr> [@gracz]', opis: 'Wymusza wybrany event !work na następnym worku. (!wymus — pokazuje listę eventów 1-4)' }
-];
+const {
+  buildHelpDetailEmbed,
+  buildHelpErrorEmbed,
+  buildHelpListEmbed,
+  getHelpCommandById,
+  getHelpCommandByName,
+  resolveCategoryInput,
+  getHelpCommandByCategoryAndNumber,
+  buildCategoryPromptEmbed,
+  buildCategoryListEmbed,
+  getActiveHelpCommands
+} = require('../utils/helpSystem');
 
 module.exports = {
   name: 'hosthelp',
   aliases: ['hostpomoc'],
-  async execute(client, message) {
+  async execute(client, message, args) {
     const creatorId = '100060812419294';
 
     if (message.author.id !== creatorId) {
@@ -31,10 +23,20 @@ module.exports = {
       return;
     }
 
-    const lines = creatorCommands.map(c => {
-      return `👑 **${c.num}.** **${c.cmd}** — ${c.opis}`;
+    const prefix = message.prefix || '!';
+    const allCommands = getActiveHelpCommands();
+    
+    // Komendy dostępne tylko dla twórcy
+    const creatorOnlyCommands = ['thx', 'zezwol', 'wersja', 'uadm', 'adm', 'guardnick', 'danegrpinfo', 'danegrp', 'dane', 'checkspam', 'backup', 'eventitemadd', 'eventitemdel', 'itemadd', 'gangreset', 'wymus', 'odtworz', 'stopdanegrpinfo', 'kubl', 'truebl'];
+    
+    const creatorCommands = allCommands.filter(cmd => creatorOnlyCommands.includes(cmd.name));
+
+    const sorted = [...creatorCommands].sort((a, b) => a.name.localeCompare(b.name));
+
+    const lines = sorted.map((c, idx) => {
+      return `👑 **${idx + 1}.** **${prefix}${c.name}** — ${c.shortDescription}`;
     }).join('\n');
 
-    await message.reply(`👑 **KOMENDY TWÓRCY BOTA**\n${lines}`);
+    await message.reply(`👑 **KOMENDY TWÓRCY BOTA**\n${lines}\n\n💡 Szczegóły: \`${prefix}help <kategoria> <numer>\``);
   }
 };

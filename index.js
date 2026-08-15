@@ -291,8 +291,29 @@ async function executeCommand(event, pageId) {
       && (store.profiles.blacklist.includes(senderId) || store.profiles.trueBlacklist.includes(senderId));
   });
 
+  const economicCommands = [
+    'work', 'crime', 'rob', 'daily', 'bank', 'deposit', 'withdraw', 'transfer',
+    'firma', 'firma2', 'gang', 'sklep', 'otworz', 'upgrade', 'rynek', 'sprzedaj',
+    'mecz', 'gielda', 'slots', 'blackjack', 'coinflip', 'ruletka', 'bet', 'lotto',
+    'kosc', 'dom', 'pożyczka', 'spłać', 'wymiana', 'kasa', 'bilans', 'top', 'ranking',
+    'podatki', 'dodatek', 'bonus', 'wyplata', 'wypłata', 'przelew', 'przel'
+  ];
+
+  const isEconomicCommand = economicCommands.includes(command.name);
+
+  const hasNegativeBalanceBan = await withData(store => {
+    const user = store.users[senderId];
+    return user && user.blacklistedForNegativeBalance === true;
+  });
+
   if (isUserBlacklisted) {
-    return;
+    // Jeśli ma ban za ujemne saldo, pozwól na komendy nieekonomiczne
+    if (hasNegativeBalanceBan && !isEconomicCommand) {
+      // Pozwól na komendy nieekonomiczne
+    } else {
+      // Blokuj wszystkie komendy dla innych banów
+      return;
+    }
   }
 
   if (isGroup) {

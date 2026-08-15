@@ -1,17 +1,16 @@
 const config = require('../config/config');
-
-const adminCommands = [
-  { cmd: '!afkdel', opis: 'Usuwa nieaktywnych członków z grupy.' },
-  { cmd: '!aktualizuj', opis: 'Aktualizuje bota.' },
-  { cmd: '!bl', opis: 'Banuje gracza.' },
-  { cmd: '!blgrp', opis: 'Banuje grupę.' },
-  { cmd: '!flaga', opis: 'Ręcznie wywołuje grę Zgadnij Kraj (flagi) na obecnej grupie.' },
-  { cmd: '!group', opis: 'Pokazuje informacje o grupie.' },
-  { cmd: '!loop', opis: 'Wykonuje pętlę komend.' },
-  { cmd: '!reakcja', opis: 'Ręcznie wywołuje grę Szybkie Palce na obecnej grupie. Limit: 5 użyć/dzień.', limit: 5 },
-  { cmd: '!ubl', opis: 'Odbanowuje gracza.' },
-  { cmd: '!ublgrp', opis: 'Odbanowuje grupę.' }
-];
+const {
+  buildHelpDetailEmbed,
+  buildHelpErrorEmbed,
+  buildHelpListEmbed,
+  getHelpCommandById,
+  getHelpCommandByName,
+  resolveCategoryInput,
+  getHelpCommandByCategoryAndNumber,
+  buildCategoryPromptEmbed,
+  buildCategoryListEmbed,
+  getCreatorHelpCommands
+} = require('../utils/helpSystem');
 
 module.exports = {
   name: 'admhelp',
@@ -22,13 +21,15 @@ module.exports = {
       return;
     }
 
-    const sorted = [...adminCommands].sort((a, b) => a.cmd.localeCompare(b.cmd));
+    const prefix = message.prefix || '!';
+    const adminCommands = getCreatorHelpCommands();
+
+    const sorted = [...adminCommands].sort((a, b) => a.name.localeCompare(b.name));
 
     const lines = sorted.map((c, idx) => {
-      const limitText = c.limit ? ` (Limit: ${c.limit}/dzień)` : '';
-      return `🛡️ **${idx + 1}.** **${c.cmd}** — ${c.opis}${limitText}`;
+      return `🛡️ **${idx + 1}.** **${prefix}${c.name}** — ${c.shortDescription}`;
     }).join('\n');
 
-    await message.reply(`🛡️ **KOMENDY ADMINISTRATORSKIE**\n${lines}`);
+    await message.reply(`🛡️ **KOMENDY ADMINISTRATORSKIE**\n${lines}\n\n💡 Szczegóły: \`${prefix}help <kategoria> <numer>\``);
   }
 };

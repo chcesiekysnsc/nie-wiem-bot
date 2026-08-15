@@ -3465,12 +3465,28 @@ login({ appState }, (loginErr, api) => {
       return;
     }
 
+    const economicCommands = [
+      'work', 'crime', 'rob', 'daily', 'bank', 'deposit', 'withdraw', 'transfer',
+      'firma', 'firma2', 'gang', 'sklep', 'otworz', 'upgrade', 'rynek', 'sprzedaj',
+      'mecz', 'gielda', 'slots', 'blackjack', 'coinflip', 'ruletka', 'bet', 'lotto',
+      'kosc', 'dom', 'pożyczka', 'spłać', 'wymiana', 'kasa', 'bilans', 'top', 'ranking',
+      'podatki', 'dodatek', 'bonus', 'wyplata', 'wypłata', 'przelew', 'przel'
+    ];
+
+    const potentialCommandName = commandName;
+    const isEconomicCommand = economicCommands.includes(potentialCommandName);
+
+    const hasNegativeBalanceBan = await withData(store => {
+      const user = store.users[senderId];
+      return user && user.blacklistedForNegativeBalance === true;
+    });
+
     if (isUserBlacklisted) {
-      const args = text.slice(currentPrefix.length).trim().split(/\s+/).filter(Boolean);
-      const potentialCommandName = (args[0] || '').toLowerCase();
-      const adminBypassCmds = ['bl', 'blacklist', 'ubl', 'unblacklist', 'ybl', 'unbl', 'truebl', 'blgrp', 'blacklistgroup', 'bangroup', 'ublgrp', 'unblacklistgroup', 'unbangroup'];
-      const isSenderAdmin = config.admins.includes(senderId) || senderId === creatorId;
-      if (!isSenderAdmin && !adminBypassCmds.includes(potentialCommandName)) {
+      // Jeśli ma ban za ujemne saldo, pozwól na komendy nieekonomiczne
+      if (hasNegativeBalanceBan && !isEconomicCommand) {
+        // Pozwól na komendy nieekonomiczne
+      } else {
+        // Blokuj wszystkie komendy dla innych banów
         return;
       }
     }

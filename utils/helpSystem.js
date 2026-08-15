@@ -1330,6 +1330,36 @@ function getActiveHelpCommands() {
   if (Date.now() < unlockTime) {
     filtered = filtered.filter(command => command.name !== 'firma');
   }
+  
+  // Ukryj komendy dostępne tylko dla twórcy z zwykłego help
+  filtered = filtered.filter(command => {
+    const creatorOnlyCommands = ['thx', 'zezwol', 'wersja', 'uadm', 'adm', 'guardnick', 'danegrpinfo', 'danegrp', 'dane', 'checkspam', 'backup', 'eventitemadd', 'eventitemdel', 'itemadd', 'gangreset', 'wymus', 'odtworz', 'stopdanegrpinfo', 'kubl', 'truebl'];
+    return !creatorOnlyCommands.includes(command.name);
+  });
+  
+  const catOrder = {
+    ECONOMY_GAMBLING: 0,
+    SOCIAL_GANGS: 1,
+    UTILITY_ADMIN: 2
+  };
+  filtered.sort((a, b) => catOrder[a.category] - catOrder[b.category]);
+  return filtered.map((cmd, idx) => ({ ...cmd, id: idx + 1 }));
+}
+
+function getCreatorHelpCommands() {
+  const unlockTime = 1780264800000; // 2026-06-01T00:00:00+02:00
+  let filtered = [...helpCommands];
+  if (Date.now() < unlockTime) {
+    filtered = filtered.filter(command => command.name !== 'firma');
+  }
+  
+  // Pokaż tylko komendy dostępne dla twórcy i adminów
+  filtered = filtered.filter(command => {
+    const creatorOnlyCommands = ['thx', 'zezwol', 'wersja', 'uadm', 'adm', 'guardnick', 'danegrpinfo', 'danegrp', 'dane', 'checkspam', 'backup', 'eventitemadd', 'eventitemdel', 'itemadd', 'gangreset', 'wymus', 'odtworz', 'stopdanegrpinfo', 'kubl', 'truebl'];
+    const adminCommands = ['afkdel', 'aktualizuj', 'bl', 'blgrp', 'flaga', 'group', 'kick', 'loop', 'prefix', 'reakcja', 'ubl', 'ublgrp', 'wiadomosci', 'zakaz'];
+    return creatorOnlyCommands.includes(command.name) || adminCommands.includes(command.name);
+  });
+  
   const catOrder = {
     ECONOMY_GAMBLING: 0,
     SOCIAL_GANGS: 1,
@@ -1496,14 +1526,13 @@ module.exports = {
   helpCommands,
   getHelpCommandById,
   getHelpCommandByName,
-  buildHelpListEmbed,
   buildHelpDetailEmbed,
   buildHelpErrorEmbed,
-  buildHelpButtons,
-  getTotalPages,
+  buildHelpListEmbed,
   resolveCategoryInput,
-  getCommandsByCategory,
   getHelpCommandByCategoryAndNumber,
   buildCategoryPromptEmbed,
-  buildCategoryListEmbed
+  buildCategoryListEmbed,
+  getActiveHelpCommands,
+  getCreatorHelpCommands
 };
