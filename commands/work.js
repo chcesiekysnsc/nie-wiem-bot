@@ -141,6 +141,7 @@ module.exports = {
 
       const hasZegar = hasItem(inventory, 'stary_zegar');
       const hasSzwajcar = hasItem(inventory, 'szwajcarski_zegarek');
+      const hasEnergetyk = hasItem(inventory, 'energetyk');
       const baseCd = config.cooldowns.work || 600;
       let actualCd = baseCd;
       if (hasZegar) {
@@ -149,6 +150,14 @@ module.exports = {
         actualCd *= (1 - reduction);
       }
       if (hasSzwajcar) actualCd *= 0.85;
+      
+      // Energetyk zwiększa cooldown o 10%
+      if (hasEnergetyk) {
+        const level = getItemUpgradeLevel(inventory, 'energetyk');
+        const increase = 0.10 + level * 0.005;
+        actualCd *= (1 + increase);
+      }
+      
       const cdReduction = getGlobalCooldownReduction(inventory);
       if (cdReduction > 0) {
         actualCd = Math.floor(actualCd * (1 - cdReduction));
@@ -191,15 +200,14 @@ module.exports = {
       if (mocnaKawaBonus > 0) {
         reward = Math.floor(reward * (1 + mocnaKawaBonus));
       }
-
       const walizkaBonus = getPassiveMultiplier(inventory, 'walizka', 0.05);
       if (walizkaBonus > 0) {
         reward = Math.floor(reward * (1 + walizkaBonus));
       }
 
-      const drukarkaBonus = getPassiveMultiplier(inventory, 'drukarka_pieniedzy', 0.05);
-      if (drukarkaBonus > 0) {
-        reward = Math.floor(reward * (1 + drukarkaBonus));
+      const energetykBonus = getPassiveMultiplier(inventory, 'energetyk', 0.05);
+      if (energetykBonus > 0) {
+        reward = Math.floor(reward * (1 + energetykBonus));
       }
 
       const globalIncomeBonus = getGlobalIncomeMultiplier(inventory);
@@ -220,6 +228,18 @@ module.exports = {
         const chance = 0.10 + level * 0.01;
         if (Math.random() < Math.min(chance, 0.20)) {
           reward = reward * 2;
+        }
+      }
+
+      // Bonus awansu z setów przedmiotów
+      const promotionBonus = getItemSetBonus(inventory, 'work_promotion_chance');
+      if (promotionBonus > 0 && Math.random() < promotionBonus) {
+        // Dodatkowa szansa na awans
+        if (!user.workLevel) user.workLevel = 1;
+        const promotionChance = 0.05 + promotionBonus; // 5% bazowa + bonus
+        if (Math.random() < promotionChance) {
+          user.workLevel++;
+          message.reply(`🎉 **Awans!** Twój poziom pracy wzrósł do ${user.workLevel}!`);
         }
       }
 

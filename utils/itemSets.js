@@ -6,7 +6,8 @@ const SET_DEFINITIONS = [
     requiredItems: ['walizka', 'mocna_kawa', 'rekawice_robotnika', 'podrecznik_praktykanta'],
     bonuses: [
       { type: 'work_xp', value: 0.10, label: '+10% XP z !work' },
-      { type: 'work_triple_chance', value: 0.05, label: '5% szans na potrójną wypłatę !work' }
+      { type: 'work_triple_chance', value: 0.05, label: '5% szans na potrójną wypłatę !work' },
+      { type: 'work_promotion_chance', value: 0.01, label: '+1% szansy na awans' }
     ]
   },
   {
@@ -52,9 +53,11 @@ const SET_DEFINITIONS = [
     id: 'biznesmena',
     name: 'Zestaw Biznesmena',
     emoji: '👔',
-    requiredItems: ['garnitur', 'kaczka_biznesu', 'ksiega_inwestora', 'sakiewka_kolekcjonera'],
+    requiredItems: ['garnitur', 'kaczka_biznesu', 'ksiega_inwestora', 'sakiewka_kolekcjonera', 'konsultant'],
     bonuses: [
-      { type: 'firm_income', value: 0.04, label: '+4% dochodu z firm' }
+      { type: 'firm_income', value: 0.075, label: '+7.5% dochodu z firm' },
+      { type: 'firm_break_chance', value: -0.01, label: '-1% szansy na zepsucie firmy' },
+      { type: 'worker_salary_reduction', value: 0.015, label: '-1.5% wypłaty pracowników' }
     ]
   },
   {
@@ -94,6 +97,26 @@ const SET_DEFINITIONS = [
       { type: 'firm_income', value: 0.05, label: '+5% do zysków z firm' },
       { type: 'bank_interest', value: 0.04, label: '+4% do odsetek bankowych' },
       { type: 'bank_capacity', value: 100000, label: '+100 000 miejsca w banku' }
+    ]
+  },
+  {
+    id: 'zlodzieja',
+    name: 'Zestaw Złodzieja',
+    emoji: '🔪',
+    requiredItems: ['ostry_noz', 'wczesniejsze_przygotowanie', 'zestaw_wlamywacza', 'latarka'],
+    bonuses: [
+      { type: 'rob_chance', value: 0.05, label: '+5% szansy powodzenia !rob' },
+      { type: 'rob_loot', value: 0.06, label: '+6% dodatkowego łupu' },
+      { type: 'rob_penalty_reduction', value: 0.04, label: '-4% kary przy wpadce' }
+    ]
+  },
+  {
+    id: 'uczenia',
+    name: 'Zestaw Uczenia',
+    emoji: '📚',
+    requiredItems: ['podrecznik_praktykanta', 'mentor', 'ksiazka_madnosci', 'szybka_nauka'],
+    bonuses: [
+      { type: 'xp_gain', value: 0.06, label: '+6% XP ze wszystkich źródeł' }
     ]
   }
 ];

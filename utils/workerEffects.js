@@ -1,4 +1,5 @@
 const config = require('../config/config');
+const { getItemSetBonus } = require('./itemSets');
 
 function getWorkerDef(id) {
   return config.economy.workers && config.economy.workers[id] ? { id, ...config.economy.workers[id] } : null;
@@ -17,6 +18,7 @@ function applyWorkerEffects(payout, workers, compDef, companyObj, inventory, bre
   let instantRepair = false;
   let repairDiscount = false;
   let doubleBonus = false;
+  let salaryReduction = 0;
 
   for (const wid of workers) {
     const def = getWorkerDef(wid);
@@ -64,6 +66,14 @@ function applyWorkerEffects(payout, workers, compDef, companyObj, inventory, bre
   let broke = false;
   if (!companyObj.isBroken) {
     let breakChance = compDef.breakChance + totalBreakChanceBonus;
+    
+    // Dodaj bonus z setów przedmiotów (np. Zestaw Biznesmena)
+    const setBreakChanceBonus = getItemSetBonus(inventory, 'firm_break_chance');
+    breakChance += setBreakChanceBonus;
+    
+    // Dodaj bonus redukcji wypłaty pracowników z setów przedmiotów
+    salaryReduction = getItemSetBonus(inventory, 'worker_salary_reduction');
+    
     if (breakChanceOverride !== undefined && breakChanceOverride !== null && breakChanceOverride !== '' && Number(breakChanceOverride) !== 50) {
       breakChance = Number(breakChanceOverride) / 100;
     }
@@ -71,6 +81,11 @@ function applyWorkerEffects(payout, workers, compDef, companyObj, inventory, bre
     if (broke) {
       companyObj.isBroken = true;
     }
+  }
+
+  // Zastosuj redukcję wypłaty pracowników
+  if (salaryReduction > 0) {
+    totalSalaryPercent = Math.max(0, totalSalaryPercent - salaryReduction);
   }
 
   return { payout, workerSalary, totalBreakChanceBonus, instantRepair, repairDiscount, broke, bonusTriggered, skipSalary };

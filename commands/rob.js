@@ -91,6 +91,10 @@ function calculateSuccessChance(robberInv, victimInv, robber, overrideChance, vi
   chance += getPassiveMultiplier(robberInv, 'zestaw_wlamywacza', 0.03);
   chance -= getPassiveMultiplier(victimInv, 'alarm', 0.04);
   chance -= getItemSetBonus(victimInv, 'catch_chance');
+  
+  // Dodaj bonus szansy robu z setów przedmiotów (np. Zestaw Złodzieja)
+  const robChanceBonus = getItemSetBonus(robberInv, 'rob_chance');
+  chance += robChanceBonus;
 
   if (victim && victim.badges && victim.badges.includes(config.badges.placzek)) {
     chance -= 0.10;
@@ -113,6 +117,17 @@ function calculateStolenAmount(baseStolen, robberInv, gangFachLevel) {
   const latarkaBonusPct = getPassiveMultiplier(robberInv, 'latarka', 0.02);
   if (latarkaBonusPct > 0) {
     stolen += Math.floor(stolen * latarkaBonusPct);
+  }
+  
+  // Dodaj bonus łupu z setów przedmiotów (np. Zestaw Złodzieja)
+  const robLootBonus = getItemSetBonus(robberInv, 'rob_loot');
+  if (robLootBonus > 0) {
+    stolen += Math.floor(stolen * robLootBonus);
+  }
+  
+  // Dodaj bonus wcześniejszego przygotowania (50% większy łup)
+  if (hasItem(robberInv, 'wczesniejsze_przygotowanie') && Math.random() < 0.02) {
+    stolen = Math.floor(stolen * 1.5);
   }
 
   let sztyletBonus = 0;
@@ -150,6 +165,18 @@ function calculateFailFine(robberBalance, robberInv, victimInv, beer, victim) {
   const kominiarkaBonusPct = getPassiveMultiplier(robberInv, 'kominiarka', 0.10);
   if (kominiarkaBonusPct > 0) {
     fine = Math.floor(fine * (1 - kominiarkaBonusPct));
+  }
+  
+  // Dodaj bonus ostrego noża (-5% kary)
+  const ostryNozBonusPct = getPassiveMultiplier(robberInv, 'ostry_noz', 0.05);
+  if (ostryNozBonusPct > 0) {
+    fine = Math.floor(fine * (1 - ostryNozBonusPct));
+  }
+  
+  // Dodaj bonus redukcji kary z setów przedmiotów (np. Zestaw Złodzieja)
+  const robPenaltyReduction = getItemSetBonus(robberInv, 'rob_penalty_reduction');
+  if (robPenaltyReduction > 0) {
+    fine = Math.floor(fine * (1 - robPenaltyReduction));
   }
 
   const catchPenaltyBonus = getItemSetBonus(victimInv, 'catch_penalty');

@@ -134,6 +134,21 @@ function addXp(user, amount, inventoryRecord = null) {
     if (hasItem(inventoryRecord, 'podrecznik_praktykanta')) {
       xpMultiplier += hasCzterolistna ? 0.06 : 0.05;
     }
+    if (hasItem(inventoryRecord, 'mentor')) {
+      xpMultiplier += hasCzterolistna ? 0.09 : 0.08;
+    }
+    if (hasItem(inventoryRecord, 'ksiazka_madnosci')) {
+      xpMultiplier += hasCzterolistna ? 0.05 : 0.04;
+    }
+    if (hasItem(inventoryRecord, 'kurs_kwalifikacji')) {
+      xpMultiplier += hasCzterolistna ? 0.06 : 0.05;
+    }
+    
+    // Szybka nauka - 5% szans na podwójne XP
+    if (hasItem(inventoryRecord, 'szybka_nauka') && Math.random() < 0.05) {
+      finalAmount = Math.floor(finalAmount * 2);
+    }
+    
     const { getItemSetBonus } = require('./itemSets');
     const setXpBonus = getItemSetBonus(inventoryRecord, 'xp_gain');
     xpMultiplier += setXpBonus;
@@ -445,7 +460,14 @@ function getPassiveMultiplier(inventoryRecord, itemId, baseBonus) {
     krysztal_doswiadczenia: 0.02,
     rekawice_robotnika: 0.005,
     inwestor: 0.005,
-    drukarka_pieniedzy: 0.01
+    drukarka_pieniedzy: 0.01,
+    ostry_noz: 0.005,
+    energetyk: 0.005,
+    kurs_kwalifikacji: 0.005,
+    konsultant: 0.005,
+    mentor: 0.005,
+    ksiazka_madnosci: 0.005,
+    szybka_nauka: 0.005
   };
   
   const perLevel = upgradePerLevel[itemId] || 0;

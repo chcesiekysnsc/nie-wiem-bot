@@ -693,7 +693,7 @@ module.exports = {
       emoji: '🟫',
       price: 50000,
       shortDesc: 'Lootbox: 20.25k–65.25k + 10% Bilet, 3% Walizka, 1% Żelazo, 1% Miedź.',
-      description: 'Otwórz komendą: !otworz brazowa\nZawartość: losowa kwota od 20 250 do 65 250 viccoinów (rozkład równomierny).\nBonus drop: 10% Bilet Loterii, 3% Walizka, 1% Żelazo, 1% Miedź.',
+      description: 'Otwórz komendą: !otworz brazowa\nZawartość: losowa kwota od 20 250 do 65 250 viccoinów (rozkład równomierny).\nBonus drop: 10% Bilet Loterii, 3% Walizka, 2% Energetyk, 1.5% Mentor, 1.4% Książka Mądrości, 1.4% Szybka Nauka, 1% Żelazo, 1% Miedź.',
       type: 'stackable'
     },
     paczka_srebrna: {
@@ -701,7 +701,7 @@ module.exports = {
       emoji: '⬜',
       price: 100000,
       shortDesc: 'Lootbox: 64.125k–131.625k + szansa na Kłódkę, Piwo, Kominiarkę, Podręcznik, 1% Żelazo, 1% Miedź, 1% Tytan.',
-      description: 'Otwórz komendą: !otworz srebrna\nZawartość: losowa kwota od 64 125 do 131 625 viccoinów.\nBonus drop: 5% Kłódka, 5% Piwo, 2.5% Kominiarka, 2.5% Podręcznik Praktykanta, 1% Żelazo, 1% Miedź, 1% Tytan.',
+      description: 'Otwórz komendą: !otworz srebrna\nZawartość: losowa kwota od 64 125 do 131 625 viccoinów.\nBonus drop: 5% Kłódka, 5% Piwo, 2.5% Kominiarka, 2.5% Podręcznik Praktykanta, 1.2% Ostry Nóż, 1.5% Reklama TV, 0.5% Wcześniejsze Przygotowanie, 1% Żelazo, 1% Miedź, 1% Tytan.',
       type: 'stackable'
     },
     paczka_zlota: {
@@ -717,7 +717,7 @@ module.exports = {
       emoji: '🟦',
       price: 500000,
       shortDesc: 'Lootbox: 202.5k–652.5k + szansa na VIP/Sejf/Alarm/Psa/Kaczkę, 1% Tytan, 1% Karbid, 1% Inżelit.',
-      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 202 500 do 652 500 viccoinów.\nBonus drop: 5% VIP Pass, 5% Ulepszenie Banku, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur, 2% Alarm, 2% Pies Stróżujący, 1.5% Kaczka Biznesu, 1% Tytan, 1% Karbid, 1% Inżelit.',
+      description: 'Otwórz komendą: !otworz diamentowa\nZawartość: losowa kwota od 202 500 do 652 500 viccoinów.\nBonus drop: 5% VIP Pass, 5% Ulepszenie Banku, 2% Krwawy Żeton, 0.5% Stary Zegar, 3% Godło Gangu, 3% Garnitur, 2% Alarm, 2% Pies Stróżujący, 1.5% Kaczka Biznesu, 1% Kurs Kwalifikacji, 1% Konsultant, 1% Tytan, 1% Karbid, 1% Inżelit.',
       type: 'stackable'
     },
     // Poniższe itemy są niedostępne w sklepie — wypadają tylko z paczek
@@ -1159,6 +1159,106 @@ module.exports = {
       type: 'stackable',
       buyable: false,
       shopNote: 'Dostępny tylko z 🩶 Tytanowej Paczki (0.5%).'
+    },
+    zaklocasz: {
+      name: 'Zakłócacz',
+      emoji: '📟',
+      price: 0,
+      shortDesc: 'Gang item: niszczy tarczę ochronną gangu. Drop z 🥇 Pozłacanej Skrzynki (1.5%).',
+      description: 'Gangowy przedmiot. Użycie: !zakloc <nazwa gangu> — natychmiastowo niszczy tarczę ochronną przeciwnika. Cooldown: 48 godzin na poziomie gangu. Dostępny wyłącznie z 🥇 Pozłacanej Skrzynki Bossowego Sklepu gangu.',
+      type: 'gang_permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🥇 Pozłacanej Skrzynki (1.5%).'
+    },
+    ostry_noz: {
+      name: 'Ostry Nóż',
+      emoji: '🔪',
+      price: 0,
+      shortDesc: '+4% szansy powodzenia !rob, -5% kary przy wpadce.',
+      description: 'Pasywny przedmiot ofensywny. Zwiększa szansę powodzenia napadu (!rob) o 4%. Jeśli napad się nie powiedzie, kara jest mniejsza o 5%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko ze Srebrnej Paczki (1.2%).'
+    },
+    wczesniejsze_przygotowanie: {
+      name: 'Wcześniejsze Przygotowanie',
+      emoji: '🕵️',
+      price: 0,
+      shortDesc: '2% szansy na 50% większy łup z !rob.',
+      description: 'Pasywny przedmiot ofensywny. Daje 2% szansy na zwiększenie łupu z udanego napadu (!rob) o 50%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko ze Srebrnej Paczki (0.5%).'
+    },
+    energetyk: {
+      name: 'Energetyk',
+      emoji: '🥤',
+      price: 0,
+      shortDesc: '+5% monet z !work, ale cooldown zwiększony o 10%.',
+      description: 'Pasywny przedmiot. Zwiększa zarobki z komendy !work o 5%, ale wydłuża jej cooldown o 10%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Brązowej Paczki (2.0%).'
+    },
+    kurs_kwalifikacji: {
+      name: 'Kurs Kwalifikacji',
+      emoji: '📚',
+      price: 0,
+      shortDesc: '+5% XP z !work oraz +3% szansy na awans.',
+      description: 'Pasywny przedmiot. Zwiększa zdobywane XP z komendy !work o 5% oraz zwiększa szansę na awans o 3%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Diamentowej Paczki (1.0%).'
+    },
+    konsultant: {
+      name: 'Konsultant',
+      emoji: '👔',
+      price: 0,
+      shortDesc: '+3% dochodu z firm, -1.5% wypłaty pracowników.',
+      description: 'Pasywny przedmiot biznesowy. Zwiększa dochód generowany przez Twoje firmy o 3% oraz zmniejsza procent wypłaty pobieranej przez pracowników o 1.5%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Diamentowej Paczki (1.0%).'
+    },
+    reklama_tv: {
+      name: 'Reklama TV',
+      emoji: '📺',
+      price: 0,
+      shortDesc: '+8% dochodu z firm przez 24h (zużywalny).',
+      description: 'Zużywalny przedmiot biznesowy. Zwiększa dochód generowany przez Twoje firmy o 8% przez 24 godziny od użycia. Po użyciu przedmiot znika.',
+      type: 'stackable',
+      buyable: false,
+      shopNote: 'Dostępny tylko ze Srebrnej Paczki (1.5%).'
+    },
+    mentor: {
+      name: 'Mentor',
+      emoji: '🎓',
+      price: 0,
+      shortDesc: '+8% XP ze wszystkich źródeł.',
+      description: 'Pasywny przedmiot edukacyjny. Zwiększa zdobywane XP ze wszystkich źródeł o 8%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Brązowej Paczki (1.5%).'
+    },
+    ksiazka_madnosci: {
+      name: 'Książka Mądrości',
+      emoji: '📖',
+      price: 0,
+      shortDesc: '+4% XP ze wszystkich źródeł.',
+      description: 'Pasywny przedmiot edukacyjny. Zwiększa zdobywane XP ze wszystkich źródeł o 4%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Brązowej Paczki (1.4%).'
+    },
+    szybka_nauka: {
+      name: 'Szybka Nauka',
+      emoji: '⚡',
+      price: 0,
+      shortDesc: '5% szansy na podwójne XP z jednej aktywności.',
+      description: 'Pasywny przedmiot edukacyjny. Daje 5% szansy na podwojenie zdobywanego XP z jednej aktywności. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z Brązowej Paczki (1.4%).'
     }
   },
   badges: {
