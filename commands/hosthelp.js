@@ -1,5 +1,28 @@
 const config = require('../config/config');
-const { helpCommands } = require('../utils/helpSystem');
+
+const creatorCommands = [
+  { cmd: '!thx', opis: 'Dodawanie/zarządzanie listą osób które pomogły przy bocie.' },
+  { cmd: '!zezwol', opis: 'Zezwalanie na specjalne uprawnienia.' },
+  { cmd: '!wersja', opis: 'Ustawianie wersji bota.' },
+  { cmd: '!uadm', opis: 'Usuwanie administratorów bota.' },
+  { cmd: '!adm', opis: 'Komenda administratora twórcy.' },
+  { cmd: '!guardnick', opis: 'Blokowanie pseudonimu wybranego gracza.' },
+  { cmd: '!danegrpinfo', opis: 'Sprawdzanie postępu analizy danych grup.' },
+  { cmd: '!danegrp', opis: 'Błyskawiczna analiza bazodanowa wszystkich grup.' },
+  { cmd: '!dane', opis: 'Zarządzanie danymi bota.' },
+  { cmd: '!checkspam', opis: 'Sprawdzanie spamu.' },
+  { cmd: '!backup', opis: 'Tworzenie backupu danych.' },
+  { cmd: '!eventitemadd', opis: 'Dodawanie eventowych przedmiotów.' },
+  { cmd: '!eventitemdel', opis: 'Usuwanie eventowych przedmiotów.' },
+  { cmd: '!itemadd', opis: 'Dodawanie przedmiotów do ekwipunku.' },
+  { cmd: '!loop', opis: 'Automatyczne dodawanie użytkowników z powrotem do grupy po wyjściu.' },
+  { cmd: '!gangreset', opis: 'Reset cooldownów gangów dla wszystkich.' },
+  { cmd: '!wymus', opis: 'Wymusza wybrany event !work na następnym worku.' },
+  { cmd: '!odtworz', opis: 'Przywracanie danych z backupu.' },
+  { cmd: '!stopdanegrpinfo', opis: 'Zatrzymuje analizę danych grupy.' },
+  { cmd: '!kubl', opis: 'Dodawanie użytkownika do czarnej listy.' },
+  { cmd: '!truebl', opis: 'Trwała czarna lista (tylko twórca może zdjąć).' }
+];
 
 module.exports = {
   name: 'hosthelp',
@@ -12,19 +35,10 @@ module.exports = {
       return;
     }
 
-    const prefix = message.prefix || '!';
-    
-    // Komendy dostępne tylko dla twórcy
-    const creatorOnlyCommands = ['thx', 'zezwol', 'wersja', 'uadm', 'adm', 'guardnick', 'danegrpinfo', 'danegrp', 'dane', 'checkspam', 'backup', 'eventitemadd', 'eventitemdel', 'itemadd', 'gangreset', 'wymus', 'odtworz', 'stopdanegrpinfo', 'kubl', 'truebl'];
-    
-    const creatorCommands = helpCommands.filter(cmd => creatorOnlyCommands.includes(cmd.name));
-
-    const sorted = [...creatorCommands].sort((a, b) => a.name.localeCompare(b.name));
-
-    const lines = sorted.map((c, idx) => {
-      return `👑 **${idx + 1}.** **${prefix}${c.name}** — ${c.shortDescription}`;
+    const lines = creatorCommands.map(c => {
+      return `👑 **${c.cmd}** — ${c.opis}`;
     }).join('\n');
 
-    await message.reply(`👑 **KOMENDY TWÓRCY BOTA**\n${lines}\n\n💡 Szczegóły: \`${prefix}help <kategoria> <numer>\``);
+    await message.reply(`👑 **KOMENDY TWÓRCY BOTA**\n${lines}`);
   }
 };

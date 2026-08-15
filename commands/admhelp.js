@@ -1,5 +1,21 @@
 const config = require('../config/config');
-const { helpCommands } = require('../utils/helpSystem');
+
+const adminCommands = [
+  { cmd: '!afkdel', opis: 'Usuwa nieaktywnych członków z grupy.' },
+  { cmd: '!aktualizuj', opis: 'Aktualizuje bota.' },
+  { cmd: '!bl', opis: 'Banuje gracza.' },
+  { cmd: '!blgrp', opis: 'Banuje grupę.' },
+  { cmd: '!flaga', opis: 'Ręcznie wywołuje grę Zgadnij Kraj (flagi) na obecnej grupie.' },
+  { cmd: '!group', opis: 'Pokazuje informacje o grupie.' },
+  { cmd: '!kick', opis: 'Wyrzuca użytkownika z grupy.' },
+  { cmd: '!loop', opis: 'Wykonuje pętlę komend.' },
+  { cmd: '!prefix', opis: 'Zmienia prefix bota w grupie.' },
+  { cmd: '!reakcja', opis: 'Ręcznie wywołuje grę Szybkie Palce na obecnej grupie. Limit: 5 użyć/dzień.', limit: 5 },
+  { cmd: '!ubl', opis: 'Odbanowuje gracza.' },
+  { cmd: '!ublgrp', opis: 'Odbanowuje grupę.' },
+  { cmd: '!wiadomosci', opis: 'Zarządzanie powiadomieniami powitalnymi.' },
+  { cmd: '!zakaz', opis: 'Zakazywanie używania komend w grupie.' }
+];
 
 module.exports = {
   name: 'admhelp',
@@ -10,19 +26,13 @@ module.exports = {
       return;
     }
 
-    const prefix = message.prefix || '!';
-    
-    // Komendy dostępne tylko dla adminów bota (nie dla twórcy)
-    const adminOnlyCommands = ['afkdel', 'aktualizuj', 'bl', 'blgrp', 'flaga', 'group', 'kick', 'loop', 'prefix', 'reakcja', 'ubl', 'ublgrp', 'wiadomosci', 'zakaz'];
-    
-    const adminCommands = helpCommands.filter(cmd => adminOnlyCommands.includes(cmd.name));
-
-    const sorted = [...adminCommands].sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = [...adminCommands].sort((a, b) => a.cmd.localeCompare(b.cmd));
 
     const lines = sorted.map((c, idx) => {
-      return `🛡️ **${idx + 1}.** **${prefix}${c.name}** — ${c.shortDescription}`;
+      const limitText = c.limit ? ` (Limit: ${c.limit}/dzień)` : '';
+      return `🛡️ **${idx + 1}.** **${c.cmd}** — ${c.opis}${limitText}`;
     }).join('\n');
 
-    await message.reply(`🛡️ **KOMENDY ADMINISTRATORSKIE**\n${lines}\n\n💡 Szczegóły: \`${prefix}help <kategoria> <numer>\``);
+    await message.reply(`🛡️ **KOMENDY ADMINISTRATORSKIE**\n${lines}`);
   }
 };
