@@ -26,13 +26,19 @@ module.exports = {
       refreshBadges(user, ensureInventoryRecord(store.inventory, targetId));
       
       const lastPayout = store.profiles.lastInterestPayout || Date.now();
-      const nextPayout = lastPayout + 12 * 60 * 60 * 1000;
+      const nextPayout = lastPayout + 6 * 60 * 60 * 1000;
       const nextInterestMs = Math.max(0, nextPayout - Date.now());
+      
+      // Oblicz procent odsetek
+      const { getBankInterestMultiplier } = require('../utils/economy');
+      const interestRate = getBankInterestMultiplier();
+      const interestPercent = Math.round(interestRate * 100);
 
       return {
         balance: user.balance,
         bank: user.bank,
         nextInterestMs,
+        interestPercent,
         activeLoan: user.activeLoan ? { 
           originalAmount: user.activeLoan.originalAmount,
           amount: user.activeLoan.amount,
@@ -64,11 +70,11 @@ module.exports = {
     }
 
     await message.reply(
-      `💰 Saldo — **${targetName}**\n` +
+      `💰 Saldo — *${targetName}*\n` +
       `👛 Portfel: ${walletText}\n` +
       loanInfo +
       `🏦 Bank: ${formatCurrency(snapshot.bank)}\n` +
-      `📈 Kolejne odsetki: za **${formatTimeLeft(snapshot.nextInterestMs)}**`
+      `📈 Kolejne odsetki <${snapshot.interestPercent}%>: za *${formatTimeLeft(snapshot.nextInterestMs)}*`
     );
   }
 };

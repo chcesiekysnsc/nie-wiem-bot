@@ -562,9 +562,9 @@ function runHeavyLoops(store) {
   if (now - lastHeavyLoopRun < HEAVY_LOOP_INTERVAL) return;
   lastHeavyLoopRun = now;
 
-  // --- Odsetki bankowe co 12h ---
+  // --- Odsetki bankowe co 6h ---
   store.profiles.lastInterestPayout = store.profiles.lastInterestPayout || now;
-  const intervalMs = 12 * 60 * 60 * 1000;
+  const intervalMs = 6 * 60 * 60 * 1000;
   if (now - store.profiles.lastInterestPayout > 5 * intervalMs) {
     store.profiles.lastInterestPayout = now - 5 * intervalMs;
   }

@@ -954,8 +954,8 @@ module.exports = {
       name: 'Księga Inwestora',
       emoji: '📖',
       price: 0,
-      shortDesc: 'Dodatkowe odsetki co 12h (5% z banku).',
-      description: 'Pasywny przedmiot. Co 12 godzin dopisuje do portfela bonus równy 5% monet zdeponowanych w banku (odpowiednik 10% co 24h). Bonus jest naliczany w tym samym czasie co normalne odsetki bankowe.',
+      shortDesc: 'Dodatkowe odsetki co 6h (5% z banku).',
+      description: 'Pasywny przedmiot. Co 6 godzin dopisuje do portfela bonus równy 5% monet zdeponowanych w banku (odpowiednik 10% co 12h). Bonus jest naliczany w tym samym czasie co normalne odsetki bankowe.',
       type: 'permanent',
       buyable: false,
       shopNote: 'Dostępna tylko ze Złotej Paczki (1.0%).'
