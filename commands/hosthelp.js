@@ -1,16 +1,5 @@
 const config = require('../config/config');
-const {
-  buildHelpDetailEmbed,
-  buildHelpErrorEmbed,
-  buildHelpListEmbed,
-  getHelpCommandById,
-  getHelpCommandByName,
-  resolveCategoryInput,
-  getHelpCommandByCategoryAndNumber,
-  buildCategoryPromptEmbed,
-  buildCategoryListEmbed,
-  getActiveHelpCommands
-} = require('../utils/helpSystem');
+const { helpCommands } = require('../utils/helpSystem');
 
 module.exports = {
   name: 'hosthelp',
@@ -24,12 +13,11 @@ module.exports = {
     }
 
     const prefix = message.prefix || '!';
-    const allCommands = getActiveHelpCommands();
     
     // Komendy dostępne tylko dla twórcy
     const creatorOnlyCommands = ['thx', 'zezwol', 'wersja', 'uadm', 'adm', 'guardnick', 'danegrpinfo', 'danegrp', 'dane', 'checkspam', 'backup', 'eventitemadd', 'eventitemdel', 'itemadd', 'gangreset', 'wymus', 'odtworz', 'stopdanegrpinfo', 'kubl', 'truebl'];
     
-    const creatorCommands = allCommands.filter(cmd => creatorOnlyCommands.includes(cmd.name));
+    const creatorCommands = helpCommands.filter(cmd => creatorOnlyCommands.includes(cmd.name));
 
     const sorted = [...creatorCommands].sort((a, b) => a.name.localeCompare(b.name));
 

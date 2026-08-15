@@ -1,16 +1,5 @@
 const config = require('../config/config');
-const {
-  buildHelpDetailEmbed,
-  buildHelpErrorEmbed,
-  buildHelpListEmbed,
-  getHelpCommandById,
-  getHelpCommandByName,
-  resolveCategoryInput,
-  getHelpCommandByCategoryAndNumber,
-  buildCategoryPromptEmbed,
-  buildCategoryListEmbed,
-  getCreatorHelpCommands
-} = require('../utils/helpSystem');
+const { helpCommands } = require('../utils/helpSystem');
 
 module.exports = {
   name: 'admhelp',
@@ -22,7 +11,11 @@ module.exports = {
     }
 
     const prefix = message.prefix || '!';
-    const adminCommands = getCreatorHelpCommands();
+    
+    // Komendy dostępne tylko dla adminów bota (nie dla twórcy)
+    const adminOnlyCommands = ['afkdel', 'aktualizuj', 'bl', 'blgrp', 'flaga', 'group', 'kick', 'loop', 'prefix', 'reakcja', 'ubl', 'ublgrp', 'wiadomosci', 'zakaz'];
+    
+    const adminCommands = helpCommands.filter(cmd => adminOnlyCommands.includes(cmd.name));
 
     const sorted = [...adminCommands].sort((a, b) => a.name.localeCompare(b.name));
 
