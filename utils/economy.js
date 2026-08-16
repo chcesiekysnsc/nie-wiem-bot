@@ -328,6 +328,9 @@ function getBankCapacity(user, inventoryRecord) {
 
   capacity += getHouseBankCapacityBonus(user);
 
+  const { getItemSetBonus } = require('./itemSets');
+  capacity += getItemSetBonus(inventoryRecord, 'bank_capacity');
+
   return capacity;
 }
 

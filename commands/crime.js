@@ -173,6 +173,11 @@ module.exports = {
         amount = amount * 2;
       }
 
+      const crimeWinDouble = getItemSetBonus(inventory, 'crime_win_double');
+      if (crimeWinDouble > 0 && Math.random() < crimeWinDouble) {
+        amount = amount * 2;
+      }
+
       const hasOdznakaKomendanta = hasItem(inventory, 'odznaka_komendanta');
       let savedByBadge = false;
       if (hasOdznakaKomendanta && !success) {

@@ -34,9 +34,10 @@ const SET_DEFINITIONS = [
     id: 'hazardzisty',
     name: 'Zestaw Hazardzisty',
     emoji: '🎰',
-    requiredItems: ['przekupiony_krupier', 'talizman_fortuny', 'kosc_ryzyka'],
+    requiredItems: ['przekupiony_krupier', 'talizman_fortuny', 'kosc_ryzyka', 'karty_tarota'],
     bonuses: [
-      { type: 'casino_win', value: 0.03, label: '+3% do wszystkich wygranych hazardowych' }
+      { type: 'casino_win', value: 0.05, label: '+5% do wszystkich wygranych hazardowych' },
+      { type: 'roulette_double', value: 0.03, label: '3% szans na podwojenie wygranej w ruletce' }
     ]
   },
   {
@@ -45,8 +46,7 @@ const SET_DEFINITIONS = [
     emoji: '🏴',
     requiredItems: ['godlo_gangu', 'insygnia_gang'],
     bonuses: [
-      { type: 'gang_rewards', value: 0.10, label: '+10% nagród z aktywności gangowych' },
-      { type: 'territory_rewards', value: 0.05, label: '+5% nagród z przejęć terytoriów' }
+      { type: 'gang_rewards', value: 0.10, label: '+10% nagród z aktywności gangowych' }
     ]
   },
   {
@@ -83,9 +83,10 @@ const SET_DEFINITIONS = [
     id: 'komendanta',
     name: 'Zestaw Komendanta',
     emoji: '🎖️',
-    requiredItems: ['odznaka_komendanta', 'patrol_policji', 'kamera', 'nowe_abibasy'],
+    requiredItems: ['odznaka_komendanta', 'patrol_policji', 'kamera', 'nowe_abibasy', 'falszer'],
     bonuses: [
-      { type: 'crime_catch_reduction', value: 0.06, label: '-6% szansy na przyłapanie w !crime' }
+      { type: 'crime_catch_reduction', value: 0.06, label: '-6% szansy na przyłapanie w !crime' },
+      { type: 'crime_loot_double', value: 0.03, label: '3% szans na podwojenie łupu z crime' }
     ]
   },
   {
@@ -142,16 +143,6 @@ const SET_DEFINITIONS = [
     ]
   },
   {
-    id: 'hazardzisty2',
-    name: 'Hazardzista II',
-    emoji: '🎰',
-    requiredItems: ['talizman_fortuny', 'przekupiony_krupier', 'kosc_ryzyka', 'karty_tarota'],
-    bonuses: [
-      { type: 'casino_win', value: 0.05, label: '+5% do wszystkich wygranych hazardowych' },
-      { type: 'roulette_double', value: 0.03, label: '3% szans na podwojenie wygranej w ruletce' }
-    ]
-  },
-  {
     id: 'eksperta_pracy',
     name: 'Zestaw Eksperta Pracy',
     emoji: '⚡',
@@ -161,16 +152,6 @@ const SET_DEFINITIONS = [
       { type: 'xp_gain', value: 0.06, label: '+6% XP ze wszystkich źródeł' },
       { type: 'work_triple_chance', value: 0.015, label: '1.5% szans na potrójną wypłatę z !work' },
       { type: 'xp_double_chance', value: 0.04, label: '4% szans na podwójne XP' }
-    ]
-  },
-  {
-    id: 'komendanta2',
-    name: 'Zestaw Komendanta II',
-    emoji: '🎖️',
-    requiredItems: ['odznaka_komendanta', 'patrol_policji', 'kamera', 'nowe_abibasy', 'falszer'],
-    bonuses: [
-      { type: 'crime_catch_reduction', value: 0.06, label: '-6% szansy na przyłapanie w !crime' },
-      { type: 'crime_loot_double', value: 0.03, label: '3% szans na podwojenie łupu z crime' }
     ]
   }
 ];
