@@ -114,9 +114,63 @@ const SET_DEFINITIONS = [
     id: 'uczenia',
     name: 'Zestaw Uczenia',
     emoji: '📚',
-    requiredItems: ['podrecznik_praktykanta', 'mentor', 'ksiazka_madnosci', 'szybka_nauka'],
+    requiredItems: ['podrecznik_praktykanta', 'mentor', 'ksiazka_madnosci', 'szybka_nauka', 'kurs_kwalifikacji'],
     bonuses: [
       { type: 'xp_gain', value: 0.06, label: '+6% XP ze wszystkich źródeł' }
+    ]
+  },
+  {
+    id: 'finansisty',
+    name: 'Zestaw Finansisty',
+    emoji: '💎',
+    requiredItems: ['ksiega_inwestora', 'inwestor', 'terminal_gieldowy', 'kalkulator_finansowy', 'certyfikat_inwestora'],
+    bonuses: [
+      { type: 'firm_income', value: 0.04, label: '+4% do zysków z firm' },
+      { type: 'company_double_chance', value: 0.03, label: '3% szans na 2x wypłatę z firmy' },
+      { type: 'bank_interest', value: 0.02, label: '+2% do odsetek bankowych' }
+    ]
+  },
+  {
+    id: 'przestepcy',
+    name: 'Zestaw Przestępcy',
+    emoji: '🗡️',
+    requiredItems: ['zestaw_wlamywacza', 'latarka', 'nowe_abibasy', 'falszer', 'ostry_noz'],
+    bonuses: [
+      { type: 'crime_catch_reduction', value: 0.03, label: '-3% szansy na przyłapanie w !crime' },
+      { type: 'crime_loot_double', value: 0.03, label: '3% szans na podwojenie łupu z crime' },
+      { type: 'crime_win_double', value: 0.03, label: '3% szans na podwojenie wygranej w crime' }
+    ]
+  },
+  {
+    id: 'hazardzisty2',
+    name: 'Hazardzista II',
+    emoji: '🎰',
+    requiredItems: ['talizman_fortuny', 'przekupiony_krupier', 'kosc_ryzyka', 'karty_tarota'],
+    bonuses: [
+      { type: 'casino_win', value: 0.05, label: '+5% do wszystkich wygranych hazardowych' },
+      { type: 'roulette_double', value: 0.03, label: '3% szans na podwojenie wygranej w ruletce' }
+    ]
+  },
+  {
+    id: 'eksperta_pracy',
+    name: 'Zestaw Eksperta Pracy',
+    emoji: '⚡',
+    requiredItems: ['walizka', 'rekawice_robotnika', 'podrecznik_praktykanta', 'mocna_kawa', 'energetyk'],
+    bonuses: [
+      { type: 'work_income', value: 0.05, label: '+5% do !work' },
+      { type: 'xp_gain', value: 0.06, label: '+6% XP ze wszystkich źródeł' },
+      { type: 'work_triple_chance', value: 0.015, label: '1.5% szans na potrójną wypłatę z !work' },
+      { type: 'xp_double_chance', value: 0.04, label: '4% szans na podwójne XP' }
+    ]
+  },
+  {
+    id: 'komendanta2',
+    name: 'Zestaw Komendanta II',
+    emoji: '🎖️',
+    requiredItems: ['odznaka_komendanta', 'patrol_policji', 'kamera', 'nowe_abibasy', 'falszer'],
+    bonuses: [
+      { type: 'crime_catch_reduction', value: 0.06, label: '-6% szansy na przyłapanie w !crime' },
+      { type: 'crime_loot_double', value: 0.03, label: '3% szans na podwojenie łupu z crime' }
     ]
   }
 ];

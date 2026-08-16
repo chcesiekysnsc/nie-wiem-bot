@@ -770,6 +770,26 @@ function runHeavyLoops(store) {
       refreshBadges(user, inv);
     }
   }
+
+  // --- Magiczna Sakiewka co 24h ---
+  store.profiles.lastMagicznaSakiewkaPayout = store.profiles.lastMagicznaSakiewkaPayout || now;
+  const magicznaIntervalMs = 24 * 60 * 60 * 1000;
+  if (now - store.profiles.lastMagicznaSakiewkaPayout > 5 * magicznaIntervalMs) {
+    store.profiles.lastMagicznaSakiewkaPayout = now - 5 * magicznaIntervalMs;
+  }
+  let timePassedMagiczna = now - store.profiles.lastMagicznaSakiewkaPayout;
+  while (timePassedMagiczna >= magicznaIntervalMs) {
+    for (const [userId, user] of Object.entries(store.users)) {
+      if (!user) continue;
+      const userInv = store.inventory[userId] || {};
+      if ((userInv['magiczna_sakiewka'] || 0) > 0) {
+        const bonus = Math.floor(Math.random() * (400000 - 25000 + 1)) + 25000;
+        user.balance = (user.balance || 0) + bonus;
+      }
+    }
+    store.profiles.lastMagicznaSakiewkaPayout += magicznaIntervalMs;
+    timePassedMagiczna = now - store.profiles.lastMagicznaSakiewkaPayout;
+  }
 }
 
 async function withData(callback) {

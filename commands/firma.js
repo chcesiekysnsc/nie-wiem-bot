@@ -236,6 +236,12 @@ module.exports = {
             terminalDoubled = true;
           }
 
+          const companyDoubleChance = getItemSetBonus(inventory, 'company_double_chance');
+          if (companyDoubleChance > 0 && Math.random() < companyDoubleChance) {
+            payout = payout * 2;
+            terminalDoubled = true;
+          }
+
           // Królewskie Insygnia: +10% do zysku z firmy
           let insygniaBonus = 0;
           if (hasInsygnia) {

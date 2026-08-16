@@ -230,6 +230,16 @@ module.exports = {
         reward = Math.floor(reward * (1 + automatBonus));
       }
 
+      const drukarkaBonus = getPassiveMultiplier(inventory, 'drukarka_pieniedzy', 0.05);
+      if (drukarkaBonus > 0) {
+        reward = Math.floor(reward * (1 + drukarkaBonus));
+      }
+
+      const workIncomeBonus = getItemSetBonus(inventory, 'work_income');
+      if (workIncomeBonus > 0) {
+        reward = Math.floor(reward * (1 + workIncomeBonus));
+      }
+
       const tripleChance = getItemSetBonus(inventory, 'work_triple_chance');
       if (tripleChance > 0 && Math.random() < tripleChance) {
         reward = reward * 3;
@@ -251,6 +261,13 @@ module.exports = {
           user.workLevel++;
           message.reply(`🎉 **Awans!** Twój poziom pracy wzrósł do ${user.workLevel}!`);
         }
+      }
+
+      const kursBonus = getPassiveMultiplier(inventory, 'kurs_kwalifikacji', 0.03);
+      if (kursBonus > 0 && Math.random() < (0.05 + kursBonus)) {
+        if (!user.workLevel) user.workLevel = 1;
+        user.workLevel++;
+        message.reply(`🎉 **Awans!** Twój poziom pracy wzrósł do ${user.workLevel}!`);
       }
 
       if (user.badges && user.badges.includes(config.badges.krolSpamu)) {
@@ -369,8 +386,19 @@ module.exports = {
       }
 
       const xpGain = getRandomXp();
-      const xpResult = addXp(user, xpGain, inventory);
+      const xpBonus = getItemSetBonus(inventory, 'xp_gain');
+      const finalXpGain = xpBonus > 0 ? Math.floor(xpGain * (1 + xpBonus)) : xpGain;
+      const xpResult = addXp(user, finalXpGain, inventory);
       const leveledUpWork = xpResult.leveledUp;
+
+      const xpDoubleChance = getItemSetBonus(inventory, 'xp_double_chance');
+      if (xpDoubleChance > 0 && Math.random() < xpDoubleChance) {
+        const bonusXp = getRandomXp();
+        const bonusXpResult = addXp(user, bonusXp, inventory);
+        if (bonusXpResult.leveledUp && !leveledUpWork) {
+          // message.reply already sent below if needed
+        }
+      }
 
       user.lastWorkTime = now;
 

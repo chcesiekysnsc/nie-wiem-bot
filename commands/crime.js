@@ -1,6 +1,6 @@
 const config = require('../config/config');
 const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable, getCrimeSuccessMultiplier, hasItem, getGlobalIncomeMultiplier, getGlobalCooldownReduction,   getItemUpgradeLevel,
-  getRandomXp
+  getRandomXp, getPassiveMultiplier
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -24,9 +24,10 @@ module.exports = {
   name: 'crime',
   aliases: [],
   async execute(client, message, args) {
-    client.pendingBribes = client.pendingBribes || new Map();
-    const authorId = message.author.id;
-    const now = Date.now();
+    try {
+      client.pendingBribes = client.pendingBribes || new Map();
+      const authorId = message.author.id;
+      const now = Date.now();
 
     // ==========================================
     // 1. PROCESS BRIBE OFFER (!crime lapowka)
@@ -164,6 +165,11 @@ module.exports = {
 
       const falszerBonus = getPassiveMultiplier(inventory, 'falszer', 0.03);
       if (falszerBonus > 0 && Math.random() < falszerBonus) {
+        amount = amount * 2;
+      }
+
+      const crimeLootDouble = getItemSetBonus(inventory, 'crime_loot_double');
+      if (crimeLootDouble > 0 && Math.random() < crimeLootDouble) {
         amount = amount * 2;
       }
 
@@ -325,6 +331,10 @@ module.exports = {
         }
         await message.reply(replyText);
       }
+    }
+    } catch (err) {
+      console.error('[CRIME] Error:', err);
+      await message.reply('❌ Wystąpił błąd podczas wykonywania komendy !crime.').catch(() => null);
     }
   }
 };

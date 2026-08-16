@@ -270,6 +270,11 @@ module.exports = {
         payout = payout * 2;
       }
 
+      const rouletteDouble = getItemSetBonus(inventory, 'roulette_double');
+      if (rouletteDouble > 0 && won && !kosciRefunded && Math.random() < rouletteDouble) {
+        payout = payout * 2;
+      }
+
       user.balance += payout;
 
       const net = payout - bet;
