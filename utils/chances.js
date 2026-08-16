@@ -5,7 +5,7 @@ const REGISTRY = {
     id: 'crime_success',
     label: 'Napad (crime)',
     description: 'Podstawowa szansa na sukces napadu',
-    default: 50,
+    default: 55,
     min: 0,
     max: 100,
     step: 1,

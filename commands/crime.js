@@ -248,7 +248,7 @@ module.exports = {
         };
       } else {
         // Check if user has enough balance to cover a bribe (2 * amount)
-        const canBribe = user.balance >= (amount * 2);
+        const canBribe = user.balance >= Math.min(amount * 2, 30000);
         return {
           success: false,
           amount,
@@ -307,14 +307,14 @@ module.exports = {
 
         client.pendingBribes.set(authorId, {
           amount: result.amount,
-          bribeCost: result.amount * 2,
+          bribeCost: Math.min(result.amount * 2, 30000),
           timeout
         });
 
         await message.reply(
           `🚔 Wpadka! ${result.text}\n` +
           `Masz **15 sekund** na próbę uniknięcia więzienia:\n` +
-          `👉 Wpisz **!crime lapowka**, aby przekupić policjanta za **${formatCurrency(result.amount * 2)}** (szansa na sukces: 55%).\n` +
+          `👉 Wpisz **!crime lapowka**, aby przekupić policjanta za **${formatCurrency(Math.min(result.amount * 2, 30000))}** (szansa na sukces: 55%).\n` +
           `Jeśli odmówią lub minie czas, na pewno trafisz do więzienia na **1 godzinę** i zapłacisz karę!`
         );
       } else {
