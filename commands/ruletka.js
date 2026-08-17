@@ -16,6 +16,7 @@ const {
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { advanceChallenge } = require('../utils/challenges');
+const { getItemSetBonus } = require('../utils/itemSets');
 
 const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 
