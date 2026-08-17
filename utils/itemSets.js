@@ -34,7 +34,7 @@ const SET_DEFINITIONS = [
     id: 'hazardzisty',
     name: 'Zestaw Hazardzisty',
     emoji: '🎰',
-    requiredItems: ['przekupiony_krupier', 'talizman_fortuny', 'kosc_ryzyka', 'karty_tarota'],
+    requiredItems: ['przekupiony_krupier', 'talizman_fortuny', 'kosc_ryzyka'],
     bonuses: [
       { type: 'casino_win', value: 0.05, label: '+5% do wszystkich wygranych hazardowych' },
       { type: 'roulette_double', value: 0.03, label: '3% szans na podwojenie wygranej w ruletce' }

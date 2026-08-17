@@ -20,9 +20,10 @@ const getNonEventItems = () => {
   let num = 1;
   for (const [id, def] of Object.entries(config.shopItems || {})) {
     const isPermanent = def.type === 'permanent';
+    const isStackable = def.type === 'stackable';
     const isPackage = id.startsWith('paczka_');
     const isEvent = eventItemIds.includes(id);
-    if (!isPermanent || isPackage || isEvent) continue;
+    if ((!isPermanent && !isStackable) || isPackage || isEvent) continue;
     list.push({
       num,
       id,
