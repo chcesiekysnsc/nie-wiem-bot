@@ -2,28 +2,61 @@ const config = require('../config/config');
 const { ensureInventoryRecord, addItem } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
-const eventItemIds = [
-  'szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia',
-  'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta', 'kosci_oszusta', 'czterolistna_moneta'
-];
-
-const getNonEventItems = () => {
+const getAllItems = () => {
   const list = [];
-  let num = 1;
+  const addedIds = new Set();
+
+  // 1. Dodajemy wszystkie przedmioty z config.shopItems
   for (const [id, def] of Object.entries(config.shopItems || {})) {
-    const isPermanent = def.type === 'permanent';
-    const isPackage = id.startsWith('paczka_');
-    const isEvent = eventItemIds.includes(id);
-    if (!isPermanent || isPackage || isEvent) continue;
     list.push({
-      num,
       id,
       name: def.name,
       emoji: def.emoji || '📦'
     });
-    num++;
+    addedIds.add(id);
   }
-  return list;
+
+  // 2. Dodajemy ewentualne brakujące przedmioty eventowe z eventitemy.js
+  try {
+    const eventItemyFile = require('./eventitemy');
+    const eventItems = eventItemyFile.eventItems;
+    if (eventItems) {
+      for (const item of Object.values(eventItems)) {
+        if (item && item.id && !addedIds.has(item.id)) {
+          list.push({
+            id: item.id,
+            name: item.name,
+            emoji: item.emoji || '🎁'
+          });
+          addedIds.add(item.id);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[ITEMADD] Błąd ładowania eventItems:', err);
+  }
+
+  // 3. Dodajemy brakujące materiały ulepszeniowe
+  const materials = [
+    { id: 'material_upgrade_1', name: 'Żelazo', emoji: '🔩' },
+    { id: 'material_upgrade_2', name: 'Miedź', emoji: '🔧' },
+    { id: 'material_upgrade_3', name: 'Tytan', emoji: '⚙️' },
+    { id: 'material_upgrade_4', name: 'Karbid', emoji: '💎' },
+    { id: 'material_upgrade_5', name: 'Inżelit', emoji: '⚛️' }
+  ];
+
+  for (const mat of materials) {
+    if (!addedIds.has(mat.id)) {
+      list.push(mat);
+      addedIds.add(mat.id);
+    }
+  }
+
+  // Dodajemy kolejną numerację
+  return list.map((item, index) => ({
+    num: index + 1,
+    ...item
+  }));
 };
 
 module.exports = {
@@ -37,13 +70,13 @@ module.exports = {
       return;
     }
 
-    const itemsList = getNonEventItems();
+    const itemsList = getAllItems();
 
     const input = String(args[0] || '').trim().toLowerCase();
     if (!input) {
       // Wyświetl całą listę z numerami i ID
       let listMsg = `🎁 **KREATOR PRZEDMIOTÓW (ADMIN)** 🎁\n`;
-      listMsg += `Użyj: **!itemadd <numer/ID> [ilość]** (np. *!itemadd 1 5* lub *!itemadd vip*)\n\n`;
+      listMsg += `Użyj: **!itemadd <numer/ID> [ilość]** lub **!itemadd all [ilość]**\n\n`;
       listMsg += `📋 **Lista dostępnych przedmiotów:**\n`;
       
       itemsList.forEach(item => {
@@ -51,6 +84,27 @@ module.exports = {
       });
       
       await message.reply(listMsg);
+      return;
+    }
+
+    // Obsługa dodawania wszystkich przedmiotów
+    if (input === 'all') {
+      let qty = 1;
+      if (args[1]) {
+        const parsedQty = parseInt(args[1], 10);
+        if (!isNaN(parsedQty) && parsedQty > 0) {
+          qty = parsedQty;
+        }
+      }
+
+      await withData(store => {
+        const inv = ensureInventoryRecord(store.inventory, creatorId);
+        for (const item of itemsList) {
+          addItem(inv, item.id, qty);
+        }
+      });
+
+      await message.reply(`🎁 Pomyślnie dodałeś **${qty}x** wszystkich przedmiotów (${itemsList.length} rodzajów) do swojego ekwipunku!`);
       return;
     }
 
@@ -73,7 +127,7 @@ module.exports = {
     }
 
     await withData(store => {
-      const inv = ensureInventoryRecord(store.inventory, authorId);
+      const inv = ensureInventoryRecord(store.inventory, creatorId);
       addItem(inv, item.id, qty);
     });
 
