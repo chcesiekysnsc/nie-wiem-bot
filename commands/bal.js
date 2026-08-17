@@ -43,6 +43,9 @@ module.exports = {
       if (hasItem(inventory, 'czarna_karta')) {
         itemBonus += 0.10; // +10% z Czarnej Karty
       }
+      if (hasItem(inventory, 'certyfikat_inwestora')) {
+        itemBonus += 0.02; // +2% z Certyfikatu Inwestora
+      }
       
       // Dodaj bonusy z setów
       const { getItemSetBonus } = require('../utils/itemSets');

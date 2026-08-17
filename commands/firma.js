@@ -22,7 +22,7 @@ module.exports = {
 
     const action = String(args[0] || '').toLowerCase();
     const companiesDef = config.economy.companies;
-    const companyTiers = ['kiosk', 'restauracja', 'salon', 'stocznia', 'bank'];
+    const companyTiers = ['stacja_paliw', 'cukiernia', 'kiosk', 'restauracja', 'salon', 'stocznia', 'bank', 'elektrownia'];
 
     // Helper: find company definition by ID, number (1-5) or name
     const findCompanyDef = (query) => {
@@ -60,7 +60,7 @@ module.exports = {
 
       let i = 1;
       for (const [id, def] of Object.entries(companiesDef)) {
-        const repairCost = def.payout * 4;
+        const repairCost = def.repairCost || (def.payout * 4);
         const breakPct = Math.round(def.breakChance * 100);
         
         const expectedDailyPayout = def.payout * 4 * (1 - 4 * def.breakChance);
@@ -186,7 +186,7 @@ module.exports = {
         const calcPayout = (compDef, companyObj, label, naprawCmd, userWorkers) => {
           if (!compDef) return null;
           if (companyObj.isBroken) {
-            const repairCost = compDef.payout * 4;
+            const repairCost = compDef.repairCost || (compDef.payout * 4);
             errors.push(`❌ ${label} **${compDef.emoji} ${compDef.name}** uległa awarii! Koszt naprawy: **${formatCurrency(repairCost)}** (Użyj: **${naprawCmd}**)`);
             return null;
           }
@@ -228,6 +228,10 @@ module.exports = {
           const kalkulatorBonusPct = getPassiveMultiplier(inventory, 'kalkulator_finansowy', 0.03);
           let kalkulatorBonus = kalkulatorBonusPct > 0 ? Math.floor(compDef.payout * kalkulatorBonusPct) : 0;
           payout += kalkulatorBonus;
+
+          const certyfikatBonusPct = getPassiveMultiplier(inventory, 'certyfikat_inwestora', 0.02);
+          let certyfikatBonus = certyfikatBonusPct > 0 ? Math.floor(compDef.payout * certyfikatBonusPct) : 0;
+          payout += certyfikatBonus;
 
           const terminalBonusPct = getPassiveMultiplier(inventory, 'terminal_gieldowy', 0.03);
           let terminalDoubled = false;
@@ -356,7 +360,7 @@ module.exports = {
           txt += `   🛠️ **Pracownik znalazł tanią naprawę!**\n`;
         }
         if (col.broke) {
-          const repairCost = col.compDef.payout * 4;
+          const repairCost = col.compDef.repairCost || (col.compDef.payout * 4);
           txt += `   ⚠️ **AWARIA!** Doszło do usterki sprzętu w tej firmie.\n   🔧 Wymagana naprawa za **${formatCurrency(repairCost)}**.\n`;
         }
         return txt;
@@ -398,7 +402,7 @@ module.exports = {
           return { error: '✅ Twoja firma jest sprawna i nie wymaga żadnych napraw!' };
         }
 
-        const baseRepairCost = compDef.payout * 4;
+        const baseRepairCost = compDef.repairCost || (compDef.payout * 4);
         
         // Check for worker repair discount
         let repairDiscount = false;
@@ -459,7 +463,7 @@ module.exports = {
           statusMsg += `1️⃣ **FIRMA:** ${compDef.emoji} **${compDef.name}**\n`;
           statusMsg += `   • Status: ${user.company.isBroken ? '🔴 Zepsuta (wymaga naprawy!)' : '🟢 Sprawna'}\n`;
           if (user.company.isBroken) {
-            const repairCost = compDef.payout * 4;
+            const repairCost = compDef.repairCost || (compDef.payout * 4);
             statusMsg += `   • Wypłata: Zablokowana (Naprawa: **${formatCurrency(repairCost)}** — użyj **!firma napraw**)\n`;
           } else {
             statusMsg += `   • Wypłata: ${isReady ? '🟢 Gotowa do odbioru!' : `⏳ Za ${msToReadable(cooldownMs - diff)}`}\n`;
@@ -479,7 +483,7 @@ module.exports = {
           statusMsg += `2️⃣ **DRUGA FIRMA:** ${compDef.emoji} **${compDef.name}**\n`;
           statusMsg += `   • Status: ${user.company2.isBroken ? '🔴 Zepsuta (wymaga naprawy!)' : '🟢 Sprawna'}\n`;
           if (user.company2.isBroken) {
-            const repairCost = compDef.payout * 4;
+            const repairCost = compDef.repairCost || (compDef.payout * 4);
             statusMsg += `   • Wypłata: Zablokowana (Naprawa: **${formatCurrency(repairCost)}** — użyj **!firma2 napraw**)\n`;
           } else {
             statusMsg += `   • Wypłata: ${isReady ? '🟢 Gotowa do odbioru!' : `⏳ Za ${msToReadable(cooldownMs - diff)}`}\n`;

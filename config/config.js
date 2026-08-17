@@ -116,13 +116,31 @@ module.exports = {
       tempCooldownReductionUntil: 0
     },
     companies: {
+      stacja_paliw: {
+        name: 'Stacja Paliw',
+        price: 500000,
+        payout: 11000,
+        breakChance: 0.02,
+        repairCost: 44000,
+        emoji: '⛽',
+        description: 'Najtańsza opcja wejścia w biznes. Niskie ryzyko awarii. Inwestycja zwraca się w około 13 dni.'
+      },
+      cukiernia: {
+        name: 'Cukiernia',
+        price: 1000000,
+        payout: 22500,
+        breakChance: 0.03,
+        repairCost: 90000,
+        emoji: '🧁',
+        description: 'Słodki biznes z umiarkowanym ryzykiem. Stabilne zyski i niski koszt naprawy. Inwestycja zwraca się w około 13 dni.'
+      },
       kiosk: {
         name: 'Kiosk',
         price: 2000000,
         payout: 45000,
         breakChance: 0.04,
         emoji: '🏪',
-        description: 'Niska cena wejścia, stabilne zyski. Inwestycja zwraca się w około 13 dni.'
+        description: 'Klasyczny biznes z dobrą relacją ryzyka do zysku. Inwestycja zwraca się w około 13 dni.'
       },
       restauracja: {
         name: 'Restauracja',
@@ -130,7 +148,7 @@ module.exports = {
         payout: 95000,
         breakChance: 0.05,
         emoji: '🍔',
-        description: 'Solidny biznes z przewidywalnym dochodem. Zwrot kosztów w około 13 dni.'
+        description: 'Solidny biznes gastronomiczny z przewidywalnym dochodem. Zwrot kosztów w około 13 dni.'
       },
       salon: {
         name: 'Salon Gier',
@@ -138,7 +156,7 @@ module.exports = {
         payout: 150000,
         breakChance: 0.06,
         emoji: '🎮',
-        description: 'Łatwiejsze utrzymanie i regularni klienci. Zwrot kosztów w około 13 dni.'
+        description: 'Rozrywkowy biznes z regularnymi klientami. Łatwiejsze utrzymanie. Zwrot kosztów w około 13 dni.'
       },
       stocznia: {
         name: 'Stocznia',
@@ -146,7 +164,7 @@ module.exports = {
         payout: 220000,
         breakChance: 0.08,
         emoji: '🚢',
-        description: 'Większe ryzyko, ale i większe zyski. Zwrot kosztów w około 13 dni.'
+        description: 'Przemysłowy gigant z większym ryzykiem, ale i większymi zyskami. Zwrot kosztów w około 13 dni.'
       },
       bank: {
         name: 'Prywatny Bank',
@@ -154,7 +172,16 @@ module.exports = {
         payout: 340000,
         breakChance: 0.13,
         emoji: '🏦',
-        description: 'Najwyższe zyski przy najwyższym ryzyku. 13% szans na awarię. Zwrot kosztów w około 15.3 dnia.'
+        description: 'Prestiżowy instytucja finansowa z najwyższymi zyskami przy wysokim ryzyku awarii. Zwrot kosztów w około 15 dni.'
+      },
+      elektrownia: {
+        name: 'Elektrownia',
+        price: 14000000,
+        payout: 470000,
+        breakChance: 0.15,
+        repairCost: 1880000,
+        emoji: '⚡',
+        description: 'Energetyczny potężny biznes dla największych inwestorów. Wysokie zyski przy wysokim ryzyku awarii (15%). Zwrot kosztów w około 16 dni.'
       }
     },
     workers: {

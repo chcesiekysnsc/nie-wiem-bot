@@ -9,7 +9,7 @@ module.exports = {
   async execute(client, message, args) {
     const action = String(args[0] || '').toLowerCase();
     const companiesDef = config.economy.companies;
-    const companyTiers = ['kiosk', 'restauracja', 'salon', 'stocznia', 'bank'];
+    const companyTiers = ['stacja_paliw', 'cukiernia', 'kiosk', 'restauracja', 'salon', 'stocznia', 'bank', 'elektrownia'];
 
     // Helper: find company definition by ID, number (1-5) or name
     const findCompanyDef = (query) => {
@@ -44,7 +44,7 @@ module.exports = {
 
       let i = 1;
       for (const [id, def] of Object.entries(companiesDef)) {
-        const repairCost = def.payout * 4;
+        const repairCost = def.repairCost || (def.payout * 4);
         const breakPct = Math.round(def.breakChance * 100);
 
         list += `**${i}. ${def.emoji} ${def.name}** (ID: \`${id}\`)\n`;
@@ -176,7 +176,7 @@ module.exports = {
           return { error: '✅ Twoja druga firma jest sprawna i nie wymaga żadnych napraw!' };
         }
 
-        const repairCost = compDef.payout * 4;
+        const repairCost = compDef.repairCost || (compDef.payout * 4);
         if (user.balance < repairCost) {
           return { error: `❌ Nie stać Cię na naprawę drugiej firmy! Koszt to **${formatCurrency(repairCost)}**, a w portfelu masz tylko **${formatCurrency(user.balance)}**.` };
         }
@@ -223,7 +223,7 @@ module.exports = {
       statusMsg += `📊 **Status:** ${user.company2.isBroken ? '🔴 Zepsuta (wymaga naprawy!)' : '🟢 Sprawna'}\n`;
       
       if (user.company2.isBroken) {
-        const repairCost = compDef.payout * 4;
+        const repairCost = compDef.repairCost || (compDef.payout * 4);
         statusMsg += `⏰ **Wypłata:** Zablokowana (Naprawa: **${formatCurrency(repairCost)}** — użyj **!firma2 napraw**)\n`;
       } else {
         statusMsg += `⏰ **Wypłata:** ${isReady ? '🟢 Gotowa do odbioru!' : `⏳ Za ${msToReadable(cooldownMs - diff)}`}\n`;

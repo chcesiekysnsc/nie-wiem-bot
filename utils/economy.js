@@ -470,7 +470,10 @@ function getPassiveMultiplier(inventoryRecord, itemId, baseBonus) {
     konsultant: 0.005,
     mentor: 0.005,
     ksiazka_madnosci: 0.005,
-    szybka_nauka: 0.005
+    szybka_nauka: 0.005,
+    kalkulator_finansowy: 0.005,
+    terminal_gieldowy: 0.005,
+    certyfikat_inwestora: 0.005
   };
   
   const perLevel = upgradePerLevel[itemId] || 0;
