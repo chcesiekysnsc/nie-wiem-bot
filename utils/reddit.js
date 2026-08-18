@@ -30,10 +30,11 @@ async function fetchRedditImage(subreddit) {
 
   if (subreddit === 'lions') {
     try {
-      const response = await axios.get('https://animals.maxz.dev/api/lion/random', { timeout: 10000 });
-      if (response.data && response.data.image) {
-        return response.data.image;
+      const response = await axios.get('https://loremflickr.com/640/480/lion', { timeout: 10000 });
+      if (response.request && response.request.res && response.request.res.responseUrl) {
+        return response.request.res.responseUrl;
       }
+      return 'https://loremflickr.com/640/480/lion?' + Date.now();
     } catch (err) {
       console.error('[REDDIT API] Lion API failed, trying Reddit:', err.message);
     }
