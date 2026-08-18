@@ -266,14 +266,18 @@ module.exports = {
         }
       }
 
+      let tarotTriggered = false;
       const kartyTarotaBonus = getPassiveMultiplier(inventory, 'karty_tarota', 0.03);
       if (kartyTarotaBonus > 0 && won && !kosciRefunded && Math.random() < kartyTarotaBonus) {
         payout = payout * 2;
+        tarotTriggered = true;
       }
 
+      let setDoubleTriggered = false;
       const rouletteDouble = getItemSetBonus(inventory, 'roulette_double');
       if (rouletteDouble > 0 && won && !kosciRefunded && Math.random() < rouletteDouble) {
         payout = payout * 2;
+        setDoubleTriggered = true;
       }
 
       user.balance += payout;
@@ -298,6 +302,8 @@ module.exports = {
         kosciRefunded,
         activeBadgeName,
         dealerCheated,
+        tarotTriggered,
+        setDoubleTriggered,
         challengeUpdate
       };
     });
@@ -326,6 +332,14 @@ module.exports = {
     }
     if (result.kosciRefunded) {
       replyText += `\n🎲 Przedmiot **Kości Oszusta** uratował Cię przed stratą i zwrócił całą stawkę!`;
+    }
+
+    if (result.tarotTriggered) {
+      replyText += `\n🃏 **Karty Tarota (2x)!** Twoje karty Tarota podwoiły wygraną!`;
+    }
+
+    if (result.setDoubleTriggered) {
+      replyText += `\n🎰 **Podwójna wygrana (2x)!** Zestaw przedmiotów podwoił Twoją wygraną!`;
     }
 
     if (result.xpResult && result.xpResult.leveledUp) {

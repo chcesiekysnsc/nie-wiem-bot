@@ -1,4 +1,5 @@
-const { withData, createUser, ensureInventoryRecord, getItemQuantity, removeItem } = require('../utils/storage');
+const { withData, createUser } = require('../utils/storage');
+const { ensureInventoryRecord, getItemQuantity, removeItem } = require('../utils/economy');
 
 module.exports = {
   name: 'wysadz',

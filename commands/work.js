@@ -112,6 +112,7 @@ module.exports = {
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+      const triggerMessages = [];
 
       // Inicjalizuj workTimestamps w profiles jeśli nie istnieje
       if (!store.profiles.workTimestamps || typeof store.profiles.workTimestamps !== 'object') {
@@ -243,11 +244,13 @@ module.exports = {
       const tripleChance = getItemSetBonus(inventory, 'work_triple_chance');
       if (tripleChance > 0 && Math.random() < tripleChance) {
         reward = reward * 3;
+        triggerMessages.push('🍀 **Potrójna wypłata!** Zestaw przedmiotów potroił Twój zysk!');
       } else if (hasItem(inventory, 'rekawice_robotnika')) {
         const level = getItemUpgradeLevel(inventory, 'rekawice_robotnika');
         const chance = 0.10 + level * 0.01;
         if (Math.random() < Math.min(chance, 0.20)) {
           reward = reward * 2;
+          triggerMessages.push(`🧤 **Podwójna wypłata!** Rękawice Robotnika (+${level}) podwoiły Twój zysk!`);
         }
       }
 
@@ -395,6 +398,7 @@ module.exports = {
       if (xpDoubleChance > 0 && Math.random() < xpDoubleChance) {
         const bonusXp = getRandomXp();
         const bonusXpResult = addXp(user, bonusXp, inventory);
+        triggerMessages.push('⚡ **Podwójny XP!** Zestaw przedmiotów dał Ci dodatkowe punkty doświadczenia!');
         if (bonusXpResult.leveledUp && !leveledUpWork) {
           // message.reply already sent below if needed
         }
@@ -470,6 +474,7 @@ module.exports = {
         leveledUpWork,
         newWorkLevel: user.workLevel,
         eventMessage,
+        triggerMessage: triggerMessages.join('\n'),
         workBoostActive: !!(user.workBoostUntil && now < user.workBoostUntil),
         workBoostPercent: user.workBoostPercent || 0,
         workBoostUntil: user.workBoostUntil || 0,
@@ -517,6 +522,10 @@ module.exports = {
 
     if (result.eventMessage) {
       replyText += `\n${result.eventMessage}`;
+    }
+
+    if (result.triggerMessage) {
+      replyText += `\n${result.triggerMessage}`;
     }
 
     if (result.workBoostActive) {

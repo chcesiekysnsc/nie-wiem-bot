@@ -576,7 +576,7 @@ function runHeavyLoops(store) {
     while (timePassed >= intervalMs) {
       for (const [userId, user] of Object.entries(store.users)) {
         if (user && user.bank > 0) {
-          let rate = 0.02;
+          let rate = 0.05; // 5% bazowo (zgodnie z bal.js)
           const userInv = store.inventory[userId] || {};
           const hasKatalizator = (userInv['katalizator_bogactwa'] || 0) > 0;
           if (hasKatalizator) {
@@ -597,12 +597,17 @@ function runHeavyLoops(store) {
           }
 
           if ((userInv['ksiega_inwestora'] || 0) > 0) {
-            rate += hasCzterolistna ? 0.0575 : 0.05; // +5% or +5.75% co 12h
+            rate += hasCzterolistna ? 0.0575 : 0.05; // +5% lub +5.75%
           }
 
           if ((userInv['certyfikat_inwestora'] || 0) > 0) {
             rate += 0.02;
           }
+
+          // Dodaj bonusy z setów
+          const { getItemSetBonus } = require('./itemSets');
+          const setBonus = getItemSetBonus(userInv, 'bank_interest');
+          rate += setBonus;
 
           const finalRate = rate * interestMul;
 

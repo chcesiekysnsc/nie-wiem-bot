@@ -125,6 +125,7 @@ module.exports = {
     const result = await withData(store => {
       const user = createUser(authorId, store.users);
       const inventory = ensureInventoryRecord(store.inventory, authorId);
+      const triggerMessages = [];
 
       let baseSuccessChance = Number.isFinite(crimeSuccessOverride) ? crimeSuccessOverride / 100 : 0.75;
       const crimeMul = getCrimeSuccessMultiplier();
@@ -166,16 +167,19 @@ module.exports = {
       const falszerBonus = getPassiveMultiplier(inventory, 'falszer', 0.03);
       if (falszerBonus > 0 && Math.random() < falszerBonus) {
         amount = amount * 2;
+        triggerMessages.push('🕵️ **Fałszerz!** Twój fałszerz podwoił zysk z napadu!');
       }
 
       const crimeLootDouble = getItemSetBonus(inventory, 'crime_loot_double');
       if (crimeLootDouble > 0 && Math.random() < crimeLootDouble) {
         amount = amount * 2;
+        triggerMessages.push('🍀 **Podwójny łup!** Zestaw przedmiotów podwoił łup z napadu!');
       }
 
       const crimeWinDouble = getItemSetBonus(inventory, 'crime_win_double');
       if (crimeWinDouble > 0 && Math.random() < crimeWinDouble) {
         amount = amount * 2;
+        triggerMessages.push('🍀 **Podwójna wygrana!** Zestaw przedmiotów podwoił wygraną z napadu!');
       }
 
       const hasOdznakaKomendanta = hasItem(inventory, 'odznaka_komendanta');
@@ -244,7 +248,8 @@ module.exports = {
           gangBonus,
           xpResult,
           text: successLines[Math.floor(Math.random() * successLines.length)],
-          savedByBadge
+          savedByBadge,
+          triggerMessage: triggerMessages.join('\n')
         };
       } else {
         // Check if user has enough balance to cover a bribe (2 * amount)
@@ -269,6 +274,10 @@ module.exports = {
 
       if (result.savedByBadge) {
         replyText += `\n🎖️ Odznaka Komendanta uratowała Cię przed aresztowaniem!`;
+      }
+
+      if (result.triggerMessage) {
+        replyText += `\n${result.triggerMessage}`;
       }
 
       if (result.xpResult && result.xpResult.leveledUp) {

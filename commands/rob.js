@@ -126,8 +126,10 @@ function calculateStolenAmount(baseStolen, robberInv, gangFachLevel) {
   }
   
   // Dodaj bonus wcześniejszego przygotowania (50% większy łup)
+  let wczesniejszePrzygotowanieTriggered = false;
   if (hasItem(robberInv, 'wczesniejsze_przygotowanie') && Math.random() < 0.02) {
     stolen = Math.floor(stolen * 1.5);
+    wczesniejszePrzygotowanieTriggered = true;
   }
 
   let sztyletBonus = 0;
@@ -136,7 +138,7 @@ function calculateStolenAmount(baseStolen, robberInv, gangFachLevel) {
     stolen += sztyletBonus;
   }
 
-  return { stolen, gangBonus, sztyletBonus, latarkaBonusPct };
+  return { stolen, gangBonus, sztyletBonus, latarkaBonusPct, wczesniejszePrzygotowanieTriggered };
 }
 
 function calculateTribute(stolen, store, robber) {
@@ -364,7 +366,7 @@ module.exports = {
 
           if (success) {
             const gangFachLevel = getFachLevel(store, robber.gangId);
-            const { stolen, gangBonus, sztyletBonus, latarkaBonusPct } = calculateStolenAmount(baseStolen, robberInv, gangFachLevel);
+            const { stolen, gangBonus, sztyletBonus, latarkaBonusPct, wczesniejszePrzygotowanieTriggered } = calculateStolenAmount(baseStolen, robberInv, gangFachLevel);
 
             const tribute = calculateTribute(stolen, store, robber);
 
@@ -479,6 +481,7 @@ module.exports = {
               latarkaBonus: latarkaBonusPct > 0 ? Math.floor(stolen * latarkaBonusPct) : 0,
               latarkaBonusPct,
               insygniaBonus,
+              wczesniejszePrzygotowanieTriggered,
               secondRob
             };
           } else {
@@ -553,6 +556,9 @@ module.exports = {
           }
           if (result.insygniaBonus) {
             itemsUsedNotes.push(`**+${formatCurrency(result.insygniaBonus)}** z 👑 Królewskich Insygniów`);
+          }
+          if (result.wczesniejszePrzygotowanieTriggered) {
+            itemsUsedNotes.push(`**+50%** z 📁 Wcześniejszego Przygotowania`);
           }
           const itemsNote = itemsUsedNotes.length > 0 ? ` (w tym ${itemsUsedNotes.join(' oraz ')})` : '';
           const bonusNote = result.gangBonus ? ` (w tym **+${result.gangBonus}%** z fachu gangu)` : '';
