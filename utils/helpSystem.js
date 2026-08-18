@@ -1121,6 +1121,19 @@ const helpCommands = [
     additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
   },
   {
+    id: 691,
+    name: "lew",
+    category: "SOCIAL_GANGS",
+    shortDescription: "🦁 wysyła zdjęcie lwa",
+    description: "🦁 Pobiera i wysyła losowe zdjęcie lwa (przefiltrowane - tylko formaty graficzne, bez wideo i treści drastycznych).",
+    usage: "!lew",
+    examples: ["!lew"],
+    cooldown: "2 minuty",
+    requirements: "Brak.",
+    aliases: ["lion", "lwy"],
+    additionalInfo: ["Właściciel bota nie ma cooldownu na tę komendę."]
+  },
+  {
     id: 70,
     name: "kotek",
     category: "SOCIAL_GANGS",

@@ -69,6 +69,7 @@ module.exports = {
     firma: 3,
     analiza: 10,
     krolik: 0,
+    lew: 0,
     kot: 0,
     dog: 0,
     fox: 0,

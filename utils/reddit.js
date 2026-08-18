@@ -28,6 +28,17 @@ async function fetchRedditImage(subreddit) {
     }
   }
 
+  if (subreddit === 'lions') {
+    try {
+      const response = await axios.get('https://animals.maxz.dev/api/lion/random', { timeout: 10000 });
+      if (response.data && response.data.image) {
+        return response.data.image;
+      }
+    } catch (err) {
+      console.error('[REDDIT API] Lion API failed, trying Reddit:', err.message);
+    }
+  }
+
   if (subreddit === 'dogpictures') {
     try {
       const response = await axios.get('https://dog.ceo/api/breeds/image/random', { timeout: 10000 });
