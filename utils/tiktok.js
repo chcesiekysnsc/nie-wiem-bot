@@ -2,7 +2,7 @@ const axios = require('axios');
 const fs = require('fs');
 
 // Regular expression to match standard and shortened TikTok links
-const TIKTOK_REGEX = /https?:\/\/(?:[a-zA-Z0-9-]+\.)?tiktok\.com\/[A-Za-z0-9_./?=&-]+/i;
+const TIKTOK_REGEX = /https?:\/\/(?:www\.)?tiktok\.com\/@[a-zA-Z0-9_.-]+\/video\/\d+|https?:\/\/(?:vm\.|vt\.|v\.)?tiktok\.com\/[A-Za-z0-9_./?=&-]+/i;
 
 /**
  * Extracts the first TikTok link from text.
