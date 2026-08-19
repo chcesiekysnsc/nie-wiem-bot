@@ -154,14 +154,32 @@ async function downloadFile(url, destPath) {
     }
   });
 
-  response.data.pipe(writer);
-
   return new Promise((resolve, reject) => {
-    writer.on('finish', resolve);
-    writer.on('error', (err) => {
-      writer.close();
-      reject(err);
+    const streamError = (err) => {
+      writer.removeAllListeners();
+      try { writer.close(); } catch (_) {}
+      if (!writer.destroyed) writer.destroy();
+      try { if (fs.existsSync(destPath)) fs.unlinkSync(destPath); } catch (_) {}
+      reject(new Error(`Nie udało się pobrać pliku z TikToka: ${err && err.message ? err.message : err}`));
+    };
+
+    writer.on('finish', () => {
+      writer.removeAllListeners();
+      try {
+        const stats = fs.statSync(destPath);
+        if (!stats.isFile() || stats.size === 0) {
+          try { fs.unlinkSync(destPath); } catch (_) {}
+          return reject(new Error('Pobrany plik jest pusty lub nie istnieje.'));
+        }
+        resolve();
+      } catch (err) {
+        reject(new Error(`Nie udało się zweryfikować pobranego pliku: ${err.message}`));
+      }
     });
+    writer.on('error', streamError);
+
+    response.data.on('error', streamError);
+    response.data.pipe(writer);
   });
 }
 

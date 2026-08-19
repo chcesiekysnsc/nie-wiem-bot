@@ -2713,23 +2713,15 @@ login({ appState }, (loginErr, api) => {
             } else {
               api.setMessageReaction('✅', messageId, threadId, () => {});
             }
+
+            try { if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); } catch (_) {}
           }, messageId);
 
         } catch (err) {
           console.error('[TIKTOK ERROR]', err.message);
-          api.setMessageReaction('❌', messageId, () => {});
+          api.setMessageReaction('❌', messageId, threadId, () => {});
           api.sendMessage(`❌ Nie udało się pobrać wideo z TikToka.`, threadId, () => {}, messageId);
-        } finally {
-          setTimeout(() => {
-            if (fs.existsSync(tempFile)) {
-              try {
-                fs.unlinkSync(tempFile);
-                console.log(`[TIKTOK] Wyczyszczono plik tymczasowy: ${tempFile}`);
-              } catch (e) {
-                console.error('[TIKTOK CLEANUP ERROR]', e.message);
-              }
-            }
-          }, 5000).unref();
+          try { if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); } catch (_) {}
         }
       })();
     }
