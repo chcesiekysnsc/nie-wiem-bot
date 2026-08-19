@@ -75,7 +75,7 @@ const { getItemSetBonus } = require('./utils/itemSets');
 const { getWorkerDef, applyWorkerEffects } = require('./utils/workerEffects');
 const { getCommandsByCategory } = require('./utils/helpSystem');
 const { saveGameSessions } = require('./utils/gameStatePersistence');
-const { extractTikTokLink, getTikTokVideoData, downloadFile } = require('./utils/tiktok');
+const { extractTikTokLink, getTikTokVideoData, downloadVideoWithYtDlp } = require('./utils/tiktok');
 
 function isNotificationBlocked(threadId) {
   try {
@@ -2696,10 +2696,10 @@ login({ appState }, (loginErr, api) => {
             return;
           }
 
-          console.log(`[TIKTOK] Pobieranie wideo (${(data.size / 1024 / 1024).toFixed(2)} MB) do: ${tempFile}`);
+          console.log(`[TIKTOK] Pobieranie wideo do: ${tempFile}`);
           let downloaded = false;
           try {
-            await downloadFile(data.playUrl, tempFile);
+            await downloadVideoWithYtDlp(tiktokLink, tempFile);
             downloaded = true;
           } catch (downloadErr) {
             console.error('[TIKTOK DOWNLOAD ERROR]', downloadErr);

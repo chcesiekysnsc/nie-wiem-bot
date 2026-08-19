@@ -27,6 +27,7 @@
     "express": "^5.2.1",
     "https-proxy-agent": "^9.0.0",
     "pg": "^8.13.1",
-    "puppeteer": "^25.1.0"
+    "puppeteer": "^25.1.0",
+    "yt-dlp-wrap": "^2.3.12"
   }
 }
