@@ -75,7 +75,6 @@ const { getItemSetBonus } = require('./utils/itemSets');
 const { getWorkerDef, applyWorkerEffects } = require('./utils/workerEffects');
 const { getCommandsByCategory } = require('./utils/helpSystem');
 const { saveGameSessions } = require('./utils/gameStatePersistence');
-const { extractTikTokLink, getTikTokVideoData, downloadVideoWithYtDlp } = require('./utils/tiktok');
 
 function isNotificationBlocked(threadId) {
   try {
@@ -2664,87 +2663,6 @@ login({ appState }, (loginErr, api) => {
     if (botId && String(senderId) === String(botId) && !text.startsWith(currentPrefix)) {
       console.log(`[MQTT-MSG] Ignored self-message without command prefix: "${text}"`);
       return;
-    }
-
-    // TikTok downloader
-    const tiktokLink = extractTikTokLink(text);
-    if (tiktokLink && !text.startsWith(currentPrefix)) {
-      console.log(`[TIKTOK] Wykryto link do TikToka od ${senderId} w wątku ${threadId}: ${tiktokLink}`);
-      api.setMessageReaction('⏳', messageId, threadId, () => {});
-
-      (async () => {
-        const tempFile = path.join(__dirname, 'data', `tiktok_${messageId}.mp4`);
-        try {
-          const data = await getTikTokVideoData(tiktokLink);
-          const MAX_SIZE = 25 * 1024 * 1024;
-
-          if (data.size > MAX_SIZE) {
-            console.log(`[TIKTOK] Film jest zbyt duży (${(data.size / 1024 / 1024).toFixed(2)} MB). Wysyłam link bezpośredni.`);
-            api.sendMessage(
-              `⚠️ **Wideo jest zbyt duże (${(data.size / 1024 / 1024).toFixed(2)} MB), aby wysłać je bezpośrednio.**\n\n` +
-              `👤 Autor: @${data.author}\n` +
-              `📝 Tytuł: ${data.title}\n\n` +
-              `👀 ${data.views.toLocaleString()} | ❤️ ${data.likes.toLocaleString()} | 💬 ${data.comments.toLocaleString()} | 🔁 ${data.shares.toLocaleString()}\n\n` +
-              `🔗 Link bez znaku wodnego:\n${data.playUrl}`,
-              threadId,
-              (err) => {
-                if (err) console.error('[TIKTOK SEND MSG ERROR]', err);
-                api.setMessageReaction('❌', messageId, threadId, () => {});
-              },
-              messageId
-            );
-            return;
-          }
-
-          console.log(`[TIKTOK] Pobieranie wideo do: ${tempFile}`);
-          let downloaded = false;
-          try {
-            await downloadVideoWithYtDlp(tiktokLink, tempFile);
-            downloaded = true;
-          } catch (downloadErr) {
-            console.error('[TIKTOK DOWNLOAD ERROR]', downloadErr);
-          }
-
-          if (downloaded) {
-            console.log(`[TIKTOK] Wysyłanie wideo do wątku ${threadId}...`);
-            api.sendMessage({
-              body: `🎥 **TikTok od @${data.author}**\n` +
-                    `${data.title}\n\n` +
-                    `👀 ${data.views.toLocaleString()} | ❤️ ${data.likes.toLocaleString()} | 💬 ${data.comments.toLocaleString()} | 🔁 ${data.shares.toLocaleString()}`,
-              attachment: fs.createReadStream(tempFile)
-            }, threadId, (err) => {
-              if (err) {
-                console.error('[TIKTOK SEND VIDEO ERROR]', err);
-                api.setMessageReaction('❌', messageId, threadId, () => {});
-                api.sendMessage(`❌ Nie udało się wysłać pobranego wideo.`, threadId, () => {}, messageId);
-              } else {
-                api.setMessageReaction('✅', messageId, threadId, () => {});
-              }
-
-              try { if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); } catch (_) {}
-            }, messageId);
-          } else {
-            api.sendMessage(`🎥 **TikTok od @${data.author}**\n` +
-                  `${data.title}\n\n` +
-                  `👀 ${data.views.toLocaleString()} | ❤️ ${data.likes.toLocaleString()} | 💬 ${data.comments.toLocaleString()} | 🔁 ${data.shares.toLocaleString()}\n\n` +
-                  `⚠️ Nie udało się pobrać wideo, wysyłam link bezpośredni:\n${data.playUrl}`, threadId, (err) => {
-              if (err) {
-                console.error('[TIKTOK SEND LINK ERROR]', err);
-                api.setMessageReaction('❌', messageId, threadId, () => {});
-              } else {
-                api.setMessageReaction('✅', messageId, threadId, () => {});
-              }
-            }, messageId);
-          }
-
-        } catch (err) {
-          console.error('[TIKTOK ERROR]', err);
-          const errMsg = err && typeof err === 'object' ? (err.message || String(err)) : String(err);
-          api.setMessageReaction('❌', messageId, threadId, () => {});
-          api.sendMessage(`❌ Nie udało się pobrać wideo z TikToka.\n🔍 Szczegóły: \`${errMsg}\``, threadId, () => {}, messageId);
-          try { if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); } catch (_) {}
-        }
-      })();
     }
 
     // Mark as read
