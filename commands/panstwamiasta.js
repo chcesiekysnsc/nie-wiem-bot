@@ -443,7 +443,7 @@ module.exports = {
 
     if (messageContext.rawEvent?.messageID && client.api) {
       const reaction = isGood ? '👍' : '👎';
-      client.api.setMessageReaction(reaction, messageContext.rawEvent.messageID, () => {});
+      client.api.setMessageReaction(reaction, messageContext.rawEvent.messageID, threadId, () => {});
     }
   },
 

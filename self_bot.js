@@ -2670,7 +2670,7 @@ login({ appState }, (loginErr, api) => {
     const tiktokLink = extractTikTokLink(text);
     if (tiktokLink && !text.startsWith(currentPrefix)) {
       console.log(`[TIKTOK] Wykryto link do TikToka od ${senderId} w wątku ${threadId}: ${tiktokLink}`);
-      api.setMessageReaction('⏳', messageId, () => {});
+      api.setMessageReaction('⏳', messageId, threadId, () => {});
 
       (async () => {
         const tempFile = path.join(__dirname, 'data', `tiktok_${messageId}.mp4`);
@@ -2689,7 +2689,7 @@ login({ appState }, (loginErr, api) => {
               threadId,
               (err) => {
                 if (err) console.error('[TIKTOK SEND MSG ERROR]', err);
-                api.setMessageReaction('❌', messageId, () => {});
+                api.setMessageReaction('❌', messageId, threadId, () => {});
               },
               messageId
             );
@@ -2708,10 +2708,10 @@ login({ appState }, (loginErr, api) => {
           }, threadId, (err) => {
             if (err) {
               console.error('[TIKTOK SEND VIDEO ERROR]', err);
-              api.setMessageReaction('❌', messageId, () => {});
+              api.setMessageReaction('❌', messageId, threadId, () => {});
               api.sendMessage(`❌ Nie udało się wysłać pobranego wideo.`, threadId, () => {}, messageId);
             } else {
-              api.setMessageReaction('✅', messageId, () => {});
+              api.setMessageReaction('✅', messageId, threadId, () => {});
             }
           }, messageId);
 
