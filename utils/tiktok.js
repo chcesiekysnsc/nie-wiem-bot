@@ -93,7 +93,7 @@ async function getTikTokVideoData(videoUrl) {
             shares: res.data.data.share_count || 0
           };
         }
-        throw new Error(res.data?.msg || 'API returned error');
+        throw new Error(`TikWM error: ${res.data?.msg || 'API returned error'} | code=${res.data?.code}`);
       }
     },
     {
@@ -117,7 +117,7 @@ async function getTikTokVideoData(videoUrl) {
             shares: res.data.data.share_count || 0
           };
         }
-        throw new Error(res.data?.msg || 'API returned error');
+        throw new Error(`TikWM error: ${res.data?.msg || 'API returned error'} | code=${res.data?.code}`);
       }
     }
   ];
@@ -129,7 +129,7 @@ async function getTikTokVideoData(videoUrl) {
       console.log(`[TIKTOK API] Success with ${service.name}`);
       return data;
     } catch (err) {
-      console.error(`[TIKTOK API ERROR] ${service.name} failed:`, err.message);
+      console.error(`[TIKTOK API ERROR] ${service.name} failed:`, err);
     }
   }
 
@@ -143,6 +143,7 @@ async function getTikTokVideoData(videoUrl) {
  * @returns {Promise<void>}
  */
 async function downloadFile(url, destPath) {
+  console.log(`[TIKTOK DOWNLOAD] Pobieranie z: ${url}`);
   const writer = fs.createWriteStream(destPath);
   const response = await axios({
     url,
@@ -150,7 +151,8 @@ async function downloadFile(url, destPath) {
     responseType: 'stream',
     timeout: 30000,
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Referer': 'https://www.tiktok.com/'
     }
   });
 
@@ -160,7 +162,8 @@ async function downloadFile(url, destPath) {
       try { writer.close(); } catch (_) {}
       if (!writer.destroyed) writer.destroy();
       try { if (fs.existsSync(destPath)) fs.unlinkSync(destPath); } catch (_) {}
-      reject(new Error(`Nie udało się pobrać pliku z TikToka: ${err && err.message ? err.message : err}`));
+      const msg = err && typeof err === 'object' ? (err.message || String(err)) : String(err);
+      reject(new Error(`Nie udało się pobrać pliku z TikToka: ${msg}`));
     };
 
     writer.on('finish', () => {
@@ -171,6 +174,7 @@ async function downloadFile(url, destPath) {
           try { fs.unlinkSync(destPath); } catch (_) {}
           return reject(new Error('Pobrany plik jest pusty lub nie istnieje.'));
         }
+        console.log(`[TIKTOK DOWNLOAD] Pobrano plik: ${destPath} (${stats.size} bajtów)`);
         resolve();
       } catch (err) {
         reject(new Error(`Nie udało się zweryfikować pobranego pliku: ${err.message}`));
