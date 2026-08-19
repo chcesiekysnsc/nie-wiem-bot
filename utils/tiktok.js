@@ -12,12 +12,12 @@ function extractTikTokLink(text) {
   
   // Match all TikTok URL patterns
   const patterns = [
-    /https?:\/\/(?:www\.)?tiktok\.com\/@[a-zA-Z0-9_.-]+\/video\/\d+/i,
-    /https?:\/\/(?:www\.)?tiktok\.com\/t\/[A-Za-z0-9_-]+/i,
-    /https?:\/\/(?:www\.)?tiktok\.com\/v\/[A-Za-z0-9_-]+/i,
-    /https?:\/\/vm\.tiktok\.com\/[A-Za-z0-9_-]+/i,
-    /https?:\/\/vt\.tiktok\.com\/[A-Za-z0-9_-]+/i,
-    /https?:\/\/v\.tiktok\.com\/[A-Za-z0-9_-]+/i
+    /https?:\/\/(?:www\.)?tiktok\.com\/@[a-zA-Z0-9_.-]+\/video\/\d+\/?/i,
+    /https?:\/\/(?:www\.)?tiktok\.com\/t\/[A-Za-z0-9_-]+\/?/i,
+    /https?:\/\/(?:www\.)?tiktok\.com\/v\/[A-Za-z0-9_-]+\/?/i,
+    /https?:\/\/vm\.tiktok\.com\/[A-Za-z0-9_-]+\/?/i,
+    /https?:\/\/vt\.tiktok\.com\/[A-Za-z0-9_-]+\/?/i,
+    /https?:\/\/v\.tiktok\.com\/[A-Za-z0-9_-]+\/?/i
   ];
   
   for (const pattern of patterns) {
