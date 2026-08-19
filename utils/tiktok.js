@@ -1,11 +1,11 @@
 const axios = require('axios');
 const fs = require('fs');
-const path = require('path');
 
+// Regular expression to match standard and shortened TikTok links
 const TIKTOK_REGEX = /https?:\/\/(?:[a-zA-Z0-9-]+\.)?tiktok\.com\/[A-Za-z0-9_./?=&-]+/i;
 
 /**
- * Wyciąga pierwszy link do TikToka z tekstu.
+ * Extracts the first TikTok link from text.
  * @param {string} text 
  * @returns {string|null}
  */
@@ -16,30 +16,65 @@ function extractTikTokLink(text) {
 }
 
 /**
- * Pobiera informacje o wideo z API TikWM.
+ * Resolves redirects for shortened TikTok URLs (like vm.tiktok.com, vt.tiktok.com, v.tiktok.com).
+ * @param {string} url 
+ * @returns {Promise<string>}
+ */
+async function resolveRedirect(url) {
+  if (url.includes('vm.tiktok.com') || url.includes('vt.tiktok.com') || url.includes('v.tiktok.com')) {
+    try {
+      console.log(`[TIKTOK RESOLVER] Resolving redirect for shortened URL: ${url}`);
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        maxRedirects: 5,
+        timeout: 8000
+      });
+      const resolved = response.request.res.responseUrl || url;
+      console.log(`[TIKTOK RESOLVER] Resolved to: ${resolved}`);
+      return resolved;
+    } catch (err) {
+      console.error('[TIKTOK RESOLVER ERROR] Failed to resolve redirect:', err.message);
+      return url;
+    }
+  }
+  return url;
+}
+
+/**
+ * Fetches TikTok video data from TikWM API.
+ * Uses x-www-form-urlencoded POST as primary and GET as fallback.
  * @param {string} videoUrl 
- * @returns {Promise<{playUrl: string, title: string, size: number, author: string}>}
+ * @returns {Promise<{playUrl: string, title: string, size: number, author: string, views: number, likes: number, comments: number, shares: number}>}
  */
 async function getTikTokVideoData(videoUrl) {
+  const resolvedUrl = await resolveRedirect(videoUrl);
+
+  // User-Agent string to mimic browser request
+  const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+  // 1. Primary: POST to tikwm.com/api/ using form-urlencoded data
   try {
-    // TikWM obsługuje zarówno GET jak i POST. Użyjemy POST z URLSearchParams dla stabilności.
+    console.log(`[TIKTOK API] Sending POST request to TikWM for: ${resolvedUrl}`);
     const params = new URLSearchParams();
-    params.append('url', videoUrl);
+    params.append('url', resolvedUrl);
     params.append('hd', '0');
 
     const res = await axios.post('https://www.tikwm.com/api/', params, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': userAgent
       },
       timeout: 10000
     });
 
     if (res.data && res.data.code === 0 && res.data.data) {
+      console.log('[TIKTOK API] Successfully fetched video data via POST');
       return {
-        playUrl: res.data.data.play, // Link bez znaku wodnego
+        playUrl: res.data.data.play,
         title: res.data.data.title || 'Wideo z TikToka',
-        size: res.data.data.size || 0, // Rozmiar w bajtach
+        size: res.data.data.size || 0,
         author: res.data.data.author?.unique_id || 'autor',
         views: res.data.data.play_count || 0,
         likes: res.data.data.digg_count || 0,
@@ -47,38 +82,46 @@ async function getTikTokVideoData(videoUrl) {
         shares: res.data.data.share_count || 0
       };
     } else {
-      // Próba zapasowa za pomocą GET na api.tikwm.com
-      const resGet = await axios.get('https://api.tikwm.com/api/', {
-        params: { url: videoUrl },
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        },
-        timeout: 10000
-      });
-
-      if (resGet.data && resGet.data.code === 0 && resGet.data.data) {
-        return {
-          playUrl: resGet.data.data.play,
-          title: resGet.data.data.title || 'Wideo z TikToka',
-          size: resGet.data.data.size || 0,
-          author: resGet.data.data.author?.unique_id || 'autor',
-          views: resGet.data.data.play_count || 0,
-          likes: resGet.data.data.digg_count || 0,
-          comments: resGet.data.data.comment_count || 0,
-          shares: resGet.data.data.share_count || 0
-        };
-      }
-
-      throw new Error(res.data?.msg || resGet.data?.msg || 'Nie udało się pobrać danych o wideo z TikWM.');
+      console.warn(`[TIKTOK API] POST returned code ${res.data?.code}: ${res.data?.msg || 'No message'}`);
     }
-  } catch (error) {
-    console.error('[TIKTOK API ERROR]', error.message);
-    throw error;
+  } catch (postError) {
+    console.error('[TIKTOK API ERROR] POST request failed:', postError.message);
+  }
+
+  // 2. Fallback: GET request to tikwm.com/api/
+  try {
+    console.log(`[TIKTOK API] Falling back to GET request to TikWM for: ${resolvedUrl}`);
+    const resGet = await axios.get('https://www.tikwm.com/api/', {
+      params: { url: resolvedUrl, hd: '0' },
+      headers: {
+        'User-Agent': userAgent
+      },
+      timeout: 10000
+    });
+
+    if (resGet.data && resGet.data.code === 0 && resGet.data.data) {
+      console.log('[TIKTOK API] Successfully fetched video data via GET');
+      return {
+        playUrl: resGet.data.data.play,
+        title: resGet.data.data.title || 'Wideo z TikToka',
+        size: resGet.data.data.size || 0,
+        author: resGet.data.data.author?.unique_id || 'autor',
+        views: resGet.data.data.play_count || 0,
+        likes: resGet.data.data.digg_count || 0,
+        comments: resGet.data.data.comment_count || 0,
+        shares: resGet.data.data.share_count || 0
+      };
+    } else {
+      throw new Error(resGet.data?.msg || 'Nie udało się pobrać danych o wideo z TikToka (zarówno POST jak i GET zawiodły).');
+    }
+  } catch (getError) {
+    console.error('[TIKTOK API ERROR] GET fallback failed:', getError.message);
+    throw getError;
   }
 }
 
 /**
- * Strumieniowo pobiera plik z podanego URL i zapisuje na dysku.
+ * Downloads a file from the given URL and writes it to the destination path.
  * @param {string} url 
  * @param {string} destPath 
  * @returns {Promise<void>}
@@ -91,7 +134,7 @@ async function downloadFile(url, destPath) {
     responseType: 'stream',
     timeout: 30000,
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
   });
 

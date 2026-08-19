@@ -19,6 +19,8 @@
   "license": "MIT",
   "dependencies": {
     "@dongdev/fca-unofficial": "^4.0.3",
+    "@prevter/tiktok-scraper": "^1.0.1",
+    "@tobyg74/tiktok-api-dl": "^1.3.7",
     "async-retry": "^1.3.3",
     "axios": "^1.16.1",
     "dotenv": "^16.4.5",
