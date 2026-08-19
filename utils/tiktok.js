@@ -81,6 +81,8 @@ async function getTikTokVideoData(videoUrl) {
           timeout: 10000
         });
         
+        console.log(`[TIKTOK API] TikWM POST response for ${url}:`, JSON.stringify(res.data).substring(0, 500));
+        
         if (res.data?.code === 0 && res.data?.data) {
           return {
             playUrl: res.data.data.play,
@@ -105,6 +107,8 @@ async function getTikTokVideoData(videoUrl) {
           timeout: 10000
         });
         
+        console.log(`[TIKTOK API] TikWM GET response for ${url}:`, JSON.stringify(res.data).substring(0, 500));
+        
         if (res.data?.code === 0 && res.data?.data) {
           return {
             playUrl: res.data.data.play,
@@ -118,6 +122,32 @@ async function getTikTokVideoData(videoUrl) {
           };
         }
         throw new Error(`TikWM error: ${res.data?.msg || 'API returned error'} | code=${res.data?.code}`);
+      }
+    },
+    {
+      name: 'TikWM v2',
+      fetch: async (url) => {
+        const res = await axios.get('https://www.tikwm.com/api/', {
+          params: { url, count: '12', cursor: '0', hd: '1' },
+          headers: { 'User-Agent': userAgent },
+          timeout: 10000
+        });
+        
+        console.log(`[TIKTOK API] TikWM v2 response for ${url}:`, JSON.stringify(res.data).substring(0, 500));
+        
+        if (res.data?.code === 0 && res.data?.data) {
+          return {
+            playUrl: res.data.data.play,
+            title: res.data.data.title || 'Wideo z TikToka',
+            size: res.data.data.size || 0,
+            author: res.data.data.author?.unique_id || 'autor',
+            views: res.data.data.play_count || 0,
+            likes: res.data.data.digg_count || 0,
+            comments: res.data.data.comment_count || 0,
+            shares: res.data.data.share_count || 0
+          };
+        }
+        throw new Error(`TikWM v2 error: ${res.data?.msg || 'API returned error'} | code=${res.data?.code}`);
       }
     }
   ];
