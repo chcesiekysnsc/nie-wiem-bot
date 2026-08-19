@@ -1,6 +1,27 @@
 const axios = require('axios');
 const fs = require('fs');
 
+let puppeteerReady = false;
+let puppeteerError = null;
+let puppeteerBrowser = null;
+
+async function ensurePuppeteer() {
+  if (puppeteerReady) return puppeteerBrowser;
+  if (puppeteerError) throw puppeteerError;
+  try {
+    const puppeteer = require('puppeteer');
+    puppeteerBrowser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    });
+    puppeteerReady = true;
+    return puppeteerBrowser;
+  } catch (err) {
+    puppeteerError = err;
+    throw err;
+  }
+}
+
 /**
  * Extracts the first TikTok link from text.
  * Supports: www.tiktok.com, tiktok.com, vm.tiktok.com, vt.tiktok.com, v.tiktok.com
@@ -163,7 +184,95 @@ async function getTikTokVideoData(videoUrl) {
     }
   }
 
+  console.log('[TIKTOK API] All API services failed, trying Puppeteer scraper...');
+  try {
+    const data = await fetchViaPuppeteer(resolvedUrl);
+    console.log('[TIKTOK API] Success with Puppeteer scraper');
+    return data;
+  } catch (err) {
+    console.error('[TIKTOK API ERROR] Puppeteer scraper failed:', err);
+  }
+
   throw new Error('Nie udało się pobrać danych o wideo z TikToka. Wszystkie serwisy API zawiodły.');
+}
+
+async function fetchViaPuppeteer(videoUrl) {
+  const browser = await ensurePuppeteer();
+  const page = await browser.newPage();
+  try {
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    await page.setViewport({ width: 1280, height: 800 });
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
+
+    await page.goto(videoUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+
+    let playUrl = '';
+    try {
+      await page.waitForSelector('video', { timeout: 10000 });
+      playUrl = await page.evaluate(() => {
+        const video = document.querySelector('video');
+        return video ? (video.src || video.querySelector('source')?.src || '') : '';
+      });
+    } catch (_) {}
+
+    if (!playUrl) {
+      try {
+        await page.evaluate(() => window.scrollBy(0, 200));
+        await new Promise(r => setTimeout(r, 1000));
+        playUrl = await page.evaluate(() => {
+          const video = document.querySelector('video');
+          return video ? (video.src || video.querySelector('source')?.src || '') : '';
+        });
+      } catch (_) {}
+    }
+
+    if (!playUrl) {
+      try {
+        const jsonScript = document.querySelector('script[id="__NEXT_DATA__"]') || document.querySelector('script[type="application/json"]');
+        if (jsonScript) {
+          const json = JSON.parse(jsonScript.textContent || '{}');
+          const walk = (obj) => {
+            if (typeof obj !== 'object' || obj === null) return '';
+            if (obj.playUrl || obj.play_addr || obj.video?.play_addr) return obj.playUrl || obj.play_addr || obj.video?.play_addr;
+            if (Array.isArray(obj)) {
+              for (const item of obj) { const r = walk(item); if (r) return r; }
+            } else {
+              for (const key of Object.keys(obj)) { const r = walk(obj[key]); if (r) return r; }
+            }
+            return '';
+          };
+          playUrl = walk(json);
+        }
+      } catch (_) {}
+    }
+
+    const title = await page.title().catch(() => 'Wideo z TikToka');
+    const author = await page.evaluate(() => {
+      const el = document.querySelector('span[data-e2e="video-author-name"]') || document.querySelector('.tiktok-1r8q6do-SpanAuthor') || document.querySelector('a[href*="/@"]');
+      return el ? (el.textContent || '').replace(/^@/, '') : 'autor';
+    }).catch(() => 'autor');
+
+    await page.close();
+
+    const resolvedPlayUrl = (playUrl || '').trim();
+    if (!resolvedPlayUrl) {
+      throw new Error('Nie znaleziono adresu wideo na stronie TikToka.');
+    }
+
+    return {
+      playUrl: resolvedPlayUrl,
+      title: title || 'Wideo z TikToka',
+      size: 0,
+      author: author || 'autor',
+      views: 0,
+      likes: 0,
+      comments: 0,
+      shares: 0
+    };
+  } catch (err) {
+    try { await page.close(); } catch (_) {}
+    throw err;
+  }
 }
 
 /**
@@ -220,5 +329,6 @@ async function downloadFile(url, destPath) {
 module.exports = {
   extractTikTokLink,
   getTikTokVideoData,
-  downloadFile
+  downloadFile,
+  fetchViaPuppeteer
 };
