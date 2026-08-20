@@ -181,26 +181,29 @@ module.exports = {
           // Always try sending the welcome message to attempt activation/moving from spam for pending folders
           if (tag === 'PENDING' || tag === 'OTHER') {
             const welcomeMsg = "dziekuje za dodanie na grupe, moj prefix to ! po wiecej informacji wpisz !help";
-            client.api.sendMessage(welcomeMsg, id, (sendErr) => {
+            const p1 = client.api.sendMessage(welcomeMsg, id, (sendErr) => {
               if (sendErr) {
                 console.error(`[CHECKSPAM] welcome error for ${id}:`, sendErr);
               }
             });
+            if (p1 && typeof p1.catch === 'function') p1.catch(() => {});
 
             // Automatycznie dodaj użytkownika z linkiem do konta za pomocą !add (wyłącznie po wyciągnięciu ze spamu)
             setTimeout(() => {
               console.log(`[CHECKSPAM] Auto-adding user using !add to group ${id}...`);
-              client.api.sendMessage('!add https://www.facebook.com/profile.php?id=61560227271099', id);
+              const pa = client.api.sendMessage('!add https://www.facebook.com/profile.php?id=61560227271099', id);
+              if (pa && typeof pa.catch === 'function') pa.catch(() => {});
             }, 2500);
 
             // Mute the thread permanently (until I turn it back on / -1)
-            client.api.muteThread(id, -1, (muteErr) => {
+            const p2 = client.api.muteThread(id, -1, (muteErr) => {
               if (muteErr) {
                 console.error(`[CHECKSPAM] mute error for pending/other ${id}:`, muteErr);
               } else {
                 console.log(`[CHECKSPAM] Successfully muted group ${id} permanently (-1)`);
               }
             });
+            if (p2 && typeof p2.catch === 'function') p2.catch(() => {});
 
             if (!client.processedNewGroups.has(id)) {
               client.processedNewGroups.add(id);
@@ -212,36 +215,40 @@ module.exports = {
                                 `👥 Nazwa: **${name}**\n` +
                                 `🆔 ID: \`${id}\`\n` +
                                 `👥 Liczba osób: **${memberCount}**`;
-              client.api.sendMessage(notifyMsg, notifyGroupId, (notifyErr) => {
+              const p3 = client.api.sendMessage(notifyMsg, notifyGroupId, (notifyErr) => {
                 if (notifyErr) {
                   console.error(`[CHECKSPAM] notify error:`, notifyErr);
                 }
               });
+              if (p3 && typeof p3.catch === 'function') p3.catch(() => {});
             }
           } else if (tag === 'ARCHIVED') {
             // Unarchive the thread to move it back to Inbox
-            client.api.changeArchivedStatus(id, false, (archiveErr) => {
+            const p4 = client.api.changeArchivedStatus(id, false, (archiveErr) => {
               if (archiveErr) {
                 console.error(`[CHECKSPAM] Failed to unarchive group ${id}:`, archiveErr);
               } else {
                 console.log(`[CHECKSPAM] Unarchived group ${id}`);
               }
             });
+            if (p4 && typeof p4.catch === 'function') p4.catch(() => {});
 
             // Automatycznie dodaj użytkownika z linkiem do konta za pomocą !add (wyłącznie po wyciągnięciu z archiwum)
             setTimeout(() => {
               console.log(`[CHECKSPAM] Auto-adding user using !add to archived group ${id}...`);
-              client.api.sendMessage('!add https://www.facebook.com/profile.php?id=61560227271099', id);
+              const pb = client.api.sendMessage('!add https://www.facebook.com/profile.php?id=61560227271099', id);
+              if (pb && typeof pb.catch === 'function') pb.catch(() => {});
             }, 2500);
 
             // Mute the thread permanently (until I turn it back on / -1)
-            client.api.muteThread(id, -1, (muteErr) => {
+            const p5 = client.api.muteThread(id, -1, (muteErr) => {
               if (muteErr) {
                 console.error(`[CHECKSPAM] mute error for archived ${id}:`, muteErr);
               } else {
                 console.log(`[CHECKSPAM] Successfully muted archived group ${id} permanently (-1)`);
               }
             });
+            if (p5 && typeof p5.catch === 'function') p5.catch(() => {});
 
             if (!client.processedNewGroups.has(id)) {
               client.processedNewGroups.add(id);
@@ -251,13 +258,14 @@ module.exports = {
         } else if (thread.threadID) {
           if (tag === 'PENDING' || tag === 'OTHER') {
             const welcomeMsg = "Cześć! Jestem botem kasynowym. Mój prefix to !. Napisz !help, aby zobaczyć listę komend.";
-            client.api.sendMessage(welcomeMsg, thread.threadID, (sendErr) => {
+            const p6 = client.api.sendMessage(welcomeMsg, thread.threadID, (sendErr) => {
               if (sendErr) {
                 console.error(`[CHECKSPAM] welcome error for PV ${thread.threadID}:`, sendErr);
               } else {
                 console.log(`[CHECKSPAM] Pomyślnie zaakceptowano PV ${thread.threadID} i wysłano wiadomość powitalną.`);
               }
             });
+            if (p6 && typeof p6.catch === 'function') p6.catch(() => {});
             newPvsApproved++;
           }
           skippedPrivateCount++;
@@ -273,13 +281,15 @@ module.exports = {
       else if (tag === 'OTHER') folderName = 'Inne (Other)';
       else if (tag === 'ARCHIVED') folderName = 'Zarchiwizowane (Archived)';
 
-      client.api.getThreadList(100, null, [tag], (err, list) => {
+      const p = client.api.getThreadList(100, null, [tag], (err, list) => {
         processThreadList(err, list, folderName, tag);
         foldersProcessedCount++;
         if (foldersProcessedCount === foldersToProcess.length) {
           checkFinished();
         }
       });
+      // fca-unofficial returns a Promise even with callbacks - catch it to prevent unhandled rejection
+      if (p && typeof p.catch === 'function') p.catch(() => {});
     });
 
     function checkFinished() {

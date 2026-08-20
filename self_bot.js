@@ -56,9 +56,24 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  const errMsg = String(reason?.message || reason || '');
-  if (errMsg.includes('MQTT client is not initialized') || errMsg.includes('sendMessage')) {
-    console.warn('[WARNING] Ignored non-fatal unhandled promise rejection:', reason);
+  // Check both reason.message and reason.error (fca-unofficial uses .error property)
+  const errMsg = String(reason?.message || reason?.error || reason || '');
+  const errStr = typeof reason === 'object' && reason !== null ? JSON.stringify(reason) : String(reason);
+  const nonFatalPatterns = [
+    'MQTT client is not initialized',
+    'sendMessage',
+    'getThreadList',
+    'getThreadInfo',
+    'muteThread',
+    'changeArchivedStatus',
+    'addUserToGroup',
+    'Invalid response data',
+    'Not logged in',
+    'Request failed'
+  ];
+  const isNonFatal = nonFatalPatterns.some(p => errMsg.includes(p) || errStr.includes(p));
+  if (isNonFatal) {
+    console.warn('[WARNING] Ignored non-fatal unhandled promise rejection:', errMsg);
     return;
   }
   console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
