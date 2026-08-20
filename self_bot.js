@@ -75,7 +75,6 @@ const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassive
 const { getItemSetBonus } = require('./utils/itemSets');
 const { getWorkerDef, applyWorkerEffects } = require('./utils/workerEffects');
 const { getCommandsByCategory } = require('./utils/helpSystem');
-const { saveGameSessions } = require('./utils/gameStatePersistence');
 
 function isNotificationBlocked(threadId) {
   try {
