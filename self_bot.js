@@ -3,6 +3,7 @@ const path = require('path');
 const http = require('http');
 const login = require('@dongdev/fca-unofficial');
 const gangAI = require('./utils/gangAI');
+const { saveGameSessions, loadGameSessions, restoreGameSessions } = require('./utils/gameStatePersistence');
 
 require('dotenv').config();
 
@@ -900,6 +901,9 @@ login({ appState }, (loginErr, api) => {
   global.botApi = api;
   global.gangAIClient = client;
   global.danegrpAbort = global.danegrpAbort || { aborted: false };
+  
+  // Tryb maintenance - blokuje komendy po !spamcheck
+  client.maintenanceMode = false;
 
   // Globally patch api.getThreadInfo with cache, rate limiting, and backoff
   _originalGetThreadInfo = api.getThreadInfo;
@@ -909,12 +913,48 @@ login({ appState }, (loginErr, api) => {
 
   console.log('[SELF-BOT] Zalogowano pomyslnie! Rozpoczynanie nasluchiwania wiadomosci...');
   
+  // Wczytaj zapisane sesje gier (blackjack, gielda, chicken road, wojna, rosyjska, pkn, mecz, multimecz)
+  console.log('[GAME SESSIONS] Wczytywanie zapisanych sesji gier...');
+  const savedSessions = loadGameSessions();
+  restoreGameSessions(client, savedSessions);
+  console.log('[GAME SESSIONS] Wczytano sesje:', {
+    blackjack: savedSessions.activeBlackjackGames.size,
+    chickenRoad: savedSessions.activeChickenRoadGames.size,
+    stock: savedSessions.stockSessions.size,
+    war: savedSessions.warSessions.size,
+    rr: savedSessions.rrRequests.size,
+    pkn: savedSessions.pknRequests.size,
+    duel: savedSessions.duelRequests.size,
+    mecz: savedSessions.activeMatches.size,
+    meczInProgress: savedSessions.meczInProgress.size,
+    multimecz: savedSessions.activeMultiMatches.size
+  });
+  
+  // Wyłącz tryb maintenance po pełnym załadowaniu
+  client.maintenanceMode = false;
+  console.log('[MAINTENANCE] Tryb maintenance wyłączony - bot gotowy do pracy.');
+  
   // Dodaj konto bota do grona administratorów (podadmina)
   const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
   if (botId && !config.admins.includes(botId)) {
     config.admins.push(botId);
     console.log(`[SELF-BOT] Dodano konto bota (${botId}) do grona administratorów.`);
   }
+
+  // Zapisuj sesje gier przy wyłączeniu bota
+  const handleShutdown = () => {
+    console.log('[GAME SESSIONS] Zapisywanie sesji gier przed wyłączeniem...');
+    saveGameSessions(client);
+    console.log('[GAME SESSIONS] Sesje gier zapisane.');
+    process.exit(0);
+  };
+
+  process.on('SIGINT', handleShutdown);
+  process.on('SIGTERM', handleShutdown);
+  process.on('exit', () => {
+    console.log('[GAME SESSIONS] Zapisywanie sesji gier przy exit...');
+    saveGameSessions(client);
+  });
 
   // Pobierz nazwy dla aktywnych grup na starcie (z cache + rate limit + backoff)
   setTimeout(async () => {
@@ -3475,17 +3515,16 @@ login({ appState }, (loginErr, api) => {
       }
     }
     if (!command) {
-      const normInput = normalizeText(commandName);
       let bestDist = Infinity;
       let suggestion = null;
       const seen = new Set();
       for (const [key, cmd] of client.commands.entries()) {
-        if (seen.has(cmd.name)) continue;
-        seen.add(cmd.name);
-        const dist = levenshtein(normInput, normalizeText(key));
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const dist = levenshteinDistance(normInput, normalizeText(key));
         if (dist < bestDist) {
           bestDist = dist;
-          suggestion = cmd.name;
+          suggestion = key;
         }
       }
 
@@ -3494,6 +3533,12 @@ login({ appState }, (loginErr, api) => {
         ? `Nie znaleziono komendy "${currentPrefix}${commandName}". Czy chodzilo Ci o ${currentPrefix}${closest}?`
         : `Nie znaleziono komendy "${currentPrefix}${commandName}". Wpisz ${currentPrefix}help, aby zobaczyc liste komend.`;
       api.sendMessage(msg, threadId, () => {}, messageId);
+      return;
+    }
+
+    // Sprawdź tryb maintenance
+    if (client.maintenanceMode && senderId !== creatorId) {
+      api.sendMessage('🔧 Bot jest w trybie maintenance. Spróbuj ponownie za kilka sekund.', threadId, () => {}, messageId);
       return;
     }
 

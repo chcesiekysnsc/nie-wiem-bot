@@ -97,7 +97,15 @@ function saveGameSessions(client) {
     const data = {
       activeBlackjackGames: serializeSessions(client.activeBlackjackGames || new Map()),
       activeChickenRoadGames: serializeSessions(client.activeChickenRoadGames || new Map()),
-      stockSessions: serializeSessions(client.stockSessions || new Map())
+      stockSessions: serializeSessions(client.stockSessions || new Map()),
+      warSessions: serializeSessions(client.warSessions || new Map()),
+      rrRequests: serializeSessions(client.rrRequests || new Map()),
+      pknRequests: serializeSessions(client.pknRequests || new Map()),
+      duelRequests: serializeSessions(client.duelRequests || new Map()),
+      activeMatches: serializeSessions(client.activeMatches || new Map()),
+      meczInProgress: serializeValue(client.meczInProgress || new Set()),
+      activeMeczTimers: serializeSessions(client.activeMeczTimers || new Map()),
+      activeMultiMatches: serializeSessions(client.activeMultiMatches || new Map())
     };
     fs.writeFileSync(GAME_SESSIONS_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (err) {
@@ -111,7 +119,15 @@ function loadGameSessions() {
       return {
         activeBlackjackGames: new Map(),
         activeChickenRoadGames: new Map(),
-        stockSessions: new Map()
+        stockSessions: new Map(),
+        warSessions: new Map(),
+        rrRequests: new Map(),
+        pknRequests: new Map(),
+        duelRequests: new Map(),
+        activeMatches: new Map(),
+        meczInProgress: new Set(),
+        activeMeczTimers: new Map(),
+        activeMultiMatches: new Map()
       };
     }
     const raw = fs.readFileSync(GAME_SESSIONS_FILE, 'utf8');
@@ -119,14 +135,30 @@ function loadGameSessions() {
     return {
       activeBlackjackGames: deserializeSessions(data.activeBlackjackGames),
       activeChickenRoadGames: deserializeSessions(data.activeChickenRoadGames),
-      stockSessions: deserializeSessions(data.stockSessions)
+      stockSessions: deserializeSessions(data.stockSessions),
+      warSessions: deserializeSessions(data.warSessions),
+      rrRequests: deserializeSessions(data.rrRequests),
+      pknRequests: deserializeSessions(data.pknRequests),
+      duelRequests: deserializeSessions(data.duelRequests),
+      activeMatches: deserializeSessions(data.activeMatches),
+      meczInProgress: deserializeValue(data.meczInProgress),
+      activeMeczTimers: deserializeSessions(data.activeMeczTimers),
+      activeMultiMatches: deserializeSessions(data.activeMultiMatches)
     };
   } catch (err) {
     console.error('[gameStatePersistence] Failed to load game sessions:', err);
     return {
       activeBlackjackGames: new Map(),
       activeChickenRoadGames: new Map(),
-      stockSessions: new Map()
+      stockSessions: new Map(),
+      warSessions: new Map(),
+      rrRequests: new Map(),
+      pknRequests: new Map(),
+      duelRequests: new Map(),
+      activeMatches: new Map(),
+      meczInProgress: new Set(),
+      activeMeczTimers: new Map(),
+      activeMultiMatches: new Map()
     };
   }
 }
@@ -135,6 +167,14 @@ function restoreGameSessions(client, sessions) {
   client.activeBlackjackGames = sessions.activeBlackjackGames || new Map();
   client.activeChickenRoadGames = sessions.activeChickenRoadGames || new Map();
   client.stockSessions = sessions.stockSessions || new Map();
+  client.warSessions = sessions.warSessions || new Map();
+  client.rrRequests = sessions.rrRequests || new Map();
+  client.pknRequests = sessions.pknRequests || new Map();
+  client.duelRequests = sessions.duelRequests || new Map();
+  client.activeMatches = sessions.activeMatches || new Map();
+  client.meczInProgress = sessions.meczInProgress || new Set();
+  client.activeMeczTimers = sessions.activeMeczTimers || new Map();
+  client.activeMultiMatches = sessions.activeMultiMatches || new Map();
 }
 
 module.exports = {

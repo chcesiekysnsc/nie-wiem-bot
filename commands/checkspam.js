@@ -19,6 +19,16 @@ module.exports = {
     const subCommand = String(args[0] || '').toLowerCase();
     if (subCommand === 'restart' || subCommand === 'reset') {
       const activeGroupsCount = client.activeThreadIds ? client.activeThreadIds.size : 0;
+      
+      // Zapisz sesje gier przed restartem
+      const { saveGameSessions } = require('../utils/gameStatePersistence');
+      console.log('[CHECKSPAM] Zapisywanie sesji gier przed restartem...');
+      saveGameSessions(client);
+      console.log('[CHECKSPAM] Sesje gier zapisane.');
+      
+      // Włącz tryb maintenance
+      client.maintenanceMode = true;
+      
       await message.reply(`🔄 Restartuję bota w celu odświeżenia połączeń MQTT... (Zresetowano na ${activeGroupsCount} grupach)`);
       setTimeout(() => {
         console.log('[CHECKSPAM] Manual restart triggered...');
@@ -331,6 +341,12 @@ module.exports = {
       message.reply(responseMsg);
 
       if (shouldRestart) {
+        // Włącz tryb maintenance przed restartem
+        if (client) {
+          client.maintenanceMode = true;
+          console.log('[CHECKSPAM] Włączono tryb maintenance przed restartem.');
+        }
+        
         setTimeout(() => {
           console.log('[CHECKSPAM] Exiting for auto-restart after activating/registering groups...');
           process.exit(1);
