@@ -247,8 +247,8 @@ function restoreTimers(client, sessions) {
   // Przywróć timery dla wojna lobby - 90 sekund
   for (const [threadId, session] of sessions.warSessions.entries()) {
     const wojnaCmd = require('../commands/wojna');
-    if (session.timestamp && session.state === 'lobby') {
-      const elapsed = now - session.timestamp;
+    if (session.state === 'lobby') {
+      const elapsed = session.timestamp ? (now - session.timestamp) : 9999999;
       const remaining = 90000 - elapsed; // 90 sekund
       if (remaining > 0) {
         setTimeout(async () => {
@@ -258,8 +258,8 @@ function restoreTimers(client, sessions) {
         // Timeout minął - rozstrzygnij lobby natychmiast
         wojnaCmd.resumeLobby(client, threadId).catch(e => console.error(e));
       }
-    } else if (session.state === 'game') {
-      // Gra w toku została przerwana restartem. Zwróć wpisowe wszystkim graczom i usuń sesję
+    } else {
+      // Gra w toku (game) lub jakikolwiek nieznany stan została przerwana restartem. Zwróć wpisowe wszystkim graczom i usuń sesję
       const { withData, createUser } = require('./storage');
       const { formatCurrency } = require('./economy');
       
@@ -288,8 +288,8 @@ function restoreTimers(client, sessions) {
   // Przywróć timery dla gielda lobby i investing - 2 minuty i 60 sekund
   for (const [threadId, session] of sessions.stockSessions.entries()) {
     const gieldaCmd = require('../commands/gielda');
-    if (session.timestamp && session.state === 'lobby') {
-      const elapsed = now - session.timestamp;
+    if (session.state === 'lobby') {
+      const elapsed = session.timestamp ? (now - session.timestamp) : 9999999;
       const remaining = 120000 - elapsed; // 2 minuty
       if (remaining > 0) {
         setTimeout(async () => {
@@ -299,8 +299,8 @@ function restoreTimers(client, sessions) {
         // Lobby czas minął - rozpocznij inwestowanie natychmiast
         gieldaCmd.startInvesting(client, threadId).catch(e => console.error(e));
       }
-    } else if (session.investStartTime && session.state === 'investing') {
-      const elapsed = now - session.investStartTime;
+    } else if (session.state === 'investing') {
+      const elapsed = session.investStartTime ? (now - session.investStartTime) : 9999999;
       const remaining = 60000 - elapsed; // 60 sekund
       if (remaining > 0) {
         setTimeout(async () => {
@@ -310,8 +310,8 @@ function restoreTimers(client, sessions) {
         // Czas na inwestowanie minął - rozstrzygnij giełdę natychmiast
         gieldaCmd.resolveGielda(client, threadId).catch(e => console.error(e));
       }
-    } else if (session.state === 'resolving') {
-      // Awaryjnie rozstrzygnij giełdę natychmiast jeśli zacięła się w resolving
+    } else {
+      // Dla każdego innego stanu (resolving lub nieznany), awaryjnie rozstrzygnij giełdę natychmiast
       gieldaCmd.resolveGielda(client, threadId).catch(e => console.error(e));
     }
   }
