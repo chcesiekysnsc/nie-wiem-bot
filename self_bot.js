@@ -917,16 +917,16 @@ login({ appState }, (loginErr, api) => {
   const savedSessions = loadGameSessions();
   restoreGameSessions(client, savedSessions);
   console.log('[GAME SESSIONS] Wczytano sesje:', {
-    blackjack: savedSessions.activeBlackjackGames.size,
-    chickenRoad: savedSessions.activeChickenRoadGames.size,
-    stock: savedSessions.stockSessions.size,
-    war: savedSessions.warSessions.size,
-    rr: savedSessions.rrRequests.size,
-    pkn: savedSessions.pknRequests.size,
-    duel: savedSessions.duelRequests.size,
-    mecz: savedSessions.activeMatches.size,
-    meczInProgress: savedSessions.meczInProgress.size,
-    multimecz: savedSessions.activeMultiMatches.size
+    blackjack: savedSessions.activeBlackjackGames?.size || 0,
+    chickenRoad: savedSessions.activeChickenRoadGames?.size || 0,
+    stock: savedSessions.stockSessions?.size || 0,
+    war: savedSessions.warSessions?.size || 0,
+    rr: savedSessions.rrRequests?.size || 0,
+    pkn: savedSessions.pknRequests?.size || 0,
+    duel: savedSessions.duelRequests?.size || 0,
+    mecz: savedSessions.activeMatches?.size || 0,
+    meczInProgress: savedSessions.meczInProgress?.size || 0,
+    multimecz: savedSessions.activeMultiMatches?.size || 0
   });
   
   // Wyłącz tryb maintenance po pełnym załadowaniu
