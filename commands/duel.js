@@ -1,5 +1,6 @@
 const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const { saveGameSessions } = require('../utils/gameStatePersistence');
 
 async function resolveName(client, userId) {
   if (typeof client.resolveUserName === 'function') {
@@ -29,6 +30,7 @@ module.exports = {
       }
 
       client.duelRequests.delete(targetId);
+      saveGameSessions(client);
 
       const result = await withData(store => {
         if (store.profiles.blacklist && (store.profiles.blacklist.includes(request.challengerId) || store.profiles.blacklist.includes(targetId))) {
@@ -99,6 +101,7 @@ module.exports = {
       }
 
       client.duelRequests.delete(targetId);
+      saveGameSessions(client);
       const challengerName = await resolveName(client, request.challengerId);
       await message.reply(`⚔️ Odrzucono pojedynek od **${challengerName}**.`);
       return;
@@ -167,14 +170,17 @@ module.exports = {
 
     client.duelRequests.set(targetId, {
       challengerId: message.author.id,
-      amount: validation.amount
+      amount: validation.amount,
+      timestamp: Date.now()
     });
+    saveGameSessions(client);
 
     // Auto-kasowanie pojedynku po 2 minutach
     setTimeout(() => {
       const active = client.duelRequests.get(targetId);
       if (active && active.challengerId === message.author.id) {
         client.duelRequests.delete(targetId);
+        saveGameSessions(client);
       }
     }, 120000).unref();
 

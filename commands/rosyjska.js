@@ -4,6 +4,7 @@ const { formatCurrency, refreshBadges, ensureInventoryRecord,   recordGame,
 const { createUser, withData } = require('../utils/storage');
 const config = require('../config/config');
 const { getEffectiveChance } = require('../utils/chances');
+const { saveGameSessions } = require('../utils/gameStatePersistence');
 
 module.exports = {
   name: 'rosyjska',
@@ -26,6 +27,7 @@ module.exports = {
       }
 
       client.rrRequests.delete(targetId);
+      saveGameSessions(client);
 
       const rrDuelOverride = await getEffectiveChance(request.challengerId, 'rr_duel_bullet');
 
@@ -168,6 +170,7 @@ module.exports = {
       }
 
       client.rrRequests.delete(targetId);
+      saveGameSessions(client);
       const challengerName = client.userNames.get(request.challengerId) || `Użytkownik_${request.challengerId.slice(-6)}`;
       await message.reply(`🔫 Wyzwanie na rosyjską ruletkę od **${challengerName}** zostało odrzucone.`);
       return;
@@ -320,14 +323,17 @@ module.exports = {
 
     client.rrRequests.set(targetId, {
       challengerId: message.author.id,
-      amount: validation.amount
+      amount: validation.amount,
+      timestamp: Date.now()
     });
+    saveGameSessions(client);
 
     // Auto-kasowanie wyzwania po 2 minutach
     setTimeout(() => {
       const active = client.rrRequests.get(targetId);
       if (active && active.challengerId === message.author.id) {
         client.rrRequests.delete(targetId);
+        saveGameSessions(client);
       }
     }, 120000).unref();
 

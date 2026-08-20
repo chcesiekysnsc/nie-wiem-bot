@@ -4,6 +4,7 @@ const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, has
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { advanceChallenge } = require('../utils/challenges');
+const { saveGameSessions } = require('../utils/gameStatePersistence');
 
 async function resolveName(client, userId) {
   if (typeof client.resolveUserName === 'function') {
@@ -54,6 +55,7 @@ module.exports = {
       }
 
       client.pknRequests.delete(targetId);
+      saveGameSessions(client);
 
       const result = await withData(store => {
         if (store.profiles.blacklist && (store.profiles.blacklist.includes(request.challengerId) || store.profiles.blacklist.includes(targetId))) {
@@ -151,6 +153,7 @@ module.exports = {
       }
 
       client.pknRequests.delete(targetId);
+      saveGameSessions(client);
       const challengerName = await resolveName(client, request.challengerId);
       await message.reply(`⚔️ Odrzucono pojedynek PKN od **${challengerName}**.`);
       return;
@@ -411,13 +414,16 @@ module.exports = {
 
       client.pknRequests.set(targetId, {
         challengerId: message.author.id,
-        amount: validation.amount
+        amount: validation.amount,
+        timestamp: Date.now()
       });
+      saveGameSessions(client);
 
       setTimeout(() => {
         const active = client.pknRequests.get(targetId);
         if (active && active.challengerId === message.author.id) {
           client.pknRequests.delete(targetId);
+          saveGameSessions(client);
         }
       }, 120000).unref();
 

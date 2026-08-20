@@ -50,6 +50,8 @@ function getCooldownRemaining(cooldowns, key) {
 module.exports = {
   name: 'gielda',
   aliases: ['stock', 'giełda'],
+  startInvesting,
+  resolveGielda,
   async execute(client, message, args) {
     client.stockSessions = client.stockSessions || new Map();
     client.gieldaHostCooldowns = client.gieldaHostCooldowns || new Map();
@@ -188,7 +190,7 @@ module.exports = {
         hostId: message.author.id,
         participants: new Set([message.author.id]),
         investments: new Map(),
-        startTime: Date.now(),
+        timestamp: Date.now(),
         lobbyDuration: 120000,
         investDuration: 60000,
         assets: {
@@ -218,158 +220,7 @@ module.exports = {
       );
 
       setTimeout(async () => {
-        const active = client.stockSessions.get(threadId);
-        if (!active || active.state !== 'lobby') return;
-
-        active.state = 'investing';
-        active.investStartTime = Date.now();
-        saveGameSessions(client);
-
-        const tags = [];
-        for (const pid of active.participants) {
-          const name = await client.resolveUserName(pid);
-          tags.push(`@${name}`);
-        }
-
-        await message.reply(
-          `📈 **RUNDA INWESTOWANIA ROZPOCZĘTA!** 📈\n\n` +
-          `🚗 Uczestnicy: ${tags.join(' ')}\n\n` +
-          `Masz **60 sekund** na zainwestowanie swoich środków w jedno wybrane aktywo za pomocą:\n` +
-          `👉 **!gielda inwestuj <kwota> <bank/srebro/zloto/diamenty>**\n\n` +
-          `Zakresy zysków/strat w tej sesji:\n` +
-          `🏦 **Bank**: od ${active.assets.bank.min}% do +${active.assets.bank.max}%\n` +
-          `🥈 **Srebro**: od ${active.assets.srebro.min}% do +${active.assets.srebro.max}%\n` +
-          `🪙 **Złoto**: od ${active.assets.zloto.min}% do +${active.assets.zloto.max}%\n` +
-          `💎 **Diamenty**: od ${active.assets.diamenty.min}% do +${active.assets.diamenty.max}%\n\n` +
-          `⚠️ *Po zatwierdzeniu inwestycji kwota zostanie zablokowana do losowania wyników.*`
-        );
-
-        setTimeout(async () => {
-          const resolveSession = client.stockSessions.get(threadId);
-          if (!resolveSession || resolveSession.state !== 'investing') return;
-
-          client.stockSessions.delete(threadId);
-          if (resolveSession.hostId) {
-            client.activeGieldaHosts.delete(resolveSession.hostId);
-          }
-          saveGameSessions(client);
-
-          // Zlicz ile osób obstawiło na każde aktywo
-          const assetCounts = { bank: 0, srebro: 0, zloto: 0, diamenty: 0 };
-          for (const [userId, inv] of resolveSession.investments.entries()) {
-            assetCounts[inv.asset]++;
-          }
-
-          // Znajdź najpopularniejsze aktywo
-          let mostBetOnAsset = null;
-          let maxCount = 0;
-          for (const [asset, count] of Object.entries(assetCounts)) {
-            if (count > maxCount) {
-              maxCount = count;
-              mostBetOnAsset = asset;
-            }
-          }
-
-          const rolledPercentages = {
-            bank: rollAssetResult(resolveSession.assets.bank.min, resolveSession.assets.bank.max, mostBetOnAsset === 'bank'),
-            srebro: rollAssetResult(resolveSession.assets.srebro.min, resolveSession.assets.srebro.max, mostBetOnAsset === 'srebro'),
-            zloto: rollAssetResult(resolveSession.assets.zloto.min, resolveSession.assets.zloto.max, mostBetOnAsset === 'zloto'),
-            diamenty: rollAssetResult(resolveSession.assets.diamenty.min, resolveSession.assets.diamenty.max, mostBetOnAsset === 'diamenty')
-          };
-
-          const hostCooldownKey = `${threadId}:${resolveSession.hostId}`;
-
-          const gieldaLuckOverrides = {};
-          for (const [userId] of resolveSession.investments.entries()) {
-            gieldaLuckOverrides[userId] = await getEffectiveLuck(userId, 'gielda_luck');
-          }
-
-          const resolution = await withData(store => {
-            const results = [];
-
-            for (const [userId, inv] of resolveSession.investments.entries()) {
-              const user = createUser(userId, store.users);
-              const inventory = ensureInventoryRecord(store.inventory, userId);
-
-              const pct = rolledPercentages[inv.asset];
-              const gieldaLuck = gieldaLuckOverrides[userId] || 1;
-              const adjustedPct = Number.isFinite(gieldaLuck) ? pct * gieldaLuck : pct;
-              const rawPayout = Math.max(0, Math.round(inv.amount * (1 + adjustedPct / 100)));
-              const net = rawPayout - inv.amount;
-
-              user.balance += rawPayout;
-
-              let finalPayout = rawPayout;
-              let badgeBonus = 0;
-
-              if (net > 0 && user.badges && user.badges.includes(config.badges.uzalezniony)) {
-                badgeBonus = Math.round(inv.amount * 0.03);
-                user.balance += badgeBonus;
-                finalPayout += badgeBonus;
-              }
-
-              const finalNet = finalPayout - inv.amount;
-              const xpResult = recordGame(user, finalNet, getRandomXp(), inventory);
-              refreshBadges(user, inventory);
-
-              results.push({
-                userId,
-                amount: inv.amount,
-                asset: inv.asset,
-                payout: finalPayout,
-                net: finalNet,
-                xpResult
-              });
-            }
-
-            if (resolveSession.investments.size === 0 && resolveSession.hostId) {
-              const hostUser = createUser(resolveSession.hostId, store.users);
-              hostUser.gieldaHostCooldownUntil = Date.now() + 20 * 60 * 1000;
-            }
-
-            return { results };
-          });
-
-          if (resolution.results.length === 0) {
-            const cooldownKey = `${threadId}:${resolveSession.hostId}`;
-            client.gieldaHostCooldowns.set(cooldownKey, Date.now() + 20 * 60 * 1000);
-          }
-
-          let resultMsg = `📈 **WYNIKI GIEŁDY** 📈\n\n`;
-          resultMsg += `🏦 **Bank**: ${rolledPercentages.bank >= 0 ? '+' : ''}${rolledPercentages.bank}%\n`;
-          resultMsg += `🥈 **Srebro**: ${rolledPercentages.srebro >= 0 ? '+' : ''}${rolledPercentages.srebro}%\n`;
-          resultMsg += `🪙 **Złoto**: ${rolledPercentages.zloto >= 0 ? '+' : ''}${rolledPercentages.zloto}%\n`;
-          resultMsg += `💎 **Diamenty**: ${rolledPercentages.diamenty >= 0 ? '+' : ''}${rolledPercentages.diamenty}%\n\n`;
-
-          resultMsg += `📊 **Podsumowanie inwestorów:**\n`;
-          if (resolution.results.length === 0) {
-            resultMsg += `Brak inwestycji w tej rundzie.`;
-          } else {
-            const resLines = [];
-            for (const res of resolution.results) {
-              const name = await client.resolveUserName(res.userId);
-              const direction = res.net >= 0 ? '📈 Zysk' : '📉 Strata';
-              const formattedNet = formatCurrency(Math.abs(res.net));
-              const emoji = res.asset === 'bank' ? '🏦' : res.asset === 'srebro' ? '🥈' : res.asset === 'zloto' ? '🪙' : '💎';
-
-              let line = `• **${name}**: zainwestował **${formatCurrency(res.amount)}** w ${emoji} (${res.asset}). Payout: **${formatCurrency(res.payout)}** (${direction}: **${res.net >= 0 ? '+' : '-'}${formattedNet}**).`;
-              if (res.xpResult && res.xpResult.leveledUp) {
-                line += `\n  🎉 **AWANS!** Awansowałeś na **poziom ${res.xpResult.newLevel}**!`;
-                if (res.xpResult.milestonesGained && res.xpResult.milestonesGained.length > 0) {
-                  for (const lvl of res.xpResult.milestonesGained) {
-                    line += `\n  🎁 Nagroda kamienia milowego: **${getMilestoneRewardDescription(lvl)}**!`;
-                  }
-                }
-              }
-              resLines.push(line);
-            }
-            resultMsg += resLines.join('\n');
-          }
-
-          await message.reply(resultMsg);
-
-        }, active.investDuration);
-
+        await module.exports.startInvesting(client, threadId);
       }, newSession.lobbyDuration);
 
       return;
@@ -489,3 +340,166 @@ module.exports = {
     await message.reply('❌ Nieznana podkomenda. Użyj: **!gielda start**, **!gielda dolacz**, **!gielda inwestuj <kwota> <aktywo>** lub samo **!gielda**.');
   }
 };
+
+async function startInvesting(client, threadId) {
+  const active = client.stockSessions.get(threadId);
+  if (!active || active.state !== 'lobby') return;
+
+  active.state = 'investing';
+  active.investStartTime = Date.now();
+  saveGameSessions(client);
+
+  const tags = [];
+  for (const pid of active.participants) {
+    const name = await client.resolveUserName(pid);
+    tags.push(`@${name}`);
+  }
+
+  const msg = `📈 **RUNDA INWESTOWANIA ROZPOCZĘTA!** 📈\n\n` +
+    `🚗 Uczestnicy: ${tags.join(' ')}\n\n` +
+    `Masz **60 sekund** na zainwestowanie swoich środków w jedno wybrane aktywo za pomocą:\n` +
+    `👉 **!gielda inwestuj <kwota> <bank/srebro/zloto/diamenty>**\n\n` +
+    `Zakresy zysków/strat w tej sesji:\n` +
+    `🏦 **Bank**: od ${active.assets.bank.min}% do +${active.assets.bank.max}%\n` +
+    `🥈 **Srebro**: od ${active.assets.srebro.min}% do +${active.assets.srebro.max}%\n` +
+    `🪙 **Złoto**: od ${active.assets.zloto.min}% do +${active.assets.zloto.max}%\n` +
+    `💎 **Diamenty**: od ${active.assets.diamenty.min}% do +${active.assets.diamenty.max}%\n\n` +
+    `⚠️ *Po zatwierdzeniu inwestycji kwota zostanie zablokowana do losowania wyników.*`;
+
+  if (client.api) {
+    await client.api.sendMessage(msg, threadId).catch(() => null);
+  }
+
+  // Schedule resolution
+  setTimeout(async () => {
+    await resolveGielda(client, threadId);
+  }, active.investDuration || 60000);
+}
+
+async function resolveGielda(client, threadId) {
+  const resolveSession = client.stockSessions.get(threadId);
+  if (!resolveSession || resolveSession.state !== 'investing') return;
+
+  client.stockSessions.delete(threadId);
+  if (resolveSession.hostId) {
+    client.activeGieldaHosts.delete(resolveSession.hostId);
+  }
+  saveGameSessions(client);
+
+  // Zlicz ile osób obstawiło na każde aktywo
+  const assetCounts = { bank: 0, srebro: 0, zloto: 0, diamenty: 0 };
+  for (const [userId, inv] of resolveSession.investments.entries()) {
+    assetCounts[inv.asset]++;
+  }
+
+  // Znajdź najpopularniejsze aktywo
+  let mostBetOnAsset = null;
+  let maxCount = 0;
+  for (const [asset, count] of Object.entries(assetCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      mostBetOnAsset = asset;
+    }
+  }
+
+  const rolledPercentages = {
+    bank: rollAssetResult(resolveSession.assets.bank.min, resolveSession.assets.bank.max, mostBetOnAsset === 'bank'),
+    srebro: rollAssetResult(resolveSession.assets.srebro.min, resolveSession.assets.srebro.max, mostBetOnAsset === 'srebro'),
+    zloto: rollAssetResult(resolveSession.assets.zloto.min, resolveSession.assets.zloto.max, mostBetOnAsset === 'zloto'),
+    diamenty: rollAssetResult(resolveSession.assets.diamenty.min, resolveSession.assets.diamenty.max, mostBetOnAsset === 'diamenty')
+  };
+
+  const hostCooldownKey = `${threadId}:${resolveSession.hostId}`;
+
+  const gieldaLuckOverrides = {};
+  for (const [userId] of resolveSession.investments.entries()) {
+    gieldaLuckOverrides[userId] = await getEffectiveLuck(userId, 'gielda_luck');
+  }
+
+  const resolution = await withData(store => {
+    const results = [];
+
+    for (const [userId, inv] of resolveSession.investments.entries()) {
+      const user = createUser(userId, store.users);
+      const inventory = ensureInventoryRecord(store.inventory, userId);
+
+      const pct = rolledPercentages[inv.asset];
+      const gieldaLuck = gieldaLuckOverrides[userId] || 1;
+      const adjustedPct = Number.isFinite(gieldaLuck) ? pct * gieldaLuck : pct;
+      const rawPayout = Math.max(0, Math.round(inv.amount * (1 + adjustedPct / 100)));
+      const net = rawPayout - inv.amount;
+
+      user.balance += rawPayout;
+
+      let finalPayout = rawPayout;
+      let badgeBonus = 0;
+
+      if (net > 0 && user.badges && user.badges.includes(config.badges.uzalezniony)) {
+        badgeBonus = Math.round(inv.amount * 0.03);
+        user.balance += badgeBonus;
+        finalPayout += badgeBonus;
+      }
+
+      const finalNet = finalPayout - inv.amount;
+      const xpResult = recordGame(user, finalNet, getRandomXp(), inventory);
+      refreshBadges(user, inventory);
+
+      results.push({
+        userId,
+        amount: inv.amount,
+        asset: inv.asset,
+        payout: finalPayout,
+        net: finalNet,
+        xpResult
+      });
+    }
+
+    if (resolveSession.investments.size === 0 && resolveSession.hostId) {
+      const hostUser = createUser(resolveSession.hostId, store.users);
+      hostUser.gieldaHostCooldownUntil = Date.now() + 20 * 60 * 1000;
+    }
+
+    return { results };
+  });
+
+  if (resolution.results.length === 0) {
+    const cooldownKey = `${threadId}:${resolveSession.hostId}`;
+    client.gieldaHostCooldowns.set(cooldownKey, Date.now() + 20 * 60 * 1000);
+  }
+
+  let resultMsg = `📈 **WYNIKI GIEŁDY** 📈\n\n`;
+  resultMsg += `🏦 **Bank**: ${rolledPercentages.bank >= 0 ? '+' : ''}${rolledPercentages.bank}%\n`;
+  resultMsg += `🥈 **Srebro**: ${rolledPercentages.srebro >= 0 ? '+' : ''}${rolledPercentages.srebro}%\n`;
+  resultMsg += `🪙 **Złoto**: ${rolledPercentages.zloto >= 0 ? '+' : ''}${rolledPercentages.zloto}%\n`;
+  resultMsg += `💎 **Diamenty**: ${rolledPercentages.diamenty >= 0 ? '+' : ''}${rolledPercentages.diamenty}%\n\n`;
+
+  resultMsg += `📊 **Podsumowanie inwestorów:**\n`;
+  if (resolution.results.length === 0) {
+    resultMsg += `Brak inwestycji w tej rundzie.`;
+  } else {
+    const resLines = [];
+    for (const res of resolution.results) {
+      const name = await client.resolveUserName(res.userId);
+      const direction = res.net >= 0 ? '📈 Zysk' : '📉 Strata';
+      const formattedNet = formatCurrency(Math.abs(res.net));
+      const emoji = res.asset === 'bank' ? '🏦' : res.asset === 'srebro' ? '🥈' : res.asset === 'zloto' ? '🪙' : '💎';
+
+      let line = `• **${name}**: zainwestował **${formatCurrency(res.amount)}** w ${emoji} (${res.asset}). Payout: **${formatCurrency(res.payout)}** (${direction}: **${res.net >= 0 ? '+' : '-'}${formattedNet}**).`;
+      if (res.xpResult && res.xpResult.leveledUp) {
+        line += `\n  🎉 **AWANS!** Awansowałeś na **poziom ${res.xpResult.newLevel}**!`;
+        if (res.xpResult.milestonesGained && res.xpResult.milestonesGained.length > 0) {
+          const { getMilestoneRewardDescription } = require('../utils/economy');
+          for (const lvl of res.xpResult.milestonesGained) {
+            line += `\n  🎁 Nagroda kamienia milowego: **${getMilestoneRewardDescription(lvl)}**!`;
+          }
+        }
+      }
+      resLines.push(line);
+    }
+    resultMsg += resLines.join('\n');
+  }
+
+  if (client.api) {
+    await client.api.sendMessage(resultMsg, threadId).catch(() => null);
+  }
+}

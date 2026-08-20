@@ -175,6 +175,148 @@ function restoreGameSessions(client, sessions) {
   client.meczInProgress = sessions.meczInProgress || new Set();
   client.activeMeczTimers = sessions.activeMeczTimers || new Map();
   client.activeMultiMatches = sessions.activeMultiMatches || new Map();
+  
+  // Przywróć timery dla sesji
+  restoreTimers(client, sessions);
+}
+
+function restoreTimers(client, sessions) {
+  const now = Date.now();
+  
+  // Przywróć timery dla rrRequests (rosyjska ruletka) - 2 minuty
+  for (const [targetId, request] of sessions.rrRequests.entries()) {
+    if (request.timestamp) {
+      const elapsed = now - request.timestamp;
+      const remaining = 120000 - elapsed; // 2 minuty
+      if (remaining > 0) {
+        setTimeout(() => {
+          const active = client.rrRequests.get(targetId);
+          if (active && active.challengerId === request.challengerId) {
+            client.rrRequests.delete(targetId);
+            saveGameSessions(client);
+          }
+        }, remaining);
+      } else {
+        // Timeout już minął - usuń sesję
+        client.rrRequests.delete(targetId);
+        saveGameSessions(client);
+      }
+    }
+  }
+  
+  // Przywróć timery dla pknRequests - 2 minuty
+  for (const [targetId, request] of sessions.pknRequests.entries()) {
+    if (request.timestamp) {
+      const elapsed = now - request.timestamp;
+      const remaining = 120000 - elapsed; // 2 minuty
+      if (remaining > 0) {
+        setTimeout(() => {
+          const active = client.pknRequests.get(targetId);
+          if (active && active.challengerId === request.challengerId) {
+            client.pknRequests.delete(targetId);
+            saveGameSessions(client);
+          }
+        }, remaining);
+      } else {
+        client.pknRequests.delete(targetId);
+        saveGameSessions(client);
+      }
+    }
+  }
+  
+  // Przywróć timery dla duelRequests - 2 minuty
+  for (const [targetId, request] of sessions.duelRequests.entries()) {
+    if (request.timestamp) {
+      const elapsed = now - request.timestamp;
+      const remaining = 120000 - elapsed; // 2 minuty
+      if (remaining > 0) {
+        setTimeout(() => {
+          const active = client.duelRequests.get(targetId);
+          if (active && active.challengerId === request.challengerId) {
+            client.duelRequests.delete(targetId);
+            saveGameSessions(client);
+          }
+        }, remaining);
+      } else {
+        client.duelRequests.delete(targetId);
+        saveGameSessions(client);
+      }
+    }
+  }
+  
+  // Przywróć timery dla wojna lobby - 90 sekund
+  for (const [threadId, session] of sessions.warSessions.entries()) {
+    const wojnaCmd = require('../commands/wojna');
+    if (session.timestamp && session.state === 'lobby') {
+      const elapsed = now - session.timestamp;
+      const remaining = 90000 - elapsed; // 90 sekund
+      if (remaining > 0) {
+        setTimeout(async () => {
+          await wojnaCmd.resumeLobby(client, threadId);
+        }, remaining);
+      } else {
+        // Timeout minął - rozstrzygnij lobby natychmiast
+        wojnaCmd.resumeLobby(client, threadId).catch(e => console.error(e));
+      }
+    } else if (session.state === 'game') {
+      // Gra w toku została przerwana restartem. Zwróć wpisowe wszystkim graczom i usuń sesję
+      const { withData, createUser } = require('./storage');
+      const { formatCurrency } = require('./economy');
+      
+      const bet = session.bet || 0;
+      if (bet > 0) {
+        withData(async store => {
+          for (const pid of session.participants) {
+            const user = createUser(pid, store.users);
+            user.balance += bet;
+          }
+        }).catch(e => console.error('[gameStatePersistence] Błąd zwrotu wpisowego wojny:', e));
+        
+        if (client.api) {
+          client.api.sendMessage(
+            `🚨 **WOJNA KARCIANA:** Rozgrywka została przerwana przez restart bota.\n` +
+            `💰 Wpisowe **${formatCurrency(bet)}** zostało zwrócone wszystkim uczestnikom do portfela.`,
+            threadId
+          ).catch(() => null);
+        }
+      }
+      client.warSessions.delete(threadId);
+      saveGameSessions(client);
+    }
+  }
+  
+  // Przywróć timery dla gielda lobby i investing - 2 minuty i 60 sekund
+  for (const [threadId, session] of sessions.stockSessions.entries()) {
+    const gieldaCmd = require('../commands/gielda');
+    if (session.timestamp && session.state === 'lobby') {
+      const elapsed = now - session.timestamp;
+      const remaining = 120000 - elapsed; // 2 minuty
+      if (remaining > 0) {
+        setTimeout(async () => {
+          await gieldaCmd.startInvesting(client, threadId);
+        }, remaining);
+      } else {
+        // Lobby czas minął - rozpocznij inwestowanie natychmiast
+        gieldaCmd.startInvesting(client, threadId).catch(e => console.error(e));
+      }
+    } else if (session.investStartTime && session.state === 'investing') {
+      const elapsed = now - session.investStartTime;
+      const remaining = 60000 - elapsed; // 60 sekund
+      if (remaining > 0) {
+        setTimeout(async () => {
+          await gieldaCmd.resolveGielda(client, threadId);
+        }, remaining);
+      } else {
+        // Czas na inwestowanie minął - rozstrzygnij giełdę natychmiast
+        gieldaCmd.resolveGielda(client, threadId).catch(e => console.error(e));
+      }
+    } else if (session.state === 'resolving') {
+      // Awaryjnie rozstrzygnij giełdę natychmiast jeśli zacięła się w resolving
+      gieldaCmd.resolveGielda(client, threadId).catch(e => console.error(e));
+    }
+  }
+  
+  console.log('[GAME SESSIONS] Przywrócono timery dla sesji gier.');
 }
 
 module.exports = {
