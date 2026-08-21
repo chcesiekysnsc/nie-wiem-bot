@@ -452,11 +452,16 @@ function buildPoradnikCategoriesEmbed(prefix) {
   
   description += '\n👉 Wpisz numer kategorii aby zobaczyć poradniki w niej';
   
-  return {
+  const embed = {
     title: '📚 PORADNIKI',
     description,
-    color: 0x00ff00
+    color: 0x00ff00,
+    toMessageText: function() {
+      return `**${this.title}**\n\n${this.description}`;
+    }
   };
+  
+  return embed;
 }
 
 function buildPoradnikListEmbed(categoryNum) {
@@ -471,11 +476,16 @@ function buildPoradnikListEmbed(categoryNum) {
   
   description += '\n👉 Wpisz numer poradnika aby zobaczyć szczegóły';
   
-  return {
+  const embed = {
     title: `${category.emoji} ${category.name}`,
     description,
-    color: 0x00ff00
+    color: 0x00ff00,
+    toMessageText: function() {
+      return `**${this.title}**\n\n${this.description}`;
+    }
   };
+  
+  return embed;
 }
 
 function buildPoradnikDetailEmbed(categoryNum, poradnikNum) {
@@ -485,11 +495,16 @@ function buildPoradnikDetailEmbed(categoryNum, poradnikNum) {
   const poradnik = category.poradniki.find(p => p.id === poradnikNum);
   if (!poradnik) return null;
   
-  return {
+  const embed = {
     title: `📖 PORADNIK: ${poradnik.title.toUpperCase()}`,
     description: poradnik.content,
-    color: 0x00ff00
+    color: 0x00ff00,
+    toMessageText: function() {
+      return `**${this.title}**\n\n${this.description}`;
+    }
   };
+  
+  return embed;
 }
 
 function resolvePoradnikCategory(input) {
