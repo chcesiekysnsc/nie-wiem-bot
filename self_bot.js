@@ -3433,6 +3433,32 @@ login({ appState }, (loginErr, api) => {
     const pendingPoradnik = client.pendingPoradnikCategory.get(senderId);
     if (pendingPoradnik && pendingPoradnik.threadId === threadId) {
       console.log(`[PORADNIK] Pending found for ${senderId}, categoryNum: ${pendingPoradnik.categoryNum}, text: "${text.trim()}"`);
+      
+      // Najpierw sprawdź czy to numer poradnika w wybranej kategorii
+      if (pendingPoradnik.categoryNum) {
+        const poradnikNum = Number(text.trim());
+        if (Number.isInteger(poradnikNum)) {
+          console.log(`[PORADNIK] User selected poradnik ${poradnikNum} in category ${pendingPoradnik.categoryNum}`);
+          clearTimeout(pendingPoradnik.timeout);
+          client.pendingPoradnikCategory.delete(senderId);
+          console.log(`[PORADNIK] Pending deleted for ${senderId}`);
+
+          const poradnik = getPoradnikByCategoryAndNumber(pendingPoradnik.categoryNum, poradnikNum);
+          if (poradnik) {
+            const embed = buildPoradnikDetailEmbed(pendingPoradnik.categoryNum, poradnikNum);
+            const replyText = renderPayloadToText({ embeds: [embed] });
+            if (replyText) {
+              api.sendMessage(replyText, threadId, () => {}, messageId);
+            }
+            return;
+          } else {
+            api.sendMessage('❌ Nie znaleziono poradnika o tym numerze. Wpisz !poradnik aby rozpocząć od nowa.', threadId, () => {}, messageId);
+            return;
+          }
+        }
+      }
+      
+      // Dopiero potem sprawdź czy to nowa kategoria
       const categoryNum = resolvePoradnikCategory(text.trim());
       if (categoryNum) {
         console.log(`[PORADNIK] User selected category ${categoryNum}`);
@@ -3451,32 +3477,9 @@ login({ appState }, (loginErr, api) => {
           api.sendMessage(replyText, threadId, () => {}, messageId);
         }
         return;
-      } else {
-        // Jeśli nie to kategoria, sprawdź czy to numer poradnika
-        if (pendingPoradnik.categoryNum) {
-          const poradnikNum = Number(text.trim());
-          if (Number.isInteger(poradnikNum)) {
-            console.log(`[PORADNIK] User selected poradnik ${poradnikNum} in category ${pendingPoradnik.categoryNum}`);
-            clearTimeout(pendingPoradnik.timeout);
-            client.pendingPoradnikCategory.delete(senderId); // Usuń pending po wybraniu poradnika
-            console.log(`[PORADNIK] Pending deleted for ${senderId}`);
-
-            const poradnik = getPoradnikByCategoryAndNumber(pendingPoradnik.categoryNum, poradnikNum);
-            if (poradnik) {
-              const embed = buildPoradnikDetailEmbed(pendingPoradnik.categoryNum, poradnikNum);
-              const replyText = renderPayloadToText({ embeds: [embed] });
-              if (replyText) {
-                api.sendMessage(replyText, threadId, () => {}, messageId);
-              }
-              return;
-            } else {
-              api.sendMessage('❌ Nie znaleziono poradnika o tym numerze. Wpisz !poradnik aby rozpocząć od nowa.', threadId, () => {}, messageId);
-              return;
-            }
-          }
-        }
       }
-      // Jeśli to nie numer kategorii ani poradnika, ignoruj - może być trzecia cyfra
+      
+      // Jeśli to nie numer kategorii ani poradnika, ignoruj
       console.log(`[PORADNIK] Ignoring input - not a category or poradnik number`);
       return;
     }
