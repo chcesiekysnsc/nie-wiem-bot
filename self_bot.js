@@ -94,6 +94,7 @@ const { resolvePendingBets } = require('./utils/bets');
 const { intelligentCensor } = require('./utils/censorship');
 const { resolveArtefaktyCategory, buildArtefaktyCategoryList, resolveGangArtefaktyCategory, buildGangArtefaktyCategoryList } = require('./utils/artefactHelpSystem');
 const { getAllCrateDefinitions, getCrateOrder } = require('./utils/gangBossShop');
+const { resolvePoradnikCategory, buildPoradnikListEmbed, buildPoradnikDetailEmbed, getPoradnikByCategoryAndNumber } = require('./utils/poradnikSystem');
 
 // Zapisz referencję do territories config
 const territoriesConfig = config.territories || {};
@@ -3425,6 +3426,50 @@ login({ appState }, (loginErr, api) => {
           api.sendMessage(replyText, threadId, () => {}, messageId);
         }
         return;
+      }
+    }
+
+    if (!client.pendingPoradnikCategory) client.pendingPoradnikCategory = new Map();
+    const pendingPoradnik = client.pendingPoradnikCategory.get(senderId);
+    if (pendingPoradnik && pendingPoradnik.threadId === threadId) {
+      const categoryNum = resolvePoradnikCategory(text.trim());
+      if (categoryNum) {
+        clearTimeout(pendingPoradnik.timeout);
+        // Zapisz wybraną kategorię i czekaj na numer poradnika
+        client.pendingPoradnikCategory.set(senderId, { 
+          timeout: setTimeout(() => client.pendingPoradnikCategory.delete(senderId), 60000),
+          prefix: pendingPoradnik.prefix,
+          threadId,
+          categoryNum 
+        });
+
+        const embed = buildPoradnikListEmbed(categoryNum);
+        const replyText = renderPayloadToText({ embeds: [embed] });
+        if (replyText) {
+          api.sendMessage(replyText, threadId, () => {}, messageId);
+        }
+        return;
+      } else {
+        // Jeśli nie to kategoria, sprawdź czy to numer poradnika
+        if (pendingPoradnik.categoryNum) {
+          const poradnikNum = Number(text.trim());
+          if (Number.isInteger(poradnikNum)) {
+            clearTimeout(pendingPoradnik.timeout);
+            client.pendingPoradnikCategory.delete(senderId);
+
+            const poradnik = getPoradnikByCategoryAndNumber(pendingPoradnik.categoryNum, poradnikNum);
+            if (poradnik) {
+              const embed = buildPoradnikDetailEmbed(pendingPoradnik.categoryNum, poradnikNum);
+              const replyText = renderPayloadToText({ embeds: [embed] });
+              if (replyText) {
+                api.sendMessage(replyText, threadId, () => {}, messageId);
+              }
+            } else {
+              api.sendMessage('❌ Nie znaleziono poradnika o tym numerze. Wpisz !poradnik aby rozpocząć od nowa.', threadId, () => {}, messageId);
+            }
+            return;
+          }
+        }
       }
     }
 

@@ -1,15 +1,61 @@
+const {
+  buildPoradnikCategoriesEmbed,
+  buildPoradnikListEmbed,
+  buildPoradnikDetailEmbed,
+  resolvePoradnikCategory,
+  getPoradnikByCategoryAndNumber
+} = require('../utils/poradnikSystem');
+
 module.exports = {
   name: 'poradnik',
   aliases: ['guide'],
   async execute(client, message, args) {
-    const poradnikText = `*krótkie wprowadzenie*
-1. najlepiej się zarabia komendą !work
-2. warto kupować paczki w sklepie ponieważ każda paczka zawiera różne itemy które dają różne bonusy (!artefakty)
-3. można okradać komendą !rob nawet po id więc nie musi być kogoś na danej grp wystarczy mieć jego id a id jest w linku do konta na fb na google na samym koncu
-4. wojny gangów można wywoływać nawet przez nazwę gangu oraz warto przejmować !terytoria oraz !gang skok
-5. warto być w topce aby na końcu sezonu dostać eventowe itemy (!eventitemy)
-6. warto kupować firmy oraz domy`;
+    const prefix = message.prefix || '!';
 
-    await message.reply(poradnikText);
+    // !poradnik bez argumentów -> pytanie o kategorię, czeka na odpowiedź nadawcy
+    if (!args.length) {
+      client.pendingPoradnikCategory = client.pendingPoradnikCategory || new Map();
+      const senderId = message.author.id;
+      const threadId = message.threadID;
+
+      const existing = client.pendingPoradnikCategory.get(senderId);
+      if (existing) clearTimeout(existing.timeout);
+
+      const timeout = setTimeout(() => {
+        client.pendingPoradnikCategory.delete(senderId);
+      }, 60000);
+
+      client.pendingPoradnikCategory.set(senderId, { timeout, prefix, threadId });
+
+      await message.reply({ embeds: [buildPoradnikCategoriesEmbed(prefix)] });
+      return;
+    }
+
+    const firstArg = String(args[0] || '').toLowerCase();
+    const categoryNum = resolvePoradnikCategory(firstArg);
+
+    // !poradnik <numer kategorii> [numer poradnika]
+    if (categoryNum) {
+      const secondArg = args[1];
+      if (secondArg !== undefined) {
+        const poradnikNum = Number(secondArg);
+        if (!Number.isInteger(poradnikNum)) {
+          await message.reply('❌ Nieprawidłowy numer poradnika. Wpisz numer poradnika który chcesz zobaczyć.');
+          return;
+        }
+        const poradnik = getPoradnikByCategoryAndNumber(categoryNum, poradnikNum);
+        if (!poradnik) {
+          await message.reply('❌ Nie znaleziono poradnika o tym numerze. Sprawdź listę poradników w tej kategorii.');
+          return;
+        }
+        await message.reply({ embeds: [buildPoradnikDetailEmbed(categoryNum, poradnikNum)] });
+        return;
+      }
+
+      await message.reply({ embeds: [buildPoradnikListEmbed(categoryNum)] });
+      return;
+    }
+
+    await message.reply('❌ Nieprawidłowy numer kategorii. Wpisz !poradnik aby zobaczyć dostępne kategorie.');
   }
 };
