@@ -3543,26 +3543,35 @@ login({ appState }, (loginErr, api) => {
       }
     }
     if (!command) {
-      let bestDist = Infinity;
-      let suggestion = null;
-      const seen = new Set();
-      for (const [key, cmd] of client.commands.entries()) {
-        if (seen.has(key)) continue;
-        seen.add(key);
-        const dist = levenshteinDistance(normInput, normalizeText(key));
-        if (dist < bestDist) {
-          bestDist = dist;
-          suggestion = key;
-          if (bestDist === 0) break; // Idealne dopasowanie - nie szukaj dalej
+      try {
+        console.log(`[UNKNOWN COMMAND] Nieznana komenda: ${commandName} od ${senderId}`);
+        let bestDist = Infinity;
+        let suggestion = null;
+        const seen = new Set();
+        for (const [key, cmd] of client.commands.entries()) {
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const dist = levenshteinDistance(normInput, normalizeText(key));
+          if (dist < bestDist) {
+            bestDist = dist;
+            suggestion = key;
+            if (bestDist === 0) break; // Idealne dopasowanie - nie szukaj dalej
+          }
         }
-      }
 
-      const closest = bestDist <= 2 ? suggestion : null;
-      const msg = closest
-        ? `Nie znaleziono komendy "${currentPrefix}${commandName}". Czy chodzilo Ci o ${currentPrefix}${closest}?`
-        : `Nie znaleziono komendy "${currentPrefix}${commandName}". Wpisz ${currentPrefix}help, aby zobaczyc liste komend.`;
-      api.sendMessage(msg, threadId, () => {}, messageId);
-      return;
+        const closest = bestDist <= 2 ? suggestion : null;
+        const msg = closest
+          ? `Nie znaleziono komendy "${currentPrefix}${commandName}". Czy chodzilo Ci o ${currentPrefix}${closest}?`
+          : `Nie znaleziono komendy "${currentPrefix}${commandName}". Wpisz ${currentPrefix}help, aby zobaczyc liste komend.`;
+        api.sendMessage(msg, threadId, (err) => {
+          if (err) console.error('[UNKNOWN COMMAND] Błąd wysyłania odpowiedzi:', err);
+        }, messageId);
+        return;
+      } catch (err) {
+        console.error('[UNKNOWN COMMAND] Błąd podczas obsługi nieznanej komendy:', err);
+        api.sendMessage('❌ Wystąpił błąd podczas przetwarzania komendy.', threadId, () => {}, messageId);
+        return;
+      }
     }
 
     // Sprawdź tryb maintenance
