@@ -336,3 +336,71 @@ Sklep: !sklep | Paczki: !otworz`
     ]
   }
 };
+
+const config = require('../config/config');
+const { EmbedBuilder } = require('./messenger');
+
+function resolvePoradnikCategory(text) {
+  if (!text) return null;
+  const trimmed = String(text).trim();
+  const num = Number(trimmed);
+  if (Number.isInteger(num) && num >= 1 && num <= Object.keys(poradnikCategories).length) {
+    return num;
+  }
+  const lower = trimmed.toLowerCase();
+  for (const [key, cat] of Object.entries(poradnikCategories)) {
+    if (cat.name.toLowerCase() === lower) {
+      return Number(key);
+    }
+  }
+  return null;
+}
+
+function getPoradnikByCategoryAndNumber(categoryNum, poradnikNum) {
+  const category = poradnikCategories[categoryNum];
+  if (!category) return null;
+  const poradnik = category.poradniki.find(p => p.id === poradnikNum);
+  return poradnik || null;
+}
+
+function buildPoradnikCategoriesEmbed(prefix) {
+  const lines = [];
+  for (const [key, cat] of Object.entries(poradnikCategories)) {
+    lines.push(`${cat.emoji} ${key}. ${cat.name}`);
+  }
+  return new EmbedBuilder()
+    .setColor(config.embed.primary)
+    .setTitle('📖 Poradnik')
+    .setDescription(`Wpisz **${prefix}poradnik <numer kategorii>** aby zobaczyć listę poradników.\n\n${lines.join('\n')}`);
+}
+
+function buildPoradnikListEmbed(categoryNum) {
+  const category = poradnikCategories[categoryNum];
+  if (!category) return null;
+  const lines = category.poradniki.map(p => `${p.id}. ${p.title}`);
+  return new EmbedBuilder()
+    .setColor(config.embed.primary)
+    .setTitle(`${category.emoji} ${category.name}`)
+    .setDescription(`Wpisz **!poradnik ${categoryNum} <numer poradnika>** aby zobaczyć poradnik.\n\n${lines.join('\n')}`);
+}
+
+function buildPoradnikDetailEmbed(categoryNum, poradnikNum) {
+  const category = poradnikCategories[categoryNum];
+  if (!category) return null;
+  const poradnik = getPoradnikByCategoryAndNumber(categoryNum, poradnikNum);
+  if (!poradnik) return null;
+  return new EmbedBuilder()
+    .setColor(config.embed.primary)
+    .setTitle(`${category.emoji} ${poradnik.title}`)
+    .setDescription(poradnik.content)
+    .setFooter({ text: `${category.name} • Poradnik ${poradnikNum}` });
+}
+
+module.exports = {
+  poradnikCategories,
+  resolvePoradnikCategory,
+  getPoradnikByCategoryAndNumber,
+  buildPoradnikCategoriesEmbed,
+  buildPoradnikListEmbed,
+  buildPoradnikDetailEmbed
+};
