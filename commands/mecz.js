@@ -260,6 +260,8 @@ module.exports = {
     }
 
     client.meczInProgress.add(userId);
+    client.meczBets = client.meczBets || new Map();
+    client.meczBets.set(userId, 0);
 
     const setupResult = await withData(async store => {
       const user = createUser(userId, store.users);
@@ -295,9 +297,12 @@ module.exports = {
 
     if (setupResult.error) {
       client.meczInProgress.delete(userId);
+      client.meczBets?.delete?.(userId);
       await message.reply(setupResult.error);
       return;
     }
+
+    client.meczBets.set(userId, setupResult.bet);
 
     // Wyczyszczenie oferty dopiero po pomyślnym obstawieniu
     client.activeMatches.delete(userId);
@@ -547,6 +552,7 @@ module.exports = {
       } finally {
         client.meczInProgress.delete(userId);
         client.activeMeczTimers.delete(userId);
+        client.meczBets?.delete?.(userId);
       }
     }, 60000);
     userTimers.push(t3);

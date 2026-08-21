@@ -1630,11 +1630,148 @@ login({ appState }, (loginErr, api) => {
   client.getMsUntilNextTaxTime = getMsUntilNextTaxTime;
   startTaxCollection();
 
+  // Zakończ wszystkie trwające gry i zwróć stawki przed poborem podatków
+  async function endAllActiveGamesAndRefund() {
+    const refunds = [];
+    const threadsToNotify = new Set();
+
+    const { withData, createUser } = require('./utils/storage');
+    const { formatCurrency } = require('./utils/economy');
+
+    // Blackjack
+    if (client.activeBlackjackGames) {
+      for (const [userId, game] of client.activeBlackjackGames.entries()) {
+        const bet = Number(game.bet || 0);
+        if (bet > 0) {
+          await withData(store => {
+            const user = createUser(userId, store.users);
+            user.balance += bet;
+          });
+          refunds.push({ userId, amount: bet, game: 'blackjack' });
+        }
+      }
+      client.activeBlackjackGames.clear();
+    }
+
+    // Chicken Road
+    if (client.activeChickenRoadGames) {
+      for (const [userId, game] of client.activeChickenRoadGames.entries()) {
+        const bet = Number(game.bet || 0);
+        if (bet > 0) {
+          await withData(store => {
+            const user = createUser(userId, store.users);
+            user.balance += bet;
+          });
+          refunds.push({ userId, amount: bet, game: 'chickenroad' });
+        }
+      }
+      client.activeChickenRoadGames.clear();
+    }
+
+    // Gielda
+    if (client.stockSessions) {
+      for (const [threadId, session] of client.stockSessions.entries()) {
+        threadsToNotify.add(threadId);
+        for (const [userId, inv] of session.investments.entries()) {
+          const amount = Number(inv.amount || 0);
+          if (amount > 0) {
+            await withData(store => {
+              const user = createUser(userId, store.users);
+              user.balance += amount;
+            });
+            refunds.push({ userId, amount, game: 'gielda', threadId });
+          }
+        }
+      }
+      client.stockSessions.clear();
+      client.activeGieldaHosts?.clear?.();
+    }
+
+    // Wojna
+    if (client.warSessions) {
+      for (const [threadId, session] of client.warSessions.entries()) {
+        threadsToNotify.add(threadId);
+        const bet = Number(session.bet || 0);
+        if (bet > 0 && session.hostId) {
+          await withData(store => {
+            const user = createUser(session.hostId, store.users);
+            user.balance += bet;
+          });
+          refunds.push({ userId: session.hostId, amount: bet, game: 'wojna', threadId });
+        }
+      }
+      client.warSessions.clear();
+    }
+
+    // Mecz
+    if (client.meczInProgress) {
+      for (const userId of client.meczInProgress) {
+        const bet = Number(client.meczBets?.get?.(userId) || 0);
+        if (bet > 0) {
+          await withData(store => {
+            const user = createUser(userId, store.users);
+            user.balance += bet;
+          });
+          refunds.push({ userId, amount: bet, game: 'mecz' });
+        }
+      }
+      client.meczInProgress.clear();
+    }
+    if (client.activeMeczTimers) {
+      for (const [userId, timers] of client.activeMeczTimers.entries()) {
+        for (const timer of timers) {
+          clearTimeout(timer);
+        }
+      }
+      client.activeMeczTimers.clear();
+    }
+    if (client.activeMatches) {
+      client.activeMatches.clear();
+    }
+
+    // Multimecz
+    if (client.activeMultiMatches) {
+      for (const [userId, multi] of client.activeMultiMatches.entries()) {
+        const bet = Number(client.meczBets?.get?.(userId) || 0);
+        if (bet > 0) {
+          await withData(store => {
+            const user = createUser(userId, store.users);
+            user.balance += bet;
+          });
+          refunds.push({ userId, amount: bet, game: 'multimecz' });
+        }
+      }
+      client.activeMultiMatches.clear();
+    }
+
+    if (client.meczBets) {
+      client.meczBets.clear();
+    }
+
+    // Rosyjska ruletka challenges (no money deducted, just delete)
+    client.rrRequests?.clear?.();
+
+    // PKN challenges (no money deducted, just delete)
+    client.pknRequests?.clear?.();
+
+    // Duel challenges (no money deducted, just delete)
+    client.duelRequests?.clear?.();
+
+    // Save state
+    try { saveGameSessions(client); } catch (e) {}
+
+    console.log(`[TAX-WARNING] Zakończono gry. Zwrócono ${refunds.length} stawek.`);
+    return refunds;
+  }
+
   // System progresywnego podatku majątkowego co 6 godzin
   function startProgressiveTaxCollection() {
     const delay = getMsUntilNextProgressiveTax();
+
     setTimeout(async () => {
       try {
+        await endAllActiveGamesAndRefund();
+
         const result = await withData(store => {
           const profiles = store.profiles || {};
           const nextAt = Number(profiles.nextTaxCollectionAt || 0);
@@ -1715,7 +1852,7 @@ login({ appState }, (loginErr, api) => {
              })?.catch?.(err => {
                console.error('[PROGRESSIVE-TAX] Błąd wysyłania powiadomienia (Promise):', err.message || err);
              });
-          }
+           }
         }
 
         console.log(`[PROGRESSIVE-TAX] Pobór zakończony. Łącznie: ${result.totalCollected.toLocaleString()} v od ${result.collected.length} graczy.`);
@@ -3429,33 +3566,32 @@ login({ appState }, (loginErr, api) => {
       }
     }
 
-    if (!client.pendingPoradnikCategory) client.pendingPoradnikCategory = new Map();
-    let pendingPoradnik = client.pendingPoradnikCategory.get(senderId);
-    const hasPending = pendingPoradnik && pendingPoradnik.threadId === threadId;
+    if (!client.activePoradnikSession) client.activePoradnikSession = new Map();
+    const activeSession = client.activePoradnikSession.get(threadId);
+    const isSessionOwner = activeSession && activeSession.userId === senderId;
 
-    if (hasPending && text.startsWith(currentPrefix)) {
+    if (activeSession && !isSessionOwner && text.startsWith(currentPrefix)) {
       const cmdName = text.slice(currentPrefix.length).trim().split(/\s+/).filter(Boolean)[0]?.toLowerCase();
       if (cmdName === 'poradnik') {
-        client.pendingPoradnikCategory.delete(senderId);
-        pendingPoradnik = null;
+        api.sendMessage('❌ Jest już aktywna sesja poradnika na tej grupie. Poczekaj aż się zakończy.', threadId, () => {}, messageId);
+        return;
       }
     }
 
-    if (pendingPoradnik && pendingPoradnik.threadId === threadId) {
-      console.log(`[PORADNIK] Pending found for ${senderId}, categoryNum: ${pendingPoradnik.categoryNum}, text: "${text.trim()}"`);
+    if (isSessionOwner) {
+      console.log(`[PORADNIK] Active session found for ${senderId}, categoryNum: ${activeSession.categoryNum}, text: "${text.trim()}"`);
       
-      // Najpierw sprawdź czy to numer poradnika w wybranej kategorii
-      if (pendingPoradnik.categoryNum) {
+      if (activeSession.categoryNum) {
         const poradnikNum = Number(text.trim());
         if (Number.isInteger(poradnikNum)) {
-          console.log(`[PORADNIK] User selected poradnik ${poradnikNum} in category ${pendingPoradnik.categoryNum}`);
-          clearTimeout(pendingPoradnik.timeout);
-          client.pendingPoradnikCategory.delete(senderId);
-          console.log(`[PORADNIK] Pending deleted for ${senderId}`);
+          console.log(`[PORADNIK] User selected poradnik ${poradnikNum} in category ${activeSession.categoryNum}`);
+          clearTimeout(activeSession.timeout);
+          client.activePoradnikSession.delete(threadId);
+          console.log(`[PORADNIK] Session deleted for thread ${threadId}`);
 
-          const poradnik = getPoradnikByCategoryAndNumber(pendingPoradnik.categoryNum, poradnikNum);
+          const poradnik = getPoradnikByCategoryAndNumber(activeSession.categoryNum, poradnikNum);
           if (poradnik) {
-            const embed = buildPoradnikDetailEmbed(pendingPoradnik.categoryNum, poradnikNum);
+            const embed = buildPoradnikDetailEmbed(activeSession.categoryNum, poradnikNum);
             const replyText = renderPayloadToText({ embeds: [embed] });
             if (replyText) {
               api.sendMessage(replyText, threadId, () => {}, messageId);
@@ -3468,16 +3604,15 @@ login({ appState }, (loginErr, api) => {
         }
       }
       
-      // Dopiero potem sprawdź czy to nowa kategoria
       const categoryNum = resolvePoradnikCategory(text.trim());
       if (categoryNum) {
         console.log(`[PORADNIK] User selected category ${categoryNum}`);
-        clearTimeout(pendingPoradnik.timeout);
-        // Zapisz wybraną kategorię i czekaj na numer poradnika
-        client.pendingPoradnikCategory.set(senderId, { 
-          timeout: setTimeout(() => client.pendingPoradnikCategory.delete(senderId), 60000),
-          prefix: pendingPoradnik.prefix,
-          threadId,
+        clearTimeout(activeSession.timeout);
+        client.activePoradnikSession.set(threadId, { 
+          userId: senderId,
+          timeout: setTimeout(() => {
+            client.activePoradnikSession.delete(threadId);
+          }, 60000),
           categoryNum 
         });
 
@@ -3489,7 +3624,6 @@ login({ appState }, (loginErr, api) => {
         return;
       }
       
-      // Jeśli to nie numer kategorii ani poradnika, ignoruj
       console.log(`[PORADNIK] Ignoring input - not a category or poradnik number`);
       return;
     }

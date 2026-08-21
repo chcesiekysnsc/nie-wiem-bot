@@ -252,6 +252,25 @@ module.exports = {
         return;
       }
 
+      if (client.taxWarningActive) {
+        await message.reply('❌ Nie możesz kraść podczas trwania ostrzeżenia przed poborem podatków. Wszystkie gry zostały zakończone.');
+        return;
+      }
+
+      const isInActiveGame = 
+        (client.activeBlackjackGames && client.activeBlackjackGames.has(authorId)) ||
+        (client.activeChickenRoadGames && client.activeChickenRoadGames.has(authorId)) ||
+        (client.meczInProgress && client.meczInProgress.has(authorId)) ||
+        (client.activeMatches && client.activeMatches.has(authorId)) ||
+        (client.activeMultiMatches && client.activeMultiMatches.has(authorId)) ||
+        (client.stockSessions && Array.from(client.stockSessions.values()).some(s => s.participants?.has?.(authorId) || s.hostId === authorId)) ||
+        (client.warSessions && Array.from(client.warSessions.values()).some(s => s.hostId === authorId || s.participants?.includes?.(authorId)));
+
+      if (isInActiveGame) {
+        await message.reply('❌ Nie możesz użyć !rob podczas trwania innej gry czasowej/turowej. Zakończ obecną grę lub poczekaj na jej automatyczne zakończenie.');
+        return;
+      }
+
       if (robCheck.totalCmds < 50) {
         await message.reply(`❌ Musisz trochę pograć, zanim będziesz mógł okradać innych.`);
         return;

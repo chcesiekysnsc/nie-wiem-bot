@@ -14,20 +14,27 @@ module.exports = {
 
     // !poradnik bez argumentów -> pytanie o kategorię, czeka na odpowiedź nadawcy
     if (!args.length) {
-      client.pendingPoradnikCategory = client.pendingPoradnikCategory || new Map();
-      const senderId = message.author.id;
+      if (!client.activePoradnikSession) client.activePoradnikSession = new Map();
       const threadId = message.threadID;
+      const existingSession = client.activePoradnikSession.get(threadId);
 
-      const existing = client.pendingPoradnikCategory.get(senderId);
-      if (existing) clearTimeout(existing.timeout);
+      if (existingSession && existingSession.userId !== message.author.id) {
+        await message.reply('❌ Jest już aktywna sesja poradnika na tej grupie. Poczekaj aż się zakończy.');
+        return;
+      }
+
+      if (existingSession) {
+        clearTimeout(existingSession.timeout);
+        client.activePoradnikSession.delete(threadId);
+      }
 
       const timeout = setTimeout(() => {
-        client.pendingPoradnikCategory.delete(senderId);
+        client.activePoradnikSession.delete(threadId);
       }, 60000);
 
-      client.pendingPoradnikCategory.set(senderId, { timeout, prefix, threadId });
+      client.activePoradnikSession.set(threadId, { userId: message.author.id, timeout, prefix: message.prefix || '!' });
 
-      await message.reply({ embeds: [buildPoradnikCategoriesEmbed(prefix)] });
+      await message.reply({ embeds: [buildPoradnikCategoriesEmbed(message.prefix || '!')] });
       return;
     }
 
@@ -54,13 +61,13 @@ module.exports = {
 
       await message.reply({ embeds: [buildPoradnikListEmbed(categoryNum)] });
 
-      client.pendingPoradnikCategory = client.pendingPoradnikCategory || new Map();
-      const existing = client.pendingPoradnikCategory.get(message.author.id);
-      if (existing) clearTimeout(existing.timeout);
+      if (!client.activePoradnikSession) client.activePoradnikSession = new Map();
+      const existingSession = client.activePoradnikSession.get(message.threadID);
+      if (existingSession) clearTimeout(existingSession.timeout);
       const timeout = setTimeout(() => {
-        client.pendingPoradnikCategory.delete(message.author.id);
+        client.activePoradnikSession.delete(message.threadID);
       }, 60000);
-      client.pendingPoradnikCategory.set(message.author.id, { timeout, prefix, threadId: message.threadID, categoryNum });
+      client.activePoradnikSession.set(message.threadID, { userId: message.author.id, timeout, prefix: message.prefix || '!', categoryNum });
 
       return;
     }

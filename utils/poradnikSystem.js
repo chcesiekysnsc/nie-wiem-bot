@@ -10,28 +10,28 @@ const poradnikCategories = {
 !work to podstawowy sposób zarabiania. Wykonujesz pracę i otrzymujesz wypłatę. Cooldown bazowy: 10 minut.
 
 💡 PORADA:
-Zdobądź garnitur (+10%) i kaczkę biznesu (+5%) z paczek (!otworz) dla bonusów. Zegarek skraca cooldown o 10-15%. Energetyk zwiększa zysk o 5% i skraca cooldown o 10% (+0,5% na poziom). Awansuj poziom pracy dla dodatkowych bonusów.
+Zdobądź garnitur i kaczkę biznesu z paczek (!otworz) dla bonusów. Zegarek skraca cooldown. Energetyk zwiększa zysk i skraca cooldown. Awansuj poziom pracy dla dodatkowych bonusów.
 
 ⚠️ UWAGA:
 W więzieniu nie możesz pracować. Automatyzacja (używanie work co kilka sekund) prowadzi do bana na 10-14h.
 
 📊 INFO:
-Cooldown: 10 min | Nagroda: 5000-35000 VC (w zależności od bonusów)`
+Cooldown: 10 min | Wypłata: 5000-35000 VC (w zależności od bonusów)`
       },
        {
          id: 2,
          title: 'Jak używać crime',
          content: `📝 OPIS:
-!crime to kradzież z ~55% szansy sukcesu. Udana próba = zysk 15000-70000 VC. Nieudana = 1h więzienia + kara do 45000 VC.
+!crime to kradzież z prawdopodobieństwem sukcesu. Udana próba = zysk 15000-70000 VC. Nieudana = 1h więzienia + kara do 45000 VC.
 
 💡 PORADA:
-Nowe Abibasy zwiększają szansę o 3%. Odznaka Komendanta daje 12,5% + 1% na poziom szansy na uniknięcie więzienia. Fałszerz daje 3% szansy na podwojenie zysku. Celuj w graczy z dużym saldem.
+Nowe Abibasy zwiększają szansę. Odznaka Komendanta daje szansę na uniknięcie więzienia (zwiększa się z levelem). Fałszerz daje szansę na podwojenie zysku. Celuj w graczy z dużym saldem.
 
 ⚠️ UWAGA:
 Nieudana próba = 1h więzienia + kara do 45000 VC. Łapówka kosztuje 2x kwoty stawki (max 30000 VC).
 
 📊 INFO:
-Szansa: ~55% | Zysk: 15000-70000 VC | Kara max: 45000 VC`
+Zysk: 15000-70000 VC | Kara max: 45000 VC`
       },
       {
         id: 3,
@@ -40,13 +40,13 @@ Szansa: ~55% | Zysk: 15000-70000 VC | Kara max: 45000 VC`
 !daily to codzienna nagroda. Bazowa kwota: 20000 VC. Przyznawana raz na 24h (od polskiej północy).
 
 💡 PORADA:
-Zbieraj daily każdego dnia dla streak bonusu (+1000 VC za każdy dzień). Szwajcarski zegarek pozwala odebrać daily 3.6h wcześniej. VIP i odznaki zwiększają nagrodę.
+Zbieraj daily każdego dnia dla streak bonusu (+1000 VC za każdy dzień). Szwajcarski zegarek pozwala odebrać daily wcześniej. VIP i odznaki zwiększają nagrodę.
 
 ⚠️ UWAGA:
 Jeśli pominiesz dzień, streak resetuje się do 1.
 
 📊 INFO:
-Bazowa nagroda: 20000 VC | Streak: +1000/dzień`
+Nagroda bazowa: 20000 VC | Streak: +1000/dzień`
       },
       {
         id: 4,
@@ -124,7 +124,7 @@ Ruletka — obstawiasz kolor (czerwony/czarny), parzystość lub numer (0-36).
 Czerwony/czarny = 2x. Numer = 12x. Zielone (0) = 36x. Przekupiony Krupier podnosi szansę na trafienie.
 
 ⚠️ UWAGA:
-Zielone ma najmniejszą szansę (1%).
+Zielone ma najmniejszą szansę.
 
 📊 INFO:
 Zielone: 36x | Numer: 12x | Kolor: 2x`
@@ -148,16 +148,16 @@ Mnożniki: 3x-5x | 2 takie same: 1.4x`
          id: 4,
          title: 'Jak grać w rosyjską ruletkę',
          content: `📝 OPIS:
-!rosyjska (aliasy: !rr, !ruletkarosyjska) — gra na śmierć i życie. Dwa tryby: solo (1v1 przeciwko komputerowi) i PvP (1v1 przeciwko innemu graczowi). W trybie PvP następuje wymiana strzałów po kolei. W trybie solo masz 4/6 szans przeżycia.
+!rosyjska (aliasy: !rr, !ruletkarosyjska) — gra na śmierć i życie. Dwa tryby: solo i PvP. W trybie PvP następuje wymiana strzałów po kolei. W trybie solo masz szansę na przeżycie.
 
 💡 PORADA:
-W trybie PvP wyzywaj przeciwnika (!rr <kwota> @osoba) i czekaj na akceptację (!rr acc). W trybie solo obstaw kwotę (!rr <kwota>) — przy przeżyciu wygrywasz ~33% stawki. Badge uzależniony (+3% zysku) i Królewskie Insygnia (+10% zysku) zwiększają wygraną.
+W trybie PvP wyzywaj przeciwnika (!rr <kwota> @osoba) i czekaj na akceptację (!rr acc). W trybie solo obstaw kwotę (!rr <kwota>) — przy przeżyciu wygrywasz część stawki. Przedmioty i odznaki mogą zwiększyć zysk.
 
 ⚠️ UWAGA:
-Przegrana = strata całej stawki. Podatek 5% z wygranej w trybie PvP. W trybie solo nie ma podatku. W PvP przeciwnik ma czas na akceptację.
+Przegrana = strata całej stawki. Podatek z wygranej w trybie PvP. W trybie solo nie ma podatku. W PvP przeciwnik ma czas na akceptację.
 
 📊 INFO:
-Solo: 4/6 szans | Wygrana solo: ~33% stawki | PvP: 1v1, stawka dowolna`
+Solo: szansa na przeżycie | PvP: 1v1, stawka dowolna`
        }
      ]
    },
@@ -205,10 +205,10 @@ Pojedynek 1v1 — obaj stawiają tę samą kwotę, wygrywa losowo 50/50.
 Wpisz !duel <kwota> @osoba. Przeciwnik musi zaakceptować (!duel acc) w ciągu 2 minut.
 
 ⚠️ UWAGA:
-Czysta losowość — nie ma wpływu przedmiotów. Podatek 5% z wygranej.
+Czysta losowość — nie ma wpływu przedmiotów. Podatek z wygranej.
 
 📊 INFO:
-Stawka: dowolna`
+Stawka: dowolna | Szansa: 50/50`
       }
     ]
   },
@@ -287,9 +287,9 @@ Współpraca i propozycje również na Facebooku.`
       }
     ]
   },
-  6: {
-    name: 'Zaawansowana ekonomia',
-    emoji: '💼',
+   6: {
+     name: 'Firmy oraz okradanie',
+     emoji: '💼',
     poradniki: [
       {
         id: 1,
@@ -313,13 +313,13 @@ Wypłata co: 3 godziny`
 !rob pozwala okraść innych graczy. Komendy !rob można używać tak: !rob <id> — okradasz osobę o danym ID. ID można pozyskać np. z linku do konta na Facebooku. Wymaga 100k w portfelu i 50 użytych komend. Cel musi mieć min. 50k.
 
 💡 PORADA:
-Używaj przedmiotów zwiększających szansę i zysk. Latarka, Wampirzy Sztylet, Krwawy Żeton. Czarna Bandera daje 5% szansy na drugi napad.
+Używaj przedmiotów zwiększających szansę i zysk. Latarka, Wampirzy Sztylet, Krwawy Żeton. Czarna Bandera daje szansę na drugi napad.
 
 ⚠️ UWAGA:
 Nie możesz kraść członków własnego gangu ani sojuszników. Nieudana próba = 1h ban + kara. Cooldown: 30 min bazowo.
 
 📊 INFO:
-Szansa: ~60% | Zysk: 20-25% salda`
+Zysk: część salda`
       }
     ]
   },
@@ -340,7 +340,7 @@ Kursy zależą od sił drużyn. Max stawka: 10% salda. Symulacja trwa 60s z wyda
 Możesz przegrać całą stawkę. Podatek 15% z wygranej.
 
 📊 INFO:
-Czas trwania: 60 sekund`
+Czas trwania: 60 sekund | Szansa na wygraną: zależna od siły drużyn (logistyczna krzywa)`
       },
       {
         id: 2,
@@ -355,7 +355,7 @@ Im więcej meczów tym wyższy kurs. Jeśli jeden przegrany = cała przegrana. O
 Bardzo ryzykowne. Łączny kurs limitowany (zależnie od liczby meczów).
 
 📊 INFO:
-Meczów: 2-10`
+Meczów: 2-10 | Szansa: zależna od siły drużyn (logistyczna krzywa)`
       },
       {
         id: 3,
@@ -364,13 +364,13 @@ Meczów: 2-10`
 !gielda — multiplayer inwestycje w 4 aktywa: Bank, Srebro, Złoto, Diamenty. Każda sesja ma lobby (2 min) i rundę inwestycji (1 min). Max 8 graczy.
 
 💡 PORADA:
-Sprawdź !gielda info aby zobaczyć zakresy ryzyka dla każdej sesji. Inwestuj w różne aktywa. Min. inwestycja: 10% salda. Najpopularniejsze aktywo ma lekko lepsze szanse. Badge uzależniony daje +3% do zysku.
+Sprawdź !gielda info aby zobaczyć zakresy ryzyka dla każdej sesji. Inwestuj w różne aktywa. Min. inwestycja zależna od salda. Najpopularniejsze aktywo ma lekko lepsze szanse. Odznaki mogą zwiększyć zysk.
 
 ⚠️ UWAGA:
-Nie można zmienić decyzji po rozpoczęciu inwestycji. 51% szans na stratę. Jeśli nikt nie zainwestuje, host dostaje 20 min cooldownu. Możesz hostować tylko jedną sesję naraz.
+Nie można zmienić decyzji po rozpoczęciu inwestycji. Większość rund kończy się stratą. Jeśli nikt nie zainwestuje, host dostaje cooldown. Możesz hostować tylko jedną sesję naraz.
 
 📊 INFO:
-Lobby: 2 min | Inwestycja: 1 min | Max graczy: 8 | Min. inwestycja: 10% salda`
+Lobby: 2 min | Inwestycja: 1 min | Max graczy: 8`
        }
     ]
   },

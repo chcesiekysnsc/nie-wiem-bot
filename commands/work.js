@@ -22,7 +22,7 @@ const { getEffectiveChance } = require('../utils/chances');
 const { getGangBossShopMultiplier } = require('../utils/gangBossShop');
 const { hasReputationBonus } = require('../utils/gangAI');
 const { getItemSetBonus } = require('../utils/itemSets');
-const { advanceChallenge } = require('../utils/challenges');
+const { advanceChallenge, getActiveChallenge } = require('../utils/challenges');
 
 const WORK_BOT_WINDOW_SIZE = 6;
 const WORK_BOT_WINDOW_SIZE_FLAGGED = 5;
@@ -418,20 +418,30 @@ module.exports = {
       const isFlagged = Number.isFinite(flaggedAt) && (now - flaggedAt < WORK_BOT_FLAGGED_TTL_MS);
       const windowSize = isFlagged ? WORK_BOT_WINDOW_SIZE_FLAGGED : WORK_BOT_WINDOW_SIZE;
 
+      const disabledCommands = new Set(store.profiles.disabledCommands || []);
+      const userOverrides = (store.profiles.userCommandPermissions || {})[authorId] || {};
+      const workDisabledForUser = userOverrides.work === false || disabledCommands.has('work');
+
+      const activeWorkChallenge = getActiveChallenge(authorId, store);
+      const hasWorkChallenge = activeWorkChallenge && activeWorkChallenge.type === 'work_count';
+
       const timestamps = Array.isArray(store.profiles.workTimestamps[authorId])
         ? store.profiles.workTimestamps[authorId]
         : [];
-      timestamps.push(now);
-      while (timestamps.length > windowSize) {
-        timestamps.shift();
+      
+      if (!workDisabledForUser && !hasWorkChallenge) {
+        timestamps.push(now);
+        while (timestamps.length > windowSize) {
+          timestamps.shift();
+        }
+        store.profiles.workTimestamps[authorId] = timestamps;
       }
-      store.profiles.workTimestamps[authorId] = timestamps;
 
       let botBanTriggered = false;
       let botBanUntil = null;
       let botPattern = null;
 
-      if (timestamps.length === windowSize) {
+      if (timestamps.length === windowSize && !workDisabledForUser && !hasWorkChallenge) {
         const diffs = [];
         for (let i = 1; i < timestamps.length; i++) {
           diffs.push((timestamps[i] - timestamps[i - 1]) / 1000);

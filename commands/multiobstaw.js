@@ -140,6 +140,8 @@ module.exports = {
     }
 
     client.meczInProgress.add(userId);
+    client.meczBets = client.meczBets || new Map();
+    client.meczBets.set(userId, 0);
 
     // 4. Walidacja i potrącenie stawki
     const setupResult = await withData(async store => {
@@ -193,9 +195,12 @@ module.exports = {
 
     if (setupResult.error) {
       client.meczInProgress.delete(userId);
+      client.meczBets?.delete?.(userId);
       await message.reply(setupResult.error);
       return;
     }
+
+    client.meczBets.set(userId, setupResult.totalStake);
 
     const { totalStake, selectionsResolved } = setupResult;
 
@@ -502,6 +507,7 @@ module.exports = {
         if (client.activeMeczTimers) {
           client.activeMeczTimers.delete(userId);
         }
+        client.meczBets?.delete?.(userId);
       }
     }, 60000);
     userTimers.push(t3);
