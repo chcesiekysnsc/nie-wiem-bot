@@ -86,10 +86,17 @@ const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
 const { checkAndResetBalance, checkPendingBalanceBlock, checkOverdueBalanceReports } = require('./utils/balanceMonitor');
-const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier, getGlobalIncomeMultiplier, getItemUpgradeLevel } = require('./utils/economy');
+const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier, getGlobalIncomeMultiplier, getItemUpgradeLevel, addXp, getMilestoneRewardDescription } = require('./utils/economy');
 const { getItemSetBonus } = require('./utils/itemSets');
 const { getWorkerDef, applyWorkerEffects } = require('./utils/workerEffects');
-const { getCommandsByCategory } = require('./utils/helpSystem');
+const { getCommandsByCategory, resolveCategoryInput, buildCategoryListEmbed, buildHelpListEmbed } = require('./utils/helpSystem');
+const { resolvePendingBets } = require('./utils/bets');
+const { intelligentCensor } = require('./utils/censorship');
+const { resolveArtefaktyCategory, buildArtefaktyCategoryList, resolveGangArtefaktyCategory, buildGangArtefaktyCategoryList } = require('./utils/artefactHelpSystem');
+const { getAllCrateDefinitions, getCrateOrder } = require('./utils/gangBossShop');
+
+// Zapisz referencję do territories config
+const territoriesConfig = config.territories || {};
 
 function isNotificationBlocked(threadId) {
   try {
@@ -172,7 +179,6 @@ function getThreadInfoCachedAsync(api, threadId) {
 // ========== KONIEC THREAD INFO CACHE ==========
 
 async function getRecentActiveThreads(client) {
-  const { loadData } = require('./utils/storage');
   const stats = loadData('groupStats') || {};
   const twelveHours = 12 * 60 * 60 * 1000;
   const now = Date.now();
@@ -409,7 +415,6 @@ const client = {
     // Sprawdź najpierw w bazie danych, czy imię jest zapisane
     let dbName = null;
     try {
-      const { loadData } = require('./utils/storage');
       const usersData = loadData('users');
       if (usersData && usersData[userId] && usersData[userId].name) {
         dbName = usersData[userId].name;
@@ -433,7 +438,6 @@ const client = {
           this.resolvedUserNames.add(userId);
           
           // Zapisz asynchronicznie do bazy danych
-          const { withData } = require('./utils/storage');
           withData(store => {
             if (store.users[userId]) {
               store.users[userId].name = name;
@@ -990,7 +994,6 @@ login({ appState }, (loginErr, api) => {
   // Pobierz nazwy dla aktywnych grup na starcie (z cache + rate limit + backoff)
   setTimeout(async () => {
     try {
-      const { loadData } = require('./utils/storage');
       const stats = loadData('groupStats');
       const threadIds = Array.from(client.activeThreadIds || []);
       
@@ -1027,12 +1030,11 @@ login({ appState }, (loginErr, api) => {
   }, 10000);
 
   // Odzyskiwanie przerwanych zakładów meczowych/multi-meczowych po restarcie
-  const { resolvePendingBets } = require('./utils/bets');
   setTimeout(() => {
     resolvePendingBets(api).catch(err => {
       console.error('[SELF-BOT] Blad podczas odzyskiwania zakladow:', err);
     });
-  }, 3000);
+  }, 15000);
 
   // Pętla panelu administratora: heartbeat statusu + obsługa ogłoszeń i restartu z panelu (apka/)
   setInterval(() => {
@@ -1480,7 +1482,6 @@ login({ appState }, (loginErr, api) => {
           const totalPrize = totalTickets * 50000;
 
           const winnerUser = createUser(winnerId, store.users);
-          const { hasItem } = require('./utils/economy');
           const winnerInv = store.inventory[winnerId] || {};
           let finalPrize = totalPrize;
           if (hasItem(winnerInv, 'krolewskie_insygnia')) {
@@ -1780,7 +1781,7 @@ login({ appState }, (loginErr, api) => {
             return { rotated: 0 };
           }
 
-          const definitions = (require('../config/config').territories && require('../config/config').territories.definitions) || [];
+          const definitions = (territoriesConfig && territoriesConfig.definitions) || [];
           const allIds = definitions.map(d => d.id);
           const shuffled = allIds.sort(() => Math.random() - 0.5);
           const newActive = shuffled.slice(0, 5);
@@ -2521,7 +2522,6 @@ login({ appState }, (loginErr, api) => {
 
     function cleanupCachedEntry(entry) {
       if (entry && entry.attachments && entry.attachments.length > 0) {
-        const fs = require('fs');
         for (const filePath of entry.attachments) {
           try {
             if (fs.existsSync(filePath)) {
@@ -2561,7 +2561,6 @@ login({ appState }, (loginErr, api) => {
             
             // Only censor if there's text content
             if (censoredBody && !censoredBody.startsWith('[Załącznik:')) {
-              const { intelligentCensor } = require('./utils/censorship');
               censoredBody = await intelligentCensor(censoredBody, 'przywrócona wiadomość');
             }
             
@@ -2871,7 +2870,6 @@ login({ appState }, (loginErr, api) => {
       }
 
       try {
-        const { loadData } = require('./utils/storage');
         const stats = loadData('groupStats');
         if (api && typeof api.getThreadInfo === 'function' && (!stats[threadId] || !stats[threadId].threadName)) {
           getThreadInfoCached(api, threadId, (err, info) => {
@@ -3338,7 +3336,6 @@ login({ appState }, (loginErr, api) => {
     if (!client.pendingHelpCategory) client.pendingHelpCategory = new Map();
     const pendingHelp = client.pendingHelpCategory.get(senderId);
     if (pendingHelp && pendingHelp.threadId === threadId) {
-      const { resolveCategoryInput, buildCategoryListEmbed, buildHelpListEmbed } = require('./utils/helpSystem');
       const categoryKey = resolveCategoryInput(text.trim());
       if (categoryKey) {
         clearTimeout(pendingHelp.timeout);
@@ -3359,7 +3356,6 @@ login({ appState }, (loginErr, api) => {
     if (!client.pendingArtefakty) client.pendingArtefakty = new Map();
     const pendingArtefakty = client.pendingArtefakty.get(senderId);
     if (pendingArtefakty && pendingArtefakty.threadId === threadId) {
-      const { resolveArtefaktyCategory, buildArtefaktyCategoryList } = require('./utils/artefactHelpSystem');
       const categoryKey = resolveArtefaktyCategory(text.trim());
       if (categoryKey) {
         clearTimeout(pendingArtefakty.timeout);
@@ -3384,14 +3380,11 @@ login({ appState }, (loginErr, api) => {
     if (!client.pendingGangArtefakty) client.pendingGangArtefakty = new Map();
     const pendingGangArtefakty = client.pendingGangArtefakty.get(senderId);
     if (pendingGangArtefakty && pendingGangArtefakty.threadId === threadId) {
-      const { resolveGangArtefaktyCategory, buildGangArtefaktyCategoryList } = require('./utils/artefactHelpSystem');
       const categoryKey = resolveGangArtefaktyCategory(text.trim());
       if (categoryKey) {
         clearTimeout(pendingGangArtefakty.timeout);
         client.pendingGangArtefakty.delete(senderId);
 
-        const { getAllCrateDefinitions, getCrateOrder } = require('./utils/gangBossShop');
-        const config = require('./config/config');
         const crates = getAllCrateDefinitions();
         const regularItems = [];
         let regularNum = 0;
@@ -3827,7 +3820,6 @@ login({ appState }, (loginErr, api) => {
         }
 
         if (!isBlocked) {
-          const { addXp, ensureInventoryRecord, getMilestoneRewardDescription } = require('./utils/economy');
           const inv = ensureInventoryRecord(store.inventory, senderId);
           const xpResult = addXp(u, 15, inv);
           if (xpResult.leveledUp) {
