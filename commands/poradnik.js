@@ -53,6 +53,15 @@ module.exports = {
       }
 
       await message.reply({ embeds: [buildPoradnikListEmbed(categoryNum)] });
+
+      client.pendingPoradnikCategory = client.pendingPoradnikCategory || new Map();
+      const existing = client.pendingPoradnikCategory.get(message.author.id);
+      if (existing) clearTimeout(existing.timeout);
+      const timeout = setTimeout(() => {
+        client.pendingPoradnikCategory.delete(message.author.id);
+      }, 60000);
+      client.pendingPoradnikCategory.set(message.author.id, { timeout, prefix, threadId: message.threadID, categoryNum });
+
       return;
     }
 

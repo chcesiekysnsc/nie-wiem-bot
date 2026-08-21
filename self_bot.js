@@ -3430,7 +3430,17 @@ login({ appState }, (loginErr, api) => {
     }
 
     if (!client.pendingPoradnikCategory) client.pendingPoradnikCategory = new Map();
-    const pendingPoradnik = client.pendingPoradnikCategory.get(senderId);
+    let pendingPoradnik = client.pendingPoradnikCategory.get(senderId);
+    const hasPending = pendingPoradnik && pendingPoradnik.threadId === threadId;
+
+    if (hasPending && text.startsWith(currentPrefix)) {
+      const cmdName = text.slice(currentPrefix.length).trim().split(/\s+/).filter(Boolean)[0]?.toLowerCase();
+      if (cmdName === 'poradnik') {
+        client.pendingPoradnikCategory.delete(senderId);
+        pendingPoradnik = null;
+      }
+    }
+
     if (pendingPoradnik && pendingPoradnik.threadId === threadId) {
       console.log(`[PORADNIK] Pending found for ${senderId}, categoryNum: ${pendingPoradnik.categoryNum}, text: "${text.trim()}"`);
       

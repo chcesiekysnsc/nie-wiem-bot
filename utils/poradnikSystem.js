@@ -16,13 +16,13 @@ Kup garnitur (+10%) i kaczkę biznesu (+5%) dla bonusów. Zegarek skraca cooldow
 W więzieniu nie możesz pracować. Automatyzacja (używanie work co kilka sekund) prowadzi do bana na 10-14h.
 
 📊 INFO:
-Cooldown: 10 min | Nagroda bazowa: 5000-25000 VC | Z bonusami: do ~35k VC`
+Cooldown: 10 min | Nagroda: 5000-35000 VC (w zależności od bonusów)`
       },
        {
          id: 2,
          title: 'Jak używać crime',
          content: `📝 OPIS:
-!crime to kradzież z ~75% szansy sukcesu. Udana próba = zysk 5000-30000 VC. Nieudana = 1h więzienia + kara.
+!crime to kradzież z ~55% szansy sukcesu. Udana próba = zysk 5000-30000 VC. Nieudana = 1h więzienia + kara.
 
 💡 PORADA:
 Nowe Abibasy zwiększają szansę o 3%. Odznaka Komendanta daje 12,5% + 1% na poziom szansy na uniknięcie więzienia. Fałszerz daje 3% szansy na podwojenie zysku. Celuj w graczy z dużym saldem.
@@ -31,7 +31,7 @@ Nowe Abibasy zwiększają szansę o 3%. Odznaka Komendanta daje 12,5% + 1% na po
 Nieudana próba = 1h więzienia + kara 5000-30000 VC. Łapówka kosztuje 2x kwoty stawki (max 30000 VC).
 
 📊 INFO:
-Szansa: ~75% | Zysk: 5000-30000 VC`
+Szansa: ~55% | Zysk: 5000-30000 VC`
       },
       {
         id: 3,
@@ -62,9 +62,39 @@ Bank ma limit pojemności. Pełny = nie możesz wpłacić więcej. Wypłata: !wy
 
 📊 INFO:
 Odsetki: co 6h | Bazowy procent: 5%`
-      }
-    ]
-  },
+       },
+       {
+         id: 5,
+         title: 'Przelewy i rankingi',
+         content: `📝 OPIS:
+!tip wysyła VC innemu graczowi. !bal sprawdza saldo w portfelu i banku. !top wyświetwa ranking najbogatszych graczy.
+
+💡 PORADA:
+Sprawdź !bal przed wysłaniem przelewu. !top pokazuje top 10 graczy. Używaj !tip do pomocy innym lub przesłania nagrody.
+
+⚠️ UWAGA:
+Przelew jest nieodwracalny. Sprawdź dokładnie oznaczenie (@user) przed wysłaniem. Nie można wysyłać tipów z więzienia.
+
+📊 INFO:
+Przelew: !tip <@user> <kwota> | Saldo: !bal | Ranking: !top`
+       },
+       {
+         id: 6,
+         title: 'Pożyczki i dom',
+         content: `📝 OPIS:
+!pozyczka pobiera kredyt od banku. !dlug sprawdza długi. !dom kupuje/ulepsza dom generujący pasywny dochód.
+
+💡 PORADA:
+Pożyczaj tylko gdy potrzebujesz kapitału na rozwój. Spłać przed terminem aby uniknąć kary. Dom generuje dochód co 24h — im lepszy dom, tym więcej VC. Ulepszaj warsztat, zbrojownię i siłownię dla dodatkowych bonusów.
+
+⚠️ UWAGA:
+Masz 7 dni na spłatę pożyczki. Po upływie grzywna % salda. Jeśli nie masz środków na czynsz, dom jest zdegradowany o poziom.
+
+📊 INFO:
+Pożyczka: !pozyczka <kwota> | Długi: !dlug | Dom: !dom`
+       }
+     ]
+   },
   2: {
     name: 'Gry hazardowe',
     emoji: '🎰',
@@ -113,9 +143,39 @@ Slots są oparte na losowości.
 
 📊 INFO:
 Mnożniki: 3x-5x | 2 takie same: 1.4x`
-      }
-    ]
-  },
+       },
+       {
+         id: 4,
+         title: 'Jak grać w kości i coinflip',
+         content: `📝 OPIS:
+!kosc rzuca kostką (1-6). !coinflip rzuca monetą (orzeł/reszka). Szybkie gry na stawkę.
+
+💡 PORADA:
+Kości i coinflip są czystą losowością. Odznaki (Bog, Rekin, Hazardzista) i przedmioty (Szkarłatne Oko, Ananas na pizzy, Kości Oszusta) zwiększają szansę. Przekupiony Krupier może uratować przegraną.
+
+⚠️ UWAGA:
+Możesz przegrać całą stawkę. Podatek 5% z wygranej. Kości Oszusta dają 2% szansy na zwrot betu nawet przy przegranej.
+
+📊 INFO:
+Stawka: dowolna | Wygrana: 1.9x`
+       },
+       {
+         id: 5,
+         title: 'Jak grać w lotto i rosyjską',
+         content: `📝 OPIS:
+!lotto — wspólna loteria z pulą nagród. !rosyjska — PvP ruletka rosyjska (1v1).
+
+💡 PORADA:
+W lotto kup bilety (!otworz) aby zwiększyć szansę. W rosyjskiej rzuć wyzwanie (!rosyjska @user) i czekaj na akceptację. Wygrany dostaje całą pulę.
+
+⚠️ UWAGA:
+Lotto: losowanie w określonym czasie. Rosyjska: przeciwnik ma czas na akceptację. Przegrana = strata stawki.
+
+📊 INFO:
+Lotto: bilety w paczkach | Rosyjska: 1v1, stawka dowolna`
+       }
+     ]
+   },
   3: {
     name: 'Gry turowe',
     emoji: '⚔️',
@@ -200,9 +260,24 @@ Paczki mają losowe nagrody. Limit 10 paczek/dzień.
 
 📊 INFO:
 Sklep: !sklep | Lista: !artefakty`
-      }
-    ]
-  },
+       },
+       {
+         id: 3,
+         title: 'Mechaniki gangów',
+         content: `📝 OPIS:
+Gangi mają rozszerzone mechaniki: sojusze, ataki, skoki, sklep i terytoria. Sojusze blokują obrażenia między członkami. Ataki pozwalają na walkę z innymi gangami o zasoby. Skoki to wspólne kradzieże. Sklep oferuje bonusy za VC gangowe. Terytoria dają dodatkowe bonusy.
+
+💡 PORADA:
+Zawieraj sojusze z silniejszymi gangami (!sojusz). Atakuj słabe gangi (!atak <nazwa>) dla zasobów. Wykonuj skoki (!gang skok) regularnie dla dodatkowego zysku. Kupuj w sklepie gangu (!gang sklep) uzbrojenie i najemników. Zdobywaj terytoria (!terytoria) dla stałych bonusów.
+
+⚠️ UWAGA:
+Ataki kosztująVC z sejfu gangu. Przegrana bitwa = strata VC i reputacji. Terytoria rotują się co 24h. Sojusz można zerwać w każdej chwili (!gang sojusz zerwij).
+
+📊 INFO:
+Sojusz: !sojusz <nazwa> | Atak: !atak <cel> | Skok: !gang skok | Sklep: !gang sklep | Terytoria: !terytoria`
+       }
+     ]
+   },
   5: {
     name: 'Wsparcie techniczne',
     emoji: '🔧',
@@ -332,9 +407,24 @@ Paczki mają losowe nagrody. Niektóre itemy dostępne tylko z paczek.
 
 📊 INFO:
 Sklep: !sklep | Paczki: !otworz`
-      }
-    ]
-  }
+       },
+       {
+         id: 2,
+         title: 'Jak ulepszać przedmioty',
+         content: `📝 OPIS:
+Większość przedmiotów można ulepszać za VC lub materiały. Każdy poziom zwiększa bonus. Maksymalny poziom zależy od przedmiotu.
+
+💡 PORADA:
+Ulepszaj najpierw przedmioty które używasz najczęściej. Sprawdź !ulepsz <nr> aby zobaczyć koszt i efekt. Niektóre przedmioty mają szansę na zniszczenie przy ulepszaniu. VIP i Prestiż podnoszą limit poziomów.
+
+⚠️ UWAGA:
+Ulepszanie jest nieodwracalne. Poza max levelem nie można ulepszyć. Ulepszanie wymaga odpowiednich materiałów z paczek.
+
+📊 INFO:
+Ulepszenie: !ulepsz <nr> | Max level: zależny od przedmiotu`
+       }
+     ]
+   }
 };
 
 const config = require('../config/config');
