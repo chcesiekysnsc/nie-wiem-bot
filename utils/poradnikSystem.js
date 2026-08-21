@@ -78,21 +78,21 @@ Przelew jest nieodwracalny. Sprawdź dokładnie oznaczenie (@user) przed wysłan
 📊 INFO:
 Przelew: !tip <@user> <kwota> | Saldo: !bal | Ranking: !top`
        },
-       {
+        {
          id: 6,
          title: 'Pożyczki i dom',
          content: `📝 OPIS:
-!pozyczka pobiera kredyt od banku. !dlug sprawdza długi. !dom kupuje/ulepsza dom generujący pasywny dochód.
+!pozyczka pobiera kredyt od banku. !dlug sprawdza długi. !dom kupuje/ulepsza dom który daje różne bonusy ale płaci się czynsz.
 
 💡 PORADA:
-Pożyczaj tylko gdy potrzebujesz kapitału na rozwój. Spłać przed terminem aby uniknąć kary. Dom generuje dochód co 24h — im lepszy dom, tym więcej VC. Ulepszaj warsztat, zbrojownię i siłownię dla dodatkowych bonusów.
+Pożyczaj tylko w kryzysowych sytuacjach. Spłać przed terminem aby uniknąć kary. Dom pobiera czynsz co 24h — im lepszy dom, tym więcej VC. Ulepszaj warsztat, zbrojownię i siłownię dla dodatkowych bonusów.
 
 ⚠️ UWAGA:
-Masz 7 dni na spłatę pożyczki. Po upływie grzywna % salda. Jeśli nie masz środków na czynsz, dom jest zdegradowany o poziom.
+Masz 2 dni na spłatę pożyczki. Po upływie grzywna % salda. Jeśli nie masz środków na czynsz, dom jest zdegradowany o poziom.
 
 📊 INFO:
 Pożyczka: !pozyczka <kwota> | Długi: !dlug | Dom: !dom`
-       }
+        }
      ]
    },
   2: {
@@ -227,9 +227,9 @@ Stawka: dowolna`
       }
     ]
   },
-  4: {
-    name: 'Gangi i wspólnota',
-    emoji: '🏢',
+   4: {
+     name: 'Gangi i przedmioty',
+     emoji: '🏢',
     poradniki: [
       {
         id: 1,
@@ -261,21 +261,21 @@ Paczki mają losowe nagrody. Limit 10 paczek/dzień.
 📊 INFO:
 Sklep: !sklep | Lista: !artefakty`
        },
-       {
-         id: 3,
-         title: 'Mechaniki gangów',
-         content: `📝 OPIS:
-Gangi mają rozszerzone mechaniki: sojusze, ataki, skoki, sklep i terytoria. Sojusze blokują obrażenia między członkami. Ataki pozwalają na walkę z innymi gangami o zasoby. Skoki to wspólne kradzieże. Sklep oferuje bonusy za VC gangowe. Terytoria dają dodatkowe bonusy.
+        {
+          id: 3,
+          title: 'Mechaniki gangów',
+          content: `📝 OPIS:
+Gangi mają rozszerzone mechaniki: sojusze, ataki, skoki, sklep i terytoria. Sojusze sprawiają, że nie można się okradać na wzajem oraz pozwalają na pomoc podczas !gang skok i !gang atak. !gang atak pozwala na próbę okradnięcia sejfu innego gangu oraz ich przedmiotów. !gang skok to wspólna kradzież członków, pozwalająca na łatwy zarobek co godzinę. !gang sklep oferuje zakup skrzynek z itemami do gangów (!gang artefakty) oraz zakup najemników.
 
 💡 PORADA:
-Zawieraj sojusze z silniejszymi gangami (!sojusz). Atakuj słabe gangi (!atak <nazwa>) dla zasobów. Wykonuj skoki (!gang skok) regularnie dla dodatkowego zysku. Kupuj w sklepie gangu (!gang sklep) uzbrojenie i najemników. Zdobywaj terytoria (!terytoria) dla stałych bonusów.
+Zawieraj sojusze z innymi gangami (!gang sojusz <nazwa|oznaczenie członka gangu>). Atakujcie gangi z !topgang (łatwy zarobek). Wykonujcie skoki !gang skok oraz proście o wsparcie w skokach !gang wsparcie <oznaczenie członka gangu>. Kupujcie itemy z !gang sklep, ponieważ wpływają one na cały gang. Przejmujcie !terytoria dla bonusów oraz ulepszajcie gang !gang ulepsz <nr>.
 
 ⚠️ UWAGA:
-Ataki kosztująVC z sejfu gangu. Przegrana bitwa = strata VC i reputacji. Terytoria rotują się co 24h. Sojusz można zerwać w każdej chwili (!gang sojusz zerwij).
+Ataki kosztują VC z sejfu gangu. Przegrana bitwa = strata VC i reputacji. Terytoria rotują się co 24h. Sojusz można zerwać w każdej chwili (!gang sojusz zerwij).
 
 📊 INFO:
-Sojusz: !sojusz <nazwa> | Atak: !atak <cel> | Skok: !gang skok | Sklep: !gang sklep | Terytoria: !terytoria`
-       }
+Sojusz: !gang sojusz <nazwa|oznaczenie> | Atak: !gang atak <cel> | Skok: !gang skok | Sklep: !gang sklep | Terytoria: !terytoria | Ulepsz: !gang ulepsz <nr>`
+        }
      ]
    },
   5: {
@@ -325,7 +325,7 @@ Wypłata co: 3 godziny`
         id: 2,
         title: 'Okradanie graczy',
         content: `📝 OPIS:
-!rob pozwala okraść innych graczy. Wymaga 100k w portfelu i 50 użytych komend. Cel musi mieć min. 50k.
+!rob pozwala okraść innych graczy. Komendy !rob można używać tak: !rob <id> — okradasz osobę o danym ID. ID można pozyskać np. z linku do konta na Facebooku. Wymaga 100k w portfelu i 50 użytych komend. Cel musi mieć min. 50k.
 
 💡 PORADA:
 Używaj przedmiotów zwiększających szansę i zysk. Latarka, Wampirzy Sztylet, Krwawy Żeton. Czarna Bandera daje 5% szansy na drugi napad.

@@ -3018,7 +3018,15 @@ module.exports = {
       `💸 Haracz gangu: **${infoResult.tributePercent}%**\n` +
       (statusStr ? statusStr + `\n` : '') +
       `🛡️ **Ulepszenia i bonusy:**\n${bonusesStr}\n\n` +
-      `👥 **Członkowie:**\n${memberNames}`
+      `👥 **Członkowie:**\n${memberNames}\n\n` +
+      `💡 **Komendy gangu:**\n` +
+      `• Sojusz: **!gang sojusz <nazwa|oznaczenie>**\n` +
+      `• Atak: **!gang atak <cel>**\n` +
+      `• Skok: **!gang skok**\n` +
+      `• Sklep: **!gang sklep**\n` +
+      `• Terytoria: **!terytoria**\n` +
+      `• Ulepsz: **!gang ulepsz <nr>**\n` +
+      `• Wsparcie: **!gang wsparcie <oznaczenie>**`
     );
   }
 };
