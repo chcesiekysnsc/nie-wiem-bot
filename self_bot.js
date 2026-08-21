@@ -3432,8 +3432,10 @@ login({ appState }, (loginErr, api) => {
     if (!client.pendingPoradnikCategory) client.pendingPoradnikCategory = new Map();
     const pendingPoradnik = client.pendingPoradnikCategory.get(senderId);
     if (pendingPoradnik && pendingPoradnik.threadId === threadId) {
+      console.log(`[PORADNIK] Pending found for ${senderId}, categoryNum: ${pendingPoradnik.categoryNum}, text: "${text.trim()}"`);
       const categoryNum = resolvePoradnikCategory(text.trim());
       if (categoryNum) {
+        console.log(`[PORADNIK] User selected category ${categoryNum}`);
         clearTimeout(pendingPoradnik.timeout);
         // Zapisz wybraną kategorię i czekaj na numer poradnika
         client.pendingPoradnikCategory.set(senderId, { 
@@ -3454,8 +3456,10 @@ login({ appState }, (loginErr, api) => {
         if (pendingPoradnik.categoryNum) {
           const poradnikNum = Number(text.trim());
           if (Number.isInteger(poradnikNum)) {
+            console.log(`[PORADNIK] User selected poradnik ${poradnikNum} in category ${pendingPoradnik.categoryNum}`);
             clearTimeout(pendingPoradnik.timeout);
-            client.pendingPoradnikCategory.delete(senderId);
+            client.pendingPoradnikCategory.delete(senderId); // Usuń pending po wybraniu poradnika
+            console.log(`[PORADNIK] Pending deleted for ${senderId}`);
 
             const poradnik = getPoradnikByCategoryAndNumber(pendingPoradnik.categoryNum, poradnikNum);
             if (poradnik) {
@@ -3473,6 +3477,7 @@ login({ appState }, (loginErr, api) => {
         }
       }
       // Jeśli to nie numer kategorii ani poradnika, ignoruj - może być trzecia cyfra
+      console.log(`[PORADNIK] Ignoring input - not a category or poradnik number`);
       return;
     }
 
