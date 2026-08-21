@@ -1552,6 +1552,9 @@ login({ appState }, (loginErr, api) => {
 
   // System podatków co 12 godzin (zawsze o północy i w południe)
   function startTaxCollection() {
+    if (client.taxCollectionInProgress) return;
+    client.taxCollectionInProgress = true;
+
     const delay = getMsUntilNextTaxTime() + 2000;
     setTimeout(async () => {
       try {
@@ -1618,6 +1621,8 @@ login({ appState }, (loginErr, api) => {
         }
       } catch (err) {
         console.error('[TAX] Błąd podczas poboru podatków:', err);
+      } finally {
+        client.taxCollectionInProgress = false;
       }
 
       // Rekurencyjnie uruchamiaj timer od nowa
