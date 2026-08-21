@@ -535,28 +535,34 @@ module.exports = {
     }
 
     // ==========================================
-    // 5. WYRZUC
+    // 5. WYRZUC (obsługuje @mention, ID lub numer z listy !gang info)
     // ==========================================
     if (sub === 'wyrzuc') {
       let targetId = null;
       let targetName = '';
+      let useNumberIndex = false;
+      let memberIndex = null;
 
       const mentioned = message.mentions.users.first();
       if (mentioned) {
         targetId = mentioned.id;
         targetName = mentioned.username || `Użytkownik_${targetId.slice(-6)}`;
-      } else if (args[1] && /^\d+$/.test(args[1])) {
-        targetId = args[1];
-        targetName = client.userNames.get(targetId) || `Użytkownik_${targetId.slice(-6)}`;
+      } else if (args[1]) {
+        const raw = args[1];
+        const num = Number(raw);
+        // Jeśli to liczba 1-999, traktuj jako numer z listy !gang info
+        if (Number.isInteger(num) && num >= 1 && num <= 999 && raw.length <= 3) {
+          useNumberIndex = true;
+          memberIndex = num;
+        } else if (/^\d+$/.test(raw) && raw.length >= 8) {
+          // Traktuj jako ID użytkownika
+          targetId = raw;
+          targetName = client.userNames.get(targetId) || `Użytkownik_${String(targetId).slice(-6)}`;
+        }
       }
 
-      if (!targetId) {
-        await message.reply('❌ Użyj: **!gang wyrzuc @osoba** lub **!gang wyrzuc <ID>**');
-        return;
-      }
-
-      if (targetId === message.author.id) {
-        await message.reply('❌ Nie możesz wyrzucić samego siebie. Jeśli chcesz odejść, użyj **!gang opusc**.');
+      if (!targetId && !useNumberIndex) {
+        await message.reply('❌ Użyj: **!gang wyrzuc @osoba**, **!gang wyrzuc <ID>** lub **!gang wyrzuc <nr>** (numer z listy !gang info).');
         return;
       }
 
@@ -574,6 +580,28 @@ module.exports = {
 
         if (!isBoss && !isDeputy) {
           return { error: '❌ Tylko Boss oraz Zastępcy mogą wyrzucać członków.' };
+        }
+
+        // Jeśli użyto numeru z listy, rozwiąż do ID
+        if (useNumberIndex) {
+          const deputies = [...(gang.deputies || [])].sort((a, b) => (gang.deposits?.[b] || 0) - (gang.deposits?.[a] || 0));
+          const regularMembers = (gang.members || []).filter(
+            id => id !== gang.bossId && !deputies.includes(id)
+          ).sort((a, b) => (gang.deposits?.[b] || 0) - (gang.deposits?.[a] || 0));
+
+          const orderedMembers = [
+            gang.bossId,
+            ...deputies,
+            ...regularMembers
+          ].filter(id => (gang.members || []).includes(id) || id === gang.bossId);
+
+          const targetIdx = memberIndex - 1;
+          if (targetIdx < 0 || targetIdx >= orderedMembers.length) {
+            return { error: `❌ Nie znaleziono członka o numerze **${memberIndex}**. Sprawdź listę w **!gang info**.` };
+          }
+
+          targetId = orderedMembers[targetIdx];
+          targetName = client.userNames.get(targetId) || `Użytkownik_${String(targetId).slice(-6)}`;
         }
 
         if (!gang.members.includes(targetId)) {
@@ -601,7 +629,7 @@ module.exports = {
         return;
       }
 
-      await message.reply(`👞 Wyrzucono **${targetName}** z gangu **${kickResult.gangName}**.`);
+      await message.reply(`👞 Wyrzucono **${kickResult.targetName || targetName}** z gangu **${kickResult.gangName}**.`);
       return;
     }
 
