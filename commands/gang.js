@@ -606,6 +606,79 @@ module.exports = {
     }
 
     // ==========================================
+    // 5b. USUN (wyrzuc po numerze z listy !gang info)
+    // ==========================================
+    if (sub === 'usun') {
+      const rawNr = args[1];
+      const memberIndex = Number(rawNr);
+
+      if (!rawNr || !Number.isInteger(memberIndex) || memberIndex < 1) {
+        await message.reply('❌ Użyj: **!gang usun <nr>** — numer członka z listy w **!gang info**.');
+        return;
+      }
+
+      const kickResult = await withData(store => {
+        store.profiles.gangs = store.profiles.gangs || {};
+        const user = getGangUser(store, message.author.id);
+
+        if (!user.gangId || !store.profiles.gangs[user.gangId]) {
+          return { error: '❌ Nie należysz do żadnego gangu.' };
+        }
+
+        const gang = store.profiles.gangs[user.gangId];
+        const isBoss = user.gangRole === 'boss';
+        const isDeputy = user.gangRole === 'deputy';
+
+        if (!isBoss && !isDeputy) {
+          return { error: '❌ Tylko Boss oraz Zastępcy mogą usuwać członków.' };
+        }
+
+        const deputies = [...(gang.deputies || [])].sort((a, b) => (gang.deposits?.[b] || 0) - (gang.deposits?.[a] || 0));
+        const regularMembers = (gang.members || []).filter(
+          id => id !== gang.bossId && !deputies.includes(id)
+        ).sort((a, b) => (gang.deposits?.[b] || 0) - (gang.deposits?.[a] || 0));
+
+        const orderedMembers = [
+          gang.bossId,
+          ...deputies,
+          ...regularMembers
+        ].filter(id => (gang.members || []).includes(id) || id === gang.bossId);
+
+        const targetIdx = memberIndex - 1;
+        if (targetIdx < 0 || targetIdx >= orderedMembers.length) {
+          return { error: `❌ Nie znaleziono członka o numerze **${memberIndex}**. Sprawdź listę w **!gang info**.` };
+        }
+
+        const targetId = orderedMembers[targetIdx];
+        const targetUser = createUser(targetId, store.users);
+
+        if (targetId === message.author.id) {
+          return { error: '❌ Nie możesz usunąć samego siebie. Jeśli chcesz odejść, użyj **!gang opusc**.' };
+        }
+
+        if (isDeputy && (targetUser.gangRole === 'boss' || targetUser.gangRole === 'deputy')) {
+          return { error: '❌ Zastępca może usuwać wyłącznie zwykłych członków gangu.' };
+        }
+
+        gang.members = gang.members.filter(id => id !== targetId);
+        gang.deputies = gang.deputies.filter(id => id !== targetId);
+        targetUser.gangId = null;
+        targetUser.gangRole = null;
+
+        const targetName = client.userNames.get(targetId) || `Użytkownik_${String(targetId).slice(-6)}`;
+        return { success: true, gangName: gang.name, targetName };
+      });
+
+      if (kickResult.error) {
+        await message.reply(kickResult.error);
+        return;
+      }
+
+      await message.reply(`👞 Usunięto **${kickResult.targetName}** z gangu **${kickResult.gangName}**.`);
+      return;
+    }
+
+    // ==========================================
     // 6. OPUSC
     // ==========================================
     if (sub === 'opusc') {
@@ -2925,11 +2998,11 @@ module.exports = {
       ...regularMembers
     ].filter(id => infoResult.members.includes(id) || id === infoResult.bossId);
 
-    const memberNamesList = await Promise.all(orderedMembers.map(async id => {
+    const memberNamesList = await Promise.all(orderedMembers.map(async (id, idx) => {
       const roleStr = id === infoResult.bossId ? '👑 Boss' : infoResult.deputies.includes(id) ? '⭐ Zastępca' : '👤 Członek';
       const nameStr = await getName(id);
       const deposited = infoResult.deposits[id] || 0;
-      return `• ${nameStr} (${roleStr}) — wpłacił: ${formatCurrency(deposited)}`;
+      return `${idx + 1}. ${nameStr} (${roleStr}) — wpłacił: ${formatCurrency(deposited)}`;
     }));
     const memberNames = memberNamesList.join('\n');
 

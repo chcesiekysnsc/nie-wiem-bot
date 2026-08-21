@@ -574,12 +574,12 @@ const helpCommands = [
     category: "SOCIAL_GANGS",
     shortDescription: "zarzadzanie i interakcje gangu",
     description: "System gangów: zakładanie, wspólny sejf, ulepszenia Dziupli, Biznesów i Fachu, skoki oraz wojny gangów.",
-    usage: "!gang [stworz/zapros/dolacz/awans/wyrzuc/opusc/wplac/wyplac/ulepsz/skok/wsparcie/wesprzyj/haracz/atak/info] [@osoba/nazwa]",
-    examples: ["!gang stworz MojaEkipa","!gang zapros @Kowalski","!gang wplac 5000","!gang ulepsz dziupla","!gang skok","!gang wsparcie InnyGang","!gang wesprzyj","!gang atak InnyGang","!gang info @Kowalski"],
+    usage: "!gang [stworz/zapros/dolacz/akceptuj/awans/usun/wyrzuc/opusc/wplac/wyplac/ulepsz/skok/wsparcie/wesprzyj/haracz/atak/info] [@osoba/nazwa/nr]",
+    examples: ["!gang stworz MojaEkipa","!gang zapros @Kowalski","!gang wplac 5000","!gang ulepsz dziupla","!gang skok","!gang wsparcie InnyGang","!gang wesprzyj","!gang atak InnyGang","!gang info @Kowalski","!gang usun 3"],
     cooldown: "3 sekundy",
     requirements: "Zakładanie gangu kosztuje 1 000 000 viccoinów. Skok gangu wymaga min. 2 graczy.",
     aliases: ["gangi"],
-    additionalInfo: ["Boss i Zastępcy zarządzają gangiem.","Ulepszenia dają bonusy do pracy i kradzieży."]
+    additionalInfo: ["Boss i Zastępcy zarządzają gangiem.","Ulepszenia dają bonusy do pracy i kradzieży.","!gang usun <nr> — usuwa członka po numerze z listy !gang info (tylko Boss/Zastępcy, Zastępca nie może usuwać Zastępców)."]
   },
   {
     id: 35,

@@ -259,7 +259,7 @@ Zawieraj sojusze z innymi gangami (!gang sojusz <nazwa|oznaczenie członka gangu
 Ataki kosztują VC z sejfu gangu. Przegrana bitwa = strata VC i reputacji. Terytoria rotują się co 24h. Sojusz można zerwać w każdej chwili (!gang sojusz zerwij).
 
 📊 INFO:
-Sojusz: !gang sojusz <nazwa|oznaczenie> | Atak: !gang atak <cel> | Skok: !gang skok | Sklep: !gang sklep | Terytoria: !terytoria | Ulepsz: !gang ulepsz <nr>`
+Sojusz: !gang sojusz <nazwa|oznaczenie> | Atak: !gang atak <cel> | Skok: !gang skok | Sklep: !gang sklep | Terytoria: !terytoria | Ulepsz: !gang ulepsz <nr> | Usuń: !gang usun <nr> (Boss/Zastępcy)`
         }
      ]
    },
