@@ -7,86 +7,61 @@ const poradnikCategories = {
         id: 1,
         title: 'Jak zarabiać na work',
         content: `📝 OPIS:
-Komenda !work pozwala zarabiać pieniądze poprzez wykonanie pracy. Jest to podstawowy sposób zarabkowania w grze.
+Komenda !work to podstawowy sposób zarabiania.
 
-💡 WSKAZÓWKI:
-- Używaj work regularnie co 5 minut (cooldown)
-- Najlepsze czasy to rano i wieczorem (mniej graczy = wyższe szanse)
-- Używaj itemów zwiększających zarobki (garnitur, kaczka biznesu)
-- Sprawdź swój poziom - wyższy poziom = wyższe zarobki
+💡 PORADA:
+Używaj work co 5 minut. Najlepiej rano i wieczorem gdy mniej graczy. Kup garnitur i kaczkę biznesu dla bonusów.
 
-⚠️ OSTRZEŻENIA:
-- Nie używaj work jeśli masz ujemne saldo
-- Unikaj spamowania - system może Cię zablokować
+⚠️ UWAGA:
+Nie używaj z ujemnym saldem.
 
-📊 STATYSTYKI:
-- Średnie zarobki: 500-1500 VC
-- Czas trwania: natychmiastowy
-- Cooldown: 5 minut`
+📊 INFO:
+Cooldown: 5 min`
       },
       {
         id: 2,
-        title: 'Najlepsze strategie crime',
+        title: 'Jak używać crime',
         content: `📝 OPIS:
-Komenda !crime pozwala na kradzież pieniędzy od innych graczy lub z banków. Jest ryzykowna ale może przynieść duże zyski.
+Komenda !crime pozwala kraść pieniądze.
 
-💡 WSKAZÓWKI:
-- Crime ma 50% szansy sukcesu
-- Używaj itemów zwiększających szansę (ostry noz, energetyk)
-- Najlepiej kraść od graczy z dużym saldem
-- Unikaj graczy z ochroną lub gangami
+💡 PORADA:
+Crime ma 50% szansy. Używaj ostry noz i energetyk dla bonusów. Celuj w graczy z dużym saldem.
 
-⚠️ OSTRZEŻENIA:
-- Porażka = strata pieniędzy i więzienie
-- Możesz zostać zgłoszony za częste kradzieże
+⚠️ UWAGA:
+Porażka = więzienie 5-15 min.
 
-📊 STATYSTYKI:
-- Szansa sukcesu: 50%
-- Potencjalny zysk: 1000-5000 VC
-- Kara za porażkę: więzienie 5-15 minut`
+📊 INFO:
+Szansa: 50%`
       },
       {
         id: 3,
-        title: 'Jak efektywnie używać banku',
+        title: 'Jak używać banku',
         content: `📝 OPIS:
-Bank pozwala bezpiecznie przechowywać pieniądze i zarabiać procent od depozytu.
+Bank bezpiecznie przechowuje pieniądze.
 
-💡 WSKAZÓWKI:
-- !deposit <kwota> - wpłać do banku
-- !withdraw <kwota> - wypłać z banku
-- Procent zależy od twojego poziomu
-- Wyższy poziom = wyższy procent
+💡 PORADA:
+Wpłacaj nadwyżki do banku. Procent zależy od poziomu - wyższy = wyższy procent.
 
-⚠️ OSTRZEŻENIA:
-- Pieniądze w banku są bezpieczne przed kradzieżą
-- Nie można używać pieniędzy z banku do komend
+⚠️ UWAGA:
+Pieniądze w banku są bezpieczne przed kradzieżą.
 
-📊 STATYSTYKI:
-- Procent: 1-5% dziennie
-- Minimalny depozyt: 100 VC
-- Maksymalny depozyt: bez limitu`
+📊 INFO:
+Procent: 1-5% dziennie`
       },
       {
         id: 4,
-        title: 'Poradnik firm - jak zarządzać',
+        title: 'Jak zarządzać firmami',
         content: `📝 OPIS:
-Firmy pozwalają na pasywne zarobki co 3 godziny. Możesz mieć do 2 firm.
+Firmy dają pasywne zarobki co 3 godziny.
 
-💡 WSKAZÓWKI:
-- !firma <nazwa> - załóż firmę
-- !firma2 <nazwa> - załóż drugą firmę
-- Zatrudniaj pracowników (!pracownik)
-- Używaj itemów firmowych (garnitur, kaczka biznesu)
+💡 PORADA:
+Zatrudniaj pracowników. Używaj itemów firmowych. Naprawiaj firmy od razu gdy się zepsują.
 
-⚠️ OSTRZEŻENIA:
-- Firmy mogą się zepsuć - naprawa kosztuje
-- Jeśli firma jest zepsuta nie zarabiasz
-- Pracownicy mogą nie przyjść do pracy
+⚠️ UWAGA:
+Firmy mogą się zepsuć bez ostrzeżenia.
 
-📊 STATYSTYKI:
-- Wypłata co: 3 godziny
-- Średni zysk: 2000-10000 VC
-- Koszt naprawy: 50% wartości firmy`
+📊 INFO:
+Wypłata co: 3 godziny`
       }
     ]
   },
@@ -96,67 +71,48 @@ Firmy pozwalają na pasywne zarobki co 3 godziny. Możesz mieć do 2 firm.
     poradniki: [
       {
         id: 1,
-        title: 'Blackjack - strategie',
+        title: 'Jak grać w blackjack',
         content: `📝 OPIS:
-Blackjack to gra karciana gdzie cel jest zbliżenie się do 21 punktów bez przekroczenia.
+Blackjack to gra karciana - cel to 21 punktów.
 
-💡 WSKAZÓWKI:
-- !blackjack <stawka> - rozpocznij grę
-- hit - dobierz kartę
-- stand - zatrzymaj
-- double - podwój stawkę i dobierz 1 kartę
-- Krupier musi dobierać do 17
+💡 PORADA:
+Dobierz do 16-17. Stój przy 17+. Krupier musi dobierać do 17.
 
-⚠️ OSTRZEŻENIA:
-- Przekroczenie 21 = automatyczna przegrana
-- As może być 1 lub 11 punktów
-- Krupier ma przewagę statystyczną
+⚠️ UWAGA:
+Przekroczenie 21 = przegrana.
 
-📊 STATYSTYKI:
-- Wypłata za blackjack: 3:2
-- Wypłata za normalną wygraną: 1:1
-- Przewaga krupiera: ~1%`
+📊 INFO:
+Wypłata blackjack: 3:2`
       },
       {
         id: 2,
-        title: 'Ruletka - jak obstawiać',
+        title: 'Jak grać w ruletkę',
         content: `📝 OPIS:
-Ruletka to gra gdzie obstawiasz kolor lub numer na który wypadnie kulka.
+Ruletka - obstawiasz kolor lub numer.
 
-💡 WSKAZÓWKI:
-- !ruletka <stawka> <kolor/numer>
-- Kolory: czerwony, czarny, zielony
-- Zielony (0) daje 14x wygraną
-- Czerwony/czarny dają 2x wygraną
+💡 PORADA:
+Czerwony/czarny = 2x. Zielony (0) = 14x. Graj ostrożnie.
 
-⚠️ OSTRZEŻENIA:
-- Zielony ma najmniejszą szansę
-- Graj odpowiedzialnie - łatwo stracić dużo
+⚠️ UWAGA:
+Zielony ma najmniejszą szansę.
 
-📊 STATYSTYKI:
-- Szansa na zielony: 1/37 (~2.7%)
-- Szansa na czerwony/czarny: 18/37 (~48.6%)`
+📊 INFO:
+Szansa na zielony: 2.7%`
       },
       {
         id: 3,
-        title: 'Slots - jak wygrywać',
+        title: 'Jak grać w slots',
         content: `📝 OPIS:
-Slots to automat do gier gdzie kręcisz bębnami i czekasz na wygrywające kombinacje.
+Slots to automat z bębnami.
 
-💡 WSKAZÓWKI:
-- !slots <stawka> - zakręć bębnami
-- 3 takie same symbole = duża wygrana
-- 2 takie same symbole = mała wygrana
-- Szukaj symboli premium (7, diamenty)
+💡 PORADA:
+Szukaj symboli premium (7, diamenty). Graj tylko na pieniądze które możesz stracić.
 
-⚠️ OSTRZEŻENIA:
-- Slots są oparte na RNG (losowość)
-- Nie ma strategii gwarantującej wygraną
-- Graj tylko na pieniądze które możesz stracić
+⚠️ UWAGA:
+Slots są oparte na losowości.
 
-📊 STATYSTYKI:
-- Szansa na jackpot: ~0.1%
-- Średni RTP (return to player): ~95%`
+📊 INFO:
+RTP: ~95%`
       }
     ]
   },
@@ -166,69 +122,48 @@ Slots to automat do gier gdzie kręcisz bębnami i czekasz na wygrywające kombi
     poradniki: [
       {
         id: 1,
-        title: 'Wojna karciana - zasady',
+        title: 'Jak grać w wojnę',
         content: `📝 OPIS:
-Wojna to gra karciana dla wielu graczy gdzie wygrywa ten z najwyższą kartą.
+Wojna to gra karciana dla wielu graczy.
 
-💡 WSKAZÓWKI:
-- !wojna <stawka> - rozpocznij grę
-- Musi być minimum 2 graczy
-- Każdy stawia tyle samo
-- Najwyższa karta wygrywa pulę
+💡 PORADA:
+Minimalnie 2 graczy. Najwyższa karta wygrywa pulę. Zbieraj graczy w grupie.
 
-⚠️ OSTRZEŻENIA:
-- Czas na dołączenie: 90 sekund
-- Jeśli za mało graczy - stawka jest zwracana
-- Karty są losowane z talii
+⚠️ UWAGA:
+Czas na dołączenie: 90 sekund.
 
-📊 STATYSTYKI:
-- Minimalna stawka: 100 VC
-- Maksymalna liczba graczy: bez limitu
-- Czas trwania: ~2 minuty`
+📊 INFO:
+Minimalna stawka: 100 VC`
       },
       {
         id: 2,
-        title: 'PKN - papier kamień nożyce',
+        title: 'Jak grać w PKN',
         content: `📝 OPIS:
-PKN to klasyczna gra gdzie wygrywasz jeśli wybierzesz lepszy symbol.
+PKN to klasyczna gra papier kamień nożyce.
 
-💡 WSKAZÓWKI:
-- !pkn <gracz> <stawka> - wyzwaj gracza
-- Papier bije kamień
-- Kamień bije nożyce
-- Nożyce biją papier
+💡 PORADA:
+Papier bije kamień, kamień bije nożyce, nożyce biją papier. Wyzwalaj znajomych.
 
-⚠️ OSTRZEŻENIA:
-- Czas na akceptację: 2 minuty
-- Jeśli gracz nie zaakceptuje - wyzwanie wygasa
-- Remis = stawka jest zwracana
+⚠️ UWAGA:
+Czas na akceptację: 2 minuty.
 
-📊 STATYSTYKI:
-- Szansa na wygraną: 33.3%
-- Szansa na remis: 33.3%
-- Minimalna stawka: 50 VC`
+📊 INFO:
+Minimalna stawka: 50 VC`
       },
       {
         id: 3,
-        title: 'Duel - pojedynek',
+        title: 'Jak grać w duel',
         content: `📝 OPIS:
-Duel to pojedynek 1v1 gdzie obaj gracze stawiają na siebie.
+Duel to pojedynek 1v1 na stawkę.
 
-💡 WSKAZÓWKI:
-- !duel <gracz> <stawka> - wyzwaj na pojedynek
-- Obaj stawiają tyle samo
-- Wygrywa ten kto ma lepsze statystyki
-- Itemy mogą zwiększyć szansę
+💡 PORADA:
+Obaj stawiają tyle samo. Wygrywa ten z lepszymi statystykami i itemami.
 
-⚠️ OSTRZEŻENIA:
-- Czas na akceptację: 2 minuty
-- Możesz przegrać dużą kwotę
-- Statystyki zależą od poziomu i itemów
+⚠️ UWAGA:
+Możesz przegrać dużą kwotę.
 
-📊 STATYSTYKI:
-- Minimalna stawka: 100 VC
-- Czas trwania: ~1 minuta
-- Szansa zależy od statystyk`
+📊 INFO:
+Minimalna stawka: 100 VC`
       }
     ]
   },
@@ -238,47 +173,33 @@ Duel to pojedynek 1v1 gdzie obaj gracze stawiają na siebie.
     poradniki: [
       {
         id: 1,
-        title: 'Gangi - jak założyć i zarządzać',
+        title: 'Jak założyć gang',
         content: `📝 OPIS:
-Gangi pozwalają na współpracę z innymi graczami i wspólne cele.
+Gangi pozwalają na współpracę z innymi.
 
-💡 WSKAZÓWKI:
-- !gang <nazwa> - załóż gang
-- !gang zaprosz <gracz> - dodaj członka
-- !gang wyrzuc <gracz> - usuń członka
-- Gangi mają wspólne skarbiec i cele
+💡 PORADA:
+Musisz być level 10+. Zatrudniaj członków. Gangi mają wspólne cele i skarbiec.
 
-⚠️ OSTRZEŻENIA:
-- Musisz być level 10+ aby założyć gang
-- Maksymalna liczba członków: 20
-- Gang może zostać rozwiązany przez lidera
+⚠️ UWAGA:
+Maksymalnie 20 członków.
 
-📊 STATYSTYKI:
-- Koszt założenia: 10000 VC
-- Minimalny poziom: 10
-- Maksymalni członkowie: 20`
+📊 INFO:
+Koszt: 10000 VC`
       },
       {
         id: 2,
-        title: 'Artefakty - jak zdobywać i używać',
+        title: 'Jak zdobywać artefakty',
         content: `📝 OPIS:
-Artefakty to specjalne itemy które dają unikalne bonusy.
+Artefakty to specjalne itemy z bonusami.
 
-💡 WSKAZÓWKI:
-- !sklep - kupuj artefakty
-- !artefakty - zobacz swoje artefakty
-- Artefakty mają różne rzadkości
-- Niektóre artefakty są tylko dla gangów
+💡 PORADA:
+Kupuj w sklepie. Otwieraj skrzynie. Niektóre są tylko dla gangów.
 
-⚠️ OSTRZEŻENIA:
-- Artefakty mogą być drogie
-- Niektóre artefakty są eventowe (ograniczone)
-- Artefakty gangowe są współdzielone
+⚠️ UWAGA:
+Artefakty mogą być drogie.
 
-📊 STATYSTYKI:
-- Rzadkości: common, rare, epic, legendary
-- Ceny: 1000-100000 VC
-- Maksymalna liczba artefaktów: bez limitu`
+📊 INFO:
+Rzadkości: common-legendary`
       }
     ]
   },
@@ -290,24 +211,19 @@ Artefakty to specjalne itemy które dają unikalne bonusy.
         id: 1,
         title: 'Zgłaszanie błędów',
         content: `📝 OPIS:
-Jeśli napotkałeś błąd w grze, zgłoś go twórcy bota.
+Jeśli napotkałeś błąd, zgłoś go twórcy.
 
-💡 JAK ZGŁOSIĆ BŁĄD:
-1. Zrób screenshot błędu
-2. Opisz co zrobiłeś przed błędem
-3. Napisz do twórcy bota na Facebooku
-4. Dołącz screenshot i opis
+💡 PORADA:
+Zrób screenshot. Opisz co zrobiłeś. Napisz na Facebooku.
 
 📞 KONTAKT:
 Facebook: https://www.facebook.com/profile.php?id=100060812419294
 
-⚠️ OSTRZEŻENIA:
-- Nie zgłaszaj błędów które już są znane
-- Bądź konkretny w opisie
-- Nie spamuj wiadomościami
+⚠️ UWAGA:
+Nie spamuj wiadomościami.
 
 💼 OFERTY:
-Jeśli masz ofertę współpracy, propozycję ulepszenia lub chcesz zainwestować w rozwój bota - również napisz na powyższym Facebooku.`
+Współpraca i propozycje również na Facebooku.`
       }
     ]
   },
@@ -317,25 +233,18 @@ Jeśli masz ofertę współpracy, propozycję ulepszenia lub chcesz zainwestowa�
     poradniki: [
       {
         id: 1,
-        title: 'Jak efektywnie zarządzać firmami',
+        title: 'Jak zarządzać firmami',
         content: `📝 OPIS:
-Firmy to pasywne źródło dochodu. Efektywne zarządzanie zwiększa zyski.
+Firmy to pasywne zarobki co 3 godziny.
 
-💡 WSKAZÓWKI:
-- Zatrudniaj pracowników z dobrymi statystykami
-- Używaj itemów firmowych
-- Naprawiaj firmy od razu gdy się zepsują
-- Monitoruj wypłaty co 3 godziny
+💡 PORADA:
+Zatrudniaj 5-10 pracowników. Używaj itemów firmowych. Naprawiaj od razu.
 
-⚠️ OSTRZEŻENIA:
-- Pracownicy mogą nie przyjść do pracy
-- Firmy mogą się zepsuć bez ostrzeżenia
-- Koszty naprawy rosną z czasem
+⚠️ UWAGA:
+Pracownicy mogą nie przyjść do pracy.
 
-📊 STATYSTYKI:
-- Optymalna liczba pracowników: 5-10
-- Czas między wypłatami: 3 godziny
-- Średni zysk: 2000-10000 VC`
+📊 INFO:
+Średni zysk: 2000-10000 VC`
       }
     ]
   },
@@ -345,70 +254,48 @@ Firmy to pasywne źródło dochodu. Efektywne zarządzanie zwiększa zyski.
     poradniki: [
       {
         id: 1,
-        title: 'Mecz - obstawianie wyników',
+        title: 'Jak obstawiać mecze',
         content: `📝 OPIS:
-Mecz pozwala obstawiać wyniki meczów piłkarskich.
+Mecz pozwala obstawiać wyniki piłkarskie.
 
-💡 WSKAZÓWKI:
-- !mecz - zobacz ofertę meczu
-- !mecz <stawka> <1/X/2> - obstaw wynik
-- 1 = wygrana gospodarzy
-- X = remis
-- 2 = wygrana gości
+💡 PORADA:
+1 = gospodarze, X = remis, 2 = goście. Kursy zależą od szans drużyn.
 
-⚠️ OSTRZEŻENIA:
-- Kursy zależą od szans drużyn
-- Możesz przegrać całą stawkę
-- Mecz trwa ~60 sekund
+⚠️ UWAGA:
+Możesz przegrać całą stawkę.
 
-📊 STATYSTYKI:
-- Minimalna stawka: 100 VC
-- Czas trwania: 60 sekund
-- Kursy: 1.1 - 10.0`
+📊 INFO:
+Czas trwania: 60 sekund`
       },
       {
         id: 2,
-        title: 'Multi-mecz - obstawianie wielu meczów',
+        title: 'Jak grać multi-mecz',
         content: `📝 OPIS:
-Multi-mecz pozwala obstawiać wiele meczów naraz za wyższe kursy.
+Multi-mecz to obstawianie wielu meczów naraz.
 
-💡 WSKAZÓWKI:
-- !multimecz - zobacz oferty meczów
-- !multimecz <stawka> <typy> - obstaw
-- Typy to np. 1X2 dla każdego meczu
-- Im więcej meczów tym wyższy kurs
+💡 PORADA:
+Im więcej meczów tym wyższy kurs. Jeśli jeden przegrany = cała przegrana.
 
-⚠️ OSTRZEŻENIA:
-- Jeśli jeden mecz przegrany = cała przegrana
-- Kursy są mnożone
-- Bardzo ryzykowne
+⚠️ UWAGA:
+Bardzo ryzykowne.
 
-📊 STATYSTYKI:
-- Minimalna stawka: 100 VC
-- Maksymalna liczba meczów: 5
-- Potencjalny kurs: do 50x`
+📊 INFO:
+Maksymalnie 5 meczów`
       },
       {
         id: 3,
-        title: 'Giełda - inwestowanie',
+        title: 'Jak grać na giełdzie',
         content: `📝 OPIS:
-Giełda pozwala inwestować w aktywa (bank, srebro, złoto, diamenty).
+Giełda pozwala inwestować w aktywa.
 
-💡 WSKAZÓWKI:
-- !gielda - rozpocznij sesję giełdy
-- !gielda inwestuj <kwota> <aktywo> - zainwestuj
-- Aktywa mogą rosnąć lub spadać
-- Inwestuj mądrze - nie wszystko w jedno
+💡 PORADA:
+Inwestuj w różne aktywa. Nie wszystko w jedno. Aktywa mogą rosnąć lub spadać.
 
-⚠️ OSTRZEŻENIA:
-- Aktywa mogą spaść poniżej 0%
-- Możesz stracić całą inwestycję
-- Giełda trwa ~3 minuty
+⚠️ UWAGA:
+Możesz stracić całą inwestycję.
 
-📊 STATYSTYKI:
-- Minimalna inwestycja: 100 VC
-- Czas trwania: 3 minuty
-- Zwrot: -50% do +100%`
+📊 INFO:
+Czas trwania: 3 minuty`
       }
     ]
   },
@@ -420,23 +307,16 @@ Giełda pozwala inwestować w aktywa (bank, srebro, złoto, diamenty).
         id: 1,
         title: 'Jak kupować itemy',
         content: `📝 OPIS:
-Sklep pozwala kupować itemy które dają różne bonusy.
+Sklep pozwala kupować itemy z bonusami.
 
-💡 WSKAZÓWKI:
-- !sklep - zobacz dostępne itemy
-- !sklep <item> <ilość> - kup item
-- !otworz <item> - otwórz skrzynię
-- Itemy mają różne rzadkości
+💡 PORADA:
+Używaj !sklep aby zobaczyć ofertę. Otwieraj skrzynie. Itemy mają różne rzadkości.
 
-⚠️ OSTRZEŻENIA:
-- Itemy mogą być drogie
-- Skrzynie mają losowe nagrody
-- Niektóre itemy są eventowe
+⚠️ UWAGA:
+Skrzynie mają losowe nagrody.
 
-📊 STATYSTYKI:
-- Rzadkości: common, rare, epic, legendary
-- Ceny: 100-100000 VC
-- Szansa na legendary: ~1%`
+📊 INFO:
+Rzadkości: common-legendary`
       }
     ]
   }

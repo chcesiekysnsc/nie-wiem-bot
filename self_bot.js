@@ -3464,13 +3464,16 @@ login({ appState }, (loginErr, api) => {
               if (replyText) {
                 api.sendMessage(replyText, threadId, () => {}, messageId);
               }
+              return;
             } else {
               api.sendMessage('❌ Nie znaleziono poradnika o tym numerze. Wpisz !poradnik aby rozpocząć od nowa.', threadId, () => {}, messageId);
+              return;
             }
-            return;
           }
         }
       }
+      // Jeśli to nie numer kategorii ani poradnika, ignoruj - może być trzecia cyfra
+      return;
     }
 
     if (!text.startsWith(currentPrefix)) {
