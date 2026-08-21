@@ -3553,6 +3553,7 @@ login({ appState }, (loginErr, api) => {
         if (dist < bestDist) {
           bestDist = dist;
           suggestion = key;
+          if (bestDist === 0) break; // Idealne dopasowanie - nie szukaj dalej
         }
       }
 
