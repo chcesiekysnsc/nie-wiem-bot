@@ -10,7 +10,7 @@ const poradnikCategories = {
 !work to podstawowy sposób zarabiania. Wykonujesz pracę i otrzymujesz wypłatę. Cooldown bazowy: 10 minut.
 
 💡 PORADA:
-Kup garnitur (+10%) i kaczkę biznesu (+5%) dla bonusów. Zegarek skraca cooldown o 10-15%. Energetyk zwiększa zysk o 5% i skraca cooldown o 10% (+0,5% na poziom). Awansuj poziom pracy dla dodatkowych bonusów.
+Zdobądź garnitur (+10%) i kaczkę biznesu (+5%) z paczek (!otworz) dla bonusów. Zegarek skraca cooldown o 10-15%. Energetyk zwiększa zysk o 5% i skraca cooldown o 10% (+0,5% na poziom). Awansuj poziom pracy dla dodatkowych bonusów.
 
 ⚠️ UWAGA:
 W więzieniu nie możesz pracować. Automatyzacja (używanie work co kilka sekund) prowadzi do bana na 10-14h.
@@ -22,16 +22,16 @@ Cooldown: 10 min | Nagroda: 5000-35000 VC (w zależności od bonusów)`
          id: 2,
          title: 'Jak używać crime',
          content: `📝 OPIS:
-!crime to kradzież z ~55% szansy sukcesu. Udana próba = zysk 5000-30000 VC. Nieudana = 1h więzienia + kara.
+!crime to kradzież z ~55% szansy sukcesu. Udana próba = zysk 15000-70000 VC. Nieudana = 1h więzienia + kara do 45000 VC.
 
 💡 PORADA:
 Nowe Abibasy zwiększają szansę o 3%. Odznaka Komendanta daje 12,5% + 1% na poziom szansy na uniknięcie więzienia. Fałszerz daje 3% szansy na podwojenie zysku. Celuj w graczy z dużym saldem.
 
 ⚠️ UWAGA:
-Nieudana próba = 1h więzienia + kara 5000-30000 VC. Łapówka kosztuje 2x kwoty stawki (max 30000 VC).
+Nieudana próba = 1h więzienia + kara do 45000 VC. Łapówka kosztuje 2x kwoty stawki (max 30000 VC).
 
 📊 INFO:
-Szansa: ~55% | Zysk: 5000-30000 VC`
+Szansa: ~55% | Zysk: 15000-70000 VC | Kara max: 45000 VC`
       },
       {
         id: 3,
@@ -88,7 +88,7 @@ Przelew: !tip <@user> <kwota> | Saldo: !bal | Ranking: !top`
 Pożyczaj tylko w kryzysowych sytuacjach. Spłać przed terminem aby uniknąć kary. Dom pobiera czynsz co 24h — im lepszy dom, tym więcej VC. Ulepszaj warsztat, zbrojownię i siłownię dla dodatkowych bonusów.
 
 ⚠️ UWAGA:
-Masz 2 dni na spłatę pożyczki. Po upływie grzywna % salda. Jeśli nie masz środków na czynsz, dom jest zdegradowany o poziom.
+Masz 2 dni na spłatę pożyczki. Po upływie terminu bot usuwa z konta całą kwotę pożyczki. Jeśli nie masz środków na czynsz, dom jest zdegradowany o poziom.
 
 📊 INFO:
 Pożyczka: !pozyczka <kwota> | Długi: !dlug | Dom: !dom`
@@ -146,37 +146,22 @@ Mnożniki: 3x-5x | 2 takie same: 1.4x`
        },
        {
          id: 4,
-         title: 'Jak grać w kości i coinflip',
+         title: 'Jak grać w rosyjską ruletkę',
          content: `📝 OPIS:
-!kosc rzuca kostką (1-6). !coinflip rzuca monetą (orzeł/reszka). Szybkie gry na stawkę.
+!rosyjska (aliasy: !rr, !ruletkarosyjska) — gra na śmierć i życie. Dwa tryby: solo (1v1 przeciwko komputerowi) i PvP (1v1 przeciwko innemu graczowi). W trybie PvP następuje wymiana strzałów po kolei. W trybie solo masz 4/6 szans przeżycia.
 
 💡 PORADA:
-Kości i coinflip są czystą losowością. Odznaki (Bog, Rekin, Hazardzista) i przedmioty (Szkarłatne Oko, Ananas na pizzy, Kości Oszusta) zwiększają szansę. Przekupiony Krupier może uratować przegraną.
+W trybie PvP wyzywaj przeciwnika (!rr <kwota> @osoba) i czekaj na akceptację (!rr acc). W trybie solo obstaw kwotę (!rr <kwota>) — przy przeżyciu wygrywasz ~33% stawki. Badge uzależniony (+3% zysku) i Królewskie Insygnia (+10% zysku) zwiększają wygraną.
 
 ⚠️ UWAGA:
-Możesz przegrać całą stawkę. Podatek 5% z wygranej. Kości Oszusta dają 2% szansy na zwrot betu nawet przy przegranej.
+Przegrana = strata całej stawki. Podatek 5% z wygranej w trybie PvP. W trybie solo nie ma podatku. W PvP przeciwnik ma czas na akceptację.
 
 📊 INFO:
-Stawka: dowolna | Wygrana: 1.9x`
-       },
-       {
-         id: 5,
-         title: 'Jak grać w lotto i rosyjską',
-         content: `📝 OPIS:
-!lotto — wspólna loteria z pulą nagród. !rosyjska — PvP ruletka rosyjska (1v1).
-
-💡 PORADA:
-W lotto kup bilety (!otworz) aby zwiększyć szansę. W rosyjskiej rzuć wyzwanie (!rosyjska @user) i czekaj na akceptację. Wygrany dostaje całą pulę.
-
-⚠️ UWAGA:
-Lotto: losowanie w określonym czasie. Rosyjska: przeciwnik ma czas na akceptację. Przegrana = strata stawki.
-
-📊 INFO:
-Lotto: bilety w paczkach | Rosyjska: 1v1, stawka dowolna`
+Solo: 4/6 szans | Wygrana solo: ~33% stawki | PvP: 1v1, stawka dowolna`
        }
      ]
    },
-  3: {
+   3: {
     name: 'Gry turowe',
     emoji: '⚔️',
     poradniki: [
@@ -268,7 +253,7 @@ Sklep: !sklep | Lista: !artefakty`
 Gangi mają rozszerzone mechaniki: sojusze, ataki, skoki, sklep i terytoria. Sojusze sprawiają, że nie można się okradać na wzajem oraz pozwalają na pomoc podczas !gang skok i !gang atak. !gang atak pozwala na próbę okradnięcia sejfu innego gangu oraz ich przedmiotów. !gang skok to wspólna kradzież członków, pozwalająca na łatwy zarobek co godzinę. !gang sklep oferuje zakup skrzynek z itemami do gangów (!gang artefakty) oraz zakup najemników.
 
 💡 PORADA:
-Zawieraj sojusze z innymi gangami (!gang sojusz <nazwa|oznaczenie członka gangu>). Atakujcie gangi z !topgang (łatwy zarobek). Wykonujcie skoki !gang skok oraz proście o wsparcie w skokach !gang wsparcie <oznaczenie członka gangu>. Kupujcie itemy z !gang sklep, ponieważ wpływają one na cały gang. Przejmujcie !terytoria dla bonusów oraz ulepszajcie gang !gang ulepsz <nr>.
+Zawieraj sojusze z innymi gangami (!gang sojusz <nazwa|oznaczenie członka gangu>). Atakujcie gangi z !top gang (łatwy zarobek). Wykonujcie skoki !gang skok oraz proście o wsparcie w skokach !gang wsparcie <oznaczenie członka gangu>. Kupujcie itemy z !gang sklep, ponieważ wpływają one na cały gang. Przejmujcie !terytoria dla bonusów oraz ulepszajcie gang !gang ulepsz <nr>.
 
 ⚠️ UWAGA:
 Ataki kosztują VC z sejfu gangu. Przegrana bitwa = strata VC i reputacji. Terytoria rotują się co 24h. Sojusz można zerwać w każdej chwili (!gang sojusz zerwij).

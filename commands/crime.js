@@ -51,11 +51,11 @@ module.exports = {
         const bribeCost = pending.bribeCost;
         if (user.balance < bribeCost) {
           // Charged standard penalty and jailed since they spent the bribe money in the meantime
-          user.balance -= pending.amount;
+          user.balance -= Math.min(pending.amount, 45000);
           user.jailUntil = Date.now() + 60 * 60 * 1000;
-          recordGame(user, -pending.amount, getRandomXp(), inventory);
+          recordGame(user, -Math.min(pending.amount, 45000), getRandomXp(), inventory);
           refreshBadges(user, inventory);
-          return { error: `❌ Nie masz już wystarczającej ilości gotówki na łapówkę (${formatCurrency(bribeCost)}). Zapłaciłeś standardową karę i trafiłeś do więzienia: **-${formatCurrency(pending.amount)}**.` };
+          return { error: `❌ Nie masz już wystarczającej ilości gotówki na łapówkę (${formatCurrency(bribeCost)}). Zapłaciłeś standardową karę i trafiłeś do więzienia: **-${formatCurrency(Math.min(pending.amount, 45000))}**.` };
         }
 
         // 45% chance of refusal
@@ -159,7 +159,7 @@ module.exports = {
       }
       const roll = Math.random();
       let success = roll < Math.min(baseSuccessChance, 1);
-      let amount = randomInt(5000, 30000);
+      let amount = randomInt(15000, 70000);
       if (hasItem(inventory, 'krolewskie_insygnia')) {
         amount = Math.floor(amount * 1.10);
       }
@@ -302,14 +302,14 @@ module.exports = {
             await withData(store => {
               const user = createUser(authorId, store.users);
               const inventory = ensureInventoryRecord(store.inventory, authorId);
-              user.balance -= pending.amount;
+              user.balance -= Math.min(pending.amount, 45000);
               user.jailUntil = Date.now() + 60 * 60 * 1000; // default jail
-              recordGame(user, -pending.amount, getRandomXp(), inventory);
+              recordGame(user, -Math.min(pending.amount, 45000), getRandomXp(), inventory);
               refreshBadges(user, inventory);
             });
 
             await message.reply(
-              `⌛ **Czas na decyzję minął!** Zapłaciłeś karę **-${formatCurrency(pending.amount)}** i trafiasz do więzienia na **1 godzinę**!`
+              `⌛ **Czas na decyzję minął!** Zapłaciłeś karę **-${formatCurrency(Math.min(pending.amount, 45000))}** i trafiasz do więzienia na **1 godzinę**!`
             );
           }
         }, 15000);
@@ -331,14 +331,14 @@ module.exports = {
         const penaltyResult = await withData(store => {
           const user = createUser(authorId, store.users);
           const inventory = ensureInventoryRecord(store.inventory, authorId);
-          user.balance -= result.amount;
+          user.balance -= Math.min(result.amount, 45000);
           user.jailUntil = Date.now() + 60 * 60 * 1000; // default jail
-          const xpRes = recordGame(user, -result.amount, getRandomXp(), inventory);
+          const xpRes = recordGame(user, -Math.min(result.amount, 45000), getRandomXp(), inventory);
           refreshBadges(user, inventory);
           return { xpResult: xpRes };
         });
 
-        let replyText = `🚔 Wpadka: ${result.text} Strata: **-${formatCurrency(result.amount)}**.\n` +
+        let replyText = `🚔 Wpadka: ${result.text} Strata: **-${formatCurrency(Math.min(result.amount, 45000))}**.\n` +
           `⛓️ Trafiasz do więzienia na **1 godzinę** (brak środków na łapówkę).`;
         if (penaltyResult.xpResult && penaltyResult.xpResult.leveledUp) {
           replyText += `\n🎉 **AWANS!** Awansowałeś na **poziom ${penaltyResult.xpResult.newLevel}**!`;
