@@ -361,17 +361,17 @@ Meczów: 2-10`
         id: 3,
         title: 'Jak grać na giełdzie',
         content: `📝 OPIS:
-!gielda — multiplayer inwestycje w 4 aktywa: Bank, Srebro, Złoto, Diamenty. Lobby trwa 2 min, inwestycja 1 min.
+!gielda — multiplayer inwestycje w 4 aktywa: Bank, Srebro, Złoto, Diamenty. Każda sesja ma lobby (2 min) i rundę inwestycji (1 min). Max 8 graczy.
 
 💡 PORADA:
-Inwestuj w różne aktywa. Sprawdź !gielda info aby zobaczyć zakresy ryzyka. Min. inwestycja: 10% salda.
+Sprawdź !gielda info aby zobaczyć zakresy ryzyka dla każdej sesji. Inwestuj w różne aktywa. Min. inwestycja: 10% salda. Najpopularniejsze aktywo ma lekko lepsze szanse. Badge uzależniony daje +3% do zysku.
 
 ⚠️ UWAGA:
-Możesz stracić całą inwestycję. Nie można zmienić decyzji po rozpoczęciu inwestycji.
+Nie można zmienić decyzji po rozpoczęciu inwestycji. 51% szans na stratę. Jeśli nikt nie zainwestuje, host dostaje 20 min cooldownu. Możesz hostować tylko jedną sesję naraz.
 
 📊 INFO:
-Runda inwestycji: 1 minuta`
-      }
+Lobby: 2 min | Inwestycja: 1 min | Max graczy: 8 | Min. inwestycja: 10% salda`
+       }
     ]
   },
   8: {
