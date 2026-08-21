@@ -3127,6 +3127,8 @@ module.exports = {
       `• Sklep: **!gang sklep**\n` +
       `• Terytoria: **!terytoria**\n` +
       `• Ulepsz: **!gang ulepsz <nr>**\n` +
+      `• Usuń: **!gang usun <nr>**\n` +
+      `• Wyrzuć: **!gang wyrzuc <nr>**\n` +
       `• Wsparcie: **!gang wsparcie <oznaczenie>**`
     );
   }
