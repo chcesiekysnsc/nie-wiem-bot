@@ -3561,8 +3561,8 @@ login({ appState }, (loginErr, api) => {
 
         const closest = bestDist <= 2 ? suggestion : null;
         const msg = closest
-          ? `Nie znaleziono komendy "${currentPrefix}${commandName}". Czy chodzilo Ci o ${currentPrefix}${closest}?`
-          : `Nie znaleziono komendy "${currentPrefix}${commandName}". Wpisz ${currentPrefix}help, aby zobaczyc liste komend.`;
+          ? `nie znaleziono komendy "!${commandName}". Czy chodzilo Ci o !${closest}?`
+          : `nie znaleziono komendy "!${commandName}" wpisz !help aby zobaczyc liste komend`;
         api.sendMessage(msg, threadId, (err) => {
           if (err) console.error('[UNKNOWN COMMAND] Błąd wysyłania odpowiedzi:', err);
         }, messageId);
