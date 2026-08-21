@@ -300,13 +300,30 @@ function normalizeText(str) {
     .replace(/Ł/g, "l");
 }
 
+function levenshteinDistance(a, b) {
+  const an = a ? a.length : 0;
+  const bn = b ? b.length : 0;
+  if (an === 0) return bn;
+  if (bn === 0) return an;
+  const matrix = [];
+  for (let i = 0; i <= bn; i++) matrix[i] = [i];
+  for (let j = 0; j <= an; j++) matrix[0][j] = j;
+  for (let i = 1; i <= bn; i++) {
+    for (let j = 1; j <= an; j++) {
+      const cost = a[j - 1] === b[i - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost);
+    }
+  }
+  return matrix[bn][an];
+}
+
 function findClosestCommand(name, commands) {
   let best = null, bestDist = Infinity;
   const seen = new Set();
   for (const [key, cmd] of commands.entries()) {
     if (seen.has(cmd.name)) continue;
     seen.add(cmd.name);
-    const dist = levenshtein(name, key);
+    const dist = levenshteinDistance(name, key);
     if (dist < bestDist) { bestDist = dist; best = cmd.name; }
   }
   // Sugeruj tylko jesli literowka jest mala (max 2 znaki roznic)
@@ -411,7 +428,7 @@ const client = {
       }
       api.getUserInfo(userId, (err, ret) => {
         if (!err && ret && ret[userId]) {
-          const name = ret[userId].name;
+          const name = ret[userId].name || `Użytkownik_${String(userId).slice(-6)}`;
           this._updateUserName(userId, name);
           this.resolvedUserNames.add(userId);
           
@@ -1704,6 +1721,10 @@ login({ appState }, (loginErr, api) => {
         console.error('[PROGRESSIVE-TAX] Błąd podczas poboru:', err);
       }
 
+      startProgressiveTaxCollection();
+    }, delay);
+  }
+
   function startGangReputationDecay() {
     const delay = getMsUntilNextGangReputationDecay();
     setTimeout(async () => {
@@ -1809,10 +1830,6 @@ login({ appState }, (loginErr, api) => {
   }
 
   startTerritoryRotation();
-
-      startProgressiveTaxCollection();
-    }, delay);
-  }
 
   // Inicjalizuj pierwszy czas poboru progresywnego podatku jeśli nie istnieje
   withData(store => {
@@ -2101,9 +2118,13 @@ login({ appState }, (loginErr, api) => {
           }
 
           const flagaCmd = require('./commands/flaga');
-          const flagsList = flagaCmd.flagsList;
+          const flagsList = Array.isArray(flagaCmd.flagsList) ? flagaCmd.flagsList : [];
 
           for (const threadId of targets) {
+            if (!flagsList.length) {
+              console.error('[FLAGA] flagsList jest pusta lub brakuje exportu.');
+              continue;
+            }
             const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
             const { time, prize } = flagaCmd.getGameSettings(randomFlag.region);
 
@@ -3033,7 +3054,7 @@ login({ appState }, (loginErr, api) => {
             if (/^[a-ząćęłńóśźż\s\-]+$/.test(cleanText)) {
               const hangmanCmd = client.commands.get('wisielec');
               if (hangmanCmd && typeof hangmanCmd.handleGuess === 'function') {
-                const senderName = await client.resolveUserName(api, senderId);
+    const senderName = await client.resolveUserName(api, senderId) || `Użytkownik_${String(senderId).slice(-6)}`;
                 const messageContext = {
                   client,
                   prefix: currentPrefix,
