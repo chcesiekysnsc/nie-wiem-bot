@@ -1,216 +1,216 @@
 const poradnikCategories = {
-  1: {
-    name: 'Ekonomia',
-    emoji: '📊',
-    poradniki: [
-      {
-        id: 1,
-        title: 'Jak zarabiać na work',
-        content: `📝 OPIS:
-Komenda !work to podstawowy sposób zarabiania.
+   1: {
+     name: 'Ekonomia',
+     emoji: '📊',
+     poradniki: [
+       {
+         id: 1,
+         title: 'Jak zarabiać na work',
+         content: `📝 OPIS:
+!work to podstawowe zarobki — co 5 minut możesz wykonać pracę i dostać wypłatę.
 
 💡 PORADA:
-Używaj work co 5 minut. Najlepiej rano i wieczorem gdy mniej graczy. Kup garnitur i kaczkę biznesu dla bonusów.
+Kup garnitur i kaczkę biznesu dla bonusów. Zegarek skraca cooldown. Energetyk zwiększa zysk, ale wydłuża cooldown.
 
 ⚠️ UWAGA:
-Nie używaj z ujemnym saldem.
+W więzieniu nie możesz pracować.
 
 📊 INFO:
 Cooldown: 5 min`
-      },
-      {
-        id: 2,
-        title: 'Jak używać crime',
-        content: `📝 OPIS:
-Komenda !crime pozwala kraść pieniądze.
+       },
+       {
+         id: 2,
+         title: 'Jak używać crime',
+         content: `📝 OPIS:
+!crime to kradzież z ~75% szansy sukcesu. Udana = zysk, nieudana = więzienie.
 
 💡 PORADA:
-Crime ma 50% szansy. Używaj ostry noz i energetyk dla bonusów. Celuj w graczy z dużym saldem.
+Ostry nóż i energetyk zwiększają szansę i zysk. Celuj w graczy z dużym saldem.
 
 ⚠️ UWAGA:
-Porażka = więzienie 5-15 min.
+Nieudana próba = 1h więzienia + kara. Możesz przekupić policjanta (!crime lapowka) za 55% szansy uniknięcia.
 
 📊 INFO:
-Szansa: 50%`
-      },
-      {
-        id: 3,
-        title: 'Jak używać banku',
-        content: `📝 OPIS:
-Bank bezpiecznie przechowuje pieniądze.
+Szansa: ~75%`
+       },
+       {
+         id: 3,
+         title: 'Jak używać banku',
+         content: `📝 OPIS:
+Bank bezpiecznie przechowuje pieniądze. Pieniądze w banku nie są dostępne do kradzieży (!rob).
 
 💡 PORADA:
-Wpłacaj nadwyżki do banku. Procent zależy od poziomu - wyższy = wyższy procent.
+Wpłacaj nadwyżki (!wplac). Pojemność banku rośnie z przedmiotami. Niektóre itemy dają odsetki.
 
 ⚠️ UWAGA:
-Pieniądze w banku są bezpieczne przed kradzieżą.
+Bank ma limit pojemności. Pełny = nie możesz wpłacić więcej.
 
 📊 INFO:
-Procent: 1-5% dziennie`
-      },
-      {
-        id: 4,
-        title: 'Jak zarządzać firmami',
-        content: `📝 OPIS:
-Firmy dają pasywne zarobki co 3 godziny.
+Wpłata: !wplac | Wypłata: !wyplac`
+       },
+       {
+         id: 4,
+         title: 'Jak zarządzać firmami',
+         content: `📝 OPIS:
+Firmy generują pasywny dochód co 3 godziny. Możesz mieć do 2 firm.
 
 💡 PORADA:
-Zatrudniaj pracowników. Używaj itemów firmowych. Naprawiaj firmy od razu gdy się zepsują.
+Zatrudniaj pracowników (!pracownik). Używaj przedmiotów firmowych. Naprawiaj od razu gdy się zepsują.
 
 ⚠️ UWAGA:
-Firmy mogą się zepsuć bez ostrzeżenia.
+Firmy mogą ulec awarii. Pracownicy pobierają część wypłaty.
 
 📊 INFO:
 Wypłata co: 3 godziny`
-      }
-    ]
-  },
-  2: {
-    name: 'Gry hazardowe',
-    emoji: '🎰',
-    poradniki: [
-      {
-        id: 1,
-        title: 'Jak grać w blackjack',
-        content: `📝 OPIS:
-Blackjack to gra karciana - cel to 21 punktów.
+       }
+     ]
+   },
+   2: {
+     name: 'Gry hazardowe',
+     emoji: '🎰',
+     poradniki: [
+       {
+         id: 1,
+         title: 'Jak grać w blackjack',
+         content: `📝 OPIS:
+Blackjack — gra karciana, cel to 21 punktów. Krupier dobiera do 17.
 
 💡 PORADA:
-Dobierz do 16-17. Stój przy 17+. Krupier musi dobierać do 17.
+Dobierz do 16, stój przy 17+. Możesz podwoić stawkę (!double) przy pierwszych 2 kartach.
 
 ⚠️ UWAGA:
-Przekroczenie 21 = przegrana.
+Przekroczenie 21 = przegrana. Blackjack (As+10/K/Q/J) płaci 2.5x.
 
 📊 INFO:
-Wypłata blackjack: 3:2`
-      },
-      {
-        id: 2,
-        title: 'Jak grać w ruletkę',
-        content: `📝 OPIS:
-Ruletka - obstawiasz kolor lub numer.
+Wypłata blackjack: 2.5x`
+       },
+       {
+         id: 2,
+         title: 'Jak grać w ruletkę',
+         content: `📝 OPIS:
+Ruletka — obstawiasz kolor, parzystość lub numer (0-36).
 
 💡 PORADA:
-Czerwony/czarny = 2x. Zielony (0) = 14x. Graj ostrożnie.
+Czerwony/czarny = 2x. Numer = 12x. Zielone (0) = 36x. Przekupiony krupier podnosi szansę.
 
 ⚠️ UWAGA:
-Zielony ma najmniejszą szansę.
+Zielone ma najmniejszą szansę (~2.7%).
 
 📊 INFO:
-Szansa na zielony: 2.7%`
-      },
-      {
-        id: 3,
-        title: 'Jak grać w slots',
-        content: `📝 OPIS:
-Slots to automat z bębnami.
+Zielone: 36x | Numer: 12x | Kolor: 2x`
+       },
+       {
+         id: 3,
+         title: 'Jak grać w slots',
+         content: `📝 OPIS:
+Slots — automat z 3 bębnami. Dopasuj symbole aby wygrać.
 
 💡 PORADA:
-Szukaj symboli premium (7, diamenty). Graj tylko na pieniądze które możesz stracić.
+Trzy takie same = wygrana. 7 lub diamenty dają najwyższy mnożnik. Przekupiony krupier może uratować przegraną.
 
 ⚠️ UWAGA:
 Slots są oparte na losowości.
 
 📊 INFO:
-RTP: ~95%`
-      }
-    ]
-  },
-  3: {
-    name: 'Gry turowe',
-    emoji: '⚔️',
-    poradniki: [
-      {
-        id: 1,
-        title: 'Jak grać w wojnę',
-        content: `📝 OPIS:
-Wojna to gra karciana dla wielu graczy.
+Mnożniki: 3x-5x`
+       }
+     ]
+   },
+   3: {
+     name: 'Gry turowe',
+     emoji: '⚔️',
+     poradniki: [
+       {
+         id: 1,
+         title: 'Jak grać w wojnę',
+         content: `📝 OPIS:
+Wojna karciana — gra multiplayer do 12 osób. W każdej rundzie losuje się karty, słabsze odpada.
 
 💡 PORADA:
-Minimalnie 2 graczy. Najwyższa karta wygrywa pulę. Zbieraj graczy w grupie.
+Zbierz graczy w grupie. Ostatni pozostający wygrywa całą pulę.
 
 ⚠️ UWAGA:
-Czas na dołączenie: 90 sekund.
+Min. 2 graczy, max 12. Jeśli zapisze się tylko 1, stawka wraca.
 
 📊 INFO:
-Minimalna stawka: 100 VC`
-      },
-      {
-        id: 2,
-        title: 'Jak grać w PKN',
-        content: `📝 OPIS:
-PKN to klasyczna gra papier kamień nożyce.
+Stawka: dowolna`
+       },
+       {
+         id: 2,
+         title: 'Jak grać w PKN',
+         content: `📝 OPIS:
+Papier-Kamień-Nożyce — graj z botem lub wyzywaj innych (PvP).
 
 💡 PORADA:
-Papier bije kamień, kamień bije nożyce, nożyce biją papier. Wyzwalaj znajomych.
+W trybie PvP wpisz !pkn acc aby zaakceptować. W singleplayer graj przeciwko botowi.
 
 ⚠️ UWAGA:
-Czas na akceptację: 2 minuty.
+W PvP masz 2 minuty na akceptację.
 
 📊 INFO:
-Minimalna stawka: 50 VC`
-      },
-      {
-        id: 3,
-        title: 'Jak grać w duel',
-        content: `📝 OPIS:
-Duel to pojedynek 1v1 na stawkę.
+Stawka: dowolna`
+       },
+       {
+         id: 3,
+         title: 'Jak grać w duel',
+         content: `📝 OPIS:
+Pojedynek 1v1 — obaj stawiają tę samą kwotę, wygrywa losowo 50/50.
 
 💡 PORADA:
-Obaj stawiają tyle samo. Wygrywa ten z lepszymi statystykami i itemami.
+Wpisz !duel <kwota> @osoba. Przeciwnik musi zaakceptować (!duel acc).
 
 ⚠️ UWAGA:
-Możesz przegrać dużą kwotę.
+Czysta losowość — nie ma wpływu przedmiotów. Podatek 5% z wygranej.
 
 📊 INFO:
-Minimalna stawka: 100 VC`
-      }
-    ]
-  },
-  4: {
-    name: 'System',
-    emoji: '🏢',
-    poradniki: [
-      {
-        id: 1,
-        title: 'Jak założyć gang',
-        content: `📝 OPIS:
-Gangi pozwalają na współpracę z innymi.
+Stawka: dowolna`
+       }
+     ]
+   },
+   4: {
+     name: 'System',
+     emoji: '🏢',
+     poradniki: [
+       {
+         id: 1,
+         title: 'Jak założyć gang',
+         content: `📝 OPIS:
+Gangi pozwalają na współpracę, wspólny skarbiec i ulepszenia.
 
 💡 PORADA:
-Musisz być level 10+. Zatrudniaj członków. Gangi mają wspólne cele i skarbiec.
+Zatrudniaj członków. Ulepszaj Dziuplę (więcej miejsc), Biznesy, Fach, Uzbrojenie, Obronę.
 
 ⚠️ UWAGA:
-Maksymalnie 20 członków.
+Koszt założenia: 1 000 000 VC. Max członków: 5 + poziom Dziupli (max 15).
 
 📊 INFO:
-Koszt: 10000 VC`
-      },
-      {
-        id: 2,
-        title: 'Jak zdobywać artefakty',
-        content: `📝 OPIS:
-Artefakty to specjalne itemy z bonusami.
+Koszt: 1 000 000 VC`
+       },
+       {
+         id: 2,
+         title: 'Jak zdobywać artefakty',
+         content: `📝 OPIS:
+Artefakty to przedmioty z bonusami. Kupuj w sklepie lub otwieraj paczki (skrzynie).
 
 💡 PORADA:
-Kupuj w sklepie. Otwieraj skrzynie. Niektóre są tylko dla gangów.
+Sprawdź !artefakty aby zobaczyć listę. Niektóre itemy dają bonusy do pracy, kradzieży, kasyna.
 
 ⚠️ UWAGA:
-Artefakty mogą być drogie.
+Paczki mają losowe nagrody.
 
 📊 INFO:
-Rzadkości: common-legendary`
-      }
-    ]
-  },
-  5: {
-    name: 'Wsparcie techniczne',
-    emoji: '🔧',
-    poradniki: [
-      {
-        id: 1,
-        title: 'Zgłaszanie błędów',
-        content: `📝 OPIS:
+Sklep: !sklep | Lista: !artefakty`
+       }
+     ]
+   },
+   5: {
+     name: 'Wsparcie techniczne',
+     emoji: '🔧',
+     poradniki: [
+       {
+         id: 1,
+         title: 'Zgłaszanie błędów',
+         content: `📝 OPIS:
 Jeśli napotkałeś błąd, zgłoś go twórcy.
 
 💡 PORADA:
@@ -224,103 +224,103 @@ Nie spamuj wiadomościami.
 
 💼 OFERTY:
 Współpraca i propozycje również na Facebooku.`
-      }
-    ]
-  },
-  6: {
-    name: 'Praca i firmy',
-    emoji: '💼',
-    poradniki: [
-      {
-        id: 1,
-        title: 'Jak zarządzać firmami',
-        content: `📝 OPIS:
-Firmy to pasywne zarobki co 3 godziny.
+       }
+     ]
+   },
+   6: {
+     name: 'Praca i firmy',
+     emoji: '💼',
+     poradniki: [
+       {
+         id: 1,
+         title: 'Jak zarządzać firmami',
+         content: `📝 OPIS:
+Firmy dają pasywne zarobki co 3 godziny. Możesz mieć 2 firmy.
 
 💡 PORADA:
-Zatrudniaj 5-10 pracowników. Używaj itemów firmowych. Naprawiaj od razu.
+Zatrudniaj 1 pracownika (!pracownik) dla bonusów. Używaj przedmiotów firmowych. Naprawiaj od razu.
 
 ⚠️ UWAGA:
-Pracownicy mogą nie przyjść do pracy.
+Pracownicy pobierają % wypłaty. Mogą wywołać awarię.
 
 📊 INFO:
 Średni zysk: 2000-10000 VC`
-      }
-    ]
-  },
-  7: {
-    name: 'Gry multiplayer',
-    emoji: '🎮',
-    poradniki: [
-      {
-        id: 1,
-        title: 'Jak obstawiać mecze',
-        content: `📝 OPIS:
-Mecz pozwala obstawiać wyniki piłkarskie.
+       }
+     ]
+   },
+   7: {
+     name: 'Gry multiplayer',
+     emoji: '🎮',
+     poradniki: [
+       {
+         id: 1,
+         title: 'Jak obstawiać mecze',
+         content: `📝 OPIS:
+!mecz — obstawianie meczów piłkarskich. Wygeneruj ofertę i postaw na wynik.
 
 💡 PORADA:
-1 = gospodarze, X = remis, 2 = goście. Kursy zależą od szans drużyn.
+1 = gospodarze, X = remis, 2 = goście. Kursy zależą od sił drużyn. Max stawka: 10% salda.
 
 ⚠️ UWAGA:
-Możesz przegrać całą stawkę.
+Możesz przegrać całą stawkę. Symulacja trwa 60s.
 
 📊 INFO:
 Czas trwania: 60 sekund`
-      },
-      {
-        id: 2,
-        title: 'Jak grać multi-mecz',
-        content: `📝 OPIS:
-Multi-mecz to obstawianie wielu meczów naraz.
+       },
+       {
+         id: 2,
+         title: 'Jak grać multi-mecz',
+         content: `📝 OPIS:
+!multimecz — kupon na 2-10 meczów naraz. Kursy mnożą się jak w bukmacherze.
 
 💡 PORADA:
 Im więcej meczów tym wyższy kurs. Jeśli jeden przegrany = cała przegrana.
 
 ⚠️ UWAGA:
-Bardzo ryzykowne.
+Bardzo ryzykowne. Obstawiaj przez !multiobstaw.
 
 📊 INFO:
-Maksymalnie 5 meczów`
-      },
-      {
-        id: 3,
-        title: 'Jak grać na giełdzie',
-        content: `📝 OPIS:
-Giełda pozwala inwestować w aktywa.
+Meczów: 2-10`
+       },
+       {
+         id: 3,
+         title: 'Jak grać na giełdzie',
+         content: `📝 OPIS:
+!gielda — multiplayer inwestycje w 4 aktywa (Bank, Srebro, Złoto, Diamenty).
 
 💡 PORADA:
-Inwestuj w różne aktywa. Nie wszystko w jedno. Aktywa mogą rosnąć lub spadać.
+Inwestuj w różne aktywa. Lobby trwa 2 min, inwestycja 1 min. Wszyscy obstawiają przed losowaniem.
 
 ⚠️ UWAGA:
-Możesz stracić całą inwestycję.
+Możesz stracić całą inwestycję. Min. inwestycja: 10% salda.
 
 📊 INFO:
-Czas trwania: 3 minuty`
-      }
-    ]
-  },
-  8: {
-    name: 'Sklep i przedmioty',
-    emoji: '🛒',
-    poradniki: [
-      {
-        id: 1,
-        title: 'Jak kupować itemy',
-        content: `📝 OPIS:
-Sklep pozwala kupować itemy z bonusami.
+Rundainwestycji: 1 minuta`
+       }
+     ]
+   },
+   8: {
+     name: 'Sklep i przedmioty',
+     emoji: '🛒',
+     poradniki: [
+       {
+         id: 1,
+         title: 'Jak kupować itemy',
+         content: `📝 OPIS:
+!sklep — kupuj przedmioty z bonusami. Dwa typy: permanent (jednorazowe) i stackable.
 
 💡 PORADA:
-Używaj !sklep aby zobaczyć ofertę. Otwieraj skrzynie. Itemy mają różne rzadkości.
+Sprawdź !sklep help <nr> przed zakupem. Paczki (lootboxy) dają losowe przedmioty. Otwieraj przez !otworz.
 
 ⚠️ UWAGA:
-Skrzynie mają losowe nagrody.
+Paczki mają losowe nagrody. Limit 10 paczek/dzień.
 
 📊 INFO:
-Rzadkości: common-legendary`
-      }
-    ]
-  }
-};
+Sklep: !sklep | Paczki: !otworz`
+       }
+      ]
+    }
+ };
 
 function buildPoradnikCategoriesEmbed(prefix) {
   let description = '📚 PORADNIKI - WYBIERZ KATEGORIĘ\n\n';
