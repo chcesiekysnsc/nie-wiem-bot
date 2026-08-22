@@ -28,6 +28,11 @@ module.exports = {
       return;
     }
 
+    if (client.taxWarningActive) {
+      await message.reply('❌ Za 15 sekund nastąpi pobór podatków. Nie można rozpocząć nowej gry.');
+      return;
+    }
+
     // Resolve amount and check player's balance
     const hostId = message.author.id;
     let balance = 0;

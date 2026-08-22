@@ -1559,12 +1559,14 @@ login({ appState }, (loginErr, api) => {
 
     const warningDelay = Math.max(0, delay - 15000);
     setTimeout(async () => {
+      client.taxWarningActive = true;
       console.log('[TAX] Ostrzeżenie: podatki zostaną pobrane za 15 sekund. Zamykanie aktywnych gier i zwrot stawek...');
       await endAllActiveGamesAndRefund();
     }, warningDelay);
 
     setTimeout(async () => {
       try {
+        client.taxWarningActive = false;
         const result = await withData(store => {
           let totalCollected = 0;
           const taxedUsers = [];
@@ -1769,6 +1771,22 @@ login({ appState }, (loginErr, api) => {
     // Duel challenges (no money deducted, just delete)
     client.duelRequests?.clear?.();
 
+    // Milionerzy
+    if (client.activeMilionerzy) {
+      for (const [threadId, game] of client.activeMilionerzy.entries()) {
+        threadsToNotify.add(threadId);
+        const prize = Number(game.prize || 0);
+        if (prize > 0 && game.hostId) {
+          await withData(store => {
+            const user = createUser(game.hostId, store.users);
+            user.balance += prize;
+          });
+          refunds.push({ userId: game.hostId, amount: prize, game: 'milionerzy', threadId });
+        }
+      }
+      client.activeMilionerzy.clear();
+    }
+
     // Save state
     try { saveGameSessions(client); } catch (e) {}
 
@@ -1782,6 +1800,7 @@ login({ appState }, (loginErr, api) => {
 
     const warningDelay = Math.max(0, delay - 15000);
     setTimeout(async () => {
+      client.taxWarningActive = true;
       console.log('[PROGRESSIVE-TAX] Ostrzeżenie: podatek majątkowy zostanie pobrany za 15 sekund. Zamykanie aktywnych gier i zwrot stawek...');
       await endAllActiveGamesAndRefund();
     }, warningDelay);

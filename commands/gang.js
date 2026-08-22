@@ -323,7 +323,7 @@ module.exports = {
           levelFach: 0,
           levelUzbrojenie: 0,
           levelObrona: 0,
-          mercenaryContract: null,
+          mercenaryContracts: [],
           reputation: isCreator ? 3001 : 0,
           lastActivityAt: Date.now(),
           tributePercent: 0,
@@ -1450,7 +1450,7 @@ module.exports = {
         }
 
         gang.lastActivityAt = Date.now();
-        return { success: true, gangId: user.gangId, gangName: gang.name, members: gang.members || [], tributePercent: gang.tributePercent || 0, mercenaryContract: gang.mercenaryContract || null };
+        return { success: true, gangId: user.gangId, gangName: gang.name, members: gang.members || [], tributePercent: gang.tributePercent || 0, mercenaryContracts: gang.mercenaryContracts || [] };
       });
 
       if (startResult.error) {
@@ -1486,6 +1486,10 @@ module.exports = {
       const tagsString = tagsList.length > 0 ? tagsList.join(' ') : 'Brak członków';
 
       const threadId = message.guild?.id || message.rawEvent?.threadID;
+      const activeMercs = (startResult.mercenaryContracts || []).filter(c => c && c.until > Date.now());
+      const mercLines = activeMercs.length > 0
+        ? activeMercs.map(c => `🪖 **${(MERCENARY_TYPES[c.type] && MERCENARY_TYPES[c.type].name) || c.type}** (pozostało: ${Math.max(0, Math.ceil((c.until - Date.now()) / 3600000))}h)`).join('\n')
+        : '';
       const msgPayload = {
         body: `👥 **GANG HEIST (Skok Gangu)** 👥\n` +
           `**${message.author.username || 'Boss'}** zaplanował napad gangu **${startResult.gangName}**!\n\n` +
@@ -1493,9 +1497,7 @@ module.exports = {
           `Członkowie: ${tagsString}\n\n` +
           `Wpisz: **!gang skok dolacz** (lub **!gang skok d**), aby wziąć udział.\n\n` +
           `💸 Haracz gangu: **${startResult.tributePercent}%**\n` +
-          (startResult.mercenaryContract && startResult.mercenaryContract.until > Date.now()
-            ? `🪖 Najemnicy: **${(MERCENARY_TYPES[startResult.mercenaryContract.type] && MERCENARY_TYPES[startResult.mercenaryContract.type].name) || startResult.mercenaryContract.type}** (pozostało: ${Math.max(0, Math.ceil((startResult.mercenaryContract.until - Date.now()) / 3600000))}h)\n`
-            : '') +
+          (mercLines ? `🪖 **Aktywne najemnicy:**\n${mercLines}\n` : '') +
           `⚠️ *Wymagane minimum 2 osoby (każdy min. 100 komend). Szansa na powodzenie: 50%. Wielkość łupu zależy od liczby uczestników (2-4: stacja paliw 50k-150k, 5-8: jubiler 150k-300k, 9-12: posiadłość 300k-500k, 13+: bank 500k-800k).*`,
         mentions: memberTags
       };
@@ -1550,9 +1552,10 @@ module.exports = {
           }
           const heistBonus = getGangBossShopMultiplier(currentGang, 'heist_success');
           successChance = Math.min(successChance + heistBonus, 0.95);
-          const mercContract = currentGang.mercenaryContract;
-          if (mercContract && mercContract.until > Date.now() && mercContract.type === 'szpiedzy') {
-            successChance = Math.min(successChance + 0.10, 0.95);
+          const activeContracts = (currentGang.mercenaryContracts || []).filter(c => c && c.until > Date.now());
+          const spiesCount = activeContracts.filter(c => c.type === 'szpiedzy').length;
+          if (spiesCount > 0) {
+            successChance = Math.min(successChance + 0.10 * spiesCount, 0.95);
           }
 
           const heistSuccess = Math.random() < successChance;
@@ -1941,8 +1944,8 @@ module.exports = {
           defenderVault: defenderGang.vault || 0,
           attackerMembers: myGang.members || [],
           defenderMembers: defenderGang.members || [],
-          attackerMercenaryContract: myGang.mercenaryContract || null,
-          defenderMercenaryContract: defenderGang.mercenaryContract || null
+          attackerMercenaryContracts: myGang.mercenaryContracts || [],
+          defenderMercenaryContracts: defenderGang.mercenaryContracts || []
         };
       });
 
@@ -2016,13 +2019,13 @@ module.exports = {
       const defenderTagsString = defenderTags.length > 0 ? defenderTags.join(' ') : 'Brak';
 
       const threadIdVal = message.guild?.id || message.rawEvent?.threadID;
-      const attackerMerc = startResult.attackerMercenaryContract;
-      const defenderMerc = startResult.defenderMercenaryContract;
-      const attackerMercLine = (attackerMerc && attackerMerc.until > Date.now())
-        ? `🪖 Najemnicy (atakujący): **${(MERCENARY_TYPES[attackerMerc.type] && MERCENARY_TYPES[attackerMerc.type].name) || attackerMerc.type}**\n`
+      const attackerMercs = (startResult.attackerMercenaryContracts || []).filter(c => c && c.until > Date.now());
+      const defenderMercs = (startResult.defenderMercenaryContracts || []).filter(c => c && c.until > Date.now());
+      const attackerMercLine = attackerMercs.length > 0
+        ? `🪖 Najemnicy (atakujący): ${attackerMercs.map(c => `**${(MERCENARY_TYPES[c.type] && MERCENARY_TYPES[c.type].name) || c.type}**`).join(', ')}\n`
         : '';
-      const defenderMercLine = (defenderMerc && defenderMerc.until > Date.now())
-        ? `🪖 Najemnicy (obrońcy): **${(MERCENARY_TYPES[defenderMerc.type] && MERCENARY_TYPES[defenderMerc.type].name) || defenderMerc.type}**\n`
+      const defenderMercLine = defenderMercs.length > 0
+        ? `🪖 Najemnicy (obrońcy): ${defenderMercs.map(c => `**${(MERCENARY_TYPES[c.type] && MERCENARY_TYPES[c.type].name) || c.type}**`).join(', ')}\n`
         : '';
       const msgPayload = {
         body: `⚔️ **WOJNA GANGÓW: NAPAD NA SEJF!** ⚔️\n` +
@@ -2821,27 +2824,23 @@ module.exports = {
             if (!gang) {
               return { error: '❌ Gang nie istnieje.' };
             }
-            if (gang.mercenaryContract && gang.mercenaryContract.until > Date.now()) {
-              if (!isCreator) {
-                const leftMs = gang.mercenaryContract.until - Date.now();
-                const leftMin = Math.ceil(leftMs / 60000);
-                return { error: `❌ Macie już aktywny kontrakt najemników! Pozostało: **${leftMin} min**. Nie można kupić kolejnego, dopóki efekt trwa.` };
-              }
-            }
             if (contractDef.minRep && (gang.reputation || 0) < contractDef.minRep) {
               return { error: `❌ Aby kupić **${contractDef.name}**, gang potrzebuje co najmniej **${contractDef.minRep} REP**. Obecnie: **${gang.reputation || 0} REP**.` };
             }
             if ((gang.vault || 0) < contractDef.price) {
-              return { error: `❌ Brak środków w sejfie gangu. Potrzeba: **${formatCurrency(contractDef.price)}**, posiadacie: **${formatCurrency(gang.vault || 0)}**.` };
+              return { error: '❌ Brak środków w sejfie gangu. Potrzeba: **${formatCurrency(contractDef.price)}**, posiadacie: **${formatCurrency(gang.vault || 0)}**.' };
             }
             gang.vault -= contractDef.price;
-            if (isCreator && gang.mercenaryContract && gang.mercenaryContract.until > Date.now()) {
-              gang.mercenaryContract.until += MERCENARIES_DURATION_MS;
-              gang.mercenaryContract.type = contractType;
-            } else {
-              gang.mercenaryContract = { type: contractType, until: Date.now() + MERCENARIES_DURATION_MS };
+            if (!Array.isArray(gang.mercenaryContracts)) {
+              gang.mercenaryContracts = [];
             }
-            return { ok: true, type: contractType, until: gang.mercenaryContract.until };
+            const activeContractsBefore = gang.mercenaryContracts.filter(c => c && c.until > Date.now());
+            if (!isCreator && activeContractsBefore.length >= 1) {
+              return { error: '❌ Twój gang może mieć tylko 1 aktywny kontrakt najemników w danym momencie. Poczekaj na wygaśnięcie obecnego.' };
+            }
+            gang.mercenaryContracts.push({ type: contractType, until: Date.now() + MERCENARIES_DURATION_MS });
+            const activeContracts = gang.mercenaryContracts.filter(c => c && c.until > Date.now());
+            return { ok: true, type: contractType, until: Date.now() + MERCENARIES_DURATION_MS, activeCount: activeContracts.length };
           });
 
           if (purchaseResult.error) {
@@ -2852,7 +2851,9 @@ module.exports = {
           await message.reply(
             `🪖 **Wynajęto ${contractDef.name}!**\n` +
             `💰 Koszt: **-${formatCurrency(contractDef.price)}** z sejfu gangu.\n` +
-            `⚔️ Efekt na **24 godziny**: ${contractDef.desc}`
+            `⚔️ Efekt na **24 godziny**: ${contractDef.desc}\n` +
+            `📊 Aktywne kontrakty: **${purchaseResult.activeCount}**` +
+            (isCreator && purchaseResult.activeCount > 1 ? `\n💎 **Stackowanie aktywne!** Bonusy z wielu kontraktów łączą się dla gangu twórcy.` : '')
           );
           return;
         }
@@ -3048,7 +3049,7 @@ module.exports = {
         alliances: gang.alliances || [],
         reputation: gang.reputation || 0,
         lastActivityAt: gang.lastActivityAt || 0,
-        mercenaryContract: gang.mercenaryContract || null
+        mercenaryContracts: Array.isArray(gang.mercenaryContracts) ? gang.mercenaryContracts : []
       };
     });
 
@@ -3124,13 +3125,17 @@ module.exports = {
       const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null, `${secs}s`].filter(Boolean).join(' ');
       statusStr += `🛡️ Tarcza ochronna: **Aktywna (${leftStr})**\n`;
     }
-    if (infoResult.mercenaryContract && infoResult.mercenaryContract.until > now) {
-      const leftSec = Math.ceil((infoResult.mercenaryContract.until - now) / 1000);
-      const hrs = Math.floor(leftSec / 3600);
-      const mins = Math.floor((leftSec % 3600) / 60);
-      const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null].filter(Boolean).join(' ');
-      const typeName = (MERCENARY_TYPES && MERCENARY_TYPES[infoResult.mercenaryContract.type]) ? MERCENARY_TYPES[infoResult.mercenaryContract.type].name : infoResult.mercenaryContract.type;
-      statusStr += `🪖 Najemnicy (${typeName}): **Aktywni (${leftStr})**\n`;
+    const activeMercs = (infoResult.mercenaryContracts || []).filter(c => c && c.until > now);
+    if (activeMercs.length > 0) {
+      const mercLines = activeMercs.map(c => {
+        const leftSec = Math.ceil((c.until - now) / 1000);
+        const hrs = Math.floor(leftSec / 3600);
+        const mins = Math.floor((leftSec % 3600) / 60);
+        const leftStr = [hrs ? `${hrs}h` : null, mins ? `${mins}m` : null].filter(Boolean).join(' ');
+        const typeName = (MERCENARY_TYPES && MERCENARY_TYPES[c.type]) ? MERCENARY_TYPES[c.type].name : c.type;
+        return `• ${typeName}: **${leftStr}**`;
+      });
+      statusStr += `🪖 Najemnicy:\n${mercLines.join('\n')}\n`;
     }
     const { getActiveTerritoriesForGang } = require('../utils/territories');
     const ownedTerritories = getActiveTerritoriesForGang(infoResult.id || infoResult.name);

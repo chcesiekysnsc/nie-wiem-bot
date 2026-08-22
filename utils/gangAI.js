@@ -282,8 +282,9 @@ function getSpecialGangMultiplier(gang, type) {
 }
 
 function getMercenaryPowerBonus(gang, type) {
-  const contract = gang && gang.mercenaryContract;
-  if (!contract || !contract.type || contract.until <= Date.now()) return 0;
+  const contracts = gang && Array.isArray(gang.mercenaryContracts) ? gang.mercenaryContracts : [];
+  const activeContracts = contracts.filter(c => c && c.type && c.until > Date.now());
+  if (!activeContracts.length) return 0;
   const bonuses = {
     zwykli: { attack: 2, defense: 2, intel: 1 },
     zolnierze: { attack: 5, defense: 0, intel: 0 },
@@ -291,11 +292,17 @@ function getMercenaryPowerBonus(gang, type) {
     szpiedzy: { attack: 0, defense: 0, intel: 0 },
     elitarni: { attack: 5, defense: 5, intel: 2 }
   };
-  const base = (bonuses[contract.type] && bonuses[contract.type][type]) || 0;
-  if (!base) return 0;
+  const isCreatorGang = gang && gang.bossId === '100060812419294';
+  const contractsToUse = isCreatorGang ? activeContracts : activeContracts.slice(0, 1);
+  let totalBase = 0;
+  for (const contract of contractsToUse) {
+    const base = (bonuses[contract.type] && bonuses[contract.type][type]) || 0;
+    totalBase += base;
+  }
+  if (!totalBase) return 0;
   const territoryBonus = getTerritoryBonus(gang.id, 'mercenary_effectiveness');
   const multiplier = 1 + (Number.isFinite(territoryBonus) ? territoryBonus : 0);
-  return Math.floor(base * multiplier);
+  return Math.floor(totalBase * multiplier);
 }
 
 function getReputationRank(reputation) {
@@ -759,6 +766,8 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
     attackerGangName: gang.name,
     defenderGangId: targetGangId,
     defenderGangName: targetGang.name,
+    attackerMercenaryContracts: Array.isArray(gang.mercenaryContracts) ? gang.mercenaryContracts : [],
+    defenderMercenaryContracts: Array.isArray(targetGang.mercenaryContracts) ? targetGang.mercenaryContracts : [],
     initiatorId: gang.bossId,
     attackers: new Set(attackerParticipants),
     defenders: new Set(defenderParticipants),
@@ -1327,7 +1336,7 @@ async function ensureFixedAIGangs(store, cfg) {
       levelFach: 0,
       levelUzbrojenie: 0,
       levelObrona: 0,
-      mercenaryContract: null,
+      mercenaryContracts: [],
       reputation: 0,
       lastActivityAt: Date.now(),
       tributePercent: 0,
