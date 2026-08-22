@@ -21,9 +21,9 @@ module.exports = {
     }
 
     // Check if there is an active proposal already to prevent rerolling
-    let activeMulti = client.activeMultiMatches.get(userId);
+    const activeMulti = client.activeMultiMatches.get(userId);
 
-    if (activeMulti) {
+    if (activeMulti && Array.isArray(activeMulti.matches) && activeMulti.matches.length > 0) {
       let response = `⚽ **AKTYWNA OFERTA MULTI-MECZU** ⚽\n\n`;
       activeMulti.matches.forEach((match, idx) => {
         response += `**${idx + 1}.** 🏠 **${match.home}** 🆚 **${match.away}** ✈️\n` +
