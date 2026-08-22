@@ -752,15 +752,18 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
 
   if (!client.activeGangWars) client.activeGangWars = new Map();
   client.activeGangWars.set(warKey, {
-    initiatorId: gang.bossId,
+    warKey,
+    attackerGangId: gangId,
+    attackerGangName: gang.name,
     defenderGangId: targetGangId,
+    defenderGangName: targetGang.name,
+    initiatorId: gang.bossId,
     attackers: new Set(attackerParticipants),
     defenders: new Set(defenderParticipants),
     endTime: now + 120000,
     originThreadId,
     supportThreads: [],
-    isAI: true,
-    aiAttackerGangId: gangId
+    isAI: true
   });
 
   const attackerNames = [];
@@ -857,23 +860,25 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
     }
   }
 
-  setTimeout(async () => {
-    const war = client.activeGangWars && client.activeGangWars.get(warKey);
-    if (!war) return;
+  const aiWarKey = warKey;
+  const gangWarTimer = setTimeout(async () => {
+    try {
+      const war = client.activeGangWars && client.activeGangWars.get(aiWarKey);
+      if (!war) return;
 
-    if (client.activeGangWars) client.activeGangWars.delete(warKey);
+      if (client.activeGangWars) client.activeGangWars.delete(aiWarKey);
 
-    const listAttackers = Array.from(war.attackers);
-    const listDefenders = Array.from(war.defenders);
+      const listAttackers = Array.from(war.attackers);
+      const listDefenders = Array.from(war.defenders);
 
-    const outcome = await withData(store => {
-      const attacker = (store.profiles.gangs || {})[gangId];
-      const defender = (store.profiles.gangs || {})[targetGangId];
-      if (!attacker || !defender) return { cancelled: true };
+      const outcome = await withData(store => {
+        const attacker = (store.profiles.gangs || {})[war.attackerGangId];
+        const defender = (store.profiles.gangs || {})[war.defenderGangId];
+        if (!attacker || !defender) return { cancelled: true };
 
-      const attCount = listAttackers.length;
-      const defCount = listDefenders.length;
-      const result = resolveWar(attacker, defender, attacker.members.length, defender.members.length, attCount, defCount);
+        const attCount = listAttackers.length;
+        const defCount = listDefenders.length;
+        const result = resolveWar(attacker, defender, attacker.members.length, defender.members.length, attCount, defCount);
 
       if (result.success) {
         defender.vault = Math.max(0, (defender.vault || 0) - result.stolenTotal);
@@ -968,9 +973,9 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
     const sendResultSuccess = async (msg) => {
       if (!client.api) return;
       const seen = new Set();
-      if (originThreadId) {
-        client.api.sendMessage(msg, originThreadId);
-        seen.add(originThreadId);
+      if (war.originThreadId) {
+        client.api.sendMessage(msg, war.originThreadId);
+        seen.add(war.originThreadId);
       }
       const users = loadData('users');
       for (const pid of [...listAttackers, ...listDefenders]) {
@@ -984,13 +989,13 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
     };
 
     const sendResultFail = async (msg) => {
-      if (!client.api || !originThreadId) return;
-      client.api.sendMessage(msg, originThreadId);
+      if (!client.api || !war.originThreadId) return;
+      client.api.sendMessage(msg, war.originThreadId);
     };
 
     if (outcome.success) {
       const successMsg = `⚔️ **WOJNA GANGÓW ZAKOŃCZONA SUKCESEM!** ⚔️\n` +
-        `Gang **${gang.name}** zniszczył obronę gangu **${targetGang.name}**!\n\n` +
+        `Gang **${war.attackerGangName}** zniszczył obronę gangu **${war.defenderGangName}**!\n\n` +
         `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
         `💰 **ŁUP WOJENNY:**\n` +
         `• Skradziono z sejfu broniącego: **${formatCurrency(outcome.stolenTotal)}**\n` +
@@ -1005,7 +1010,7 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
         : `Ponieważ nikt nie bronił gangu osobiście, całe **${formatCurrency(outcome.totalPenalty)}** zasiliło sejf broniących!`;
 
       const failMsg = `🛡️ **ATAK ODPARTY! OBRONA GÓRĄ!** 🛡️\n` +
-        `Gang **${targetGang.name}** skutecznie obronił swój skarbiec przed gangiem **${gang.name}**!\n\n` +
+        `Gang **${war.defenderGangName}** skutecznie obronił swój skarbiec przed gangiem **${war.attackerGangName}**!\n\n` +
         `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
         `💸 **KONSEKWENCJE PORAŻKI:**\n` +
         `• Skradziono z sejfu atakujących: **${formatCurrency(outcome.totalPenalty)}**\n` +
@@ -1015,7 +1020,10 @@ async function executeAttack(gang, cfg, client, forcedTargetGangId, bypassRestri
       await sendResultFail(failMsg);
       notifySupportThreads(client, war, failMsg);
     }
-  }, 120000).unref();
+  } catch (err) {
+    console.error('[GANG-AI] Błąd podczas rozwiązywania wojny gangów:', err);
+  }
+  }, 120000);
 
   return { type: 'attack', targetGangId, targetGangName: targetGang.name, cost };
 }

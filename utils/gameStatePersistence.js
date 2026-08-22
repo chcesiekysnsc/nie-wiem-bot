@@ -105,7 +105,9 @@ function saveGameSessions(client) {
       activeMatches: serializeSessions(client.activeMatches || new Map()),
       meczInProgress: serializeValue(client.meczInProgress || new Set()),
       activeMeczTimers: serializeSessions(client.activeMeczTimers || new Map()),
-      activeMultiMatches: serializeSessions(client.activeMultiMatches || new Map())
+      activeMultiMatches: serializeSessions(client.activeMultiMatches || new Map()),
+      gangHeists: serializeSessions(client.gangHeists || new Map()),
+      activeGangWars: serializeSessions(client.activeGangWars || new Map())
     };
     fs.writeFileSync(GAME_SESSIONS_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (err) {
@@ -127,7 +129,9 @@ function loadGameSessions() {
         activeMatches: new Map(),
         meczInProgress: new Set(),
         activeMeczTimers: new Map(),
-        activeMultiMatches: new Map()
+        activeMultiMatches: new Map(),
+        gangHeists: new Map(),
+        activeGangWars: new Map()
       };
     }
     const raw = fs.readFileSync(GAME_SESSIONS_FILE, 'utf8');
@@ -143,7 +147,9 @@ function loadGameSessions() {
       activeMatches: deserializeSessions(data.activeMatches),
       meczInProgress: deserializeValue(data.meczInProgress),
       activeMeczTimers: deserializeSessions(data.activeMeczTimers),
-      activeMultiMatches: deserializeSessions(data.activeMultiMatches)
+      activeMultiMatches: deserializeSessions(data.activeMultiMatches),
+      gangHeists: deserializeSessions(data.gangHeists),
+      activeGangWars: deserializeSessions(data.activeGangWars)
     };
   } catch (err) {
     console.error('[gameStatePersistence] Failed to load game sessions:', err);

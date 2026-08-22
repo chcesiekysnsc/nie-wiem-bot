@@ -1460,6 +1460,9 @@ module.exports = {
 
       // Rozpocznij fazę zapisu
       client.gangHeists.set(startResult.gangId, {
+        gangId: startResult.gangId,
+        gangName: startResult.gangName,
+        successChanceOverride: gangHeistSuccessOverride,
         initiatorId: message.author.id,
         participants: new Set([message.author.id]),
         endTime: Date.now() + 120000,
@@ -1500,27 +1503,34 @@ module.exports = {
       }
 
       // Timer na wykonanie skoku po 2 minutach
-      setTimeout(async () => {
-        const heist = client.gangHeists.get(startResult.gangId);
-        if (!heist) return;
+      const heistGangId = startResult.gangId;
+      const heistTimer = setTimeout(async () => {
+        try {
+          const heist = client.gangHeists.get(heistGangId);
+          if (!heist) return;
 
-        client.gangHeists.delete(startResult.gangId);
+          client.gangHeists.delete(heistGangId);
 
-        const listParticipants = Array.from(heist.participants);
-        if (listParticipants.length < 2) {
-          await message.reply(`❌ Skok gangu **${startResult.gangName}** został odwołany – zgłosiło się za mało uczestników (wymagane min. 2 osoby, zgłosiło się: ${listParticipants.length}).`);
-          return;
-        }
+          const listParticipants = Array.from(heist.participants);
+          if (listParticipants.length < 2) {
+            const cancelMsg = `❌ Skok gangu **${heist.gangName}** został odwołany – zgłosiło się za mało uczestników (wymagane min. 2 osoby, zgłosiło się: ${listParticipants.length}).`;
+            if (client.api && heist.originThreadId) {
+              client.api.sendMessage({ body: cancelMsg }, heist.originThreadId);
+            } else {
+              console.log(`[GANG HEIST] ${cancelMsg}`);
+            }
+            return;
+          }
 
-        const heistOutcome = await withData(store => {
-          store.profiles.gangs = store.profiles.gangs || {};
-          const currentGang = store.profiles.gangs[startResult.gangId];
-          if (!currentGang) return { cancelled: true };
+          const heistOutcome = await withData(store => {
+            store.profiles.gangs = store.profiles.gangs || {};
+            const currentGang = store.profiles.gangs[heist.gangId];
+            if (!currentGang) return { cancelled: true };
 
-          currentGang.lastHeistTime = Date.now();
+            currentGang.lastHeistTime = Date.now();
 
           // Calculate success chance: base from override + gang role bonuses (boss/deputy)
-          let successChance = Number.isFinite(gangHeistSuccessOverride) ? gangHeistSuccessOverride / 100 : 0.50;
+          let successChance = Number.isFinite(heist.successChanceOverride) ? heist.successChanceOverride / 100 : 0.50;
           const { getHouseGangBonus } = require('../utils/economy');
           for (const pid of listParticipants) {
             const pUser = createUser(pid, store.users);
@@ -1682,16 +1692,27 @@ module.exports = {
             `Ekipa w składzie: **${names}** przeprowadziła pomyślnie: **${heistOutcome.heistType}**!\n\n` +
             `💵 Całkowity łup: **${formatCurrency(heistOutcome.totalReward)}**\n` +
             `💸 Każdy z uczestników otrzymuje: **+${formatCurrency(finalRewardPerPerson)}**${tributeText}${bonusText}`;
-          await message.reply(successMsg);
+          if (client.api && heist.originThreadId) {
+            client.api.sendMessage({ body: successMsg }, heist.originThreadId);
+          } else {
+            console.log(`[GANG HEIST] ${successMsg}`);
+          }
           notifySupportThreads(client, heist, successMsg);
         } else {
           const failMsg = `🚨 **SKOK ZAKOŃCZYŁ SIĘ WPADKĄ!** 🚨\n` +
             `Ekipa w składzie: **${names}** została osaczona przez policję.\n\n` +
             `💥 Akcja spaliła na panewce. Nikt nic nie zarobił, a krupier nałożył 1h cooldownu na kolejne skoki.`;
-          await message.reply(failMsg);
+          if (client.api && heist.originThreadId) {
+            client.api.sendMessage({ body: failMsg }, heist.originThreadId);
+          } else {
+            console.log(`[GANG HEIST] ${failMsg}`);
+          }
           notifySupportThreads(client, heist, failMsg);
         }
-      }, 120000).unref();
+      } catch (err) {
+        console.error('[GANG HEIST] Błąd podczas rozwiązywania skoku gangu:', err);
+      }
+      }, 120000);
 
       return;
     }
@@ -1952,11 +1973,16 @@ module.exports = {
 
       // Initialize the war
       client.activeGangWars.set(startResult.attackerGangId, {
-        initiatorId: message.author.id,
+        attackerGangId: startResult.attackerGangId,
+        attackerGangName: startResult.attackerGangName,
         defenderGangId: startResult.defenderGangId,
+        defenderGangName: startResult.defenderGangName,
+        initiatorId: message.author.id,
         attackers: new Set([message.author.id]),
         defenders: new Set(),
-        endTime: Date.now() + 120000
+        endTime: Date.now() + 120000,
+        originThreadId: message.guild?.id || message.rawEvent?.threadID || null,
+        defenderThreadId: defenderThreadId || null
       });
 
       const attackerTags = [];
@@ -2007,22 +2033,24 @@ module.exports = {
       }
 
       // Timer to resolve the war after 2 minutes
-      setTimeout(async () => {
-        const war = client.activeGangWars.get(startResult.attackerGangId);
-        if (!war) return;
+      const warTimer = setTimeout(async () => {
+        try {
+          const attackerGangId = startResult.attackerGangId;
+          const war = client.activeGangWars.get(attackerGangId);
+          if (!war) return;
 
-        client.activeGangWars.delete(startResult.attackerGangId);
+          client.activeGangWars.delete(attackerGangId);
 
-        const listAttackers = Array.from(war.attackers);
-        const listDefenders = Array.from(war.defenders);
+          const listAttackers = Array.from(war.attackers);
+          const listDefenders = Array.from(war.defenders);
 
-        const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+          const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-        // Resolve outcome inside withData
-        const outcome = await withData(store => {
-          store.profiles.gangs = store.profiles.gangs || {};
-          const attackerGang = store.profiles.gangs[startResult.attackerGangId];
-          const defenderGang = store.profiles.gangs[startResult.defenderGangId];
+          // Resolve outcome inside withData
+          const outcome = await withData(store => {
+            store.profiles.gangs = store.profiles.gangs || {};
+            const attackerGang = store.profiles.gangs[war.attackerGangId];
+            const defenderGang = store.profiles.gangs[war.defenderGangId];
 
           if (!attackerGang || !defenderGang) {
             return { cancelled: true };
@@ -2290,7 +2318,7 @@ module.exports = {
 
           const attackerMsg =
             `⚔️ **WOJNA GANGÓW ZAKOŃCZONA SUKCESEM!** ⚔️\n` +
-            `Gang **${startResult.attackerGangName}** zniszczył obronę gangu **${startResult.defenderGangName}**!\n\n` +
+            `Gang **${war.attackerGangName}** zniszczył obronę gangu **${war.defenderGangName}**!\n\n` +
             `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
             `💰 **ŁUP WOJENNY:**\n` +
             `• Skradziono z sejfu broniącego: **${formatCurrency(outcome.stolenTotal)}**\n` +
@@ -2301,19 +2329,19 @@ module.exports = {
 
           const defenderMsg =
             `🚨 **WASZ SEJF ZOSTAŁ ZAATAKOWANY!** 🚨\n` +
-            `Gang **${startResult.attackerGangName}** przełamał obronę Waszego gangu **${startResult.defenderGangName}**!\n\n` +
+            `Gang **${war.attackerGangName}** przełamał obronę Waszego gangu **${war.defenderGangName}**!\n\n` +
             `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
             `💸 **STRATY WASZEGO GANGU:**\n` +
             `• Skradziono z Waszego sejfu: **${formatCurrency(outcome.stolenTotal)}**\n` +
             `• Trafiło do sejfu przeciwnika: **${formatCurrency(outcome.vaultShare)}**\n` +
             `• Każdy z atakujących zarobił: **${formatCurrency(outcome.sharePerPerson)}** na osobę!` +
-            (outcome.stolenItemId ? `\n\n🎒 **UTRACONY ŁUP:** Gang **${startResult.attackerGangName}** przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Waszego Bossowego Sklepu!` : '');
+            (outcome.stolenItemId ? `\n\n🎒 **UTRACONY ŁUP:** Gang **${war.attackerGangName}** przejął przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Waszego Bossowego Sklepu!` : '');
 
-          if (client.api && threadIdVal) {
-            client.api.sendMessage(attackerMsg, threadIdVal);
+          if (client.api && war.originThreadId) {
+            client.api.sendMessage(attackerMsg, war.originThreadId);
           }
-          if (client.api && defenderThreadId && defenderThreadId !== threadIdVal) {
-            client.api.sendMessage(defenderMsg, defenderThreadId);
+          if (client.api && war.defenderThreadId && war.defenderThreadId !== war.originThreadId) {
+            client.api.sendMessage(defenderMsg, war.defenderThreadId);
           }
         } else {
           let godloNote = '';
@@ -2340,7 +2368,7 @@ module.exports = {
 
           const attackerMsg =
             `🛡️ **ATAK ODPARTY! OBRONA GÓRĄ!** 🛡️\n` +
-            `Gang **${startResult.defenderGangName}** skutecznie obronił swój skarbiec przed gangiem **${startResult.attackerGangName}**!\n\n` +
+            `Gang **${war.defenderGangName}** skutecznie obronił swój skarbiec przed gangiem **${war.attackerGangName}**!\n\n` +
             `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
             `💸 **KONSEKWENCJE PORAŻKI:**\n` +
             `• Skradziono z sejfu atakujących: **${formatCurrency(outcome.totalPenalty)}**\n` +
@@ -2350,22 +2378,25 @@ module.exports = {
 
           const defenderMsg =
             `🛡️ **OBRONILIŚCIE SIĘ!** 🛡️\n` +
-            `Gang **${startResult.attackerGangName}** próbował zaatakować Wasz sejf, ale poniósł porażkę!\n\n` +
+            `Gang **${war.attackerGangName}** próbował zaatakować Wasz sejf, ale poniósł porażkę!\n\n` +
             `🪓 Siła ataku: **${outcome.attackPower}** vs 🛡️ Siła obrony: **${outcome.defensePower}**\n\n` +
             `💰 **ZYSKI Z OBRONY:**\n` +
             `• Skradziono z sejfu atakujących: **${formatCurrency(outcome.totalPenalty)}**\n` +
             `• Do Waszego sejfu trafiło: **${formatCurrency(outcome.penaltyVault)}**\n` +
             `• Każdy z Was, kto bronił, otrzymuje: **${formatCurrency(outcome.sharePerDefender)}**` +
-            (outcome.stolenItemId ? `\n\n🎒 **ŁUP OBRONNY:** Przejęliście przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu gangu **${startResult.attackerGangName}**!` : '');
+            (outcome.stolenItemId ? `\n\n🎒 **ŁUP OBRONNY:** Przejęliście przedmiot **${getItemEmoji(outcome.stolenItemId)} ${getItemName(outcome.stolenItemId)}** z Bossowego Sklepu gangu **${war.attackerGangName}**!` : '');
 
-          if (client.api && threadIdVal) {
-            client.api.sendMessage(attackerMsg, threadIdVal);
+          if (client.api && war.originThreadId) {
+            client.api.sendMessage(attackerMsg, war.originThreadId);
           }
-          if (client.api && defenderThreadId && defenderThreadId !== threadIdVal) {
-            client.api.sendMessage(defenderMsg, defenderThreadId);
+          if (client.api && war.defenderThreadId && war.defenderThreadId !== war.originThreadId) {
+            client.api.sendMessage(defenderMsg, war.defenderThreadId);
           }
         }
-      }, 120000).unref();
+      } catch (err) {
+        console.error('[GANG WAR] Błąd podczas rozwiązywania wojny gangów:', err);
+      }
+      }, 120000);
 
       return;
     }
