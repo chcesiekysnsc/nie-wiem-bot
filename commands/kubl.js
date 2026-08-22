@@ -43,6 +43,11 @@ module.exports = {
       if (store.profiles.workBotBans && store.profiles.workBotBans[targetId]) {
         delete store.profiles.workBotBans[targetId];
       }
+
+      if (store.cooldowns && store.cooldowns.spam && store.cooldowns.spam[targetId]) {
+        store.cooldowns.spam[targetId].blockedUntil = 0;
+        store.cooldowns.spam[targetId].timestamps = [];
+      }
     });
 
     try {
