@@ -1,6 +1,6 @@
 const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
-const { saveGameSessions } = require('../utils/gameStatePersistence');
+const { saveGameSessions, hasActiveGameSession } = require('../utils/gameStatePersistence');
 
 async function resolveName(client, userId) {
   if (typeof client.resolveUserName === 'function') {
@@ -165,6 +165,11 @@ module.exports = {
 
     if (validation.error) {
       await message.reply(validation.error);
+      return;
+    }
+
+    if (hasActiveGameSession(client, message.author.id)) {
+      await message.reply('❌ Masz już aktywną inną grę! Zakończ ją przed rozpoczęciem pojedynku.');
       return;
     }
 

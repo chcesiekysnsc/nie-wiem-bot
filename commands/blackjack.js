@@ -15,7 +15,7 @@ const {
 } = require('../utils/economy');
 const { createUser, withData, loadData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
-const { saveGameSessions } = require('../utils/gameStatePersistence');
+const { saveGameSessions, hasActiveGameSession } = require('../utils/gameStatePersistence');
 const { advanceChallenge } = require('../utils/challenges');
 
 const SUITS = ['♠️', '♥️', '♦️', '♣️'];
@@ -124,6 +124,11 @@ module.exports = {
         await message.reply('❌ Masz już aktywną grę w Blackjacka! Napisz **hit** (dobierz), **stand** (stop) lub **double** (podwój).');
         return;
       }
+    }
+
+    if (hasActiveGameSession(client, authorId)) {
+      await message.reply('❌ Masz już aktywną inną grę! Zakończ ją przed rozpoczęciem Blackjacka.');
+      return;
     }
 
     const rawBet = args[0];

@@ -325,8 +325,29 @@ function restoreTimers(client, sessions) {
   console.log('[GAME SESSIONS] Przywrócono timery dla sesji gier.');
 }
 
+function hasActiveGameSession(client, userId) {
+  if (!client || !userId) return false;
+  const checks = [
+    client.activeBlackjackGames && client.activeBlackjackGames.has(userId),
+    client.activeChickenRoadGames && client.activeChickenRoadGames.has(userId),
+    client.warSessions && Array.from(client.warSessions.values()).some(s => (s.participants || []).includes(userId)),
+    client.rrRequests && Array.from(client.rrRequests.values()).some(r => r.challengerId === userId),
+    client.pknRequests && Array.from(client.pknRequests.values()).some(r => r.challengerId === userId),
+    client.duelRequests && Array.from(client.duelRequests.values()).some(r => r.challengerId === userId),
+    client.activeMatches && client.activeMatches.has(userId),
+    client.activeMultiMatches && client.activeMultiMatches.has(userId),
+    client.meczInProgress && client.meczInProgress.has(userId),
+    client.activeGieldaHosts && client.activeGieldaHosts.has(userId),
+    client.activeFlags && client.activeFlags.has(userId),
+    client.activePanstwaMiasta && client.activePanstwaMiasta.has(userId),
+    client.pendingArtefakty && client.pendingArtefakty.has(userId)
+  ];
+  return checks.some(Boolean);
+}
+
 module.exports = {
   saveGameSessions,
   loadGameSessions,
-  restoreGameSessions
+  restoreGameSessions,
+  hasActiveGameSession
 };

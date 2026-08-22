@@ -688,8 +688,8 @@ module.exports = {
       name: 'Klodka',
       emoji: '🔒',
       price: 35000,
-      shortDesc: 'Chroni przed kradzieżą (!rob).',
-      description: 'Chroni przed kradzieżą przez innego gracza (!rob). Kłódka jest zużywana przy każdej próbie robu — złodziej traci możliwość kradzieży i odchodzi z niczym.',
+      shortDesc: 'Chroni przed kradzieżą (!rob) i zabiera 15% salda złodzieja.',
+      description: 'Chroni przed kradzieżą przez innego gracza (!rob). Kłódka jest zużywana przy każdej próbie robu — złodziej traci 15% swojego salda na rzecz ofiary.',
       type: 'stackable'
     },
     piwo: {

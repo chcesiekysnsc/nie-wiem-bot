@@ -5,7 +5,7 @@ const { ensureInventoryRecord, formatCurrency, recordGame, refreshBadges,   reso
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { advanceChallenge } = require('../utils/challenges');
-const { saveGameSessions } = require('../utils/gameStatePersistence');
+const { saveGameSessions, hasActiveGameSession } = require('../utils/gameStatePersistence');
 
 const CARD_NAMES = {
   2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: '10',
@@ -140,6 +140,11 @@ module.exports = {
 
     if (betResult.error) {
       await message.reply(betResult.error).catch(() => null);
+      return;
+    }
+
+    if (hasActiveGameSession(client, message.author.id)) {
+      await message.reply('❌ Masz już aktywną inną grę! Zakończ ją przed rozpoczęciem wojny karcianej.');
       return;
     }
 

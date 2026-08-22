@@ -369,7 +369,12 @@ module.exports = {
           if (victim.klodkaActive) {
             victim.klodkaActive = false;
             refreshBadges(victim, victimInv);
-            return { blockedBy: 'klodka', victimLastActiveThreadId };
+            const fine = Math.floor(robber.balance * 0.15);
+            if (fine > 0) {
+              robber.balance -= fine;
+              victim.balance += fine;
+            }
+            return { blockedBy: 'klodka', fine, victimLastActiveThreadId };
           }
 
           const hasBeer = robber.piwoActive || false;
@@ -553,8 +558,8 @@ module.exports = {
           replyMsg = `💣 **BUM!** Trafiłeś na bombę u użytkownika **${targetName}**! Straciłeś **40% swojego portfela** (**-${formatCurrency(result.fine)}**), które otrzymała ofiara. Cooldown na okradanie: ${cdMinutes} min.`;
           notifyMsg = `💣 **ALARM BOMBOWY!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale trafił na Twoją bombę! Stracił **40% portfela** (**+${formatCurrency(result.fine)}**) na Twoją rzecz!`;
         } else {
-          replyMsg = `🔒 Kradzież zablokowana! **${targetName}** miał aktywną kłódkę. Cooldown na okradanie: ${cdMinutes} min.`;
-          notifyMsg = `🔒 **ALARM!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale Twoja kłódka go powstrzymała!`;
+          replyMsg = `🔒 Kradzież zablokowana! **${targetName}** miał aktywną kłódkę. Straciłeś **15% swojego portfela** (**-${formatCurrency(result.fine)}**), które otrzymała ofiara. Cooldown na okradanie: ${cdMinutes} min.`;
+          notifyMsg = `🔒 **ALARM!** Użytkownik **${robberName}** próbował okraść **${targetName}**, ale Twoja kłódka go powstrzymała! Otrzymałeś **15% jego portfela** (**+${formatCurrency(result.fine)}**).`;
         }
       } else {
         robCooldowns.set(authorId, now + cooldownData.duration);

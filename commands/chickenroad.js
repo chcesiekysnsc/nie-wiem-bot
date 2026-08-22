@@ -2,7 +2,7 @@ const config = require('../config/config');
 const { formatCurrency, addXp, ensureInventoryRecord, refreshBadges, recordGame, getRandomXp } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
-const { saveGameSessions } = require('../utils/gameStatePersistence');
+const { saveGameSessions, hasActiveGameSession } = require('../utils/gameStatePersistence');
 const { advanceChallenge } = require('../utils/challenges');
 
 const DIFFICULTIES = {
@@ -123,6 +123,11 @@ module.exports = {
     });
 
     if (result.error) { await message.reply(result.error); return; }
+
+    if (hasActiveGameSession(client, authorId)) {
+      await message.reply('❌ Masz już aktywną inną grę! Zakończ ją przed rozpoczęciem Chicken Road.');
+      return;
+    }
 
     const game = { threadId, difficulty: difficultyKey, bet: result.bet, lane: 0, multiplier: 1, timestamp: Date.now() };
     client.activeChickenRoadGames.set(authorId, game);

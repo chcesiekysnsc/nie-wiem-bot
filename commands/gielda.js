@@ -5,7 +5,7 @@ const { ensureInventoryRecord, formatCurrency, getMilestoneRewardDescription, re
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveLuck } = require('../utils/chances');
-const { saveGameSessions } = require('../utils/gameStatePersistence');
+const { saveGameSessions, hasActiveGameSession } = require('../utils/gameStatePersistence');
 
 function normalizeAsset(input) {
   const val = String(input || '').toLowerCase().trim();
@@ -182,6 +182,11 @@ module.exports = {
           `Twoja poprzednia sesja na tej grupie zakończyła się bez żadnej inwestycji.\n` +
           `Musisz poczekać jeszcze **${remainingMin} min ${remainingSec}s**, zanim znowu założysz lobby.`
         );
+        return;
+      }
+
+      if (hasActiveGameSession(client, message.author.id)) {
+        await message.reply('❌ Masz już aktywną inną grę! Zakończ ją przed rozpoczęciem giełdy.');
         return;
       }
 

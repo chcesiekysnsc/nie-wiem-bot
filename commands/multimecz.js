@@ -2,6 +2,7 @@ const { generateMatch } = require('./mecz');
 const { createUser, withData } = require('../utils/storage');
 const { getPolishMidnight, msToReadable } = require('../utils/economy');
 const { isMatchBanned } = require('../utils/matchBanSystem');
+const { hasActiveGameSession } = require('../utils/gameStatePersistence');
 
 module.exports = {
   name: 'multimecz',
@@ -32,6 +33,11 @@ module.exports = {
                   `💡 *Masz już aktywną ofertę. Musisz ją obstawić przed wygenerowaniem kolejnej.*`;
 
       await message.reply(response);
+      return;
+    }
+
+    if (hasActiveGameSession(client, userId)) {
+      await message.reply('❌ Masz już aktywną inną grę! Zakończ ją przed rozpoczęciem multi-meczu.');
       return;
     }
 

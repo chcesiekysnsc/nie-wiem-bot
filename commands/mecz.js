@@ -5,6 +5,7 @@ const { formatCurrency, refreshBadges, ensureInventoryRecord, resolveAmount, ran
 const { createUser, withData } = require('../utils/storage');
 const { advanceChallenge } = require('../utils/challenges');
 const { isMatchBanned } = require('../utils/matchBanSystem');
+const { hasActiveGameSession } = require('../utils/gameStatePersistence');
 
 const TEAMS = {
   // === TOP 100 EUROPEJSKICH KLUBÓW WG UEFA 2025/2026 ===
@@ -193,6 +194,10 @@ module.exports = {
 
     // 1. Sprawdzenie oferty (wywołanie !mecz bez argumentów)
     if (args.length === 0) {
+      if (hasActiveGameSession(client, userId)) {
+        await message.reply('❌ Masz już aktywną inną grę! Zakończ ją przed rozpoczęciem meczu.');
+        return;
+      }
       let match = client.activeMatches.get(userId);
       let isNew = false;
       if (!match) {

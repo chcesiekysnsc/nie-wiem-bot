@@ -4,7 +4,7 @@ const { formatCurrency, refreshBadges, ensureInventoryRecord,   recordGame,
 const { createUser, withData } = require('../utils/storage');
 const config = require('../config/config');
 const { getEffectiveChance } = require('../utils/chances');
-const { saveGameSessions } = require('../utils/gameStatePersistence');
+const { saveGameSessions, hasActiveGameSession } = require('../utils/gameStatePersistence');
 
 module.exports = {
   name: 'rosyjska',
@@ -318,6 +318,11 @@ module.exports = {
 
     if (validation.error) {
       await message.reply(validation.error);
+      return;
+    }
+
+    if (hasActiveGameSession(client, message.author.id)) {
+      await message.reply('❌ Masz już aktywną inną grę! Zakończ ją przed rozpoczęciem rosyjskiej ruletki.');
       return;
     }
 
