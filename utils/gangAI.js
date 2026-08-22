@@ -282,8 +282,8 @@ function getSpecialGangMultiplier(gang, type) {
 }
 
 function getMercenaryPowerBonus(gang, type) {
-  const contract = gang.mercenaryContract;
-  if (!contract || contract.until <= Date.now()) return 0;
+  const contract = gang && gang.mercenaryContract;
+  if (!contract || !contract.type || contract.until <= Date.now()) return 0;
   const bonuses = {
     zwykli: { attack: 2, defense: 2, intel: 1 },
     zolnierze: { attack: 5, defense: 0, intel: 0 },
@@ -292,8 +292,10 @@ function getMercenaryPowerBonus(gang, type) {
     elitarni: { attack: 5, defense: 5, intel: 2 }
   };
   const base = (bonuses[contract.type] && bonuses[contract.type][type]) || 0;
+  if (!base) return 0;
   const territoryBonus = getTerritoryBonus(gang.id, 'mercenary_effectiveness');
-  return Math.floor(base * (1 + territoryBonus));
+  const multiplier = 1 + (Number.isFinite(territoryBonus) ? territoryBonus : 0);
+  return Math.floor(base * multiplier);
 }
 
 function getReputationRank(reputation) {

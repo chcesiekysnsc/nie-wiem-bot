@@ -1450,7 +1450,7 @@ module.exports = {
         }
 
         gang.lastActivityAt = Date.now();
-        return { success: true, gangId: user.gangId, gangName: gang.name, members: gang.members || [] };
+        return { success: true, gangId: user.gangId, gangName: gang.name, members: gang.members || [], tributePercent: gang.tributePercent || 0, mercenaryContract: gang.mercenaryContract || null };
       });
 
       if (startResult.error) {
@@ -1492,6 +1492,10 @@ module.exports = {
           `🚗 Wszyscy członkowie gangu mają **2 minuty**, aby dołączyć do akcji!\n` +
           `Członkowie: ${tagsString}\n\n` +
           `Wpisz: **!gang skok dolacz** (lub **!gang skok d**), aby wziąć udział.\n\n` +
+          `💸 Haracz gangu: **${startResult.tributePercent}%**\n` +
+          (startResult.mercenaryContract && startResult.mercenaryContract.until > Date.now()
+            ? `🪖 Najemnicy: **${(MERCENARY_TYPES[startResult.mercenaryContract.type] && MERCENARY_TYPES[startResult.mercenaryContract.type].name) || startResult.mercenaryContract.type}** (pozostało: ${Math.max(0, Math.ceil((startResult.mercenaryContract.until - Date.now()) / 3600000))}h)\n`
+            : '') +
           `⚠️ *Wymagane minimum 2 osoby (każdy min. 100 komend). Szansa na powodzenie: 50%. Wielkość łupu zależy od liczby uczestników (2-4: stacja paliw 50k-150k, 5-8: jubiler 150k-300k, 9-12: posiadłość 300k-500k, 13+: bank 500k-800k).*`,
         mentions: memberTags
       };
@@ -1936,7 +1940,9 @@ module.exports = {
           cost,
           defenderVault: defenderGang.vault || 0,
           attackerMembers: myGang.members || [],
-          defenderMembers: defenderGang.members || []
+          defenderMembers: defenderGang.members || [],
+          attackerMercenaryContract: myGang.mercenaryContract || null,
+          defenderMercenaryContract: defenderGang.mercenaryContract || null
         };
       });
 
@@ -2010,13 +2016,23 @@ module.exports = {
       const defenderTagsString = defenderTags.length > 0 ? defenderTags.join(' ') : 'Brak';
 
       const threadIdVal = message.guild?.id || message.rawEvent?.threadID;
+      const attackerMerc = startResult.attackerMercenaryContract;
+      const defenderMerc = startResult.defenderMercenaryContract;
+      const attackerMercLine = (attackerMerc && attackerMerc.until > Date.now())
+        ? `🪖 Najemnicy (atakujący): **${(MERCENARY_TYPES[attackerMerc.type] && MERCENARY_TYPES[attackerMerc.type].name) || attackerMerc.type}**\n`
+        : '';
+      const defenderMercLine = (defenderMerc && defenderMerc.until > Date.now())
+        ? `🪖 Najemnicy (obrońcy): **${(MERCENARY_TYPES[defenderMerc.type] && MERCENARY_TYPES[defenderMerc.type].name) || defenderMerc.type}**\n`
+        : '';
       const msgPayload = {
         body: `⚔️ **WOJNA GANGÓW: NAPAD NA SEJF!** ⚔️\n` +
           `**${message.author.username || 'Boss'}** (Zastępca/Boss gangu **${startResult.attackerGangName}**) wypowiedział wojnę gangowi **${startResult.defenderGangName}**!\n\n` +
           `💸 Koszt przygotowania ataku: **-${formatCurrency(startResult.cost)}** z sejfu gangu.\n` +
           `🎯 Cel: Kradzież od **15% do 35%** wrogiego sejfu (obecnie: **${formatCurrency(startResult.defenderVault)}**).\n\n` +
           `⚔️ **Atakujący (${startResult.attackerGangName}):** ${attackerTagsString}\n` +
-          `🛡️ **Obrońcy (${startResult.defenderGangName}):** ${defenderTagsString}\n\n` +
+          (attackerMercLine ? attackerMercLine : '') +
+          `🛡️ **Obrońcy (${startResult.defenderGangName}):** ${defenderTagsString}\n` +
+          (defenderMercLine ? defenderMercLine : '') +
           `🚗 Członkowie obu gangów mają **2 minuty**, aby dołączyć do walki!\n` +
           `Wpisz: **!gang atak dolacz** / **!gang obrona dolacz**, aby wesprzeć swój gang!`,
         mentions: [...attackerMentions, ...defenderMentions]
@@ -3160,7 +3176,8 @@ module.exports = {
       `• Ulepsz: **!gang ulepsz <nr>**\n` +
       `• Usuń: **!gang usun <nr>**\n` +
       `• Wyrzuć: **!gang wyrzuc <nr>**\n` +
-      `• Wsparcie: **!gang wsparcie <oznaczenie>**`
+      `• Wsparcie: **!gang wsparcie <oznaczenie>**\n` +
+      `• Ranking: **!top gang**`
     );
   }
 };
