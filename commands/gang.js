@@ -1486,10 +1486,6 @@ module.exports = {
       const tagsString = tagsList.length > 0 ? tagsList.join(' ') : 'Brak członków';
 
       const threadId = message.guild?.id || message.rawEvent?.threadID;
-      const activeMercs = (startResult.mercenaryContracts || []).filter(c => c && c.until > Date.now());
-      const mercLines = activeMercs.length > 0
-        ? activeMercs.map(c => `🪖 **${(MERCENARY_TYPES[c.type] && MERCENARY_TYPES[c.type].name) || c.type}** (pozostało: ${Math.max(0, Math.ceil((c.until - Date.now()) / 3600000))}h)`).join('\n')
-        : '';
       const msgPayload = {
         body: `👥 **GANG HEIST (Skok Gangu)** 👥\n` +
           `**${message.author.username || 'Boss'}** zaplanował napad gangu **${startResult.gangName}**!\n\n` +
@@ -1497,7 +1493,6 @@ module.exports = {
           `Członkowie: ${tagsString}\n\n` +
           `Wpisz: **!gang skok dolacz** (lub **!gang skok d**), aby wziąć udział.\n\n` +
           `💸 Haracz gangu: **${startResult.tributePercent}%**\n` +
-          (mercLines ? `🪖 **Aktywne najemnicy:**\n${mercLines}\n` : '') +
           `⚠️ *Wymagane minimum 2 osoby (każdy min. 100 komend). Szansa na powodzenie: 50%. Wielkość łupu zależy od liczby uczestników (2-4: stacja paliw 50k-150k, 5-8: jubiler 150k-300k, 9-12: posiadłość 300k-500k, 13+: bank 500k-800k).*`,
         mentions: memberTags
       };

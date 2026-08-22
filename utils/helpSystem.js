@@ -84,7 +84,8 @@ const helpCommands = [
     aliases: [],
     additionalInfo: [
       "Wykonując !work awansujesz na wyższe poziomy i zwiększasz swoje zarobki.",
-      "📈 **Kariera:** 🟢Praktykant (L1-4: do +6%) • 🔵Specjalista (L5-9: do +16%) • 🟡Ekspert (L10-14: do +26%) • 🟠Mistrz (L15-19: do +40%) • 🔴Legenda (L20+: +45%)",
+      "📈 **Kariera:** 🟢Praktykant (L1: +2%, L2: +3%, L3: +4%, L4: +6%) • 🔵Specjalista (L5: +7%, L6: +9%, L7: +10%, L8: +11%, L9: +13%) • 🟡Ekspert (L10: +15%, L11: +16%, L12: +18%, L13: +20%, L14: +22%) • 🟠Mistrz (L15: +24%, L16: +27%, L17: +30%, L18: +33%, L19: +36%) • 🔴Legenda (L20+: +45%)",
+      "🎯 **Szansa na awans:** L1-4: 17% • L5-9: 12% • L10-14: 8% • L15-19: 5% • L20+: 3%. Szansa wzrasta o bonusy z przedmiotów (kurs_kwalifikacji, zestaw pracownika).",
       "Losowe zdarzenia (2% szans): Premia (+50%), Wypadek (CD -20% na 1h), Podwyżka (płaca +10% na 6h) lub Podwójne XP."
     ]
   },

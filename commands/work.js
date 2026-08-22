@@ -101,12 +101,34 @@ module.exports = {
     const now = Date.now();
 
     function getWorkLevelBonus(level) {
-      if (level <= 1) return 0;
-      if (level <= 4) return (level - 1) * 2;
-      if (level <= 9) return 8 + (level - 5) * 2;
-      if (level <= 14) return 18 + (level - 10) * 2;
-      if (level <= 19) return 28 + (level - 15) * 3;
+      if (level <= 1) return 2;
+      if (level <= 2) return 3;
+      if (level <= 3) return 4;
+      if (level <= 4) return 6;
+      if (level <= 5) return 7;
+      if (level <= 6) return 9;
+      if (level <= 7) return 10;
+      if (level <= 8) return 11;
+      if (level <= 9) return 13;
+      if (level <= 10) return 15;
+      if (level <= 11) return 16;
+      if (level <= 12) return 18;
+      if (level <= 13) return 20;
+      if (level <= 14) return 22;
+      if (level <= 15) return 24;
+      if (level <= 16) return 27;
+      if (level <= 17) return 30;
+      if (level <= 18) return 33;
+      if (level <= 19) return 36;
       return 45;
+    }
+
+    function getPromotionChance(level) {
+      if (level <= 4) return 0.17;
+      if (level <= 9) return 0.12;
+      if (level <= 14) return 0.08;
+      if (level <= 19) return 0.05;
+      return 0.03;
     }
 
     const result = await withData(store => {
@@ -188,6 +210,8 @@ module.exports = {
 
       const workLevel = Math.max(1, user.workLevel || 1);
       const workLevelBonus = 1 + getWorkLevelBonus(workLevel) / 100;
+      let promotedWorkLevel = false;
+      let promotedNewWorkLevel = user.workLevel || 1;
 
       let reward = randomInt(config.economy.workMin, config.economy.workMax);
       reward = Math.floor(reward * workLevelBonus);
@@ -254,23 +278,16 @@ module.exports = {
         }
       }
 
-      // Bonus awansu z setów przedmiotów
+      // Szansa na awans: bazowa + bonusy z przedmiotów, jedna próba
+      if (!user.workLevel) user.workLevel = 1;
+      const currentLevel = user.workLevel;
       const promotionBonus = getItemSetBonus(inventory, 'work_promotion_chance');
-      if (promotionBonus > 0 && Math.random() < promotionBonus) {
-        // Dodatkowa szansa na awans
-        if (!user.workLevel) user.workLevel = 1;
-        const promotionChance = 0.05 + promotionBonus; // 5% bazowa + bonus
-        if (Math.random() < promotionChance) {
-          user.workLevel++;
-          message.reply(`🎉 **Awans!** Twój poziom pracy wzrósł do ${user.workLevel}!`);
-        }
-      }
-
       const kursBonus = getPassiveMultiplier(inventory, 'kurs_kwalifikacji', 0.03);
-      if (kursBonus > 0 && Math.random() < (0.05 + kursBonus)) {
-        if (!user.workLevel) user.workLevel = 1;
+      const totalPromotionChance = getPromotionChance(currentLevel) + promotionBonus + kursBonus;
+      if (Math.random() < totalPromotionChance) {
         user.workLevel++;
-        message.reply(`🎉 **Awans!** Twój poziom pracy wzrósł do ${user.workLevel}!`);
+        promotedWorkLevel = true;
+        promotedNewWorkLevel = user.workLevel;
       }
 
       if (user.badges && user.badges.includes(config.badges.krolSpamu)) {
@@ -483,6 +500,8 @@ module.exports = {
         workLevel,
         leveledUpWork,
         newWorkLevel: user.workLevel,
+        promotedWorkLevel,
+        promotedNewWorkLevel,
         eventMessage,
         triggerMessage: triggerMessages.join('\n'),
         workBoostActive: !!(user.workBoostUntil && now < user.workBoostUntil),
@@ -516,7 +535,12 @@ module.exports = {
     const finalReward = result.reward - result.tributeAmount;
     let replyText = '';
 
-    if (result.workLevel > 1 || result.leveledUpWork) {
+    if (result.promotedWorkLevel) {
+      const workTitle = result.promotedNewWorkLevel <= 4 ? 'Praktykant' : result.promotedNewWorkLevel <= 9 ? 'Specjalista' : result.promotedNewWorkLevel <= 14 ? 'Ekspert' : result.promotedNewWorkLevel <= 19 ? 'Mistrz' : 'Legenda Pracy';
+      replyText += `\n📈 **AWANS PRACY!** Jesteś teraz **${workTitle}** (poziom **${result.promotedNewWorkLevel}**)!`;
+    }
+
+    if ((result.workLevel > 1 || result.leveledUpWork) && !result.promotedWorkLevel) {
       const workTitle = result.workLevel <= 4 ? 'Praktykant' : result.workLevel <= 9 ? 'Specjalista' : result.workLevel <= 14 ? 'Ekspert' : result.workLevel <= 19 ? 'Mistrz' : 'Legenda Pracy';
       const levelText = result.leveledUpWork
         ? `\n📈 **AWANS PRACY!** Jesteś teraz **${workTitle}** (poziom **${result.newWorkLevel}**)!`
