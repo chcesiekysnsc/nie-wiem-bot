@@ -30,8 +30,9 @@ module.exports = {
           return String(admin).trim();
         }).filter(Boolean);
         isGroupAdmin = adminIDs.includes(senderId);
+        console.log(`[ZAKAZ] User ${senderId} isGroupAdmin: ${isGroupAdmin}, adminIDs: ${JSON.stringify(adminIDs)}`);
       } catch (e) {
-        // ignore
+        console.error('[ZAKAZ] Error checking group admin:', e);
       }
     }
 

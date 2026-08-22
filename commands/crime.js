@@ -316,14 +316,14 @@ module.exports = {
 
         client.pendingBribes.set(authorId, {
           amount: result.amount,
-          bribeCost: Math.min(result.amount * 2, 30000),
+          bribeCost: Math.min(result.amount * 2, 45000),
           timeout
         });
 
         await message.reply(
           `🚔 Wpadka! ${result.text}\n` +
           `Masz **15 sekund** na próbę uniknięcia więzienia:\n` +
-          `👉 Wpisz **!crime lapowka**, aby przekupić policjanta za **${formatCurrency(Math.min(result.amount * 2, 30000))}** (szansa na sukces: 55%).\n` +
+          `👉 Wpisz **!crime lapowka**, aby przekupić policjanta za **${formatCurrency(Math.min(result.amount * 2, 45000))}** (szansa na sukces: 55%).\n` +
           `Jeśli odmówią lub minie czas, na pewno trafisz do więzienia na **1 godzinę** i zapłacisz karę!`
         );
       } else {
