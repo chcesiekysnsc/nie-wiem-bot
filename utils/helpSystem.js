@@ -1418,7 +1418,8 @@ function buildHelpShell() {
 
 function buildHelpListEmbed(client, prefix = '!') {
   const embed = buildHelpShell()
-    .setDescription('Wszystkie dostepne komendy bota podzielone na 3 kategorie.');
+    .setDescription('Wszystkie dostepne komendy bota podzielone na 3 kategorie.\n\n' +
+      `oraz wpisz \`${prefix}poradnik\`, jesli czegos nie wiesz.`);
 
   const categories = {
     ECONOMY_GAMBLING: '💰 EKONOMIA I HAZARD',
@@ -1524,7 +1525,8 @@ function buildCategoryPromptEmbed(prefix = '!') {
       `3️⃣ 🛠️ Narzędzia / Inne\n` +
       `4️⃣ 📋 Wszystkie na raz\n\n` +
       `👉 Odpowiedz numerem (1-4) lub nazwą kategorii (np. "społeczne").\n` +
-      `⏳ Masz 60 sekund na odpowiedź — tylko Ty możesz odpowiedzieć na to pytanie.`
+      `⏳ Masz 60 sekund na odpowiedź — tylko Ty możesz odpowiedzieć na to pytanie.\n\n` +
+      `oraz wpisz \`${prefix}poradnik\`, jesli czegos nie wiesz.`
     );
 }
 
@@ -1538,7 +1540,8 @@ function buildCategoryListEmbed(categoryKey, prefix = '!') {
   return buildHelpShell()
     .setTitle(label)
     .setDescription(
-      `${listText}\n\n💡 Szczegóły komendy: \`${prefix}help ${catArg} <numer>\``
+      `${listText}\n\n💡 Szczegóły komendy: \`${prefix}help ${catArg} <numer>\`\n` +
+        `oraz wpisz \`${prefix}poradnik\`, jesli czegos nie wiesz.`
     );
 }
 
