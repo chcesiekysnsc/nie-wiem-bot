@@ -461,7 +461,7 @@ function buildPoradnikCategoriesEmbed(prefix) {
   return new EmbedBuilder()
     .setColor(config.embed.primary)
     .setTitle('📖 Poradnik')
-    .setDescription(`Wpisz **${prefix}poradnik <numer kategorii>** aby zobaczyć listę poradników.\n\n${lines.join('\n')}`);
+    .setDescription(`Wpisz **numer kategorii** aby zobaczyć listę poradników.\n\n${lines.join('\n')}`);
 }
 
 function buildPoradnikListEmbed(categoryNum) {
@@ -471,7 +471,7 @@ function buildPoradnikListEmbed(categoryNum) {
   return new EmbedBuilder()
     .setColor(config.embed.primary)
     .setTitle(`${category.emoji} ${category.name}`)
-    .setDescription(`Wpisz **!poradnik ${categoryNum} <numer poradnika>** aby zobaczyć poradnik.\n\n${lines.join('\n')}`);
+    .setDescription(`Wpisz **numer poradnika** aby zobaczyć poradnik.\n\n${lines.join('\n')}`);
 }
 
 function buildPoradnikDetailEmbed(categoryNum, poradnikNum) {
