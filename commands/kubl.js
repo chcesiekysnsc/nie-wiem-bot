@@ -8,10 +8,9 @@ module.exports = {
   async execute(client, message, args) {
     const senderId = message.author.id;
     const creatorId = '100060812419294';
-    const isAuthorized = senderId === creatorId || config.admins.includes(senderId);
 
-    if (!isAuthorized) {
-      await message.reply('❌ Ta komenda jest tylko dla administratorów bota.').catch(() => null);
+    if (senderId !== creatorId) {
+      await message.reply('❌ Ta komenda jest tylko dla twórcy bota.').catch(() => null);
       return;
     }
 
@@ -40,8 +39,19 @@ module.exports = {
       if (store.users[targetId]) {
         store.users[targetId].blacklistedForNegativeBalance = false;
       }
+
+      if (store.profiles.workBotBans && store.profiles.workBotBans[targetId]) {
+        delete store.profiles.workBotBans[targetId];
+      }
     });
 
-    await message.reply(`✅ Użytkownik \`${targetId}\` został usunięty z czarnej listy.`).catch(() => null);
+    try {
+      const pool = require('../database/config');
+      await pool.query('UPDATE spam_entries SET blacklisted = false, blocked_until = NULL, warning_count = 0 WHERE user_id = $1', [targetId]);
+    } catch (err) {
+      console.error('[KUBL] Błąd czyszczenia spam_entries:', err);
+    }
+
+    await message.reply(`✅ Użytkownik \`${targetId}\` został usunięty z WSZYSTKICH czarnych list.`).catch(() => null);
   }
 };
