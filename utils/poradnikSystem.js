@@ -92,7 +92,22 @@ Masz 2 dni na spłatę pożyczki. Po upływie terminu bot usuwa z konta całą k
 
 📊 INFO:
 Pożyczka: !pozyczka <kwota> | Długi: !dlug | Dom: !dom`
-        }
+       },
+       {
+         id: 7,
+         title: 'Zadania dzienne',
+         content: `📝 OPIS:
+!zadanie pokazuje twoje aktualne zadanie dzienne. Wykonuj je aby otrzymać nagrodę. Zadania dotyczą komend: !work, !crime, !rob, !bet, !coinflip, !slots, !ruletka, !pkn, !wojna, !blackjack, !chickenroad, !mecz.
+
+💡 PORADA:
+Sprawdź !zadanie regularnie. Każde zadanie ma inny cel i nagrodę. Po ukończeniu odebierz nagrodę wpisując !zadanie. Następne zadanie pojawi się po 24h.
+
+⚠️ UWAGA:
+Zadanie wygasa po 24h. Jeśli nie odebierzesz nagrody, tracisz je. Nie możesz mieć więcej niż jedno zadanie na raz.
+
+📊 INFO:
+Zadanie: !zadanie | Nagroda: zależna od zadania | Czas: 24h`
+       }
      ]
    },
   2: {

@@ -1441,7 +1441,8 @@ function buildHelpListEmbed(client, prefix = '!') {
 
   if (fields.length > 0) {
     const lastField = fields[fields.length - 1];
-    lastField.value += `\n\nUzyj \`${prefix}help <nazwa_komendy>\`, aby poznac szczegoly.`;
+    lastField.value += `\n\nUzyj \`${prefix}help <nazwa_komendy>\`, aby poznac szczegoly.\n` +
+      `oraz wpisz \`${prefix}poradnik\`, jesli czegos nie wiesz.`;
   }
 
   embed.addFields(fields);
@@ -1476,6 +1477,13 @@ function buildHelpDetailEmbed(client, command, prefix = '!') {
       inline: false
     });
   }
+
+  embed.addFields({
+    name: 'Wiecej informacji',
+    value: `Uzyj \`${prefix}help <nazwa_komendy>\`, aby poznac szczegoly.\n` +
+      `oraz wpisz \`${prefix}poradnik\`, jesli czegos nie wiesz.`,
+    inline: false
+  });
 
   return embed;
 }
