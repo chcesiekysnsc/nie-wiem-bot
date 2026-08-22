@@ -121,13 +121,19 @@ module.exports = {
           await this.handleAction(client, message, action);
           return;
         }
-        await message.reply('❌ Masz już aktywną grę w Blackjacka! Napisz **hit** (dobierz), **stand** (stop) lub **double** (podwój).');
-        return;
-      }
+      await message.reply('❌ Masz już aktywną grę w Blackjacka! Napisz **hit** (dobierz), **stand** (stop) lub **double** (podwój).');
+      return;
     }
+  }
 
-    if (hasActiveGameSession(client, authorId)) {
-      await message.reply('❌ Masz już aktywną inną grę! Zakończ ją przed rozpoczęciem Blackjacka.');
+  if (client.taxWarningActive) {
+    await message.reply('❌ Za 15 sekund nastąpi pobór podatków. Nie można rozpocząć nowej gry.');
+    return;
+  }
+
+  const sessionCheck = hasActiveGameSession(client, authorId);
+    if (sessionCheck.active) {
+      await message.reply(`❌ Masz już aktywną inną grę (**${sessionCheck.gameName}**)! Zakończ ją przed rozpoczęciem Blackjacka.`);
       return;
     }
 

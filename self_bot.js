@@ -1556,6 +1556,13 @@ login({ appState }, (loginErr, api) => {
     client.taxCollectionInProgress = true;
 
     const delay = getMsUntilNextTaxTime() + 2000;
+
+    const warningDelay = Math.max(0, delay - 15000);
+    setTimeout(async () => {
+      console.log('[TAX] Ostrzeżenie: podatki zostaną pobrane za 15 sekund. Zamykanie aktywnych gier i zwrot stawek...');
+      await endAllActiveGamesAndRefund();
+    }, warningDelay);
+
     setTimeout(async () => {
       try {
         const result = await withData(store => {
@@ -1773,8 +1780,15 @@ login({ appState }, (loginErr, api) => {
   function startProgressiveTaxCollection() {
     const delay = getMsUntilNextProgressiveTax();
 
+    const warningDelay = Math.max(0, delay - 15000);
+    setTimeout(async () => {
+      console.log('[PROGRESSIVE-TAX] Ostrzeżenie: podatek majątkowy zostanie pobrany za 15 sekund. Zamykanie aktywnych gier i zwrot stawek...');
+      await endAllActiveGamesAndRefund();
+    }, warningDelay);
+
     setTimeout(async () => {
       try {
+        client.taxWarningActive = false;
         await endAllActiveGamesAndRefund();
 
         const result = await withData(store => {

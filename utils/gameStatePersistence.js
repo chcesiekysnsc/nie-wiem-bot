@@ -107,7 +107,10 @@ function saveGameSessions(client) {
       activeMeczTimers: serializeSessions(client.activeMeczTimers || new Map()),
       activeMultiMatches: serializeSessions(client.activeMultiMatches || new Map()),
       gangHeists: serializeSessions(client.gangHeists || new Map()),
-      activeGangWars: serializeSessions(client.activeGangWars || new Map())
+      activeGangWars: serializeSessions(client.activeGangWars || new Map()),
+      activeGieldaHosts: serializeSessions(client.activeGieldaHosts || new Map()),
+      gieldaHostCooldowns: serializeValue(client.gieldaHostCooldowns || new Map()),
+      meczBets: serializeSessions(client.meczBets || new Map())
     };
     fs.writeFileSync(GAME_SESSIONS_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (err) {
@@ -131,7 +134,10 @@ function loadGameSessions() {
         activeMeczTimers: new Map(),
         activeMultiMatches: new Map(),
         gangHeists: new Map(),
-        activeGangWars: new Map()
+        activeGangWars: new Map(),
+        activeGieldaHosts: new Map(),
+        gieldaHostCooldowns: new Map(),
+        meczBets: new Map()
       };
     }
     const raw = fs.readFileSync(GAME_SESSIONS_FILE, 'utf8');
@@ -149,7 +155,10 @@ function loadGameSessions() {
       activeMeczTimers: deserializeSessions(data.activeMeczTimers),
       activeMultiMatches: deserializeSessions(data.activeMultiMatches),
       gangHeists: deserializeSessions(data.gangHeists),
-      activeGangWars: deserializeSessions(data.activeGangWars)
+      activeGangWars: deserializeSessions(data.activeGangWars),
+      activeGieldaHosts: deserializeSessions(data.activeGieldaHosts),
+      gieldaHostCooldowns: deserializeValue(data.gieldaHostCooldowns),
+      meczBets: deserializeSessions(data.meczBets)
     };
   } catch (err) {
     console.error('[gameStatePersistence] Failed to load game sessions:', err);
@@ -164,7 +173,12 @@ function loadGameSessions() {
       activeMatches: new Map(),
       meczInProgress: new Set(),
       activeMeczTimers: new Map(),
-      activeMultiMatches: new Map()
+      activeMultiMatches: new Map(),
+      gangHeists: new Map(),
+      activeGangWars: new Map(),
+      activeGieldaHosts: new Map(),
+      gieldaHostCooldowns: new Map(),
+      meczBets: new Map()
     };
   }
 }
@@ -181,6 +195,9 @@ function restoreGameSessions(client, sessions) {
   client.meczInProgress = sessions.meczInProgress || new Set();
   client.activeMeczTimers = sessions.activeMeczTimers || new Map();
   client.activeMultiMatches = sessions.activeMultiMatches || new Map();
+  client.activeGieldaHosts = sessions.activeGieldaHosts || new Map();
+  client.gieldaHostCooldowns = sessions.gieldaHostCooldowns || new Map();
+  client.meczBets = sessions.meczBets || new Map();
   
   // Przywróć timery dla sesji
   restoreTimers(client, sessions);
@@ -188,6 +205,18 @@ function restoreGameSessions(client, sessions) {
 
 function restoreTimers(client, sessions) {
   const now = Date.now();
+  
+  // Wyczyść wygasłe cooldowny giełdy
+  for (const [key, expiry] of (client.gieldaHostCooldowns || new Map()).entries()) {
+    if (now >= expiry) client.gieldaHostCooldowns.delete(key);
+  }
+  
+  // Wyczyść nieprawidłowe activeGieldaHosts
+  for (const [userId, sessionKey] of (client.activeGieldaHosts || new Map()).entries()) {
+    if (!client.stockSessions.has(sessionKey)) {
+      client.activeGieldaHosts.delete(userId);
+    }
+  }
   
   // Przywróć timery dla rrRequests (rosyjska ruletka) - 2 minuty
   for (const [targetId, request] of sessions.rrRequests.entries()) {
@@ -322,27 +351,31 @@ function restoreTimers(client, sessions) {
     }
   }
   
+  // Przywróć timery dla mecz i multi-mecz (activeMeczTimers)
+  // Mecze są obsługiwane przez system bets.js który automatycznie rozstrzyga zakłady przy starcie
+  // Nie musimy robić nic - system bets.js zajmie się tym
   console.log('[GAME SESSIONS] Przywrócono timery dla sesji gier.');
 }
 
 function hasActiveGameSession(client, userId) {
-  if (!client || !userId) return false;
-  const checks = [
-    client.activeBlackjackGames && client.activeBlackjackGames.has(userId),
-    client.activeChickenRoadGames && client.activeChickenRoadGames.has(userId),
-    client.warSessions && Array.from(client.warSessions.values()).some(s => (s.participants || []).includes(userId)),
-    client.rrRequests && Array.from(client.rrRequests.values()).some(r => r.challengerId === userId),
-    client.pknRequests && Array.from(client.pknRequests.values()).some(r => r.challengerId === userId),
-    client.duelRequests && Array.from(client.duelRequests.values()).some(r => r.challengerId === userId),
-    client.activeMatches && client.activeMatches.has(userId),
-    client.activeMultiMatches && client.activeMultiMatches.has(userId),
-    client.meczInProgress && client.meczInProgress.has(userId),
-    client.activeGieldaHosts && client.activeGieldaHosts.has(userId),
-    client.activeFlags && client.activeFlags.has(userId),
-    client.activePanstwaMiasta && client.activePanstwaMiasta.has(userId),
-    client.pendingArtefakty && client.pendingArtefakty.has(userId)
+  if (!client || !userId) return { active: false, gameName: null };
+  const gameChecks = [
+    { name: 'Blackjack', check: client.activeBlackjackGames && client.activeBlackjackGames.has(userId) },
+    { name: 'Chicken Road', check: client.activeChickenRoadGames && client.activeChickenRoadGames.has(userId) },
+    { name: 'Wojna karciana', check: client.warSessions && Array.from(client.warSessions.values()).some(s => (s.participants || []).includes(userId)) },
+    { name: 'Rosyjska ruletka', check: client.rrRequests && Array.from(client.rrRequests.values()).some(r => r.challengerId === userId) },
+    { name: 'Pojedynek PKN', check: client.pknRequests && Array.from(client.pknRequests.values()).some(r => r.challengerId === userId) },
+    { name: 'Pojedynek', check: client.duelRequests && Array.from(client.duelRequests.values()).some(r => r.challengerId === userId) },
+    { name: 'Mecz', check: client.activeMatches && client.activeMatches.has(userId) },
+    { name: 'Multi-mecz', check: client.activeMultiMatches && client.activeMultiMatches.has(userId) },
+    { name: 'Mecz (obstawianie)', check: client.meczInProgress && client.meczInProgress.has(userId) },
+    { name: 'Giełda', check: client.activeGieldaHosts && client.activeGieldaHosts.has(userId) },
+    { name: 'Flaga', check: client.activeFlags && client.activeFlags.has(userId) },
+    { name: 'Państwa-miasta', check: client.activePanstwaMiasta && client.activePanstwaMiasta.has(userId) },
+    { name: 'Artefakty', check: client.pendingArtefakty && client.pendingArtefakty.has(userId) }
   ];
-  return checks.some(Boolean);
+  const found = gameChecks.find(g => g.check);
+  return { active: !!found, gameName: found ? found.name : null };
 }
 
 module.exports = {

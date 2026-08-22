@@ -143,8 +143,14 @@ module.exports = {
       return;
     }
 
-    if (hasActiveGameSession(client, message.author.id)) {
-      await message.reply('❌ Masz już aktywną inną grę! Zakończ ją przed rozpoczęciem wojny karcianej.');
+    if (client.taxWarningActive) {
+      await message.reply('❌ Za 15 sekund nastąpi pobór podatków. Nie można rozpocząć nowej gry.');
+      return;
+    }
+
+    const sessionCheck = hasActiveGameSession(client, message.author.id);
+    if (sessionCheck.active) {
+      await message.reply(`❌ Masz już aktywną inną grę (**${sessionCheck.gameName}**)! Zakończ ją przed rozpoczęciem wojny karcianej.`);
       return;
     }
 

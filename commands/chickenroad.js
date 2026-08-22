@@ -124,8 +124,14 @@ module.exports = {
 
     if (result.error) { await message.reply(result.error); return; }
 
-    if (hasActiveGameSession(client, authorId)) {
-      await message.reply('❌ Masz już aktywną inną grę! Zakończ ją przed rozpoczęciem Chicken Road.');
+    if (client.taxWarningActive) {
+      await message.reply('❌ Za 15 sekund nastąpi pobór podatków. Nie można rozpocząć nowej gry.');
+      return;
+    }
+
+    const sessionCheck = hasActiveGameSession(client, authorId);
+    if (sessionCheck.active) {
+      await message.reply(`❌ Masz już aktywną inną grę (**${sessionCheck.gameName}**)! Zakończ ją przed rozpoczęciem Chicken Road.`);
       return;
     }
 
