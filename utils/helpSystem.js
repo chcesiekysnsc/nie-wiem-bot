@@ -1554,6 +1554,7 @@ module.exports = {
   buildHelpErrorEmbed,
   buildHelpListEmbed,
   resolveCategoryInput,
+  getCommandsByCategory,
   getHelpCommandByCategoryAndNumber,
   buildCategoryPromptEmbed,
   buildCategoryListEmbed,
