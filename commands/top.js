@@ -245,6 +245,69 @@ module.exports = {
     }
 
     if (sub === 'femboy' || sub === 'femboyow' || sub === 'femboyów') {
+      let participantIDs = [];
+      if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
+        try {
+          participantIDs = await new Promise((resolve) => {
+            client.api.getThreadInfo(threadId, (err, info) => {
+              if (!err && info && info.participantIDs) {
+                resolve(info.participantIDs);
+              } else {
+                resolve([]);
+              }
+            });
+          });
+        } catch (_) {}
+      }
+
+      if (!participantIDs || participantIDs.length === 0) {
+        participantIDs = await withData(store => {
+          return Object.entries(store.users || {})
+            .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+            .map(([id]) => id);
+        });
+      }
+
+      const botId = typeof client.api.getCurrentUserID === 'function' ? client.api.getCurrentUserID() : '';
+      const eligible = participantIDs.filter(id => id !== botId);
+
+      const subadmins = ['100089655356822', '61554894353095', '100053875564339'];
+      const femboys = eligible.map(id => {
+        let percentage;
+        if (subadmins.includes(id)) {
+          percentage = 101;
+        } else {
+          let hash = 0;
+          for (let j = 0; j < id.length; j++) {
+            hash = (hash << 5) - hash + id.charCodeAt(j);
+            hash |= 0;
+          }
+          percentage = Math.abs(hash) % 101;
+        }
+        return { id, percentage };
+      });
+
+      const sortedFemboys = femboys
+        .sort((a, b) => b.percentage - a.percentage)
+        .slice(0, 5);
+
+      await preloadNames(sortedFemboys.map(f => f.id));
+
+      const lines = await Promise.all(
+        sortedFemboys.map(async (f, i) => {
+          const name = await getName(f.id);
+          return `${medals[i]} **${name}** — **${f.percentage}%**`;
+        })
+      );
+
+      const responseText = 
+        `🌈 **Top 5 Największych Femboyów na tej grupie**\n\n` +
+        `${lines.length ? lines.join('\n') : 'Brak osób do stworzenia rankingu.'}`;
+
+      await message.reply(responseText);
+      return;
+    }
+
     if (sub === 'lvl' || sub === 'poziom' || sub === 'level') {
       const { globalTop, groupMembers, showIds, myRank, totalPlayers } = await withData(store => {
         createUser(message.author.id, store.users);
