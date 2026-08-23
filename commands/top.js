@@ -320,15 +320,14 @@ module.exports = {
         `🌍 **Top 5 Global**\n` +
         `${globalLines.length ? globalLines.join('\n') : 'Brak danych.'}\n` +
         `👥 **Top 5 Grupy**\n` +
-        `${groupLines.length ? groupLines.join('\n') : 'Brak danych grupowych.'}\n\n` +
-        `🌎 Jesteś **${myRank}** z **${totalPlayers}** graczy.`;
+        `${groupLines.length ? groupLines.join('\n') : 'Brak danych grupowych.'}`;
 
       await message.reply(responseText);
       return;
     }
 
     if (sub === 'daily' || sub === 'dzienny') {
-      const { globalTop, groupMembers, showIds, myRank, totalPlayers } = await withData(store => {
+      const { globalTop, groupMembers, showIds } = await withData(store => {
         createUser(message.author.id, store.users);
 
         const users = Object.entries(store.users || {});
@@ -342,9 +341,6 @@ module.exports = {
             if (b.dailyStreak !== a.dailyStreak) return b.dailyStreak - a.dailyStreak;
             return b.lastDailyClaim - a.lastDailyClaim;
           });
-
-        const totalPlayers = globalSorted.length;
-        const myRank = globalSorted.findIndex(u => u.id === message.author.id) + 1;
 
         const globalTop = globalSorted.slice(0, 5);
 
@@ -363,7 +359,7 @@ module.exports = {
           groupMembers = globalTop.slice(0, 5);
         }
 
-        return { globalTop, groupMembers, showIds, myRank, totalPlayers };
+        return { globalTop, groupMembers, showIds };
       });
 
       const allTopIds = [...new Set([...globalTop.map(u => u.id), ...groupMembers.map(u => u.id)])];
@@ -394,8 +390,7 @@ module.exports = {
         `🌍 **Top 5 Global**\n` +
         `${globalLines.length ? globalLines.join('\n') : 'Brak danych.'}\n` +
         `👥 **Top 5 Grupy**\n` +
-        `${groupLines.length ? groupLines.join('\n') : 'Brak danych grupowych.'}\n\n` +
-        `🌎 Jesteś **${myRank}** z **${totalPlayers}** graczy.`;
+        `${groupLines.length ? groupLines.join('\n') : 'Brak danych grupowych.'}`;
 
       await message.reply(responseText);
       return;
