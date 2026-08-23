@@ -473,7 +473,19 @@ function getPassiveMultiplier(inventoryRecord, itemId, baseBonus) {
     szybka_nauka: 0.005,
     kalkulator_finansowy: 0.005,
     terminal_gieldowy: 0.005,
-    certyfikat_inwestora: 0.005
+    certyfikat_inwestora: 0.005,
+    walizka: 0.005,
+    automat_do_kawy: 0.005,
+    ananas_na_pizzy: 0.005,
+    kosci_oszusta: 0.005,
+    zestaw_wlamywacza: 0.005,
+    alarm: 0.005,
+    latarka: 0.005,
+    kominiarka: 0.005,
+    pies_strozujacy: 0.005,
+    czarna_bandera: 0.005,
+    karty_tarota: 0.005,
+    insygnia_gang: 0.005
   };
   
   const perLevel = upgradePerLevel[itemId] || 0;
