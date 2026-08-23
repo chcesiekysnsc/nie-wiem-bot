@@ -309,7 +309,29 @@ module.exports = {
     }
 
     if (sub === 'lvl' || sub === 'poziom' || sub === 'level') {
-      const { globalTop, groupMembers, showIds, myRank, totalPlayers } = await withData(store => {
+      if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
+        try {
+          participantIDs = await new Promise((resolve) => {
+            client.api.getThreadInfo(threadId, (err, info) => {
+              if (!err && info && info.participantIDs) {
+                resolve(info.participantIDs);
+              } else {
+                resolve([]);
+              }
+            });
+          });
+        } catch (_) {}
+      }
+
+      if (!participantIDs || participantIDs.length === 0) {
+        participantIDs = await withData(store => {
+          return Object.entries(store.users || {})
+            .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+            .map(([id]) => id);
+        });
+      }
+
+      const { globalTop, groupMembers, showIds } = await withData(store => {
         createUser(message.author.id, store.users);
 
         const users = Object.entries(store.users || {});
@@ -390,6 +412,28 @@ module.exports = {
     }
 
     if (sub === 'daily' || sub === 'dzienny') {
+      if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
+        try {
+          participantIDs = await new Promise((resolve) => {
+            client.api.getThreadInfo(threadId, (err, info) => {
+              if (!err && info && info.participantIDs) {
+                resolve(info.participantIDs);
+              } else {
+                resolve([]);
+              }
+            });
+          });
+        } catch (_) {}
+      }
+
+      if (!participantIDs || participantIDs.length === 0) {
+        participantIDs = await withData(store => {
+          return Object.entries(store.users || {})
+            .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+            .map(([id]) => id);
+        });
+      }
+
       const { globalTop, groupMembers, showIds } = await withData(store => {
         createUser(message.author.id, store.users);
 
