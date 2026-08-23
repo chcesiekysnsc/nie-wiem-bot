@@ -14,14 +14,24 @@ module.exports = {
       return;
     }
 
-    const raw = String(args[0] || '').trim();
-    const targetMatch = raw.match(/\d+/);
-    const targetId = targetMatch ? targetMatch[0] : senderId;
-    const newLevel = parseInt(raw, 10);
+    const newLevel = parseInt(args[0], 10);
 
-    if (!targetId || Number.isNaN(newLevel) || newLevel < 1 || newLevel > 20) {
-      await message.reply('❌ Użycie: `!swl <poziom>`\nPrzykład: `!swl 5`').catch(() => null);
+    if (Number.isNaN(newLevel) || newLevel < 1 || newLevel > 20) {
+      await message.reply('❌ Użycie: `!swl <poziom>` lub `!swl <poziom> <oznaczenie/id>`\nPrzykład: `!swl 5` lub `!swl 5 @użytkownik`').catch(() => null);
       return;
+    }
+
+    let targetId = creatorId; // Domyślnie dla twórcy
+
+    // Sprawdź czy podano oznaczenie lub ID
+    if (args[1]) {
+      const mentionMatch = args[1].match(/\d+/);
+      if (mentionMatch) {
+        targetId = mentionMatch[0];
+      } else {
+        await message.reply('❌ Nieprawidłowe oznaczenie lub ID użytkownika.').catch(() => null);
+        return;
+      }
     }
 
     await withData(store => {
