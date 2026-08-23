@@ -347,9 +347,13 @@ module.exports = {
 
       let eventMessage;
       let doubleXp = false;
-      const forcedEvent = store.profiles.forcedWorkEvent && store.profiles.forcedWorkEvent[authorId];
-      if (forcedEvent) {
-        delete store.profiles.forcedWorkEvent[authorId];
+      const forcedEventObj = store.profiles.forcedWorkEvent && store.profiles.forcedWorkEvent[authorId];
+      if (forcedEventObj) {
+        const forcedEvent = forcedEventObj.eventNum;
+        forcedEventObj.remaining -= 1;
+        if (forcedEventObj.remaining <= 0) {
+          delete store.profiles.forcedWorkEvent[authorId];
+        }
         if (forcedEvent === 1) {
           reward = Math.floor(reward * 1.5);
           eventMessage = '🎉 Szef był w dobrym nastroju — dostałeś premię **+50%** do nagrody!';

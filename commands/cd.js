@@ -1,5 +1,13 @@
+const config = require('../config/config');
 const { msToReadable } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const {
+  getGlobalCooldownReduction,
+  getActiveEventMultiplier,
+  getItemUpgradeLevel,
+  hasItem,
+  ensureInventoryRecord
+} = require('../utils/economy');
 
 function getPolandOffsetMs(date) {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -55,16 +63,52 @@ module.exports = {
         dailyText = `⏱️ gotowe za **${msToReadable(tomorrowMidnight - now)}**`;
       }
 
-      // 2. Work cooldown (max of store cooldown and user.lastWorkTime local cooldown)
+      // 2. Work cooldown
       const userCooldowns = store.cooldowns.commands[userId] || {};
       const storeWorkExpiresAt = Number(userCooldowns['work'] || 0);
 
-      const config = require('../config/config');
-      const { hasItem, ensureInventoryRecord } = require('../utils/economy');
       const inventory = ensureInventoryRecord(store.inventory, userId);
-      const hasZegar = hasItem(inventory, 'stary_zegar');
       const baseCd = config.cooldowns.work || 600;
-      const actualCd = hasZegar ? baseCd * 0.90 : baseCd;
+      let actualCd = baseCd;
+
+      const hasZegar = hasItem(inventory, 'stary_zegar');
+      if (hasZegar) {
+        const level = getItemUpgradeLevel(inventory, 'stary_zegar');
+        const reduction = 0.10 + level * 0.005;
+        actualCd *= (1 - reduction);
+      }
+
+      const hasSzwajcar = hasItem(inventory, 'szwajcarski_zegarek');
+      if (hasSzwajcar) {
+        actualCd *= 0.85;
+      }
+
+      const hasEnergetyk = hasItem(inventory, 'energetyk');
+      if (hasEnergetyk) {
+        const level = getItemUpgradeLevel(inventory, 'energetyk');
+        const increase = 0.10 + level * 0.005;
+        actualCd *= (1 + increase);
+      }
+
+      const cdReduction = getGlobalCooldownReduction(inventory);
+      if (cdReduction > 0) {
+        actualCd = Math.floor(actualCd * (1 - cdReduction));
+      }
+
+      const evMul = getActiveEventMultiplier('cooldowns');
+      if (evMul && evMul > 1) {
+        actualCd = Math.floor(actualCd / evMul);
+      }
+
+      if (user.tempCooldownReductionUntil && now < user.tempCooldownReductionUntil) {
+        actualCd = Math.floor(actualCd * 0.8);
+      }
+
+      const hasAutomat = hasItem(inventory, 'automat_do_kawy');
+      if (hasAutomat) {
+        actualCd = Math.floor(actualCd * 0.95);
+      }
+
       const cdMs = actualCd * 1000;
       const lastWork = user.lastWorkTime || 0;
       const localWorkExpiresAt = lastWork + cdMs;

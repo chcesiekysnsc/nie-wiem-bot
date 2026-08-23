@@ -30,7 +30,7 @@ module.exports = {
       ).join('\n');
       await message.reply(
         `🎯 **Wymuszalne eventy !work**\n` +
-        `Użyj: **!wymus <nr> [@gracz]**\n\n` +
+        `Użyj: **!wymus <nr> <powtórzenia> [@gracz]**\n\n` +
         lines
       );
       return;
@@ -42,16 +42,22 @@ module.exports = {
       return;
     }
 
+    const countArg = String(args[1] || '').trim();
+    const repeatCount = Math.max(1, Math.min(100, parseInt(countArg, 10) || 1));
+
     await withData(store => {
       store.profiles.forcedWorkEvent = store.profiles.forcedWorkEvent || {};
-      store.profiles.forcedWorkEvent[targetId] = eventNum;
+      store.profiles.forcedWorkEvent[targetId] = {
+        eventNum,
+        remaining: repeatCount
+      };
     });
 
     const targetName = targetId === message.author.id ? 'siebie' : 'wybranego gracza';
     const event = WORK_EVENTS.find(e => e.num === eventNum);
     await message.reply(
       `✅ Wymuszono event **${event.name}** dla ${targetName}.\n` +
-      `Następne użycie **!work** wywoła ten event bezwarunkowo.`
+      `Event wystąpi **${repeatCount} razy** pod rzęd przy użyciu **!work**.`
     );
   }
 };
