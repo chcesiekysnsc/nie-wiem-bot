@@ -11,29 +11,12 @@ module.exports = {
     }
 
     try {
-      // Pobierz listę uczestników grupy
-      let participantIDs = [];
-      try {
-        participantIDs = await new Promise((resolve, reject) => {
-          client.api.getThreadInfo(threadId, (err, info) => {
-            if (err) return reject(err);
-            if (info && info.participantIDs) {
-              resolve(info.participantIDs);
-            } else {
-              resolve([]);
-            }
-          });
-        });
-      } catch (_) {}
-
-      // Fallback — użyj danych z bazy
-      if (!participantIDs || participantIDs.length === 0) {
-        const { loadData } = require('../utils/storage');
-        const usersData = loadData('users') || {};
-        participantIDs = Object.entries(usersData)
-          .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
-          .map(([id]) => id);
-      }
+      // Pobierz listę uczestników grupy z bazy danych
+      const { loadData } = require('../utils/storage');
+      const usersData = loadData('users') || {};
+      let participantIDs = Object.entries(usersData)
+        .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+        .map(([id]) => id);
 
       const botId = typeof client.api.getCurrentUserID === 'function' ? client.api.getCurrentUserID() : '';
       const eligible = participantIDs.filter(id => id !== botId);

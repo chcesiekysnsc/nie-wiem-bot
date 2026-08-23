@@ -107,19 +107,11 @@ module.exports = {
     const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
 
     let participantIDs = [];
-    if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
-      try {
-        participantIDs = await new Promise((resolve) => {
-          client.api.getThreadInfo(threadId, (err, info) => {
-            if (!err && info && info.participantIDs) {
-              resolve(info.participantIDs);
-            } else {
-              resolve([]);
-            }
-          });
-        });
-      } catch (_) {}
-    }
+    participantIDs = await withData(store => {
+      return Object.entries(store.users || {})
+        .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+        .map(([id]) => id);
+    });
 
     const { globalTop, groupMembers, showIds } = await withData(store => {
       // Upewnij się, że autor ma swój profil w bazie

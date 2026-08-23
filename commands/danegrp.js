@@ -65,25 +65,19 @@ module.exports = {
       let adminCount = 0;
       let groupName = 'Grupa';
 
-      try {
-        if (client.api && typeof client.api.getThreadInfo === 'function') {
-          const info = await new Promise((resolve) => {
-            const timer = setTimeout(() => resolve(null), 3000);
-            client.api.getThreadInfo(tId, (err, ret) => {
-              clearTimeout(timer);
-              if (err) resolve(null);
-              else resolve(ret);
-            });
-          });
-
-          if (info) {
-            memberCount = (info.participantIDs || []).length;
-            adminCount = (info.adminIDs || []).length;
-            groupName = info.threadName || info.name || 'Grupa';
-          }
-        }
-      } catch (err) {
-        console.error(`[danegrp] Błąd pobierania info dla grupy ${tId}:`, err.message);
+      // Użyj danych z bazy danych
+      const { loadData } = require('../utils/storage');
+      const usersData = loadData('users') || {};
+      const groupParticipants = Object.entries(usersData)
+        .filter(([id, u]) => u.groupMessages && u.groupMessages[tId])
+        .map(([id]) => id);
+      
+      memberCount = groupParticipants.length;
+      
+      // Spróbuj pobrać nazwę grupy z danych grupy
+      const groupData = loadData('groupStats') || {};
+      if (groupData[tId] && groupData[tId].name) {
+        groupName = groupData[tId].name;
       }
 
       const calculatedMsgs = threadNormalMessages[tId] || 0;

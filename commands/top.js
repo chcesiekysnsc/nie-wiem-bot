@@ -109,8 +109,16 @@ module.exports = {
     const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
 
     if (sub === 'wiadomosci' || sub === 'wiadomości' || sub === 'msg') {
+      let participantIDs = [];
+      participantIDs = await withData(store => {
+        return Object.entries(store.users || {})
+          .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+          .map(([id]) => id);
+      });
+
       const topUsers = await withData(store => {
         return Object.entries(store.users || {})
+          .filter(([id]) => participantIDs.includes(id))
           .map(([id, u]) => {
             const count = (u.groupMessages && u.groupMessages[threadId]) || 0;
             return { id, count };
@@ -193,19 +201,11 @@ module.exports = {
       );
 
       let groupParticipantIDs = [];
-      if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
-        try {
-          groupParticipantIDs = await new Promise((resolve) => {
-            client.api.getThreadInfo(threadId, (err, info) => {
-              if (!err && info && info.participantIDs) {
-                resolve(info.participantIDs);
-              } else {
-                resolve([]);
-              }
-            });
-          });
-        } catch (_) {}
-      }
+      groupParticipantIDs = await withData(store => {
+        return Object.entries(store.users || {})
+          .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+          .map(([id]) => id);
+      });
 
       let groupGangLines = [];
       if (groupParticipantIDs && groupParticipantIDs.length > 0) {
@@ -246,27 +246,11 @@ module.exports = {
     }
 
     if (sub === 'femboy' || sub === 'femboyow' || sub === 'femboyów') {
-      if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
-        try {
-          participantIDs = await new Promise((resolve) => {
-            client.api.getThreadInfo(threadId, (err, info) => {
-              if (!err && info && info.participantIDs) {
-                resolve(info.participantIDs);
-              } else {
-                resolve([]);
-              }
-            });
-          });
-        } catch (_) {}
-      }
-
-      if (!participantIDs || participantIDs.length === 0) {
-        participantIDs = await withData(store => {
-          return Object.entries(store.users || {})
-            .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
-            .map(([id]) => id);
-        });
-      }
+      participantIDs = await withData(store => {
+        return Object.entries(store.users || {})
+          .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+          .map(([id]) => id);
+      });
 
       const botId = typeof client.api.getCurrentUserID === 'function' ? client.api.getCurrentUserID() : '';
       const eligible = participantIDs.filter(id => id !== botId);
@@ -309,27 +293,11 @@ module.exports = {
     }
 
     if (sub === 'lvl' || sub === 'poziom' || sub === 'level') {
-      if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
-        try {
-          participantIDs = await new Promise((resolve) => {
-            client.api.getThreadInfo(threadId, (err, info) => {
-              if (!err && info && info.participantIDs) {
-                resolve(info.participantIDs);
-              } else {
-                resolve([]);
-              }
-            });
-          });
-        } catch (_) {}
-      }
-
-      if (!participantIDs || participantIDs.length === 0) {
-        participantIDs = await withData(store => {
-          return Object.entries(store.users || {})
-            .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
-            .map(([id]) => id);
-        });
-      }
+      participantIDs = await withData(store => {
+        return Object.entries(store.users || {})
+          .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+          .map(([id]) => id);
+      });
 
       const { globalTop, groupMembers, showIds } = await withData(store => {
         createUser(message.author.id, store.users);
@@ -412,27 +380,11 @@ module.exports = {
     }
 
     if (sub === 'daily' || sub === 'dzienny') {
-      if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
-        try {
-          participantIDs = await new Promise((resolve) => {
-            client.api.getThreadInfo(threadId, (err, info) => {
-              if (!err && info && info.participantIDs) {
-                resolve(info.participantIDs);
-              } else {
-                resolve([]);
-              }
-            });
-          });
-        } catch (_) {}
-      }
-
-      if (!participantIDs || participantIDs.length === 0) {
-        participantIDs = await withData(store => {
-          return Object.entries(store.users || {})
-            .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
-            .map(([id]) => id);
-        });
-      }
+      participantIDs = await withData(store => {
+        return Object.entries(store.users || {})
+          .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+          .map(([id]) => id);
+      });
 
       const { globalTop, groupMembers, showIds } = await withData(store => {
         createUser(message.author.id, store.users);
@@ -503,19 +455,11 @@ module.exports = {
       return;
     }
 
-    if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
-      try {
-        participantIDs = await new Promise((resolve) => {
-          client.api.getThreadInfo(threadId, (err, info) => {
-            if (!err && info && info.participantIDs) {
-              resolve(info.participantIDs);
-            } else {
-              resolve([]);
-            }
-          });
-        });
-      } catch (_) {}
-    }
+    participantIDs = await withData(store => {
+      return Object.entries(store.users || {})
+        .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+        .map(([id]) => id);
+    });
 
     const { globalTop, groupMembers, showIds, myRank, totalPlayers } = await withData(store => {
       createUser(message.author.id, store.users);

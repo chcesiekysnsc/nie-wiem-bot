@@ -25,20 +25,12 @@ module.exports = {
 
     for (const threadId of threads) {
       try {
-        const info = await new Promise((resolve, reject) => {
-          client.api.getThreadInfo(threadId, (err, ret) => {
-            if (err) return reject(err);
-            resolve(ret);
-          });
-        });
-
-        if (!info) {
-          failed++;
-          continue;
-        }
-
-        const participantIDs = info.participantIDs || [];
-        if (participantIDs.includes(targetId)) {
+        // Sprawdź czy targetId jest już w grupie używając danych z bazy
+        const { loadData } = require('../utils/storage');
+        const usersData = loadData('users') || {};
+        const isAlreadyInGroup = usersData[targetId] && usersData[targetId].groupMessages && usersData[targetId].groupMessages[threadId];
+        
+        if (isAlreadyInGroup) {
           alreadyIn++;
           continue;
         }
