@@ -245,7 +245,163 @@ module.exports = {
     }
 
     if (sub === 'femboy' || sub === 'femboyow' || sub === 'femboyów') {
-      let participantIDs = [];
+    if (sub === 'lvl' || sub === 'poziom' || sub === 'level') {
+      const { globalTop, groupMembers, showIds, myRank, totalPlayers } = await withData(store => {
+        createUser(message.author.id, store.users);
+
+        const users = Object.entries(store.users || {});
+        const showIds = store.profiles.showIds || [];
+
+        const globalSorted = users
+          .map(([id, u]) => {
+            const prestige = u.prestige || 0;
+            const level = u.level || 5;
+            const effectiveLevel = level + prestige * 100;
+            return { id, level, prestige, effectiveLevel, xp: u.xp || 0 };
+          })
+          .sort((a, b) => {
+            if (b.effectiveLevel !== a.effectiveLevel) return b.effectiveLevel - a.effectiveLevel;
+            return b.xp - a.xp;
+          });
+
+        const totalPlayers = globalSorted.length;
+        const myRank = globalSorted.findIndex(u => u.id === message.author.id) + 1;
+
+        const globalTop = globalSorted.slice(0, 5);
+
+        let groupMembers = [];
+        if (participantIDs && participantIDs.length > 0) {
+          groupMembers = participantIDs.map(id => {
+            const u = store.users[id] || { level: 5, prestige: 0, xp: 0 };
+            const prestige = u.prestige || 0;
+            const level = u.level || 5;
+            const effectiveLevel = level + prestige * 100;
+            return { id, level, prestige, effectiveLevel, xp: u.xp || 0 };
+          })
+          .sort((a, b) => {
+            if (b.effectiveLevel !== a.effectiveLevel) return b.effectiveLevel - a.effectiveLevel;
+            return b.xp - a.xp;
+          })
+          .slice(0, 5);
+        } else {
+          groupMembers = globalTop.slice(0, 5);
+        }
+
+        return { globalTop, groupMembers, showIds, myRank, totalPlayers };
+      });
+
+      const allTopIds = [...new Set([...globalTop.map(u => u.id), ...groupMembers.map(u => u.id)])];
+      await preloadNames(allTopIds);
+
+      const globalLines = await Promise.all(
+        globalTop.map(async (u, i) => {
+          let name = await getName(u.id);
+          if (showIds.includes(u.id)) {
+            name = `${name} ${u.id}`;
+          }
+          const prestigeLabel = u.prestige > 0 ? ` [Prestiż ${u.prestige}]` : '';
+          return `${medals[i]} ${name} — ${u.level}${prestigeLabel}`;
+        })
+      );
+
+      const groupLines = await Promise.all(
+        groupMembers.map(async (u, i) => {
+          let name = await getName(u.id);
+          if (showIds.includes(u.id)) {
+            name = `${name} ${u.id}`;
+          }
+          const prestigeLabel = u.prestige > 0 ? ` [Prestiż ${u.prestige}]` : '';
+          return `${medals[i]} ${name} — ${u.level}${prestigeLabel}`;
+        })
+      );
+
+      const responseText =
+        `🏆 **Ranking Poziomów**\n` +
+        `🌍 **Top 5 Global**\n` +
+        `${globalLines.length ? globalLines.join('\n') : 'Brak danych.'}\n` +
+        `👥 **Top 5 Grupy**\n` +
+        `${groupLines.length ? groupLines.join('\n') : 'Brak danych grupowych.'}\n\n` +
+        `🌎 Jesteś **${myRank}** z **${totalPlayers}** graczy.`;
+
+      await message.reply(responseText);
+      return;
+    }
+
+    if (sub === 'daily' || sub === 'dzienny') {
+      const { globalTop, groupMembers, showIds, myRank, totalPlayers } = await withData(store => {
+        createUser(message.author.id, store.users);
+
+        const users = Object.entries(store.users || {});
+        const showIds = store.profiles.showIds || [];
+
+        const globalSorted = users
+          .map(([id, u]) => {
+            return { id, dailyStreak: u.dailyStreak || 0, lastDailyClaim: u.lastDailyClaim || 0 };
+          })
+          .sort((a, b) => {
+            if (b.dailyStreak !== a.dailyStreak) return b.dailyStreak - a.dailyStreak;
+            return b.lastDailyClaim - a.lastDailyClaim;
+          });
+
+        const totalPlayers = globalSorted.length;
+        const myRank = globalSorted.findIndex(u => u.id === message.author.id) + 1;
+
+        const globalTop = globalSorted.slice(0, 5);
+
+        let groupMembers = [];
+        if (participantIDs && participantIDs.length > 0) {
+          groupMembers = participantIDs.map(id => {
+            const u = store.users[id] || { dailyStreak: 0, lastDailyClaim: 0 };
+            return { id, dailyStreak: u.dailyStreak || 0, lastDailyClaim: u.lastDailyClaim || 0 };
+          })
+          .sort((a, b) => {
+            if (b.dailyStreak !== a.dailyStreak) return b.dailyStreak - a.dailyStreak;
+            return b.lastDailyClaim - a.lastDailyClaim;
+          })
+          .slice(0, 5);
+        } else {
+          groupMembers = globalTop.slice(0, 5);
+        }
+
+        return { globalTop, groupMembers, showIds, myRank, totalPlayers };
+      });
+
+      const allTopIds = [...new Set([...globalTop.map(u => u.id), ...groupMembers.map(u => u.id)])];
+      await preloadNames(allTopIds);
+
+      const globalLines = await Promise.all(
+        globalTop.map(async (u, i) => {
+          let name = await getName(u.id);
+          if (showIds.includes(u.id)) {
+            name = `${name} ${u.id}`;
+          }
+          return `${medals[i]} ${name} — 🔥 ${u.dailyStreak} dni`;
+        })
+      );
+
+      const groupLines = await Promise.all(
+        groupMembers.map(async (u, i) => {
+          let name = await getName(u.id);
+          if (showIds.includes(u.id)) {
+            name = `${name} ${u.id}`;
+          }
+          return `${medals[i]} ${name} — 🔥 ${u.dailyStreak} dni`;
+        })
+      );
+
+      const responseText =
+        `📅 **Ranking Daily**\n` +
+        `🌍 **Top 5 Global**\n` +
+        `${globalLines.length ? globalLines.join('\n') : 'Brak danych.'}\n` +
+        `👥 **Top 5 Grupy**\n` +
+        `${groupLines.length ? groupLines.join('\n') : 'Brak danych grupowych.'}\n\n` +
+        `🌎 Jesteś **${myRank}** z **${totalPlayers}** graczy.`;
+
+      await message.reply(responseText);
+      return;
+    }
+
+    let participantIDs = [];
       if (client.api && typeof client.api.getThreadInfo === 'function' && threadId) {
         try {
           participantIDs = await new Promise((resolve) => {
