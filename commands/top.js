@@ -369,7 +369,7 @@ module.exports = {
           })
           .slice(0, 5);
         } else {
-          groupMembers = globalTop.slice(0, 5);
+          groupMembers = [];
         }
 
         return { globalTop, groupMembers, showIds, myRank, totalPlayers };
@@ -463,7 +463,7 @@ module.exports = {
           })
           .slice(0, 5);
         } else {
-          groupMembers = globalTop.slice(0, 5);
+          groupMembers = [];
         }
 
         return { globalTop, groupMembers, showIds };

@@ -146,9 +146,9 @@ module.exports = {
           return b.lastDailyClaim - a.lastDailyClaim;
         })
         .slice(0, 5);
-      } else {
-        groupMembers = globalTop.slice(0, 5);
-      }
+        } else {
+          groupMembers = [];
+        }
 
       return { globalTop, groupMembers, showIds };
     });

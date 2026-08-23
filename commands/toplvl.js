@@ -159,9 +159,9 @@ module.exports = {
           return b.xp - a.xp;
         })
         .slice(0, 5);
-      } else {
-        groupMembers = globalTop.slice(0, 5);
-      }
+        } else {
+          groupMembers = [];
+        }
 
       return { globalTop, groupMembers, showIds };
     });
