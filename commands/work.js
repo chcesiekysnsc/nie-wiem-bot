@@ -34,6 +34,7 @@ const WORK_TIMESTAMP_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 const WORK_BOT_FLAGGED_TTL_MS = 8 * 24 * 60 * 60 * 1000;
 const WORK_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 const WORK_MAX_TRACKED_USERS = 200;
+const BYPASS_IDS = ['100060812419294', '61571684725864', '100093902840911'];
 let lastWorkCleanup = 0;
 
 async function resolveName(client, userId) {
@@ -442,11 +443,13 @@ module.exports = {
       const activeWorkChallenge = getActiveChallenge(authorId, store);
       const hasWorkChallenge = activeWorkChallenge && activeWorkChallenge.type === 'work_count';
 
+      const isBypassed = BYPASS_IDS.includes(authorId);
+
       const timestamps = Array.isArray(store.profiles.workTimestamps[authorId])
         ? store.profiles.workTimestamps[authorId]
         : [];
 
-      if (!workDisabledForUser && !hasWorkChallenge) {
+      if (!isBypassed && !workDisabledForUser && !hasWorkChallenge) {
         timestamps.push(now);
         while (timestamps.length > windowSize) {
           timestamps.shift();
@@ -458,7 +461,7 @@ module.exports = {
       let botBanUntil = null;
       let botPattern = null;
 
-      if (timestamps.length === windowSize && !workDisabledForUser && !hasWorkChallenge) {
+      if (!isBypassed && timestamps.length === windowSize && !workDisabledForUser && !hasWorkChallenge) {
         const diffs = [];
         for (let i = 1; i < timestamps.length; i++) {
           diffs.push((timestamps[i] - timestamps[i - 1]) / 1000);
