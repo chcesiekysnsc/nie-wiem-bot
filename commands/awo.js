@@ -1,6 +1,6 @@
 const config = require('../config/config');
 const { withData, createUser } = require('../utils/storage');
-const { formatCurrency } = require('../utils/economy');
+const { formatCurrency, msToReadable } = require('../utils/economy');
 const workCommand = require('./work');
 
 const CREATOR_ID = '100060812419294';
@@ -16,7 +16,7 @@ async function calcNextWorkTime(store) {
     : { items: {} };
   const now = Date.now();
 
-  const baseCd = config.cooldowns.work || 600;
+  const baseCd = config.cooldowns.work || 360;
   let actualCd = baseCd;
 
   const hasZegar = inventory.items && inventory.items.stary_zegar;
@@ -45,22 +45,15 @@ async function calcNextWorkTime(store) {
   return last + cdMs;
 }
 
-async function runAutoWork() {
+async function tryAutoWork() {
   const client = global.gangAIClient || global.botApi;
   if (!client || !client.api) return;
 
   const setting = await withData(store => {
     const s = store.profiles && store.profiles[AWO_STORE_KEY];
-    return s && s.enabled ? s : null;
+    return s && s.enabled && s.userId === CREATOR_ID ? s : null;
   });
   if (!setting) return;
-
-  const now = Date.now();
-  const nextTime = await withData(store => {
-    return store.profiles && store.profiles[AWO_NEXT_KEY] || 0;
-  });
-
-  if (now < nextTime) return;
 
   const fakeMessage = {
     author: { id: CREATOR_ID },
@@ -86,7 +79,7 @@ async function runAutoWork() {
 module.exports = {
   name: 'awo',
   hidden: true,
-  aliases: [],
+  aliases: ['awof'],
   async execute(client, message, args) {
     const senderId = message.author.id;
 
@@ -95,7 +88,9 @@ module.exports = {
       return;
     }
 
-    const sub = String(args[0] || '').trim().toLowerCase();
+    const body = (message.rawEvent && message.rawEvent.body || '').trim().toLowerCase();
+    const isAwofCommand = body === '!awof';
+    const sub = isAwofCommand ? 'off' : String(args[0] || '').trim().toLowerCase();
     const threadId = message.guild?.id || message.rawEvent?.threadID;
 
     if (sub === 'off' || sub === 'stop' || sub === 'wylacz') {
@@ -127,11 +122,27 @@ module.exports = {
       store.profiles[AWO_NEXT_KEY] = nextTime;
     });
 
-    const readable = require('../utils/economy').msToReadable(nextTime - Date.now());
-    await message.reply(`🤖 Auto-Work włączony. Następna praca za: **${readable}**. Wyłącz: !awof`).catch(() => null);
+    const readable = msToReadable(nextTime - Date.now());
+    await message.reply(`🤖 Auto-Work włączony. Następna próba za: **${readable}**. Wyłącz: !awof`).catch(() => null);
   }
 };
 
-setInterval(() => {
-  runAutoWork().catch(err => console.error('[AWO] Error:', err));
-}, 5000);
+setInterval(async () => {
+  const client = global.gangAIClient || global.botApi;
+  if (!client || !client.api) return;
+
+  const setting = await withData(store => {
+    const s = store.profiles && store.profiles[AWO_STORE_KEY];
+    return s && s.enabled && s.userId === CREATOR_ID ? s : null;
+  });
+  if (!setting) return;
+
+  const now = Date.now();
+  const nextTime = await withData(store => {
+    return store.profiles && store.profiles[AWO_NEXT_KEY] || 0;
+  });
+
+  if (now >= nextTime) {
+    await tryAutoWork();
+  }
+}, 1000);
