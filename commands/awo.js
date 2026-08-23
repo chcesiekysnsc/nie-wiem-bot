@@ -37,16 +37,20 @@ function getPromotionChance(level) {
 }
 
 async function runAutoWork(client) {
-  if (!client || !client.api) return;
+  if (!client) return;
+  const api = client.api || global.botApi;
+  if (!api) return;
 
   const shouldRun = await withData(store => {
     const settings = store.profiles && store.profiles[AWO_STORE_KEY];
     return settings && settings.enabled && settings.userId;
   });
 
+  console.log('[AWO] runAutoWork called, shouldRun:', shouldRun);
+
   if (!shouldRun) return;
 
-  await withData(store => {
+  const result = await withData(store => {
     const user = createUser(CREATOR_ID, store.users);
     const inventory = store.inventory && store.inventory[CREATOR_ID]
       ? store.inventory[CREATOR_ID]
@@ -158,18 +162,16 @@ async function runAutoWork(client) {
     };
   });
 
-  if (!shouldRun || !shouldRun.ready) return;
-
-  const result = shouldRun;
+  if (!result || !result.ready) return;
 
   if (result.notified) {
     const threadId = await withData(store => {
       return store.profiles && store.profiles[AWO_THREAD_KEY] || null;
     });
 
-    if (threadId && client.api) {
+    if (threadId && api) {
       const msg = `✅ **Auto-Work:** automatyczny odbiór pracy zakończony!\n💰 Zysk: **${formatCurrency(result.reward)}**${result.tributeAmount > 0 ? ` (pobrano **${formatCurrency(result.tributeAmount)}** haraczu)` : ''}`;
-      client.api.sendMessage(msg, threadId, () => {});
+      api.sendMessage(msg, threadId, () => {});
     }
   }
 }
@@ -221,5 +223,10 @@ module.exports = {
 };
 
 setInterval(() => {
-  runAutoWork(global.client || global.botClient).catch(() => {});
+  const client = global.gangAIClient || global.botApi;
+  if (client) {
+    runAutoWork(client).catch(err => {
+      console.error('[AWO] Auto-work error:', err);
+    });
+  }
 }, 60000);
