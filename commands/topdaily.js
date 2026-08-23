@@ -2,8 +2,8 @@ const { formatNumber } = require('../utils/economy');
 const { withData, createUser } = require('../utils/storage');
 
 module.exports = {
-  name: 'toplvl',
-  aliases: ['rankinglvl', 'toppoziom'],
+  name: 'topdaily',
+  aliases: ['rankingdaily', 'topdzienny'],
   async execute(client, message, args) {
     const threadId = message.guild?.id || message.rawEvent?.threadID;
 
@@ -12,7 +12,6 @@ module.exports = {
         return client.userNames.get(id);
       }
       
-      // Sprawdź w bazie danych
       let dbName = null;
       try {
         const { loadData } = require('../utils/storage');
@@ -39,7 +38,6 @@ module.exports = {
                   client.resolvedUserNames.add(id);
                 }
                 
-                // Zapisz asynchronicznie do bazy danych
                 withData(store => {
                   if (store.users[id]) {
                     store.users[id].name = name;
@@ -65,7 +63,6 @@ module.exports = {
       });
       if (unresolved.length === 0) return;
 
-      // Najpierw spróbujmy wczytać z bazy danych
       const toQueryApi = [];
       await withData(store => {
         for (const id of unresolved) {
@@ -99,7 +96,7 @@ module.exports = {
             }
           });
         } catch (err) {
-          console.error('[TOPLVL] Preload error:', err);
+          console.error('[TOPDAILY] Preload error:', err);
         }
       }
     }
@@ -122,44 +119,42 @@ module.exports = {
     }
 
     const { globalTop, groupMembers, showIds, myRank, totalPlayers } = await withData(store => {
-      // Upewnij się, że autor ma swój profil w bazie
       createUser(message.author.id, store.users);
 
       const users = Object.entries(store.users || {});
       const showIds = store.profiles.showIds || [];
 
-      // Wszystkie konta posortowane globalnie po efektywnym poziomie (level + prestige * 100), potem po xp
       const globalSorted = users
         .map(([id, u]) => {
-          const prestige = u.prestige || 0;
-          const level = u.level || 5;
-          const effectiveLevel = level + prestige * 100;
-          return { id, level, prestige, effectiveLevel, xp: u.xp || 0 };
+          return { 
+            id, 
+            dailyStreak: u.dailyStreak || 0, 
+            lastDailyClaim: u.lastDailyClaim || 0 
+          };
         })
         .sort((a, b) => {
-          if (b.effectiveLevel !== a.effectiveLevel) return b.effectiveLevel - a.effectiveLevel;
-          return b.xp - a.xp;
+          if (b.dailyStreak !== a.dailyStreak) return b.dailyStreak - a.dailyStreak;
+          return b.lastDailyClaim - a.lastDailyClaim;
         });
 
       const totalPlayers = globalSorted.length;
       const myRank = globalSorted.findIndex(u => u.id === message.author.id) + 1;
 
-      // Top 5 Globalnie
       const globalTop = globalSorted.slice(0, 5);
 
-      // Top 5 Grupy
       let groupMembers = [];
       if (participantIDs && participantIDs.length > 0) {
         groupMembers = participantIDs.map(id => {
-          const u = store.users[id] || { level: 5, prestige: 0, xp: 0 };
-          const prestige = u.prestige || 0;
-          const level = u.level || 5;
-          const effectiveLevel = level + prestige * 100;
-          return { id, level, prestige, effectiveLevel, xp: u.xp || 0 };
+          const u = store.users[id] || { dailyStreak: 0, lastDailyClaim: 0 };
+          return { 
+            id, 
+            dailyStreak: u.dailyStreak || 0, 
+            lastDailyClaim: u.lastDailyClaim || 0 
+          };
         })
         .sort((a, b) => {
-          if (b.effectiveLevel !== a.effectiveLevel) return b.effectiveLevel - a.effectiveLevel;
-          return b.xp - a.xp;
+          if (b.dailyStreak !== a.dailyStreak) return b.dailyStreak - a.dailyStreak;
+          return b.lastDailyClaim - a.lastDailyClaim;
         })
         .slice(0, 5);
       } else {
@@ -178,8 +173,7 @@ module.exports = {
         if (showIds.includes(u.id)) {
           name = `${name} ${u.id}`;
         }
-        const prestigeLabel = u.prestige > 0 ? ` [Prestiż ${u.prestige}]` : '';
-        return `${medals[i]} ${name} — ${u.level}${prestigeLabel}`;
+        return `${medals[i]} ${name} — 🔥 ${u.dailyStreak} dni`;
       })
     );
 
@@ -189,13 +183,12 @@ module.exports = {
         if (showIds.includes(u.id)) {
           name = `${name} ${u.id}`;
         }
-        const prestigeLabel = u.prestige > 0 ? ` [Prestiż ${u.prestige}]` : '';
-        return `${medals[i]} ${name} — ${u.level}${prestigeLabel}`;
+        return `${medals[i]} ${name} — 🔥 ${u.dailyStreak} dni`;
       })
     );
 
     const responseText = 
-      `🏆 **Ranking Poziomów**\n` +
+      `📅 **Ranking Daily**\n` +
       `🌍 **Top 5 Global**\n` +
       `${globalLines.length ? globalLines.join('\n') : 'Brak danych.'}\n` +
       `👥 **Top 5 Grupy**\n` +

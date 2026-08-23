@@ -21,7 +21,8 @@ const creatorCommands = [
   { cmd: '!odtworz', opis: 'Przywracanie danych z backupu.' },
   { cmd: '!stopdanegrpinfo', opis: 'Zatrzymuje analizę danych grupy.' },
   { cmd: '!kubl', opis: 'Dodawanie użytkownika do czarnej listy.' },
-  { cmd: '!truebl', opis: 'Trwała czarna lista (tylko twórca może zdjąć).' }
+  { cmd: '!truebl', opis: 'Trwała czarna lista (tylko twórca może zdjąć).' },
+  { cmd: '!swl <poziom>', opis: 'Ustawianie poziomu pracy (work level) dla dowolnego użytkownika.' }
 ];
 
 module.exports = {

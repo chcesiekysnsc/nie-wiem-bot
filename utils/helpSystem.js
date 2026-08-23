@@ -468,6 +468,19 @@ const helpCommands = [
   },
   {
     id: 26,
+    name: "topdaily",
+    category: "SOCIAL_GANGS",
+    shortDescription: "📅 ranking daily streak",
+    description: "📅 Pokazuje top 5 graczy z najdłuższym daily streak (ciągiem odbieranych nagród dziennych).",
+    usage: "!topdaily",
+    examples: ["!topdaily"],
+    cooldown: "8 sekund",
+    requirements: "Brak.",
+    aliases: ["rankingdaily", "topdzienny"],
+    additionalInfo: []
+  },
+  {
+    id: 27,
     name: "rob",
     category: "SOCIAL_GANGS",
     shortDescription: "🗡️ okradnij innego gracza",
@@ -1071,7 +1084,7 @@ const helpCommands = [
     name: "toplvl",
     category: "SOCIAL_GANGS",
     shortDescription: "🏅 ranking najwyższych poziomów",
-    description: "🏅 Wyświetla ranking 5 graczy z najwyższym poziomem (lvl) oraz ich prestiżem.",
+    description: "🏅 Wyświetla ranking 5 graczy z najwyższym poziomem (lvl) oraz ich prestiżem. Ranking uwzględnia prestiż (każdy prestiż dodaje 100 poziomów).",
     usage: "!toplvl",
     examples: ["!toplvl"],
     cooldown: "8 sekund",

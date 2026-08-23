@@ -15,7 +15,8 @@ const {
   getItemUpgradeLevel,
   getUpgradedLinearBonus,
   getUpgradedCapBonus,
-  getRandomXp
+  getRandomXp,
+  removeItem
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -92,6 +93,49 @@ const jobs = [
   'Dopilnowales skladu sejfu i zgarnaes premie.'
 ];
 
+const WORK_LEVEL_BONUSES = {
+  1: 2,
+  2: 3,
+  3: 4,
+  4: 6,
+  5: 7,
+  6: 9,
+  7: 10,
+  8: 11,
+  9: 13,
+  10: 15,
+  11: 16,
+  12: 18,
+  13: 20,
+  14: 22,
+  15: 24,
+  16: 27,
+  17: 30,
+  18: 33,
+  19: 36,
+  20: 45
+};
+
+function getWorkLevelTitle(level) {
+  if (level <= 4) return 'Praktykant';
+  if (level <= 9) return 'Specjalista';
+  if (level <= 14) return 'Ekspert';
+  if (level <= 19) return 'Mistrz';
+  return 'Legenda Pracy';
+}
+
+function getWorkLevelBonus(level) {
+  return WORK_LEVEL_BONUSES[level] || WORK_LEVEL_BONUSES[20] || 0;
+}
+
+function getPromotionChance(level) {
+  if (level <= 4) return 0.17;
+  if (level <= 9) return 0.12;
+  if (level <= 14) return 0.08;
+  if (level <= 19) return 0.05;
+  return 0.03;
+}
+
 module.exports = {
   name: 'work',
   aliases: [],
@@ -100,48 +144,15 @@ module.exports = {
     const authorId = message.author.id;
     const now = Date.now();
 
-    function getWorkLevelBonus(level) {
-      if (level <= 1) return 2;
-      if (level <= 2) return 3;
-      if (level <= 3) return 4;
-      if (level <= 4) return 6;
-      if (level <= 5) return 7;
-      if (level <= 6) return 9;
-      if (level <= 7) return 10;
-      if (level <= 8) return 11;
-      if (level <= 9) return 13;
-      if (level <= 10) return 15;
-      if (level <= 11) return 16;
-      if (level <= 12) return 18;
-      if (level <= 13) return 20;
-      if (level <= 14) return 22;
-      if (level <= 15) return 24;
-      if (level <= 16) return 27;
-      if (level <= 17) return 30;
-      if (level <= 18) return 33;
-      if (level <= 19) return 36;
-      return 45;
-    }
-
-    function getPromotionChance(level) {
-      if (level <= 4) return 0.17;
-      if (level <= 9) return 0.12;
-      if (level <= 14) return 0.08;
-      if (level <= 19) return 0.05;
-      return 0.03;
-    }
-
     const result = await withData(store => {
       const user = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
       const triggerMessages = [];
 
-      // Inicjalizuj workTimestamps w profiles jeśli nie istnieje
       if (!store.profiles.workTimestamps || typeof store.profiles.workTimestamps !== 'object') {
         store.profiles.workTimestamps = {};
       }
 
-      // Wyczyść wygasłe bany
       if (store.profiles.workBotBans) {
         for (const uid of Object.keys(store.profiles.workBotBans)) {
           if (store.profiles.workBotBans[uid].until <= now) {
@@ -174,14 +185,13 @@ module.exports = {
         actualCd *= (1 - reduction);
       }
       if (hasSzwajcar) actualCd *= 0.85;
-      
-      // Energetyk zwiększa cooldown o 10%
+
       if (hasEnergetyk) {
         const level = getItemUpgradeLevel(inventory, 'energetyk');
         const increase = 0.10 + level * 0.005;
         actualCd *= (1 + increase);
       }
-      
+
       const cdReduction = getGlobalCooldownReduction(inventory);
       if (cdReduction > 0) {
         actualCd = Math.floor(actualCd * (1 - cdReduction));
@@ -210,8 +220,6 @@ module.exports = {
 
       const workLevel = Math.max(1, user.workLevel || 1);
       const workLevelBonus = 1 + getWorkLevelBonus(workLevel) / 100;
-      let promotedWorkLevel = false;
-      let promotedNewWorkLevel = user.workLevel || 1;
 
       let reward = randomInt(config.economy.workMin, config.economy.workMax);
       reward = Math.floor(reward * workLevelBonus);
@@ -278,16 +286,12 @@ module.exports = {
         }
       }
 
-      // Szansa na awans: bazowa + bonusy z przedmiotów, jedna próba
-      if (!user.workLevel) user.workLevel = 1;
-      const currentLevel = user.workLevel;
       const promotionBonus = getItemSetBonus(inventory, 'work_promotion_chance');
       const kursBonus = getPassiveMultiplier(inventory, 'kurs_kwalifikacji', 0.03);
-      const totalPromotionChance = getPromotionChance(currentLevel) + promotionBonus + kursBonus;
-      if (Math.random() < totalPromotionChance) {
-        user.workLevel++;
-        promotedWorkLevel = true;
-        promotedNewWorkLevel = user.workLevel;
+      const totalPromotionChance = Math.min(getPromotionChance(workLevel) + promotionBonus + kursBonus, 1);
+      const didPromote = Math.random() < totalPromotionChance;
+      if (didPromote) {
+        user.workLevel = workLevel + 1;
       }
 
       if (user.badges && user.badges.includes(config.badges.krolSpamu)) {
@@ -298,7 +302,6 @@ module.exports = {
         reward = Math.floor(reward * 1.10);
       }
 
-      // Bonus mieszkaniowy (warsztat + tier domu)
       const { getHouseWorkBonus } = require('../utils/economy');
       const houseWorkBonus = getHouseWorkBonus(user);
       if (houseWorkBonus > 0) {
@@ -408,17 +411,10 @@ module.exports = {
       const xpGain = getRandomXp();
       const xpBonus = getItemSetBonus(inventory, 'xp_gain');
       const finalXpGain = xpBonus > 0 ? Math.floor(xpGain * (1 + xpBonus)) : xpGain;
-      const xpResult = addXp(user, finalXpGain, inventory);
-      const leveledUpWork = xpResult.leveledUp;
+      const xpResult = addXp(user, doubleXp ? finalXpGain * 2 : finalXpGain, inventory);
 
-      const xpDoubleChance = getItemSetBonus(inventory, 'xp_double_chance');
-      if (xpDoubleChance > 0 && Math.random() < xpDoubleChance) {
-        const bonusXp = getRandomXp();
-        const bonusXpResult = addXp(user, bonusXp, inventory);
-        triggerMessages.push('⚡ **Podwójny XP!** Zestaw przedmiotów dał Ci dodatkowe punkty doświadczenia!');
-        if (bonusXpResult.leveledUp && !leveledUpWork) {
-          // message.reply already sent below if needed
-        }
+      if (doubleXp) {
+        triggerMessages.push('⭐ Szef zauważył Twój talent! Zdobywasz **podwójne XP** z tej pracy!');
       }
 
       user.lastWorkTime = now;
@@ -445,7 +441,7 @@ module.exports = {
       const timestamps = Array.isArray(store.profiles.workTimestamps[authorId])
         ? store.profiles.workTimestamps[authorId]
         : [];
-      
+
       if (!workDisabledForUser && !hasWorkChallenge) {
         timestamps.push(now);
         while (timestamps.length > windowSize) {
@@ -497,11 +493,10 @@ module.exports = {
         gangBonus,
         xpResult,
         text: jobs[randomInt(0, jobs.length - 1)],
-        workLevel,
-        leveledUpWork,
+        workLevel: user.workLevel,
+        previousWorkLevel: workLevel,
+        didPromote,
         newWorkLevel: user.workLevel,
-        promotedWorkLevel,
-        promotedNewWorkLevel,
         eventMessage,
         triggerMessage: triggerMessages.join('\n'),
         workBoostActive: !!(user.workBoostUntil && now < user.workBoostUntil),
@@ -535,17 +530,16 @@ module.exports = {
     const finalReward = result.reward - result.tributeAmount;
     let replyText = '';
 
-    if (result.promotedWorkLevel) {
-      const workTitle = result.promotedNewWorkLevel <= 4 ? 'Praktykant' : result.promotedNewWorkLevel <= 9 ? 'Specjalista' : result.promotedNewWorkLevel <= 14 ? 'Ekspert' : result.promotedNewWorkLevel <= 19 ? 'Mistrz' : 'Legenda Pracy';
-      replyText += `\n📈 **AWANS PRACY!** Jesteś teraz **${workTitle}** (poziom **${result.promotedNewWorkLevel}**)!`;
+    if (result.didPromote) {
+      const workTitle = getWorkLevelTitle(result.newWorkLevel);
+      replyText += `\n📈 **AWANS PRACY!** Jesteś teraz **${workTitle}** (poziom **${result.newWorkLevel}**)!
+`;
     }
 
-    if ((result.workLevel > 1 || result.leveledUpWork) && !result.promotedWorkLevel) {
-      const workTitle = result.workLevel <= 4 ? 'Praktykant' : result.workLevel <= 9 ? 'Specjalista' : result.workLevel <= 14 ? 'Ekspert' : result.workLevel <= 19 ? 'Mistrz' : 'Legenda Pracy';
-      const levelText = result.leveledUpWork
-        ? `\n📈 **AWANS PRACY!** Jesteś teraz **${workTitle}** (poziom **${result.newWorkLevel}**)!`
-        : `\n💼 Twoja ranga: **${workTitle}** (poziom **${result.workLevel}**)`;
-      replyText += levelText;
+    if (result.workLevel > 1 && !result.didPromote) {
+      const workTitle = getWorkLevelTitle(result.workLevel);
+      replyText += `\n💼 Twoja ranga: **${workTitle}** (poziom **${result.workLevel}**)
+`;
     }
 
     if (result.tributeAmount > 0) {
