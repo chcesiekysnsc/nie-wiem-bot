@@ -16,7 +16,7 @@ async function calcNextWorkTime(store) {
     : { items: {} };
   const now = Date.now();
 
-  const baseCd = config.cooldowns.work || 360;
+  const baseCd = 360;
   let actualCd = baseCd;
 
   const hasZegar = inventory.items && inventory.items.stary_zegar;
@@ -109,7 +109,7 @@ module.exports = {
       return;
     }
 
-    const nextTime = await withData(store => calcNextWorkTime(store));
+    const nextTime = Date.now() + 360000;
 
     await withData(store => {
       store.profiles = store.profiles || {};
