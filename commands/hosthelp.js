@@ -22,7 +22,8 @@ const creatorCommands = [
   { cmd: '!stopdanegrpinfo', opis: 'Zatrzymuje analizę danych grupy.' },
   { cmd: '!kubl', opis: 'Dodawanie użytkownika do czarnej listy.' },
   { cmd: '!truebl', opis: 'Trwała czarna lista (tylko twórca może zdjąć).' },
-  { cmd: '!swl <poziom>', opis: 'Ustawianie poziomu pracy (work level) dla dowolnego użytkownika.' }
+  { cmd: '!swl <poziom>', opis: 'Ustawianie poziomu pracy (work level) dla dowolnego użytkownika.' },
+  { cmd: '!superboss <wygrana> <obrona> <nazwa> <minuty>', opis: 'Tworzenie superbossa z walką dla graczy.' }
 ];
 
 module.exports = {

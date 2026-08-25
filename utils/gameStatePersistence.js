@@ -110,7 +110,8 @@ function saveGameSessions(client) {
       activeGangWars: serializeSessions(client.activeGangWars || new Map()),
       activeGieldaHosts: serializeSessions(client.activeGieldaHosts || new Map()),
       gieldaHostCooldowns: serializeValue(client.gieldaHostCooldowns || new Map()),
-      meczBets: serializeSessions(client.meczBets || new Map())
+      meczBets: serializeSessions(client.meczBets || new Map()),
+      superbosses: serializeValue(client.superbosses || {})
     };
     fs.writeFileSync(GAME_SESSIONS_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (err) {
@@ -137,7 +138,8 @@ function loadGameSessions() {
         activeGangWars: new Map(),
         activeGieldaHosts: new Map(),
         gieldaHostCooldowns: new Map(),
-        meczBets: new Map()
+        meczBets: new Map(),
+        superbosses: {}
       };
     }
     const raw = fs.readFileSync(GAME_SESSIONS_FILE, 'utf8');
@@ -158,7 +160,8 @@ function loadGameSessions() {
       activeGangWars: deserializeSessions(data.activeGangWars),
       activeGieldaHosts: deserializeSessions(data.activeGieldaHosts),
       gieldaHostCooldowns: deserializeValue(data.gieldaHostCooldowns),
-      meczBets: deserializeSessions(data.meczBets)
+      meczBets: deserializeSessions(data.meczBets),
+      superbosses: deserializeValue(data.superbosses) || {}
     };
   } catch (err) {
     console.error('[gameStatePersistence] Failed to load game sessions:', err);
@@ -198,6 +201,7 @@ function restoreGameSessions(client, sessions) {
   client.activeGieldaHosts = sessions.activeGieldaHosts || new Map();
   client.gieldaHostCooldowns = sessions.gieldaHostCooldowns || new Map();
   client.meczBets = sessions.meczBets || new Map();
+  client.superbosses = sessions.superbosses || {};
   
   // Przywróć timery dla sesji
   restoreTimers(client, sessions);
@@ -205,6 +209,25 @@ function restoreGameSessions(client, sessions) {
 
 function restoreTimers(client, sessions) {
   const now = Date.now();
+  
+  // Przywróć timery dla superbossów
+  if (client.superbosses) {
+    for (const [bossId, boss] of Object.entries(client.superbosses)) {
+      if (boss.status === 'active' && boss.endTime > now) {
+        const remainingTime = boss.endTime - now;
+        setTimeout(async () => {
+          const { handleSuperbossEnd } = require('../commands/superboss');
+          await handleSuperbossEnd(client, bossId);
+        }, remainingTime);
+      } else if (boss.status === 'active' && boss.endTime <= now) {
+        // Zakończ superbossa który powinien już się zakończyć
+        const { handleSuperbossEnd } = require('../commands/superboss');
+        setTimeout(async () => {
+          await handleSuperbossEnd(client, bossId);
+        }, 1000);
+      }
+    }
+  }
   
   // Wyczyść wygasłe cooldowny giełdy
   for (const [key, expiry] of (client.gieldaHostCooldowns || new Map()).entries()) {
