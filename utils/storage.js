@@ -11,7 +11,8 @@ const DATA_FILES = {
   cooldowns: path.join(DATA_DIR, 'cooldowns.json'),
   logs: path.join(DATA_DIR, 'logs.json'),
   groupStats: path.join(DATA_DIR, 'groupStats.json'),
-  spotify: path.join(DATA_DIR, 'spotify.json')
+  spotify: path.join(DATA_DIR, 'spotify.json'),
+  superbosses: path.join(DATA_DIR, 'superbosses.json')
 };
 
 const FILE_DEFAULTS = {
@@ -25,7 +26,8 @@ const FILE_DEFAULTS = {
   },
   logs: [],
   groupStats: {},
-  spotify: {}
+  spotify: {},
+  superbosses: {}
 };
 
 let writeQueue = Promise.resolve();
@@ -808,6 +810,7 @@ async function withData(callback) {
     const l = loadData('logs');
     const g = loadData('groupStats');
     const s = loadData('spotify');
+    const sb = loadData('superbosses');
 
     const store = {
       users: u,
@@ -816,7 +819,8 @@ async function withData(callback) {
       cooldowns: c,
       logs: l,
       groupStats: g,
-      spotify: s
+      spotify: s,
+      superbosses: sb
     };
 
     // Synchronizacja dynamicznych adminów z config.admins
@@ -916,6 +920,7 @@ async function withData(callback) {
     saveData('logs', store.logs);
     saveData('groupStats', store.groupStats);
     saveData('spotify', store.spotify);
+    saveData('superbosses', store.superbosses);
 
     return result;
   };
