@@ -44,6 +44,20 @@ async function execute(client, message, args) {
     };
   });
 
+  // Zapisz superbossa również w client.superbosses dla gameStatePersistence
+  if (!client.superbosses) client.superbosses = {};
+  client.superbosses[bossId] = {
+    id: bossId,
+    name: bossName,
+    reward: reward,
+    defense: defense,
+    endTime: endTime,
+    participants: {},
+    totalStrength: 0,
+    status: 'active',
+    announcedGroups: []
+  };
+
   // Pobierz listę aktywnych grup (używając tej samej logiki co progresywne podatki)
   const { loadData } = require('../utils/storage');
   const groupStats = loadData('groupStats') || {};

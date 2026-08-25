@@ -47,6 +47,12 @@ module.exports = {
       };
       activeBoss.totalStrength += strength;
 
+      // Zaktualizuj również client.superbosses dla gameStatePersistence
+      if (client.superbosses && client.superbosses[activeBoss.id]) {
+        client.superbosses[activeBoss.id].participants = activeBoss.participants;
+        client.superbosses[activeBoss.id].totalStrength = activeBoss.totalStrength;
+      }
+
       return {
         success: true,
         bossName: activeBoss.name,
