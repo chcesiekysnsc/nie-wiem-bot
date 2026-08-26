@@ -298,6 +298,13 @@ function sanitizeUser(user) {
     ? [...new Set(merged.bodyguards.filter(b => typeof b === 'string'))]
     : [];
   merged.lastBodyguardUse = Math.max(0, sanitizeInteger(merged.lastBodyguardUse, 0));
+  merged.workerUseCount = Math.max(0, sanitizeInteger(merged.workerUseCount, 0));
+  merged.workerTotalPayout = Math.max(0, sanitizeInteger(merged.workerTotalPayout, 0));
+  merged.bodyguardUseCount = Math.max(0, sanitizeInteger(merged.bodyguardUseCount, 0));
+  merged.bodyguardTotalPayout = Math.max(0, sanitizeInteger(merged.bodyguardTotalPayout, 0));
+  merged.bodyguardKlodkaUsed = Math.max(0, sanitizeInteger(merged.bodyguardKlodkaUsed, 0));
+  merged.bodyguardBombaUsed = Math.max(0, sanitizeInteger(merged.bodyguardBombaUsed, 0));
+  merged.brownPackageResetsAt = Math.max(0, sanitizeInteger(merged.brownPackageResetsAt, 0));
 
   return merged;
 }
@@ -774,30 +781,29 @@ function runHeavyLoops(store) {
       const lastUse = user.lastBodyguardUse || 0;
       
       if (now - lastUse >= intervalMs) {
-        // Sprawdź czy ochroniarz ma szansę na darmowe użycie
         const noCost = Math.random() < bodyguardDef.noCostChance;
-        
-        // Sprawdź czy użytkownik ma bombę lub kłódkę
         const hasBomba = getItemQuantity(store.inventory, userId, 'bomba') > 0;
         const hasKlodka = getItemQuantity(store.inventory, userId, 'klodka') > 0;
-        
-        if (hasBomba || hasKlodka) {
-          // Wybierz losowo bombę lub kłódkę
-          const useBomba = hasBomba && (Math.random() < 0.5 || !hasKlodka);
-          
-          if (useBomba && hasBomba) {
-            if (!noCost) {
-              removeItem(store.inventory, userId, 'bomba', 1);
-            }
-            user.bombaActive = true;
-          } else if (hasKlodka) {
-            if (!noCost) {
-              removeItem(store.inventory, userId, 'klodka', 1);
-            }
-            user.klodkaActive = true;
+
+        if (hasBomba) {
+          if (!noCost) {
+            removeItem(store.inventory, userId, 'bomba', 1);
           }
-          
+          user.bombaActive = true;
+          user.bodyguardBombaUsed = (user.bodyguardBombaUsed || 0) + 1;
+        }
+
+        if (hasKlodka) {
+          if (!noCost) {
+            removeItem(store.inventory, userId, 'klodka', 1);
+          }
+          user.klodkaActive = true;
+          user.bodyguardKlodkaUsed = (user.bodyguardKlodkaUsed || 0) + 1;
+        }
+
+        if (hasBomba || hasKlodka) {
           user.lastBodyguardUse = now;
+          user.bodyguardUseCount = (user.bodyguardUseCount || 0) + 1;
         }
       }
     }

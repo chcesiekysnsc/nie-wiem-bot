@@ -377,11 +377,19 @@ module.exports = {
             if (victim.bodyguards && victim.bodyguards.length > 0) {
               const bodyguardDef = config.economy.bodyguards?.[victim.bodyguards[0]];
               if (bodyguardDef && bodyguardDef.givesBrownPackageOnDefense) {
-                // Daj paczkę brązową ofierze (tylko Kacper Bysiec)
-                addItem(store.inventory, victim.id, 'paczka_brazowa', 1);
+                const now = Date.now();
+                const resetsAt = victim.brownPackageResetsAt || 0;
+                let openedToday = victim.brownPackageCount || 0;
+                if (now >= resetsAt) {
+                  openedToday = 0;
+                  victim.brownPackageResetsAt = now + 3 * 3600 * 1000;
+                }
+                if (openedToday < 2) {
+                  addItem(store.inventory, victim.id, 'paczka_brazowa', 1);
+                  victim.brownPackageCount = openedToday + 1;
+                }
               }
               if (bodyguardDef && bodyguardDef.givesFreeKlodkaChance && Math.random() < bodyguardDef.givesFreeKlodkaChance) {
-                // 20% szans na darmową kłódkę (Tony Montana)
                 addItem(store.inventory, victim.id, 'klodka', 1);
               }
             }
@@ -403,11 +411,19 @@ module.exports = {
             if (victim.bodyguards && victim.bodyguards.length > 0) {
               const bodyguardDef = config.economy.bodyguards?.[victim.bodyguards[0]];
               if (bodyguardDef && bodyguardDef.givesBrownPackageOnDefense) {
-                // Daj paczkę brązową ofierze (tylko Kacper Bysiec)
-                addItem(store.inventory, victim.id, 'paczka_brazowa', 1);
+                const now = Date.now();
+                const resetsAt = victim.brownPackageResetsAt || 0;
+                let openedToday = victim.brownPackageCount || 0;
+                if (now >= resetsAt) {
+                  openedToday = 0;
+                  victim.brownPackageResetsAt = now + 3 * 3600 * 1000;
+                }
+                if (openedToday < 2) {
+                  addItem(store.inventory, victim.id, 'paczka_brazowa', 1);
+                  victim.brownPackageCount = openedToday + 1;
+                }
               }
               if (bodyguardDef && bodyguardDef.givesFreeKlodkaChance && Math.random() < bodyguardDef.givesFreeKlodkaChance) {
-                // 20% szans na darmową kłódkę (Tony Montana)
                 addItem(store.inventory, victim.id, 'klodka', 1);
               }
             }

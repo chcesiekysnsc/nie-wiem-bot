@@ -59,8 +59,34 @@ module.exports = {
     if (!action) {
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
-        return { workers: user.workers || [] };
+        const workers = user.workers || [];
+        if (workers.length > 0) {
+          const wid = workers[0];
+          const def = getWorkerDef(wid);
+          const useCount = user.workerUseCount || 0;
+          const totalPaid = user.workerTotalPayout || 0;
+          return { hasWorker: true, def, useCount, totalPaid };
+        }
+        return { hasWorker: false, workers: [] };
       });
+
+      if (result.hasWorker && result.def) {
+        const text = `👷 **TWÓJ PRACOWNIK**\n\n`;
+        text += `**${result.def.stars} ${result.def.name}**\n`;
+        text += `📊 **Statystyki:**\n`;
+        text += `   ↳ Użyty **${result.useCount}** razy\n`;
+        text += `   ↳ Łącznie wypłata: **${formatCurrency(result.totalPaid)}**\n`;
+        text += `   ↳ Pobiera: **${Math.round(result.def.salaryPercent * 100)}%** wypłaty z firmy\n`;
+        if (result.def.bonusChance > 0) {
+          text += `   ↳ Bonus zarobków: **${Math.round(result.def.bonusChance * 100)}%** szans na +${Math.round(result.def.bonusPercent * 100)}%\n`;
+        }
+        if (result.def.breakChanceBonus > 0) {
+          text += `   ↳ Szansa na awarię: **+${Math.round(result.def.breakChanceBonus * 100)}%**\n`;
+        }
+        text += `\n💡 Sprzedaj pracownika: **!pracownik sprzedaj**`;
+        await message.reply(text);
+        return;
+      }
 
       await message.reply(renderWorkerList(result.workers));
       return;

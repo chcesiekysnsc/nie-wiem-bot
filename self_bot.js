@@ -1174,6 +1174,9 @@ login({ appState }, (loginErr, api) => {
           
           user.balance += payout;
           
+          user.workerUseCount = (user.workerUseCount || 0) + 1;
+          user.workerTotalPayout = (user.workerTotalPayout || 0) + (workerResult.workerSalary || 0);
+          
           const events = [];
           if (workerResult.broke) events.push({ type: 'broke', emoji: compDef.emoji, companyName: compDef.name });
           if (workerResult.bonusTriggered) events.push({ type: 'bonus', emoji: compDef.emoji, companyName: compDef.name });

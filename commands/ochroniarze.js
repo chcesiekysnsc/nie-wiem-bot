@@ -59,8 +59,35 @@ module.exports = {
     if (!action) {
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
-        return { bodyguards: user.bodyguards || [] };
+        const bodyguards = user.bodyguards || [];
+        if (bodyguards.length > 0) {
+          const bid = bodyguards[0];
+          const def = getBodyguardDef(bid);
+          const useCount = user.bodyguardUseCount || 0;
+          const totalPaid = user.bodyguardTotalPayout || 0;
+          const klodkaUsed = user.bodyguardKlodkaUsed || 0;
+          const bombaUsed = user.bodyguardBombaUsed || 0;
+          return { hasBodyguard: true, def, useCount, totalPaid, klodkaUsed, bombaUsed };
+        }
+        return { hasBodyguard: false, bodyguards: [] };
       });
+
+      if (result.hasBodyguard && result.def) {
+        const text = `🛡️ **TWÓJ OCHRONIARZ**\n\n`;
+        text += `**${result.def.stars} ${result.def.name}**\n`;
+        text += `📊 **Statystyki:**\n`;
+        text += `   ↳ Użyty **${result.useCount}** razy\n`;
+        text += `   ↳ Łącznie wypłata: **${formatCurrency(result.totalPaid)}**\n`;
+        text += `   ↳ Pobiera: **${Math.round(result.def.salaryPercent * 100)}%** wypłaty z firmy\n`;
+        text += `   ↳ Użyte kłódki: **${result.klodkaUsed}**\n`;
+        text += `   ↳ Użyte bomby: **${result.bombaUsed}**\n`;
+        if (result.def.robDefenseBonus > 0) {
+          text += `   ↳ Zmniejsza szanse na rob o: **-${Math.round(result.def.robDefenseBonus * 100)}%**\n`;
+        }
+        text += `\n💡 Sprzedaj ochroniarza: **!ochroniarze sprzedaj**`;
+        await message.reply(text);
+        return;
+      }
 
       await message.reply(renderBodyguardList(result.bodyguards));
       return;
