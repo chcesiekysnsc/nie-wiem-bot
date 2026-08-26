@@ -307,16 +307,24 @@ module.exports = {
         user.balance += totalPayout;
 
         if (collected1) {
-          user.workerUseCount = (user.workerUseCount || 0) + 1;
-          user.workerTotalPayout = (user.workerTotalPayout || 0) + (collected1.workerSalary || 0);
-          user.bodyguardUseCount = (user.bodyguardUseCount || 0) + 1;
-          user.bodyguardTotalPayout = (user.bodyguardTotalPayout || 0) + (collected1.bodyguardSalary || 0);
+          if (user.workers && user.workers.length > 0) {
+            user.workerUseCount = (user.workerUseCount || 0) + 1;
+            user.workerTotalPayout = (user.workerTotalPayout || 0) + (collected1.workerSalary || 0);
+          }
+          if (user.bodyguards && user.bodyguards.length > 0) {
+            user.bodyguardUseCount = (user.bodyguardUseCount || 0) + 1;
+            user.bodyguardTotalPayout = (user.bodyguardTotalPayout || 0) + (collected1.bodyguardSalary || 0);
+          }
         }
         if (collected2) {
-          user.workerUseCount = (user.workerUseCount || 0) + 1;
-          user.workerTotalPayout = (user.workerTotalPayout || 0) + (collected2.workerSalary || 0);
-          user.bodyguardUseCount = (user.bodyguardUseCount || 0) + 1;
-          user.bodyguardTotalPayout = (user.bodyguardTotalPayout || 0) + (collected2.bodyguardSalary || 0);
+          if (user.workers && user.workers.length > 0) {
+            user.workerUseCount = (user.workerUseCount || 0) + 1;
+            user.workerTotalPayout = (user.workerTotalPayout || 0) + (collected2.workerSalary || 0);
+          }
+          if (user.bodyguards && user.bodyguards.length > 0) {
+            user.bodyguardUseCount = (user.bodyguardUseCount || 0) + 1;
+            user.bodyguardTotalPayout = (user.bodyguardTotalPayout || 0) + (collected2.bodyguardSalary || 0);
+          }
         }
 
         return {

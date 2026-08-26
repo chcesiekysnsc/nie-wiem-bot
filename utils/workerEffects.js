@@ -53,6 +53,12 @@ function applyWorkerEffects(payout, workers, compDef, companyObj, inventory, bre
     }
   }
 
+  // Dodaj bonus redukcji wypłaty pracowników z setów przedmiotów
+  salaryReduction = getItemSetBonus(inventory, 'worker_salary_reduction');
+  if (salaryReduction > 0) {
+    totalSalaryPercent = Math.max(0, totalSalaryPercent - salaryReduction);
+  }
+
   let workerSalary = 0;
   if (!skipSalary) {
     workerSalary = Math.floor(payout * totalSalaryPercent);
@@ -71,9 +77,6 @@ function applyWorkerEffects(payout, workers, compDef, companyObj, inventory, bre
     const setBreakChanceBonus = getItemSetBonus(inventory, 'firm_break_chance');
     breakChance += setBreakChanceBonus;
     
-    // Dodaj bonus redukcji wypłaty pracowników z setów przedmiotów
-    salaryReduction = getItemSetBonus(inventory, 'worker_salary_reduction');
-    
     if (breakChanceOverride !== undefined && breakChanceOverride !== null && breakChanceOverride !== '' && Number(breakChanceOverride) !== 50) {
       breakChance = Number(breakChanceOverride) / 100;
     }
@@ -81,11 +84,6 @@ function applyWorkerEffects(payout, workers, compDef, companyObj, inventory, bre
     if (broke) {
       companyObj.isBroken = true;
     }
-  }
-
-  // Zastosuj redukcję wypłaty pracowników
-  if (salaryReduction > 0) {
-    totalSalaryPercent = Math.max(0, totalSalaryPercent - salaryReduction);
   }
 
   return { payout, workerSalary, totalBreakChanceBonus, instantRepair, repairDiscount, broke, bonusTriggered, skipSalary };

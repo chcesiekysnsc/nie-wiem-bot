@@ -1172,10 +1172,24 @@ login({ appState }, (loginErr, api) => {
           const workerResult = applyWorkerEffects(payout, user.workers || [], compDef, compObj, userInventory, breakChanceOverride);
           payout = workerResult.payout;
           
+          let bodyguardSalary = 0;
+          if (user.bodyguards && user.bodyguards.length > 0) {
+            const bodyguardDef = config.economy.bodyguards?.[user.bodyguards[0]];
+            if (bodyguardDef) {
+              bodyguardSalary = Math.floor(payout * bodyguardDef.salaryPercent);
+              payout -= bodyguardSalary;
+            }
+          }
+          
           user.balance += payout;
           
           user.workerUseCount = (user.workerUseCount || 0) + 1;
           user.workerTotalPayout = (user.workerTotalPayout || 0) + (workerResult.workerSalary || 0);
+          
+          if (user.bodyguards && user.bodyguards.length > 0) {
+            user.bodyguardUseCount = (user.bodyguardUseCount || 0) + 1;
+            user.bodyguardTotalPayout = (user.bodyguardTotalPayout || 0) + bodyguardSalary;
+          }
           
           const events = [];
           if (workerResult.broke) events.push({ type: 'broke', emoji: compDef.emoji, companyName: compDef.name });

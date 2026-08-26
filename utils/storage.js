@@ -803,7 +803,6 @@ function runHeavyLoops(store) {
 
         if (hasBomba || hasKlodka) {
           user.lastBodyguardUse = now;
-          user.bodyguardUseCount = (user.bodyguardUseCount || 0) + 1;
         }
       }
     }
