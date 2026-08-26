@@ -5,9 +5,11 @@ const flagsList = [
   {
     "emoji": "🇦🇨",
     "answers": [
-      "ascension island"
+      "ascension island",
+      "wyspa wniebowstąpienia",
+      "wyspa wniebowstapienia"
     ],
-    "name": "Ascension Island",
+    "name": "Wyspa Wniebowstąpienia",
     "region": "europe_na"
   },
   {
@@ -359,9 +361,12 @@ const flagsList = [
   {
     "emoji": "🇨🇮",
     "answers": [
-      "côte d’ivoire"
+      "côte d'ivoire",
+      "wybrzeże kości słoniowej",
+      "wybrzeze kosci sloniowej",
+      "wks"
     ],
-    "name": "Côte d’Ivoire",
+    "name": "Wybrzeże Kości Słoniowej",
     "region": "africa"
   },
   {
@@ -407,9 +412,11 @@ const flagsList = [
   {
     "emoji": "🇨🇵",
     "answers": [
-      "clipperton island"
+      "clipperton island",
+      "wyspa clipperton",
+      "clipperton"
     ],
-    "name": "Clipperton Island",
+    "name": "Wyspa Clipperton",
     "region": "europe_na"
   },
   {
@@ -591,9 +598,11 @@ const flagsList = [
   {
     "emoji": "🇪🇺",
     "answers": [
-      "european union"
+      "european union",
+      "unia europejska",
+      "ue"
     ],
-    "name": "European Union",
+    "name": "Unia Europejska",
     "region": "europe_na"
   },
   {
@@ -801,9 +810,11 @@ const flagsList = [
   {
     "emoji": "🇭🇰",
     "answers": [
-      "sra hongkong (chiny)"
+      "sra hongkong (chiny)",
+      "hongkong",
+      "hong kong"
     ],
-    "name": "SRA Hongkong (Chiny)",
+    "name": "Hongkong",
     "region": "sa_asia"
   },
   {
@@ -849,9 +860,11 @@ const flagsList = [
   {
     "emoji": "🇮🇨",
     "answers": [
-      "canary islands"
+      "canary islands",
+      "wyspy kanaryjskie",
+      "kanary"
     ],
-    "name": "Canary Islands",
+    "name": "Wyspy Kanaryjskie",
     "region": "europe_na"
   },
   {
@@ -1073,7 +1086,9 @@ const flagsList = [
   {
     "emoji": "🇱🇨",
     "answers": [
-      "saint lucia"
+      "saint lucia",
+      "święta łucja",
+      "swieta lucja"
     ],
     "name": "Saint Lucia",
     "region": "europe_na"
@@ -1233,9 +1248,11 @@ const flagsList = [
   {
     "emoji": "🇲🇴",
     "answers": [
-      "sra makau (chiny)"
+      "sra makau (chiny)",
+      "makau",
+      "macao"
     ],
-    "name": "SRA Makau (Chiny)",
+    "name": "Makau",
     "region": "sa_asia"
   },
   {
@@ -1353,9 +1370,10 @@ const flagsList = [
   {
     "emoji": "🇳🇫",
     "answers": [
-      "norfolk"
+      "norfolk",
+      "wyspa norfolk"
     ],
-    "name": "Norfolk",
+    "name": "Wyspa Norfolk",
     "region": "oceania"
   },
   {
@@ -1497,9 +1515,10 @@ const flagsList = [
   {
     "emoji": "🇵🇳",
     "answers": [
-      "pitcairn"
+      "pitcairn",
+      "wyspy pitcairn"
     ],
-    "name": "Pitcairn",
+    "name": "Wyspy Pitcairn",
     "region": "oceania"
   },
   {
@@ -1921,9 +1940,12 @@ const flagsList = [
   {
     "emoji": "🇺🇳",
     "answers": [
-      "united nations"
+      "united nations",
+      "narody zjednoczone",
+      "onz",
+      "organizacja narodów zjednoczonych"
     ],
-    "name": "United Nations",
+    "name": "Narody Zjednoczone (ONZ)",
     "region": "europe_na"
   },
   {
@@ -2075,25 +2097,28 @@ const flagsList = [
   {
     "emoji": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
     "answers": [
-      "england"
+      "england",
+      "anglia"
     ],
-    "name": "England",
+    "name": "Anglia",
     "region": "europe_na"
   },
   {
     "emoji": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
     "answers": [
-      "scotland"
+      "scotland",
+      "szkocja"
     ],
-    "name": "Scotland",
+    "name": "Szkocja",
     "region": "europe_na"
   },
   {
     "emoji": "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
     "answers": [
-      "wales"
+      "wales",
+      "walia"
     ],
-    "name": "Wales",
+    "name": "Walia",
     "region": "europe_na"
   }
 ];
