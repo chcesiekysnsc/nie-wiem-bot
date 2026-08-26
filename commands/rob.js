@@ -100,6 +100,14 @@ function calculateSuccessChance(robberInv, victimInv, robber, overrideChance, vi
     chance -= 0.10;
   }
 
+  // Ochroniarze zmniejszają szanse na udane rob
+  if (victim && victim.bodyguards && victim.bodyguards.length > 0) {
+    const bodyguardDef = config.economy.bodyguards?.[victim.bodyguards[0]];
+    if (bodyguardDef && bodyguardDef.robDefenseBonus) {
+      chance -= bodyguardDef.robDefenseBonus;
+    }
+  }
+
   return Math.min(chance, 1);
 }
 
@@ -363,6 +371,21 @@ module.exports = {
             victim.balance += fine;
             refreshBadges(robber, robberInv);
             refreshBadges(victim, victimInv);
+            
+            // Sprawdź czy ofiara ma ochroniarza
+            const { addItem } = require('../utils/economy');
+            if (victim.bodyguards && victim.bodyguards.length > 0) {
+              const bodyguardDef = config.economy.bodyguards?.[victim.bodyguards[0]];
+              if (bodyguardDef && bodyguardDef.givesBrownPackageOnDefense) {
+                // Daj paczkę brązową ofierze (tylko Kacper Bysiec)
+                addItem(store.inventory, victim.id, 'paczka_brazowa', 1);
+              }
+              if (bodyguardDef && bodyguardDef.givesFreeKlodkaChance && Math.random() < bodyguardDef.givesFreeKlodkaChance) {
+                // 20% szans na darmową kłódkę (Tony Montana)
+                addItem(store.inventory, victim.id, 'klodka', 1);
+              }
+            }
+            
             return { blockedBy: 'bomba', fine, victimLastActiveThreadId };
           }
 
@@ -374,6 +397,21 @@ module.exports = {
               robber.balance -= fine;
               victim.balance += fine;
             }
+            
+            // Sprawdź czy ofiara ma ochroniarza
+            const { addItem } = require('../utils/economy');
+            if (victim.bodyguards && victim.bodyguards.length > 0) {
+              const bodyguardDef = config.economy.bodyguards?.[victim.bodyguards[0]];
+              if (bodyguardDef && bodyguardDef.givesBrownPackageOnDefense) {
+                // Daj paczkę brązową ofierze (tylko Kacper Bysiec)
+                addItem(store.inventory, victim.id, 'paczka_brazowa', 1);
+              }
+              if (bodyguardDef && bodyguardDef.givesFreeKlodkaChance && Math.random() < bodyguardDef.givesFreeKlodkaChance) {
+                // 20% szans na darmową kłódkę (Tony Montana)
+                addItem(store.inventory, victim.id, 'klodka', 1);
+              }
+            }
+            
             return { blockedBy: 'klodka', fine, victimLastActiveThreadId };
           }
 

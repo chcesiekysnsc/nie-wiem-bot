@@ -183,7 +183,7 @@ module.exports = {
         let errors = [];
 
         // Helper to calculate company payout
-        const calcPayout = (compDef, companyObj, label, naprawCmd, userWorkers) => {
+        const calcPayout = (compDef, companyObj, label, naprawCmd, userWorkers, userBodyguards) => {
           if (!compDef) return null;
           if (companyObj.isBroken) {
             const repairCost = compDef.repairCost || (compDef.payout * 4);
@@ -264,7 +264,17 @@ module.exports = {
             payout = workerResult.payout;
           }
 
-           return { compDef, payout, garniturBonus, kaczkaBonus, ksiegaBonus, insygniaBonus, globalBonus, setBonus, kalkulatorBonus, terminalDoubled, workerSalary: workerResult.workerSalary, bonusTriggered: workerResult.bonusTriggered, skipSalary: workerResult.skipSalary, instantRepair: workerResult.instantRepair, repairDiscount: workerResult.repairDiscount, broke: companyObj.isBroken };
+          // Apply bodyguard effects only if bodyguards exist
+          let bodyguardSalary = 0;
+          if (userBodyguards && userBodyguards.length > 0) {
+            const bodyguardDef = config.economy.bodyguards?.[userBodyguards[0]];
+            if (bodyguardDef) {
+              bodyguardSalary = Math.floor(payout * bodyguardDef.salaryPercent);
+              payout -= bodyguardSalary;
+            }
+          }
+
+           return { compDef, payout, garniturBonus, kaczkaBonus, ksiegaBonus, insygniaBonus, globalBonus, setBonus, kalkulatorBonus, terminalDoubled, workerSalary: workerResult.workerSalary, bodyguardSalary, bonusTriggered: workerResult.bonusTriggered, skipSalary: workerResult.skipSalary, instantRepair: workerResult.instantRepair, repairDiscount: workerResult.repairDiscount, broke: companyObj.isBroken };
         };
 
         // Check company 1
@@ -273,7 +283,7 @@ module.exports = {
           if (!compDef) {
             user.company = null;
           } else {
-            collected1 = calcPayout(compDef, user.company, 'Twoja pierwsza firma', '!firma napraw', user.workers);
+            collected1 = calcPayout(compDef, user.company, 'Twoja pierwsza firma', '!firma napraw', user.workers, user.bodyguards);
           }
         }
 
@@ -283,7 +293,7 @@ module.exports = {
           if (!compDef) {
             user.company2 = null;
           } else {
-            collected2 = calcPayout(compDef, user.company2, 'Twoja druga firma', '!firma2 napraw', user.workers);
+            collected2 = calcPayout(compDef, user.company2, 'Twoja druga firma', '!firma2 napraw', user.workers, user.bodyguards);
           }
         }
 
@@ -346,6 +356,9 @@ module.exports = {
         }
         if (col.workerSalary > 0) {
           txt += `   👷 **Wynagrodzenie pracowników:** **-${formatCurrency(col.workerSalary)}**\n`;
+        }
+        if (col.bodyguardSalary > 0) {
+          txt += `   🛡️ **Wynagrodzenie ochroniarzy:** **-${formatCurrency(col.bodyguardSalary)}**\n`;
         }
         if (col.skipSalary) {
           txt += `   🎲 **Pracownik odważył się nie pobrać wypłaty!**\n`;
@@ -513,6 +526,19 @@ module.exports = {
         statusMsg += `\n💡 Zarządzaj pracownikami: **!pracownik**\n`;
       } else {
         statusMsg += `\n💡 Kup pracowników: **!pracownik**\n`;
+      }
+
+      if (user.bodyguards && user.bodyguards.length > 0) {
+        statusMsg += `\n🛡️ **TWOI OCHRONIARZE:**\n`;
+        for (const bgId of user.bodyguards) {
+          const def = config.economy.bodyguards?.[bgId];
+          if (def) {
+            statusMsg += `• ${def.stars} **${def.name}** — pobiera ${Math.round(def.salaryPercent * 100)}% wypłaty\n`;
+          }
+        }
+        statusMsg += `\n💡 Zarządzaj ochroniarzami: **!ochroniarze**\n`;
+      } else {
+        statusMsg += `\n💡 Kup ochroniarzy: **!ochroniarze**\n`;
       }
 
       await message.reply(statusMsg);

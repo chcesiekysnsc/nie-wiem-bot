@@ -278,6 +278,19 @@ const helpCommands = [
   },
   {
     id: 17,
+    name: "ochroniarze",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "🛡️ zatrudnianie ochroniarzy",
+    description: "🛡️ Kup ochroniarzy, którzy automatycznie używają bomb/klodki i chronią przed napadami.",
+    usage: "!ochroniarze | !ochroniarze <nr> | !ochroniarze sprzedaj",
+    examples: ["!ochroniarze", "!ochroniarze 1", "!ochroniarze sprzedaj"],
+    cooldown: "3 sekundy",
+    requirements: "Posiadanie firmy. Można zatrudnić tylko 1 ochroniarza.",
+    aliases: ["ochroniarz", "bodyguard"],
+    additionalInfo: ["Ochroniarze automatycznie używają bomb/klodki co określony czas.","Niektórzy ochroniarze zmniejszają szanse na udane rob lub dają bonusy przy obronie."]
+  },
+  {
+    id: 18,
     name: "slots",
     category: "ECONOMY_GAMBLING",
     shortDescription: "🎰 automat jednoręki bandyta",
@@ -290,7 +303,7 @@ const helpCommands = [
     additionalInfo: ["Mnożniki zależą od wylosowanej kombinacji symboli."]
   },
   {
-    id: 17,
+    id: 19,
     name: "coinflip",
     category: "ECONOMY_GAMBLING",
     shortDescription: "🪙 rzut monetą",
@@ -303,7 +316,7 @@ const helpCommands = [
     additionalInfo: ["Szansa na wygraną wynosi dokładnie 50%."]
   },
   {
-    id: 18,
+    id: 20,
     name: "ruletka",
     category: "ECONOMY_GAMBLING",
     shortDescription: "🎡 obstawianie w ruletce",
@@ -1090,10 +1103,23 @@ const helpCommands = [
     cooldown: "8 sekund",
     requirements: "Brak.",
     aliases: ["rankinglvl", "toppoziom"],
-    additionalInfo: []
+    additionalInfo: ["Ranking jest aktualizowany w czasie rzeczywistym.","Prestiż znacząco wpływa na pozycję w rankingu."]
   },
   {
     id: 67,
+    name: "toprob",
+    category: "SOCIAL_GANGS",
+    shortDescription: "🔪 ranking napadów",
+    description: "🔪 Wyświetla ranking 5 graczy z największą liczbą napadów (!rob).",
+    usage: "!toprob",
+    examples: ["!toprob"],
+    cooldown: "8 sekund",
+    requirements: "Brak.",
+    aliases: ["rankingrob"],
+    additionalInfo: ["Ranking jest oparty na liczbie użycia komendy !rob.","Pokazuje top 5 globalnie oraz top 5 w grupie."]
+  },
+  {
+    id: 68,
     name: "losuj",
     category: "SOCIAL_GANGS",
     shortDescription: "🎯 losuje i oznacza osobę z grupy",
@@ -1106,7 +1132,7 @@ const helpCommands = [
     additionalInfo: []
   },
   {
-    id: 68,
+    id: 69,
     name: "afk",
     category: "SOCIAL_GANGS",
     shortDescription: "💤 status nieobecności (AFK)",

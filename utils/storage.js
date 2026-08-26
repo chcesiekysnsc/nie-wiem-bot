@@ -294,6 +294,10 @@ function sanitizeUser(user) {
   merged.workers = Array.isArray(merged.workers)
     ? [...new Set(merged.workers.filter(w => typeof w === 'string'))]
     : [];
+  merged.bodyguards = Array.isArray(merged.bodyguards)
+    ? [...new Set(merged.bodyguards.filter(b => typeof b === 'string'))]
+    : [];
+  merged.lastBodyguardUse = Math.max(0, sanitizeInteger(merged.lastBodyguardUse, 0));
 
   return merged;
 }
@@ -754,6 +758,47 @@ function runHeavyLoops(store) {
         }
       } else {
         user.negativeSince = null;
+      }
+    }
+  }
+
+  // --- Ochroniarze - automatyczne używanie bomb/klodki ---
+  const { addItem, getItemQuantity, removeItem } = require('./economy');
+  for (const [userId, user] of Object.entries(store.users)) {
+    if (user && user.bodyguards && user.bodyguards.length > 0) {
+      const bodyguardId = user.bodyguards[0];
+      const bodyguardDef = config.economy.bodyguards?.[bodyguardId];
+      if (!bodyguardDef) continue;
+
+      const intervalMs = bodyguardDef.useIntervalMinutes * 60 * 1000;
+      const lastUse = user.lastBodyguardUse || 0;
+      
+      if (now - lastUse >= intervalMs) {
+        // Sprawdź czy ochroniarz ma szansę na darmowe użycie
+        const noCost = Math.random() < bodyguardDef.noCostChance;
+        
+        // Sprawdź czy użytkownik ma bombę lub kłódkę
+        const hasBomba = getItemQuantity(store.inventory, userId, 'bomba') > 0;
+        const hasKlodka = getItemQuantity(store.inventory, userId, 'klodka') > 0;
+        
+        if (hasBomba || hasKlodka) {
+          // Wybierz losowo bombę lub kłódkę
+          const useBomba = hasBomba && (Math.random() < 0.5 || !hasKlodka);
+          
+          if (useBomba && hasBomba) {
+            if (!noCost) {
+              removeItem(store.inventory, userId, 'bomba', 1);
+            }
+            user.bombaActive = true;
+          } else if (hasKlodka) {
+            if (!noCost) {
+              removeItem(store.inventory, userId, 'klodka', 1);
+            }
+            user.klodkaActive = true;
+          }
+          
+          user.lastBodyguardUse = now;
+        }
       }
     }
   }

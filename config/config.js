@@ -253,6 +253,40 @@ module.exports = {
         description: 'Pobiera 10% wypłaty z firmy. Nie zwiększa szans na awarię. 4% szans na bonus +25% do zysków. 3% szans na natychmiastową naprawę firmy.'
       }
     },
+    bodyguards: {
+      kacper_rzerzonczka: {
+        name: 'Kacper Rzerzonczka',
+        stars: '🛡️',
+        cost: 500000,
+        salaryPercent: 0.03,
+        useIntervalMinutes: 60,
+        noCostChance: 0.08,
+        robDefenseBonus: 0,
+        description: 'Używa bomby/klodki co godzinę. Pobiera 3% wypłaty z firmy. 8% szans że nie pobierze bomby/klodki z eq.'
+      },
+      tony_montana_smietana: {
+        name: 'Tony Montana Smietana',
+        stars: '🛡️🛡️',
+        cost: 1000000,
+        salaryPercent: 0.04,
+        useIntervalMinutes: 45,
+        noCostChance: 0.05,
+        robDefenseBonus: 0.015,
+        givesFreeKlodkaChance: 0.20,
+        description: 'Używa bomby/klodki co 45 minut. Pobiera 4% wypłaty z firmy. 5% szans że nie pobierze bomby/klodki z eq. Zmniejsza szanse na udane rob o 1.5%. 20% szans na darmową kłódkę gdy ochroni przed napadem.'
+      },
+      kacper_bysiec: {
+        name: 'Kacper Bysiec',
+        stars: '🛡️🛡️🛡️',
+        cost: 1500000,
+        salaryPercent: 0.07,
+        useIntervalMinutes: 20,
+        noCostChance: 0.08,
+        robDefenseBonus: 0.03,
+        givesBrownPackageOnDefense: true,
+        description: 'Używa bomby/klodki co 20 minut. Pobiera 7% wypłaty z firmy. 8% szans że nie pobierze bomby/klodki z eq. Zmniejsza szanse na udane rob o 3%. Gdy ochroni przed napadem, daje paczkę brązową.'
+      }
+    },
     maxBet: 100000,
     dailyMin: 900,
     dailyMax: 2200,

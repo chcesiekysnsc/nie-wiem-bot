@@ -38,6 +38,7 @@ module.exports = {
 
       if (store.users[targetId]) {
         store.users[targetId].blacklistedForNegativeBalance = false;
+        store.users[targetId].negativeSince = null; // Resetuj czas ujemnego salda
       }
 
       if (store.profiles.workBotBans && store.profiles.workBotBans[targetId]) {
