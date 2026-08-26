@@ -8,7 +8,7 @@ function getBodyguardDef(id) {
   return config.economy.bodyguards?.[id];
 }
 
-function renderBodyguardList(userBodyguards) {
+function renderBodyguardList(activeBodyguardId) {
   const bodyguards = config.economy.bodyguards || {};
   let text = '🛡️ **OCHRONIARZE (SYSTEM OCHRONIARZY)**\n';
   text += 'Kup ochroniarza, aby automatycznie używać bomb/klodki!\n';
@@ -20,7 +20,7 @@ function renderBodyguardList(userBodyguards) {
     const def = getBodyguardDef(id);
     if (!def) continue;
 
-    const owned = userBodyguards.includes(id);
+    const owned = activeBodyguardId === id;
     const salaryPct = Math.round(def.salaryPercent * 100);
     const noCostPct = Math.round(def.noCostChance * 100);
     const robDefensePct = def.robDefenseBonus ? Math.round(def.robDefenseBonus * 100) : 0;
@@ -59,9 +59,8 @@ module.exports = {
     if (!action) {
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
-        const bodyguards = user.bodyguards || [];
-        if (bodyguards.length > 0) {
-          const bid = bodyguards[0];
+        const bid = user.bodyguard;
+        if (bid) {
           const def = getBodyguardDef(bid);
           const useCount = user.bodyguardUseCount || 0;
           const totalPaid = user.bodyguardTotalPayout || 0;
@@ -70,7 +69,7 @@ module.exports = {
           const hiredAt = user.bodyguardHiredAt || null;
           return { hasBodyguard: true, def, useCount, totalPaid, klodkaUsed, bombaUsed, hiredAt };
         }
-        return { hasBodyguard: false, bodyguards: [] };
+        return { hasBodyguard: false, activeBodyguardId: null };
       });
 
       if (result.hasBodyguard && result.def) {
@@ -105,7 +104,7 @@ module.exports = {
         return;
       }
 
-      await message.reply(renderBodyguardList(result.bodyguards));
+      await message.reply(renderBodyguardList(null));
       return;
     }
 
@@ -113,21 +112,18 @@ module.exports = {
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
 
-        if (!user.bodyguards || user.bodyguards.length === 0) {
+        if (!user.bodyguard) {
           return { error: '❌ Nie posiadasz żadnego ochroniarza do sprzedania!' };
         }
 
         let totalRefund = 0;
-        const bodyguardsDef = config.economy.bodyguards || {};
-        for (const bgId of user.bodyguards) {
-          const def = getBodyguardDef(bgId);
-          if (def) {
-            totalRefund += Math.floor(def.cost * 0.5);
-          }
+        const def = getBodyguardDef(user.bodyguard);
+        if (def) {
+          totalRefund = Math.floor(def.cost * 0.5);
         }
 
         user.balance += totalRefund;
-        user.bodyguards = [];
+        user.bodyguard = null;
         user.bodyguardHiredAt = null;
         user.bodyguardUseCount = 0;
         user.bodyguardTotalPayout = 0;
@@ -147,7 +143,6 @@ module.exports = {
     }
 
     const bodyguardNum = parseInt(action, 10);
-    const bodyguardsDef = config.economy.bodyguards || {};
     if (isNaN(bodyguardNum) || bodyguardNum < 1 || bodyguardNum > BODYGUARDS_ORDER.length) {
       await message.reply(`❌ Podaj numer ochroniarza 1-${BODYGUARDS_ORDER.length}. Napisz **!ochroniarze**, aby zobaczyć listę.`);
       return;
@@ -167,12 +162,11 @@ module.exports = {
         return { error: '❌ Musisz najpierw posiadać firmę, aby zatrudnić ochroniarza! Kup firmę za pomocą **!firma kup <nr>**.' };
       }
 
-      if (user.bodyguards && user.bodyguards.length >= 1) {
-        return { error: '❌ Możesz zatrudnić tylko 1 ochroniarza!' };
-      }
-
-      if (user.bodyguards && user.bodyguards.includes(bodyguardId)) {
-        return { error: `❌ Już zatrudniłeś **${bodyguardDef.name}**!` };
+      if (user.bodyguard) {
+        if (user.bodyguard === bodyguardId) {
+          return { error: `❌ Już zatrudniłeś **${bodyguardDef.name}**!` };
+        }
+        return { error: '❌ Możesz zatrudnić tylko 1 ochroniarza! Sprzedaj obecnego przez **!ochroniarze sprzedaj**.' };
       }
 
       if (user.balance < bodyguardDef.cost) {
@@ -180,8 +174,7 @@ module.exports = {
       }
 
       user.balance -= bodyguardDef.cost;
-      user.bodyguards = user.bodyguards || [];
-      user.bodyguards.push(bodyguardId);
+      user.bodyguard = bodyguardId;
       user.bodyguardHiredAt = Date.now();
       user.bodyguardUseCount = 0;
       user.bodyguardTotalPayout = 0;

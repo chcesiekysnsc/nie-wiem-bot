@@ -374,8 +374,8 @@ module.exports = {
             
             // Sprawdź czy ofiara ma ochroniarza
             const { addItem } = require('../utils/economy');
-            if (victim.bodyguards && victim.bodyguards.length > 0) {
-              const bodyguardDef = config.economy.bodyguards?.[victim.bodyguards[0]];
+            if (victim.bodyguard) {
+              const bodyguardDef = config.economy.bodyguards?.[victim.bodyguard];
               if (bodyguardDef && bodyguardDef.givesBrownPackageOnDefense) {
                 const now = Date.now();
                 const resetsAt = victim.brownPackageResetsAt || 0;
@@ -408,8 +408,8 @@ module.exports = {
             
             // Sprawdź czy ofiara ma ochroniarza
             const { addItem } = require('../utils/economy');
-            if (victim.bodyguards && victim.bodyguards.length > 0) {
-              const bodyguardDef = config.economy.bodyguards?.[victim.bodyguards[0]];
+            if (victim.bodyguard) {
+              const bodyguardDef = config.economy.bodyguards?.[victim.bodyguard];
               if (bodyguardDef && bodyguardDef.givesBrownPackageOnDefense) {
                 const now = Date.now();
                 const resetsAt = victim.brownPackageResetsAt || 0;

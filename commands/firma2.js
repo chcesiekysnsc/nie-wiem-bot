@@ -237,13 +237,11 @@ module.exports = {
       statusMsg += `• 💸 **!firma2 sprzedaj** — sprzedaj drugą firmę za 50% ceny (zwrot: **${formatCurrency(compDef.price * 0.5)}**)\n\n`;
       statusMsg += `💡 Zysk z obu firm zbierasz komendą: **!firma zbierz**!`;
 
-      if (user.workers && user.workers.length > 0) {
-        statusMsg += `\n\n👷 **TWOI PRACOWNICY:**\n`;
-        for (const wid of user.workers) {
-          const def = getWorkerDef(wid);
-          if (def) {
-            statusMsg += `• ${def.stars} **${def.name}** — pobiera ${Math.round(def.salaryPercent * 100)}% wypłaty\n`;
-          }
+      if (user.worker) {
+        statusMsg += `\n\n👷 **TWÓJ PRACOWNIK:**\n`;
+        const def = getWorkerDef(user.worker);
+        if (def) {
+          statusMsg += `• ${def.stars} **${def.name}** — pobiera ${Math.round(def.salaryPercent * 100)}% wypłaty\n`;
         }
       }
 

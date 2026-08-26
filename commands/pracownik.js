@@ -5,7 +5,7 @@ const { getWorkerDef } = require('../utils/workerEffects');
 
 const WORKERS_ORDER = ['lary', 'alan', 'rafal', 'wojtek', 'eryk'];
 
-function renderWorkerList(userWorkers) {
+function renderWorkerList(activeWorkerId) {
   const workers = config.economy.workers || {};
   let text = '👷 **PRACOWNICY (SYSTEM PRACOWNIKÓW)**\n';
   text += 'Kup pracownika, aby zwiększyć zyski z firmy!\n';
@@ -17,7 +17,7 @@ function renderWorkerList(userWorkers) {
     const def = getWorkerDef(id);
     if (!def) continue;
 
-    const owned = userWorkers.includes(id);
+    const owned = activeWorkerId === id;
     const breakPct = Math.round(def.breakChanceBonus * 100);
     const salaryPct = Math.round(def.salaryPercent * 100);
     const bonusPct = Math.round(def.bonusChance * 100);
@@ -59,16 +59,15 @@ module.exports = {
     if (!action) {
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
-        const workers = user.workers || [];
-        if (workers.length > 0) {
-          const wid = workers[0];
+        const wid = user.worker;
+        if (wid) {
           const def = getWorkerDef(wid);
           const useCount = user.workerUseCount || 0;
           const totalPaid = user.workerTotalPayout || 0;
           const hiredAt = user.workerHiredAt || null;
           return { hasWorker: true, def, useCount, totalPaid, hiredAt };
         }
-        return { hasWorker: false, workers: [] };
+        return { hasWorker: false, activeWorkerId: null };
       });
 
       if (result.hasWorker && result.def) {
@@ -95,7 +94,7 @@ module.exports = {
         return;
       }
 
-      await message.reply(renderWorkerList(result.workers));
+      await message.reply(renderWorkerList(null));
       return;
     }
 
@@ -103,21 +102,18 @@ module.exports = {
       const result = await withData(store => {
         const user = createUser(message.author.id, store.users);
 
-        if (!user.workers || user.workers.length === 0) {
+        if (!user.worker) {
           return { error: '❌ Nie posiadasz żadnego pracownika do sprzedania!' };
         }
 
         let totalRefund = 0;
-        const workersDef = config.economy.workers || {};
-        for (const wid of user.workers) {
-          const def = getWorkerDef(wid);
-          if (def) {
-            totalRefund += Math.floor(def.cost * 0.5);
-          }
+        const def = getWorkerDef(user.worker);
+        if (def) {
+          totalRefund = Math.floor(def.cost * 0.5);
         }
 
         user.balance += totalRefund;
-        user.workers = [];
+        user.worker = null;
         user.workerHiredAt = null;
         user.workerUseCount = 0;
         user.workerTotalPayout = 0;
@@ -135,7 +131,6 @@ module.exports = {
     }
 
     const workerNum = parseInt(action, 10);
-    const workersDef = config.economy.workers || {};
     if (isNaN(workerNum) || workerNum < 1 || workerNum > WORKERS_ORDER.length) {
       await message.reply(`❌ Podaj numer pracownika 1-${WORKERS_ORDER.length}. Napisz **!pracownik**, aby zobaczyć listę.`);
       return;
@@ -155,12 +150,11 @@ module.exports = {
         return { error: '❌ Musisz najpierw posiadać firmę, aby zatrudnić pracownika! Kup firmę za pomocą **!firma kup <nr>**.' };
       }
 
-      if (user.workers && user.workers.length >= 1) {
-        return { error: '❌ Możesz zatrudnić tylko 1 pracownika!' };
-      }
-
-      if (user.workers && user.workers.includes(workerId)) {
-        return { error: `❌ Już zatrudniłeś **${workerDef.name}**!` };
+      if (user.worker) {
+        if (user.worker === workerId) {
+          return { error: `❌ Już zatrudniłeś **${workerDef.name}**!` };
+        }
+        return { error: '❌ Możesz zatrudnić tylko 1 pracownika! Sprzedaj obecnego przez **!pracownik sprzedaj**.' };
       }
 
       if (user.balance < workerDef.cost) {
@@ -168,8 +162,7 @@ module.exports = {
       }
 
       user.balance -= workerDef.cost;
-      user.workers = user.workers || [];
-      user.workers.push(workerId);
+      user.worker = workerId;
       user.workerHiredAt = Date.now();
       user.workerUseCount = 0;
       user.workerTotalPayout = 0;
@@ -188,6 +181,6 @@ module.exports = {
       return;
     }
 
-    await message.reply(`🎉 Pomyślnie zatrudniono **${result.workerDef.stars} ${result.workerDef.name}** za **${formatCurrency(result.workerDef.cost)}**!\n💰 Pozostało w portfelu: **${formatCurrency(result.balance)}**.\n💡 Możesz już odebrać wypłatę z efektyami pracownika komendą: **!firma zbierz**!`);
+    await message.reply(`🎉 Pomyślnie zatrudniono **${result.workerDef.stars} ${result.workerDef.name}** za **${formatCurrency(result.workerDef.cost)}**!\n💰 Pozostało w portfelu: **${formatCurrency(result.balance)}**.\n💡 Możesz już odebrać wypłatę z efektami pracownika komendą: **!firma zbierz**!`);
   }
 };

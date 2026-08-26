@@ -5,42 +5,36 @@ function getWorkerDef(id) {
   return config.economy.workers && config.economy.workers[id] ? { id, ...config.economy.workers[id] } : null;
 }
 
-function applyWorkerEffects(payout, workers, compDef, companyObj, inventory, breakChanceOverride) {
-  if (!workers || workers.length === 0) {
+function applyWorkerEffects(payout, workerId, compDef, companyObj, inventory, breakChanceOverride) {
+  if (!workerId) {
     return { payout, workerSalary: 0, totalBreakChanceBonus: 0, instantRepair: false, repairDiscount: false, broke: false, bonusTriggered: false, skipSalary: false };
   }
 
-  let totalSalaryPercent = 0;
-  let totalBreakChanceBonus = 0;
-  let bonusChance = 0;
-  let bonusPercent = 0;
+  const def = getWorkerDef(workerId);
+  if (!def) {
+    return { payout, workerSalary: 0, totalBreakChanceBonus: 0, instantRepair: false, repairDiscount: false, broke: false, bonusTriggered: false, skipSalary: false };
+  }
+
+  let totalSalaryPercent = def.salaryPercent;
+  let totalBreakChanceBonus = def.breakChanceBonus;
+  let bonusChance = def.bonusChance;
+  let bonusPercent = def.bonusPercent;
   let skipSalary = false;
   let instantRepair = false;
   let repairDiscount = false;
   let doubleBonus = false;
-  let salaryReduction = 0;
 
-  for (const wid of workers) {
-    const def = getWorkerDef(wid);
-    if (!def) continue;
-
-    totalSalaryPercent += def.salaryPercent;
-    totalBreakChanceBonus += def.breakChanceBonus;
-    bonusChance += def.bonusChance;
-    bonusPercent += def.bonusPercent;
-
-    if (def.skipSalaryChance && Math.random() < def.skipSalaryChance) {
-      skipSalary = true;
-    }
-    if (def.instantRepairChance && Math.random() < def.instantRepairChance) {
-      instantRepair = true;
-    }
-    if (def.repairDiscountChance && Math.random() < def.repairDiscountChance) {
-      repairDiscount = true;
-    }
-    if (def.doubleBonusChance && Math.random() < def.doubleBonusChance) {
-      doubleBonus = true;
-    }
+  if (def.skipSalaryChance && Math.random() < def.skipSalaryChance) {
+    skipSalary = true;
+  }
+  if (def.instantRepairChance && Math.random() < def.instantRepairChance) {
+    instantRepair = true;
+  }
+  if (def.repairDiscountChance && Math.random() < def.repairDiscountChance) {
+    repairDiscount = true;
+  }
+  if (def.doubleBonusChance && Math.random() < def.doubleBonusChance) {
+    doubleBonus = true;
   }
 
   let bonusTriggered = false;
@@ -54,7 +48,7 @@ function applyWorkerEffects(payout, workers, compDef, companyObj, inventory, bre
   }
 
   // Dodaj bonus redukcji wypłaty pracowników z setów przedmiotów
-  salaryReduction = getItemSetBonus(inventory, 'worker_salary_reduction');
+  const salaryReduction = getItemSetBonus(inventory, 'worker_salary_reduction');
   if (salaryReduction > 0) {
     totalSalaryPercent = Math.max(0, totalSalaryPercent - salaryReduction);
   }

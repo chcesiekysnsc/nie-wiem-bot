@@ -841,7 +841,7 @@ async function autoCollectPayout(userId, api, notifyThreadId) {
       const diff = now - (compObj.lastPayout || 0);
       if (diff < cooldownMs) continue;
 
-      if (!user.workers || user.workers.length === 0) {
+      if (!user.worker) {
         continue;
       }
 
@@ -875,11 +875,28 @@ async function autoCollectPayout(userId, api, notifyThreadId) {
 
       compObj.lastPayout = now;
 
-      const workerResult = applyWorkerEffects(payout, user.workers || [], compDef, compObj, inventory, breakChanceOverride);
+      const workerResult = applyWorkerEffects(payout, user.worker, compDef, compObj, inventory, breakChanceOverride);
       payout = workerResult.payout;
+
+      let bodyguardSalary = 0;
+      if (user.bodyguard) {
+        const bodyguardDef = config.economy.bodyguards?.[user.bodyguard];
+        if (bodyguardDef) {
+          bodyguardSalary = Math.floor(payout * bodyguardDef.salaryPercent);
+          payout -= bodyguardSalary;
+        }
+      }
 
       user.balance += payout;
       totalCollected += payout;
+
+      user.workerUseCount = (user.workerUseCount || 0) + 1;
+      user.workerTotalPayout = (user.workerTotalPayout || 0) + (workerResult.workerSalary || 0);
+
+      if (user.bodyguard) {
+        user.bodyguardUseCount = (user.bodyguardUseCount || 0) + 1;
+        user.bodyguardTotalPayout = (user.bodyguardTotalPayout || 0) + bodyguardSalary;
+      }
 
       if (workerResult.broke) {
         events.push({ type: 'broke', label: name, emoji: compDef.emoji, companyName: compDef.name });
@@ -1113,7 +1130,7 @@ login({ appState }, (loginErr, api) => {
         if (!user || (!user.company && !user.company2)) continue;
         
         // Automatyczne zbieranie tylko dla użytkowników z pracownikami
-        if (!user.workers || user.workers.length === 0) continue;
+        if (!user.worker) continue;
         
         const userInventory = ensureInventoryRecord(inventory, userId);
         const hasKsiega = hasItem(userInventory, 'ksiega_monopolisty');
@@ -1169,12 +1186,12 @@ login({ appState }, (loginErr, api) => {
           
           compObj.lastPayout = now;
           
-          const workerResult = applyWorkerEffects(payout, user.workers || [], compDef, compObj, userInventory, breakChanceOverride);
+          const workerResult = applyWorkerEffects(payout, user.worker, compDef, compObj, userInventory, breakChanceOverride);
           payout = workerResult.payout;
           
           let bodyguardSalary = 0;
-          if (user.bodyguards && user.bodyguards.length > 0) {
-            const bodyguardDef = config.economy.bodyguards?.[user.bodyguards[0]];
+          if (user.bodyguard) {
+            const bodyguardDef = config.economy.bodyguards?.[user.bodyguard];
             if (bodyguardDef) {
               bodyguardSalary = Math.floor(payout * bodyguardDef.salaryPercent);
               payout -= bodyguardSalary;
@@ -1186,7 +1203,7 @@ login({ appState }, (loginErr, api) => {
           user.workerUseCount = (user.workerUseCount || 0) + 1;
           user.workerTotalPayout = (user.workerTotalPayout || 0) + (workerResult.workerSalary || 0);
           
-          if (user.bodyguards && user.bodyguards.length > 0) {
+          if (user.bodyguard) {
             user.bodyguardUseCount = (user.bodyguardUseCount || 0) + 1;
             user.bodyguardTotalPayout = (user.bodyguardTotalPayout || 0) + bodyguardSalary;
           }

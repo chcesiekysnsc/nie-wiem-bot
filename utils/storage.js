@@ -291,12 +291,16 @@ function sanitizeUser(user) {
   merged.workBoostUntil = Math.max(0, sanitizeInteger(merged.workBoostUntil, 0));
   merged.workBoostPercent = Math.max(0, Math.min(50, sanitizeInteger(merged.workBoostPercent, 0)));
   merged.tempCooldownReductionUntil = Math.max(0, sanitizeInteger(merged.tempCooldownReductionUntil, 0));
-  merged.workers = Array.isArray(merged.workers)
-    ? [...new Set(merged.workers.filter(w => typeof w === 'string'))]
-    : [];
-  merged.bodyguards = Array.isArray(merged.bodyguards)
-    ? [...new Set(merged.bodyguards.filter(b => typeof b === 'string'))]
-    : [];
+  // Migracja z tablic na pojedyncze ciągi znaków (worker, bodyguard)
+  if (user && Array.isArray(user.workers) && user.workers.length > 0 && !user.worker) {
+    user.worker = user.workers[0];
+  }
+  if (user && Array.isArray(user.bodyguards) && user.bodyguards.length > 0 && !user.bodyguard) {
+    user.bodyguard = user.bodyguards[0];
+  }
+
+  merged.worker = user && typeof user.worker === 'string' && user.worker ? user.worker.trim() : null;
+  merged.bodyguard = user && typeof user.bodyguard === 'string' && user.bodyguard ? user.bodyguard.trim() : null;
   merged.lastBodyguardUse = Math.max(0, sanitizeInteger(merged.lastBodyguardUse, 0));
   merged.workerUseCount = Math.max(0, sanitizeInteger(merged.workerUseCount, 0));
   merged.workerTotalPayout = Math.max(0, sanitizeInteger(merged.workerTotalPayout, 0));
@@ -772,8 +776,8 @@ function runHeavyLoops(store) {
   // --- Ochroniarze - automatyczne używanie bomb/klodki ---
   const { addItem, getItemQuantity, removeItem } = require('./economy');
   for (const [userId, user] of Object.entries(store.users)) {
-    if (user && user.bodyguards && user.bodyguards.length > 0) {
-      const bodyguardId = user.bodyguards[0];
+    if (user && user.bodyguard) {
+      const bodyguardId = user.bodyguard;
       const bodyguardDef = config.economy.bodyguards?.[bodyguardId];
       if (!bodyguardDef) continue;
 

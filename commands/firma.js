@@ -183,7 +183,7 @@ module.exports = {
         let errors = [];
 
         // Helper to calculate company payout
-        const calcPayout = (compDef, companyObj, label, naprawCmd, userWorkers, userBodyguards) => {
+        const calcPayout = (compDef, companyObj, label, naprawCmd, workerId, bodyguardId) => {
           if (!compDef) return null;
           if (companyObj.isBroken) {
             const repairCost = compDef.repairCost || (compDef.payout * 4);
@@ -257,17 +257,17 @@ module.exports = {
 
           companyObj.lastPayout = now;
 
-          // Apply worker effects only if workers exist
+          // Apply worker effects only if worker exists
           let workerResult = { payout, broke: false, workerSalary: 0, bonusTriggered: false, skipSalary: false, instantRepair: false, repairDiscount: false };
-          if (userWorkers && userWorkers.length > 0) {
-            workerResult = applyWorkerEffects(payout, userWorkers, compDef, companyObj, inventory, breakChanceOverride);
+          if (workerId) {
+            workerResult = applyWorkerEffects(payout, workerId, compDef, companyObj, inventory, breakChanceOverride);
             payout = workerResult.payout;
           }
 
-          // Apply bodyguard effects only if bodyguards exist
+          // Apply bodyguard effects only if bodyguard exists
           let bodyguardSalary = 0;
-          if (userBodyguards && userBodyguards.length > 0) {
-            const bodyguardDef = config.economy.bodyguards?.[userBodyguards[0]];
+          if (bodyguardId) {
+            const bodyguardDef = config.economy.bodyguards?.[bodyguardId];
             if (bodyguardDef) {
               bodyguardSalary = Math.floor(payout * bodyguardDef.salaryPercent);
               payout -= bodyguardSalary;
@@ -283,7 +283,7 @@ module.exports = {
           if (!compDef) {
             user.company = null;
           } else {
-            collected1 = calcPayout(compDef, user.company, 'Twoja pierwsza firma', '!firma napraw', user.workers, user.bodyguards);
+            collected1 = calcPayout(compDef, user.company, 'Twoja pierwsza firma', '!firma napraw', user.worker, user.bodyguard);
           }
         }
 
@@ -293,7 +293,7 @@ module.exports = {
           if (!compDef) {
             user.company2 = null;
           } else {
-            collected2 = calcPayout(compDef, user.company2, 'Twoja druga firma', '!firma2 napraw', user.workers, user.bodyguards);
+            collected2 = calcPayout(compDef, user.company2, 'Twoja druga firma', '!firma2 napraw', user.worker, user.bodyguard);
           }
         }
 
@@ -307,21 +307,21 @@ module.exports = {
         user.balance += totalPayout;
 
         if (collected1) {
-          if (user.workers && user.workers.length > 0) {
+          if (user.worker) {
             user.workerUseCount = (user.workerUseCount || 0) + 1;
             user.workerTotalPayout = (user.workerTotalPayout || 0) + (collected1.workerSalary || 0);
           }
-          if (user.bodyguards && user.bodyguards.length > 0) {
+          if (user.bodyguard) {
             user.bodyguardUseCount = (user.bodyguardUseCount || 0) + 1;
             user.bodyguardTotalPayout = (user.bodyguardTotalPayout || 0) + (collected1.bodyguardSalary || 0);
           }
         }
         if (collected2) {
-          if (user.workers && user.workers.length > 0) {
+          if (user.worker) {
             user.workerUseCount = (user.workerUseCount || 0) + 1;
             user.workerTotalPayout = (user.workerTotalPayout || 0) + (collected2.workerSalary || 0);
           }
-          if (user.bodyguards && user.bodyguards.length > 0) {
+          if (user.bodyguard) {
             user.bodyguardUseCount = (user.bodyguardUseCount || 0) + 1;
             user.bodyguardTotalPayout = (user.bodyguardTotalPayout || 0) + (collected2.bodyguardSalary || 0);
           }
@@ -440,12 +440,10 @@ module.exports = {
         
         // Check for worker repair discount
         let repairDiscount = false;
-        const workers = user.workers || [];
-        for (const wid of workers) {
-          const def = getWorkerDef(wid);
+        if (user.worker) {
+          const def = getWorkerDef(user.worker);
           if (def && def.repairDiscountChance && Math.random() < def.repairDiscountChance) {
             repairDiscount = true;
-            break;
           }
         }
         
@@ -536,26 +534,22 @@ module.exports = {
         statusMsg += `• 💸 **!firma sprzedaj** — sprzedaj firmę (50% ceny)\n`;
       }
 
-      if (user.workers && user.workers.length > 0) {
-        statusMsg += `\n👷 **TWOI PRACOWNICY:**\n`;
-        for (const wid of user.workers) {
-          const def = getWorkerDef(wid);
-          if (def) {
-            statusMsg += `• ${def.stars} **${def.name}** — pobiera ${Math.round(def.salaryPercent * 100)}% wypłaty\n`;
-          }
+      if (user.worker) {
+        statusMsg += `\n👷 **TWÓJ PRACOWNIK:**\n`;
+        const def = getWorkerDef(user.worker);
+        if (def) {
+          statusMsg += `• ${def.stars} **${def.name}** — pobiera ${Math.round(def.salaryPercent * 100)}% wypłaty\n`;
         }
         statusMsg += `\n💡 Zarządzaj pracownikami: **!pracownik**\n`;
       } else {
         statusMsg += `\n💡 Kup pracowników: **!pracownik**\n`;
       }
 
-      if (user.bodyguards && user.bodyguards.length > 0) {
-        statusMsg += `\n🛡️ **TWOI OCHRONIARZE:**\n`;
-        for (const bgId of user.bodyguards) {
-          const def = config.economy.bodyguards?.[bgId];
-          if (def) {
-            statusMsg += `• ${def.stars} **${def.name}** — pobiera ${Math.round(def.salaryPercent * 100)}% wypłaty\n`;
-          }
+      if (user.bodyguard) {
+        statusMsg += `\n🛡️ **TWÓJ OCHRONIARZ:**\n`;
+        const def = config.economy.bodyguards?.[user.bodyguard];
+        if (def) {
+          statusMsg += `• ${def.stars} **${def.name}** — pobiera ${Math.round(def.salaryPercent * 100)}% wypłaty\n`;
         }
         statusMsg += `\n💡 Zarządzaj ochroniarzami: **!ochroniarze**\n`;
       } else {
