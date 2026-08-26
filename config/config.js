@@ -279,12 +279,12 @@ module.exports = {
         name: 'Kacper Bysiec',
         stars: '🛡️🛡️🛡️',
         cost: 1500000,
-        salaryPercent: 0.07,
+        salaryPercent: 0.06,
         useIntervalMinutes: 20,
         noCostChance: 0.08,
         robDefenseBonus: 0.03,
         givesBrownPackageOnDefense: true,
-        description: 'Używa bomby/klodki co 20 minut. Pobiera 7% wypłaty z firmy. 8% szans że nie pobierze bomby/klodki z eq. Zmniejsza szanse na udane rob o 3%. Gdy ochroni przed napadem, daje paczkę brązową.'
+        description: 'Używa bomby/klodki co 20 minut. Pobiera 6% wypłaty z firmy. 8% szans że nie pobierze bomby/klodki z eq. Zmniejsza szanse na udane rob o 3%. Gdy ochroni przed napadem, daje brązową paczkę.'
       }
     },
     maxBet: 100000,

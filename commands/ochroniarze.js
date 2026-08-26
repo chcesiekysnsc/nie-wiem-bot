@@ -38,7 +38,7 @@ function renderBodyguardList(userBodyguards) {
       text += `   ↳ Szansa na darmową kłódkę przy obronie: **${freeKlodkaPct}%**\n`;
     }
     if (def.givesBrownPackageOnDefense) {
-      text += `   ↳ Ochroni przed napadem: **Daje paczkę brązową**\n`;
+      text += `   ↳ Ochroni przed napadem: **Daje brązową paczkę**\n`;
     }
     text += owned ? `   ↳ Status: ✅ **POSIADASZ**\n\n` : `\n`;
     i++;
