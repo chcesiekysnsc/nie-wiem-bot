@@ -178,7 +178,7 @@ module.exports = {
         addXp(user, xpGain, inventory);
         recordGame(user, payout - game.bet, xpGain, inventory);
         refreshBadges(user, inventory);
-        advanceChallenge(authorId, store, 'chickenroad_wins', 1, { won: true, difficulty: game.difficulty, betAmount: game.bet });
+        advanceChallenge(authorId, store, 'chickenroad_wins', 1, { won: true, difficulty: game.difficulty, betAmount: game.bet, reachedEnd: false });
         advanceChallenge(authorId, store, 'chickenroad_hardcore_4', game.lane, {
           difficulty: game.difficulty,
           lanes: game.lane,
@@ -242,7 +242,7 @@ module.exports = {
         addXp(user, xpGain, inventory);
         recordGame(user, payout - game.bet, xpGain, inventory);
         refreshBadges(user, inventory);
-        advanceChallenge(authorId, store, 'chickenroad_wins', 1, { won: true, difficulty: game.difficulty, betAmount: game.bet });
+        advanceChallenge(authorId, store, 'chickenroad_wins', 1, { won: true, difficulty: game.difficulty, betAmount: game.bet, reachedEnd: true });
         advanceChallenge(authorId, store, 'chickenroad_hardcore_4', game.lane, {
           difficulty: game.difficulty, lanes: game.lane, betAmount: game.bet
         });

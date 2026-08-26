@@ -394,6 +394,7 @@ module.exports = {
               }
             }
             
+            robber.robAttempts = (robber.robAttempts || 0) + 1;
             return { blockedBy: 'bomba', fine, victimLastActiveThreadId };
           }
 
@@ -428,6 +429,7 @@ module.exports = {
               }
             }
             
+            robber.robAttempts = (robber.robAttempts || 0) + 1;
             return { blockedBy: 'klodka', fine, victimLastActiveThreadId };
           }
 
@@ -543,6 +545,7 @@ module.exports = {
             }
 
             robber.gamesPlayed += 1;
+            robber.robAttempts = (robber.robAttempts || 0) + 1;
             refreshBadges(robber, robberInv);
             refreshBadges(victim, victimInv);
             advanceChallenge(authorId, store, 'rob_count');
@@ -573,6 +576,7 @@ module.exports = {
             robber.balance -= fine;
             victim.balance += payout;
             robber.gamesPlayed += 1;
+            robber.robAttempts = (robber.robAttempts || 0) + 1;
             refreshBadges(robber, robberInv);
             refreshBadges(victim, victimInv);
             return {

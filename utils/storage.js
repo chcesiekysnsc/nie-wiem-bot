@@ -309,6 +309,7 @@ function sanitizeUser(user) {
   merged.bodyguardKlodkaUsed = Math.max(0, sanitizeInteger(merged.bodyguardKlodkaUsed, 0));
   merged.bodyguardBombaUsed = Math.max(0, sanitizeInteger(merged.bodyguardBombaUsed, 0));
   merged.brownPackageResetsAt = Math.max(0, sanitizeInteger(merged.brownPackageResetsAt, 0));
+  merged.robAttempts = Math.max(0, sanitizeInteger(user && user.robAttempts !== undefined ? user.robAttempts : (user && user.commandCounts ? user.commandCounts['rob'] : 0), 0));
 
   return merged;
 }

@@ -470,7 +470,7 @@ module.exports = {
 
         const globalSorted = users
           .map(([id, u]) => {
-            const robCount = u.commandCounts?.['rob'] || 0;
+            const robCount = u.robAttempts || 0;
             return { id, robCount };
           })
           .sort((a, b) => b.robCount - a.robCount);
@@ -480,8 +480,8 @@ module.exports = {
         let groupMembers = [];
         if (participantIDs && participantIDs.length > 0) {
           groupMembers = participantIDs.map(id => {
-            const u = store.users[id] || { commandCounts: {} };
-            const robCount = u.commandCounts?.['rob'] || 0;
+            const u = store.users[id] || {};
+            const robCount = u.robAttempts || 0;
             return { id, robCount };
           })
           .sort((a, b) => b.robCount - a.robCount)
