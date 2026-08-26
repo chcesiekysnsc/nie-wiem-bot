@@ -2125,30 +2125,381 @@ function getGameSettings(region) {
   return { time, prize };
 }
 
+function getFlagsByDifficulty(difficulty) {
+  if (difficulty === 'easy') {
+    return flagsList.filter(f => f.region === 'europe_na');
+  } else if (difficulty === 'medium') {
+    return flagsList.filter(f => f.region === 'sa_asia');
+  } else if (difficulty === 'hard') {
+    return flagsList.filter(f => f.region === 'africa' || f.region === 'oceania');
+  }
+  return flagsList; // fallback
+}
+
+async function startNextFlag(client, threadId) {
+  const game = client.activeFlagTournaments?.get(threadId);
+  if (!game || game.state !== 'playing') return;
+
+  const flagNum = (game.currentRound - 1) * 3 + game.currentFlagIndex;
+  if (flagNum > 15) {
+    endFlagTournament(client, threadId);
+    return;
+  }
+
+  const currentFlagData = game.flagsQueue[flagNum - 1];
+  game.currentFlag = currentFlagData;
+  game.currentFlagGuesses = [];
+
+  const api = client.api;
+  const msg = `🚩 **Runda ${game.currentRound}/5, Flaga ${game.currentFlagIndex}/3** 🚩\n` +
+              `Jaki kraj reprezentuje ta flaga?\n\n` +
+              `👉 **${currentFlagData.emoji}**\n\n` +
+              `⏱️ Masz 10 sekund na odpowiedź!`;
+
+  if (api) {
+    api.sendMessage(msg, threadId);
+  }
+
+  game.timeoutId = setTimeout(() => {
+    finishFlagTurn(client, threadId);
+  }, 10000);
+}
+
+async function finishFlagTurn(client, threadId) {
+  const game = client.activeFlagTournaments?.get(threadId);
+  if (!game || game.state !== 'playing') return;
+
+  if (game.timeoutId) {
+    clearTimeout(game.timeoutId);
+    game.timeoutId = null;
+  }
+
+  const correctCountry = game.currentFlag.name;
+  let summary = `⌛ **Koniec czasu dla flagi ${game.currentFlag.emoji}** ⌛\n` +
+                `Poprawna odpowiedź: **${correctCountry}**\n\n` +
+                `🏆 **Punkty w tej turze:**\n`;
+
+  if (game.currentFlagGuesses.length === 0) {
+    summary += `*Nikt nie odgadł tej flagi.*\n`;
+  } else {
+    for (let i = 0; i < game.currentFlagGuesses.length; i++) {
+      const g = game.currentFlagGuesses[i];
+      const points = i === 0 ? 3 : (i === 1 ? 2 : 1);
+      const player = game.players.find(p => p.id === g.userId);
+      if (player) {
+        player.score += points;
+        summary += `${i + 1}. **${player.username}** (+${points} pkt)\n`;
+      }
+    }
+  }
+
+  summary += `\n📊 **Aktualna klasyfikacja generalna:**\n`;
+  const sorted = [...game.players].sort((a, b) => b.score - a.score);
+  sorted.forEach((p, idx) => {
+    summary += `${idx + 1}. **${p.username}**: ${p.score} pkt\n`;
+  });
+
+  game.currentFlagIndex += 1;
+  if (game.currentFlagIndex > 3) {
+    game.currentFlagIndex = 1;
+    game.currentRound += 1;
+  }
+
+  const isFinished = ((game.currentRound - 1) * 3 + game.currentFlagIndex) > 15;
+  if (isFinished) {
+    summary += `\n🏁 **To była ostatnia flaga turnieju!** Podsumowanie końcowe za chwilę...`;
+  } else {
+    summary += `\n⏱️ Następna flaga za **10 sekund**...`;
+  }
+
+  if (client.api) {
+    client.api.sendMessage(summary, threadId);
+  }
+
+  setTimeout(() => {
+    if (isFinished) {
+      endFlagTournament(client, threadId);
+    } else {
+      startNextFlag(client, threadId);
+    }
+  }, 10000);
+}
+
+async function endFlagTournament(client, threadId) {
+  const game = client.activeFlagTournaments?.get(threadId);
+  if (!game) return;
+
+  client.activeFlagTournaments.delete(threadId);
+
+  const sorted = [...game.players].sort((a, b) => b.score - a.score);
+  if (sorted.length === 0) {
+    if (client.api) {
+      client.api.sendMessage('🏁 **Koniec Turnieju Flag!** Brak uczestników.', threadId);
+    }
+    return;
+  }
+
+  const winner = sorted[0];
+  let msg = `🏆 **KONIEC TURNIEJU FLAG!** 🏆\n` +
+            `Gratulacje dla zwycięzcy! 🎉\n\n` +
+            `🥇 Zwycięzca: **${winner.username}** z wynikiem **${winner.score} pkt**!\n\n` +
+            `📊 **Wyniki końcowe:**\n`;
+
+  sorted.forEach((p, idx) => {
+    msg += `${idx + 1}. **${p.username}**: ${p.score} pkt\n`;
+  });
+
+  if (client.api) {
+    client.api.sendMessage(msg, threadId);
+  }
+}
+
 module.exports = {
   name: 'flaga',
-  aliases: [],
+  aliases: ['flagi'],
   flagsList,
   getGameSettings,
+  getFlagsByDifficulty,
+  startNextFlag,
+  finishFlagTurn,
+  endFlagTournament,
   async execute(client, message, args) {
-    if (!config.admins.includes(message.author.id)) {
-      await message.reply('❌ Brak uprawnień administratora.');
+    const threadId = message.guild?.id || message.rawEvent?.threadID || message.threadID;
+    if (!threadId) {
+      await message.reply('❌ Ta komenda może być używana tylko na czatach grupowych.');
+      return;
+    }
+
+    const { withData } = require('../utils/storage');
+    const sub = String(args[0] || '').toLowerCase().trim();
+
+    // Check if group admin is trying to turn off/on flags
+    if (sub === 'off' || sub === 'on') {
+      const senderId = message.author.id;
+      const isBotAdmin = config.admins.includes(senderId);
+
+      let isGroupAdmin = false;
+      if (!isBotAdmin && client.api) {
+        try {
+          const info = await new Promise((resolve) => {
+            client.api.getThreadInfo(threadId, (err, ret) => {
+              if (err) resolve(null);
+              else resolve(ret);
+            });
+          });
+          const adminIDs = (info?.adminIDs || []).map(admin => {
+            if (typeof admin === 'object' && admin !== null) {
+              return String(admin.id || admin.userID || '').trim();
+            }
+            return String(admin).trim();
+          }).filter(Boolean);
+          isGroupAdmin = adminIDs.includes(senderId);
+        } catch (e) {
+          console.error('[FLAGI] Error checking group admin:', e);
+        }
+      }
+
+      if (!isBotAdmin && !isGroupAdmin) {
+        await message.reply('❌ Tylko administratorzy grupy lub bota mogą zmieniać ustawienia flag.');
+        return;
+      }
+
+      const turnOff = sub === 'off';
+      await withData(store => {
+        store.profiles.threadSettings = store.profiles.threadSettings || {};
+        store.profiles.threadSettings[threadId] = store.profiles.threadSettings[threadId] || {};
+        store.profiles.threadSettings[threadId].blockFlags = turnOff;
+      });
+
+      if (turnOff) {
+        client.activeFlags?.delete?.(threadId);
+        client.activeFlagTournaments?.delete?.(threadId);
+        await message.reply('🔒 **Zablokowano komendę flagi oraz turnieje flag** na tej grupie.');
+      } else {
+        await message.reply('🔓 **Odblokowano komendę flagi oraz turnieje flag** na tej grupie.');
+      }
+      return;
+    }
+
+    // Check if flags are blocked in this thread
+    const isBlocked = await withData(store => {
+      return !!(store.profiles.threadSettings?.[threadId]?.blockFlags);
+    });
+    if (isBlocked) {
+      await message.reply('❌ Flagi są wyłączone w tej konwersacji przez administratora.');
       return;
     }
 
     if (!client.activeFlags) {
       client.activeFlags = new Map();
     }
+    if (!client.activeFlagTournaments) {
+      client.activeFlagTournaments = new Map();
+    }
 
-    const threadId = message.guild.id;
-    const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
-    const { time, prize } = getGameSettings(randomFlag.region);
+    // 1. Join tournament
+    if (sub === 'dolacz' || sub === 'd' || sub === 'join') {
+      const lobby = client.activeFlagTournaments.get(threadId);
+      if (!lobby) {
+        await message.reply('❌ Nie ma żadnego aktywnego lobby turnieju flag.');
+        return;
+      }
+      if (lobby.state !== 'lobby') {
+        await message.reply('❌ Turniej już trwa, nie możesz teraz dołączyć.');
+        return;
+      }
+      if (lobby.players.some(p => p.id === message.author.id)) {
+        await message.reply(`⚠️ **${message.author.username}**, już jesteś w tym turnieju.`);
+        return;
+      }
+      if (lobby.players.length >= lobby.maxPlayers) {
+        await message.reply(`❌ Lobby turniejowe jest już pełne (maksymalnie ${lobby.maxPlayers} graczy).`);
+        return;
+      }
+
+      lobby.players.push({
+        id: message.author.id,
+        username: message.author.username,
+        score: 0
+      });
+
+      await message.reply(`✅ **${message.author.username}** dołączył do turnieju flag! (Graczy: **${lobby.players.length}/${lobby.maxPlayers}**)`);
+
+      // Automatyczny start przy pełnym lobby
+      if (lobby.players.length === lobby.maxPlayers) {
+        client.startNextFlag = startNextFlag;
+        client.finishFlagTurn = finishFlagTurn;
+        client.endFlagTournament = endFlagTournament;
+
+        const allFlags = getFlagsByDifficulty(lobby.difficulty);
+        const shuffled = [...allFlags].sort(() => Math.random() - 0.5);
+        lobby.flagsQueue = shuffled.slice(0, 15);
+        lobby.state = 'playing';
+        lobby.currentRound = 1;
+        lobby.currentFlagIndex = 1;
+
+        await message.reply(`🎬 **Lobby się zapełniło! Automatycznie rozpoczynamy Turniej Flag!** Przygotujcie się... Pierwsza flaga za 3 sekundy.`);
+        setTimeout(() => {
+          startNextFlag(client, threadId);
+        }, 3000);
+      }
+      return;
+    }
+
+    // 2. Start tournament
+    if (sub === 'start') {
+      const lobby = client.activeFlagTournaments.get(threadId);
+      if (!lobby) {
+        await message.reply('❌ Brak aktywnego lobby turnieju flag.');
+        return;
+      }
+      if (lobby.state !== 'lobby') {
+        await message.reply('❌ Turniej już trwa.');
+        return;
+      }
+      if (lobby.hostId !== message.author.id) {
+        await message.reply('❌ Tylko organizator turnieju może go rozpocząć.');
+        return;
+      }
+      if (lobby.players.length < 1) {
+        await message.reply('❌ Potrzeba przynajmniej 1 gracza, aby rozpocząć turniej.');
+        return;
+      }
+
+      client.startNextFlag = startNextFlag;
+      client.finishFlagTurn = finishFlagTurn;
+      client.endFlagTournament = endFlagTournament;
+
+      const allFlags = getFlagsByDifficulty(lobby.difficulty);
+      const shuffled = [...allFlags].sort(() => Math.random() - 0.5);
+      lobby.flagsQueue = shuffled.slice(0, 15);
+      lobby.state = 'playing';
+      lobby.currentRound = 1;
+      lobby.currentFlagIndex = 1;
+
+      await message.reply(`🎬 **Rozpoczynamy Turniej Flag!** Przygotujcie się... Pierwsza flaga za 3 sekundy.`);
+      setTimeout(() => {
+        startNextFlag(client, threadId);
+      }, 3000);
+      return;
+    }
+
+    // 3. Create tournament lobby
+    if (sub === 'turniej' || sub === 't' || sub === 'tournament') {
+      if (client.activeFlagTournaments.has(threadId)) {
+        await message.reply('❌ Na tej grupie trwa już turniej flag!');
+        return;
+      }
+      if (client.activeFlags.has(threadId)) {
+        await message.reply('❌ Na tej grupie trwa już pojedyncza zgadywanka flag!');
+        return;
+      }
+
+      const diffArg = String(args[1] || 'medium').toLowerCase().trim();
+      const validDiffs = ['easy', 'medium', 'hard'];
+      const difficulty = validDiffs.includes(diffArg) ? diffArg : 'medium';
+
+      let maxPlayers = 8;
+      const limitArg = args[2];
+      if (limitArg !== undefined) {
+        const parsed = parseInt(limitArg, 10);
+        if (isNaN(parsed) || parsed < 2 || parsed > 8) {
+          await message.reply('❌ Limit graczy w turnieju musi wynosić od 2 do 8 osób!');
+          return;
+        }
+        maxPlayers = parsed;
+      }
+
+      const lobby = {
+        state: 'lobby',
+        hostId: message.author.id,
+        difficulty,
+        maxPlayers,
+        players: [{ id: message.author.id, username: message.author.username, score: 0 }],
+        currentRound: 1,
+        currentFlagIndex: 1,
+        flagsQueue: [],
+        currentFlag: null,
+        currentFlagGuesses: [],
+        timeoutId: null,
+        timestamp: Date.now()
+      };
+
+      client.activeFlagTournaments.set(threadId, lobby);
+
+      await message.reply(
+        `🏁 **TURNIEJ FLAG (Trudność: ${difficulty.toUpperCase()})** 🏁\n` +
+        `Zapisy otwarte! Limit graczy: **${maxPlayers}** (Gra składa się z **5 rund, po 3 flagi każda**).\n` +
+        `Punktacja za każdą flagę: 1. miejsce = 3 pkt, 2. miejsce = 2 pkt, 3. miejsce = 1 pkt.\n\n` +
+        `👉 Wpisz **!flagi dolacz**, aby dołączyć do gry.\n` +
+        `👉 Organizator wpisuje **!flagi start**, aby rozpocząć!`
+      );
+      return;
+    }
+
+    // 4. Single free flag game
+    if (client.activeFlags.has(threadId)) {
+      await message.reply('❌ W tym wątku trwa już pojedyncza zgadywanka flag!');
+      return;
+    }
+    if (client.activeFlagTournaments.has(threadId)) {
+      await message.reply('❌ W tym wątku trwa już turniej flag!');
+      return;
+    }
+
+    const diffArg = sub || 'all';
+    const validDiffs = ['easy', 'medium', 'hard'];
+    const difficulty = validDiffs.includes(diffArg) ? diffArg : 'all';
+
+    const chosenList = difficulty === 'all' ? flagsList : getFlagsByDifficulty(difficulty);
+    const randomFlag = chosenList[Math.floor(Math.random() * chosenList.length)];
+    const { time } = getGameSettings(randomFlag.region);
 
     client.activeFlags.set(threadId, {
       emoji: randomFlag.emoji,
       answers: randomFlag.answers,
       countryName: randomFlag.name,
-      prize,
+      prize: 0, // No money prize
       active: true,
       timestamp: Date.now()
     });
@@ -2158,19 +2509,16 @@ module.exports = {
       const game = client.activeFlags.get(threadId);
       if (game && game.emoji === randomFlag.emoji && game.active) {
         client.activeFlags.delete(threadId);
-        const { loadData } = require('../utils/storage');
-        const profiles = loadData('profiles');
-        const settings = (profiles.threadSettings || {})[threadId] || {};
-        if (!settings.blockNotifications && client.api) {
+        if (client.api) {
           client.api.sendMessage(`⌛ **ZGADNIJ KRAJ** ⌛\nCzas minął! Nikt nie zgadł flagi **${randomFlag.emoji}** (${randomFlag.name}) na czas.`, threadId);
         }
       }
     }, time * 1000).unref();
 
     await message.reply(
-      `🏳️ **ZGADNIJ KRAJ** 🏳️\nJaki kraj reprezentuje ta flaga?\n\n` +
+      `🏳️ **ZGADNIJ KRAJ (${difficulty === 'all' ? 'DOWOLNA' : difficulty.toUpperCase()})** 🏳️\n` +
+      `Jaki kraj reprezentuje ta flaga?\n\n` +
       `👉 **${randomFlag.emoji}**\n\n` +
-      `💰 Nagroda: ${formatCurrency(prize)}!\n` +
       `⏱️ Masz ${time} sekund na odpowiedź.`
     );
   }

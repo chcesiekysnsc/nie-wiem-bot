@@ -2388,8 +2388,15 @@ login({ appState }, (loginErr, api) => {
 
           const flagaCmd = require('./commands/flaga');
           const flagsList = Array.isArray(flagaCmd.flagsList) ? flagaCmd.flagsList : [];
+          const { loadData } = require('./utils/storage');
+          const profiles = loadData('profiles');
 
           for (const threadId of targets) {
+            const threadSettings = (profiles.threadSettings || {})[threadId] || {};
+            if (threadSettings.blockFlags) {
+              continue;
+            }
+
             if (!flagsList.length) {
               console.error('[FLAGA] flagsList jest pusta lub brakuje exportu.');
               continue;
@@ -3272,6 +3279,38 @@ login({ appState }, (loginErr, api) => {
       }
     }
 
+    // Interceptor dla Turnieju Flag
+    if (client.activeFlagTournaments) {
+      const tourGame = client.activeFlagTournaments.get(threadId);
+      if (tourGame && tourGame.state === 'playing' && tourGame.currentFlag) {
+        const player = tourGame.players.find(p => p.id === senderId);
+        if (player) {
+          const normalizedInput = normalizeText(text);
+          const isCorrect = tourGame.currentFlag.answers.some(ans => normalizeText(ans) === normalizedInput);
+          if (isCorrect) {
+            const alreadyGuessed = tourGame.currentFlagGuesses.some(g => g.userId === senderId);
+            if (!alreadyGuessed) {
+              tourGame.currentFlagGuesses.push({ userId: senderId });
+              const place = tourGame.currentFlagGuesses.length;
+              const points = place === 1 ? 3 : (place === 2 ? 2 : 1);
+              
+              client.resolveUserName(api, senderId).then(pName => {
+                api.sendMessage(`✅ **${pName}** zgadł flagę! (+${points} pkt)`, threadId, () => {}, messageId);
+              }).catch(() => null);
+
+              const maxGuesses = Math.min(3, tourGame.players.length);
+              if (tourGame.currentFlagGuesses.length >= maxGuesses) {
+                if (typeof client.finishFlagTurn === 'function') {
+                  client.finishFlagTurn(client, threadId);
+                }
+              }
+            }
+            return; // Skonsumuj odpowiedź, nie traktuj jako komendy
+          }
+        }
+      }
+    }
+
     // Interceptor dla Zgadnij Kraj (flagi)
     if (client.activeFlags) {
       const flagGame = client.activeFlags.get(threadId);
@@ -3283,16 +3322,21 @@ login({ appState }, (loginErr, api) => {
           flagGame.active = false;
           client.activeFlags.delete(threadId);
 
-          const prize = flagGame.prize;
+          const prize = flagGame.prize || 0;
           const winnerId = senderId;
           const winnerName = await client.resolveUserName(api, winnerId);
 
-          await withData(store => {
-            const u = createUser(winnerId, store.users);
-            u.balance = (u.balance || 0) + prize;
-          });
+          if (prize > 0) {
+            await withData(store => {
+              const u = createUser(winnerId, store.users);
+              u.balance = (u.balance || 0) + prize;
+            });
+          }
 
-          const replyMsg = `🎉 **ZGADNIJ KRAJ** 🎉\nGratulacje **${winnerName}**! Poprawna odpowiedź to **${flagGame.countryName}**! Wygrywasz **+💰 ${prize.toLocaleString()}**!`;
+          const replyMsg = prize > 0
+            ? `🎉 **ZGADNIJ KRAJ** 🎉\nGratulacje **${winnerName}**! Poprawna odpowiedź to **${flagGame.countryName}**! Wygrywasz **+💰 ${prize.toLocaleString()}**!`
+            : `🎉 **ZGADNIJ KRAJ** 🎉\nGratulacje **${winnerName}**! Poprawna odpowiedź to **${flagGame.countryName}**!`;
+
           api.sendMessage(replyMsg, threadId, () => {}, messageId);
           return; // Nie przetwarzaj dalej jako komendy
         }

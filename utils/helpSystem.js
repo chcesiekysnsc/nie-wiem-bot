@@ -1374,6 +1374,25 @@ const helpCommands = [
     requirements: "Brak.",
     aliases: ["manga-info", "mangainfo"],
     additionalInfo: ["Dane pochodzą z AniList (GraphQL, bez klucza, bez restrykcyjnych limitów Jikan).","W razie problemów z API spróbuj ponownie za chwilę."]
+  },
+  {
+    id: 1004,
+    name: "flagi",
+    category: "SOCIAL_GANGS",
+    shortDescription: "🏳️ zgadywanie flag i turnieje",
+    description: "🏳️ Komenda do zgadywania flag krajów. Dostępne tryby: pojedyncza flaga z wyborem trudności oraz turniej wieloosobowy (5 rund po 3 flagi). Nie daje pieniędzy — gra wyłącznie na punkty.",
+    usage: "!flagi [easy|medium|hard] | !flagi turniej <trudność> <ilość_osób> | !flagi dolacz | !flagi start | !flagi off",
+    examples: ["!flagi", "!flagi easy", "!flagi hard", "!flagi turniej medium 4", "!flagi turniej hard 8", "!flagi dolacz", "!flagi start", "!flagi off"],
+    cooldown: "Brak.",
+    requirements: "Czat grupowy. Turniej: 2-8 graczy.",
+    aliases: ["flaga"],
+    additionalInfo: [
+      "**Trudności:** easy (Europa/Ameryka Pn.), medium (Azja/Ameryka Pd.), hard (Afryka/Oceania).",
+      "**Pojedyncza flaga:** !flagi lub !flagi <trudność> — wyświetla jedną flagę do zgadnięcia, czas zależy od trudności (10-20s).",
+      "**Turniej:** !flagi turniej <trudność> <ilość_osób> — otwiera lobby na 2-8 graczy. Gracze dołączają przez !flagi dolacz, host startuje przez !flagi start.",
+      "**Punktacja turnieju:** Kto szybciej zgadnie, ten więcej punktów: 1. miejsce = 3 pkt, 2. miejsce = 2 pkt, 3. miejsce = 1 pkt. Każda flaga trwa 10s.",
+      "**Wyłączanie:** Administratorzy grupy mogą wpisać !flagi off, aby zablokować flagi na danej grupie (przywrócenie: !flagi on)."
+    ]
   }
 ];
 
