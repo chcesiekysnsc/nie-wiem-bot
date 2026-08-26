@@ -81,7 +81,7 @@ module.exports = {
         } else {
           text += `   ↳ Masz go już od: **nieznany czas**\n`;
         }
-        text += `   ↳ Użyty w firmie: **${result.useCount}** razy\n`;
+        text += `   ↳ Odebrał pensję: **${result.useCount}** razy\n`;
         text += `   ↳ Pobrana pensja przez pracownika: **${formatCurrency(result.totalPaid)}**\n`;
         text += `   ↳ Pobiera: **${Math.round(result.def.salaryPercent * 100)}%** wypłaty z firmy\n`;
         if (result.def.bonusChance > 0) {
