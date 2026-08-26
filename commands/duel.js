@@ -29,6 +29,11 @@ module.exports = {
         return;
       }
 
+      if (client.taxWarningActive) {
+        await message.reply('❌ Za 15 sekund nastąpi pobór podatków. Nie można rozpocząć nowej gry.');
+        return;
+      }
+
       client.duelRequests.delete(targetId);
       saveGameSessions(client);
 

@@ -110,6 +110,17 @@ module.exports = {
       return;
     }
 
+    if (client.taxWarningActive) {
+      await message.reply('❌ Za 15 sekund nastąpi pobór podatków. Nie można rozpocząć nowej gry.');
+      return;
+    }
+
+    const sessionCheck = hasActiveGameSession(client, authorId);
+    if (sessionCheck.active) {
+      await message.reply(`❌ Masz już aktywną inną grę (**${sessionCheck.gameName}**)! Zakończ ją przed rozpoczęciem Chicken Road.`);
+      return;
+    }
+
     const result = await withData(store => {
       const user = createUser(authorId, store.users);
       if (user.jailUntil && user.jailUntil > Date.now()) return { error: '❌ Jesteś w więzieniu! Nie możesz teraz grać.' };
@@ -123,17 +134,6 @@ module.exports = {
     });
 
     if (result.error) { await message.reply(result.error); return; }
-
-    if (client.taxWarningActive) {
-      await message.reply('❌ Za 15 sekund nastąpi pobór podatków. Nie można rozpocząć nowej gry.');
-      return;
-    }
-
-    const sessionCheck = hasActiveGameSession(client, authorId);
-    if (sessionCheck.active) {
-      await message.reply(`❌ Masz już aktywną inną grę (**${sessionCheck.gameName}**)! Zakończ ją przed rozpoczęciem Chicken Road.`);
-      return;
-    }
 
     const game = { threadId, difficulty: difficultyKey, bet: result.bet, lane: 0, multiplier: 1, timestamp: Date.now() };
     client.activeChickenRoadGames.set(authorId, game);
