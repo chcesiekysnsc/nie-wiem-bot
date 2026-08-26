@@ -2513,11 +2513,23 @@ module.exports = {
       return;
     }
 
-    const diffArg = sub || 'all';
+    const diffArg = sub || '';
     const validDiffs = ['easy', 'medium', 'hard', 'insane'];
-    const difficulty = validDiffs.includes(diffArg) ? diffArg : 'all';
+    const difficulty = validDiffs.includes(diffArg) ? diffArg : null;
 
-    const chosenList = difficulty === 'all' ? flagsList : getFlagsByDifficulty(difficulty);
+    if (!difficulty) {
+      await message.reply(
+        `🏳️ **FLAGI — Wybierz poziom trudności:** 🏳️\n\n` +
+        `🟢 **!flagi easy** — łatwe flagi (10s na odpowiedź)\n` +
+        `🟡 **!flagi medium** — średnie flagi (15s na odpowiedź)\n` +
+        `🔴 **!flagi hard** — trudne flagi (15s na odpowiedź)\n` +
+        `💀 **!flagi insane** — ekstremalnie trudne flagi (20s na odpowiedź)\n\n` +
+        `🏁 **!flagi turniej <trudność> <ilość_osób>** — turniej wieloosobowy`
+      );
+      return;
+    }
+
+    const chosenList = getFlagsByDifficulty(difficulty);
     const randomFlag = chosenList[Math.floor(Math.random() * chosenList.length)];
     const { time } = getGameSettings(randomFlag.region);
 
