@@ -1380,17 +1380,14 @@ const helpCommands = [
     name: "flagi",
     category: "SOCIAL_GANGS",
     shortDescription: "🏳️ zgadywanie flag i turnieje",
-    description: "🏳️ Zgadywanie flag krajów (gra na punkty). Tryb pojedynczy lub turniej (5 rund po 3 flagi).",
+    description: "🏳️ Zgadywanie flag krajów. Tryb pojedynczy lub turniej (5 rund po 3 flagi).",
     usage: "!flagi [easy|medium|hard|insane] | !flagi turniej <trudność> <limit_graczy> | !flagi dolacz | !flagi off",
     examples: ["!flagi", "!flagi easy", "!flagi turniej insane 4", "!flagi dolacz", "!flagi start", "!flagi off"],
     cooldown: "Brak.",
-    requirements: "Czat grupowy. Turniej: 2-8 graczy.",
+    requirements: "Brak.",
     aliases: ["flaga"],
     additionalInfo: [
-      "**Trudność:** easy (10s), medium (15s), hard (15s), insane (20s, bardzo rzadkie terytoria/wyspy).",
-      "**Turniej:** !flagi turniej <trudność> <gracze> (np. 2-8). Dołączanie: !flagi dolacz. Start: !flagi start (lub autostart gdy pełne).",
-      "**Punktacja:** Kto szybciej zgadnie, ten dostaje więcej punktów (1. = 3 pkt, 2. = 2 pkt, 3. = 1 pkt). Ciche zgadywanie (brak podpowiedzi na czacie).",
-      "**Admini:** !flagi off wyłącza flagi na grupie, !flagi on włącza."
+      "**Trudność (czas na odpowiedź):** easy (10s), medium (15s), hard (15s), insane (20s)."
     ]
   }
 ];
