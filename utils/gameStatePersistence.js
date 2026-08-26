@@ -110,7 +110,9 @@ function saveGameSessions(client) {
       activeGangWars: serializeSessions(client.activeGangWars || new Map()),
       activeGieldaHosts: serializeSessions(client.activeGieldaHosts || new Map()),
       gieldaHostCooldowns: serializeValue(client.gieldaHostCooldowns || new Map()),
-      meczBets: serializeSessions(client.meczBets || new Map())
+      meczBets: serializeSessions(client.meczBets || new Map()),
+      activeFlags: serializeSessions(client.activeFlags || new Map()),
+      activeFlagTournaments: serializeSessions(client.activeFlagTournaments || new Map())
     };
     fs.writeFileSync(GAME_SESSIONS_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (err) {
@@ -137,7 +139,9 @@ function loadGameSessions() {
         activeGangWars: new Map(),
         activeGieldaHosts: new Map(),
         gieldaHostCooldowns: new Map(),
-        meczBets: new Map()
+        meczBets: new Map(),
+        activeFlags: new Map(),
+        activeFlagTournaments: new Map()
       };
     }
     const raw = fs.readFileSync(GAME_SESSIONS_FILE, 'utf8');
@@ -158,7 +162,9 @@ function loadGameSessions() {
       activeGangWars: deserializeSessions(data.activeGangWars),
       activeGieldaHosts: deserializeSessions(data.activeGieldaHosts),
       gieldaHostCooldowns: deserializeValue(data.gieldaHostCooldowns),
-      meczBets: deserializeSessions(data.meczBets)
+      meczBets: deserializeSessions(data.meczBets),
+      activeFlags: deserializeSessions(data.activeFlags),
+      activeFlagTournaments: deserializeSessions(data.activeFlagTournaments)
     };
   } catch (err) {
     console.error('[gameStatePersistence] Failed to load game sessions:', err);
@@ -178,7 +184,9 @@ function loadGameSessions() {
       activeGangWars: new Map(),
       activeGieldaHosts: new Map(),
       gieldaHostCooldowns: new Map(),
-      meczBets: new Map()
+      meczBets: new Map(),
+      activeFlags: new Map(),
+      activeFlagTournaments: new Map()
     };
   }
 }
@@ -198,6 +206,8 @@ function restoreGameSessions(client, sessions) {
   client.activeGieldaHosts = sessions.activeGieldaHosts || new Map();
   client.gieldaHostCooldowns = sessions.gieldaHostCooldowns || new Map();
   client.meczBets = sessions.meczBets || new Map();
+  client.activeFlags = sessions.activeFlags || new Map();
+  client.activeFlagTournaments = sessions.activeFlagTournaments || new Map();
   
   // Przywróć timery dla sesji
   restoreTimers(client, sessions);
@@ -377,6 +387,53 @@ function restoreTimers(client, sessions) {
   // Przywróć timery dla mecz i multi-mecz (activeMeczTimers)
   // Mecze są obsługiwane przez system bets.js który automatycznie rozstrzyga zakłady przy starcie
   // Nie musimy robić nic - system bets.js zajmie się tym
+
+  // Przywróć timery dla activeFlags (pojedyncze zgadywanki flag)
+  for (const [threadId, game] of (client.activeFlags || new Map()).entries()) {
+    if (game.timestamp) {
+      const flagaCmd = require('../commands/flaga');
+      let timeLimit = 20; // fallback
+      const foundFlag = flagaCmd.flagsList.find(f => f.emoji === game.emoji);
+      if (foundFlag) {
+        const settings = flagaCmd.getGameSettings(foundFlag.region);
+        timeLimit = settings.time;
+      }
+      const elapsed = now - game.timestamp;
+      const remaining = (timeLimit * 1000) - elapsed;
+      if (remaining > 0) {
+        setTimeout(() => {
+          const active = client.activeFlags.get(threadId);
+          if (active && active.emoji === game.emoji && active.active) {
+            client.activeFlags.delete(threadId);
+            saveGameSessions(client);
+            if (client.api) {
+              client.api.sendMessage(`⌛ **ZGADNIJ KRAJ** ⌛\nCzas minął! Nikt nie zgadł flagi **${game.emoji}** (${game.countryName}) na czas.`, threadId);
+            }
+          }
+        }, remaining);
+      } else {
+        client.activeFlags.delete(threadId);
+        saveGameSessions(client);
+      }
+    }
+  }
+
+  // Przywróć lub zresetuj stan turniejów flag
+  for (const [threadId, lobby] of (client.activeFlagTournaments || new Map()).entries()) {
+    if (lobby.state === 'playing') {
+      lobby.state = 'lobby';
+      lobby.currentRound = 1;
+      lobby.currentFlagIndex = 1;
+      lobby.flagsQueue = [];
+      lobby.currentFlag = null;
+      lobby.currentFlagGuesses = [];
+      lobby.timeoutId = null;
+      if (client.api) {
+        client.api.sendMessage(`🔄 **RESTART BOTA:** Trwający turniej flag został zresetowany do stanu lobby. Wpisz **!flagi start**, aby go rozpocząć na nowo.`, threadId);
+      }
+    }
+  }
+
   console.log('[GAME SESSIONS] Przywrócono timery dla sesji gier.');
 }
 
@@ -394,6 +451,7 @@ function hasActiveGameSession(client, userId) {
     { name: 'Mecz (obstawianie)', check: client.meczInProgress && client.meczInProgress.has(userId) },
     { name: 'Giełda', check: client.activeGieldaHosts && client.activeGieldaHosts.has(userId) },
     { name: 'Flaga', check: client.activeFlags && client.activeFlags.has(userId) },
+    { name: 'Turniej flag', check: client.activeFlagTournaments && Array.from(client.activeFlagTournaments.values()).some(t => t.players && t.players.some(p => p.id === userId)) },
     { name: 'Państwa-miasta', check: client.activePanstwaMiasta && client.activePanstwaMiasta.has(userId) },
     { name: 'Artefakty', check: client.pendingArtefakty && client.pendingArtefakty.has(userId) }
   ];
