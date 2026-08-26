@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency } = require('../utils/economy');
+const { formatCurrency, msToReadable } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 const BODYGUARDS_ORDER = ['kacper_rzerzonczka', 'tony_montana_smietana', 'kacper_bysiec'];
@@ -67,23 +67,39 @@ module.exports = {
           const totalPaid = user.bodyguardTotalPayout || 0;
           const klodkaUsed = user.bodyguardKlodkaUsed || 0;
           const bombaUsed = user.bodyguardBombaUsed || 0;
-          return { hasBodyguard: true, def, useCount, totalPaid, klodkaUsed, bombaUsed };
+          const hiredAt = user.bodyguardHiredAt || null;
+          return { hasBodyguard: true, def, useCount, totalPaid, klodkaUsed, bombaUsed, hiredAt };
         }
         return { hasBodyguard: false, bodyguards: [] };
       });
 
       if (result.hasBodyguard && result.def) {
-        const text = `🛡️ **TWÓJ OCHRONIARZ**\n\n`;
+        let text = `🛡️ **TWÓJ OCHRONIARZ**\n\n`;
         text += `**${result.def.stars} ${result.def.name}**\n`;
         text += `📊 **Statystyki:**\n`;
-        text += `   ↳ Użyty **${result.useCount}** razy\n`;
-        text += `   ↳ Łącznie wypłata: **${formatCurrency(result.totalPaid)}**\n`;
+        if (result.hiredAt) {
+          const timeHas = Date.now() - result.hiredAt;
+          text += `   ↳ Masz go już od: **${msToReadable(timeHas)}**\n`;
+        } else {
+          text += `   ↳ Masz go już od: **nieznany czas**\n`;
+        }
+        text += `   ↳ Użyty w firmie: **${result.useCount}** razy\n`;
+        text += `   ↳ Pobrana pensja przez ochroniarza: **${formatCurrency(result.totalPaid)}**\n`;
         text += `   ↳ Pobiera: **${Math.round(result.def.salaryPercent * 100)}%** wypłaty z firmy\n`;
         text += `   ↳ Użyte kłódki: **${result.klodkaUsed}**\n`;
         text += `   ↳ Użyte bomby: **${result.bombaUsed}**\n`;
         if (result.def.robDefenseBonus > 0) {
           text += `   ↳ Zmniejsza szanse na rob o: **-${Math.round(result.def.robDefenseBonus * 100)}%**\n`;
         }
+        
+        let uniqueEffect = 'Brak';
+        if (result.def.givesFreeKlodkaChance) {
+          uniqueEffect = `Szansa na darmową kłódkę przy obronie: **${Math.round(result.def.givesFreeKlodkaChance * 100)}%**`;
+        } else if (result.def.givesBrownPackageOnDefense) {
+          uniqueEffect = `Obrona przed napadem daje brązową paczkę`;
+        }
+        text += `   ↳ Unikalny efekt: **${uniqueEffect}**\n`;
+
         text += `\n💡 Sprzedaj ochroniarza: **!ochroniarze sprzedaj**`;
         await message.reply(text);
         return;
@@ -112,6 +128,11 @@ module.exports = {
 
         user.balance += totalRefund;
         user.bodyguards = [];
+        user.bodyguardHiredAt = null;
+        user.bodyguardUseCount = 0;
+        user.bodyguardTotalPayout = 0;
+        user.bodyguardKlodkaUsed = 0;
+        user.bodyguardBombaUsed = 0;
 
         return { success: true, totalRefund, balance: user.balance };
       });
@@ -161,6 +182,11 @@ module.exports = {
       user.balance -= bodyguardDef.cost;
       user.bodyguards = user.bodyguards || [];
       user.bodyguards.push(bodyguardId);
+      user.bodyguardHiredAt = Date.now();
+      user.bodyguardUseCount = 0;
+      user.bodyguardTotalPayout = 0;
+      user.bodyguardKlodkaUsed = 0;
+      user.bodyguardBombaUsed = 0;
 
       return { success: true, bodyguardDef, balance: user.balance };
     });

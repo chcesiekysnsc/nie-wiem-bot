@@ -1,5 +1,5 @@
 const config = require('../config/config');
-const { formatCurrency } = require('../utils/economy');
+const { formatCurrency, msToReadable } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getWorkerDef } = require('../utils/workerEffects');
 
@@ -65,17 +65,24 @@ module.exports = {
           const def = getWorkerDef(wid);
           const useCount = user.workerUseCount || 0;
           const totalPaid = user.workerTotalPayout || 0;
-          return { hasWorker: true, def, useCount, totalPaid };
+          const hiredAt = user.workerHiredAt || null;
+          return { hasWorker: true, def, useCount, totalPaid, hiredAt };
         }
         return { hasWorker: false, workers: [] };
       });
 
       if (result.hasWorker && result.def) {
-        const text = `👷 **TWÓJ PRACOWNIK**\n\n`;
+        let text = `👷 **TWÓJ PRACOWNIK**\n\n`;
         text += `**${result.def.stars} ${result.def.name}**\n`;
         text += `📊 **Statystyki:**\n`;
-        text += `   ↳ Użyty **${result.useCount}** razy\n`;
-        text += `   ↳ Łącznie wypłata: **${formatCurrency(result.totalPaid)}**\n`;
+        if (result.hiredAt) {
+          const timeHas = Date.now() - result.hiredAt;
+          text += `   ↳ Masz go już od: **${msToReadable(timeHas)}**\n`;
+        } else {
+          text += `   ↳ Masz go już od: **nieznany czas**\n`;
+        }
+        text += `   ↳ Użyty w firmie: **${result.useCount}** razy\n`;
+        text += `   ↳ Pobrana pensja przez pracownika: **${formatCurrency(result.totalPaid)}**\n`;
         text += `   ↳ Pobiera: **${Math.round(result.def.salaryPercent * 100)}%** wypłaty z firmy\n`;
         if (result.def.bonusChance > 0) {
           text += `   ↳ Bonus zarobków: **${Math.round(result.def.bonusChance * 100)}%** szans na +${Math.round(result.def.bonusPercent * 100)}%\n`;
@@ -111,6 +118,9 @@ module.exports = {
 
         user.balance += totalRefund;
         user.workers = [];
+        user.workerHiredAt = null;
+        user.workerUseCount = 0;
+        user.workerTotalPayout = 0;
 
         return { success: true, totalRefund, balance: user.balance };
       });
@@ -160,6 +170,9 @@ module.exports = {
       user.balance -= workerDef.cost;
       user.workers = user.workers || [];
       user.workers.push(workerId);
+      user.workerHiredAt = Date.now();
+      user.workerUseCount = 0;
+      user.workerTotalPayout = 0;
 
       if (user.company) {
         user.company.lastPayout = Date.now() - 3 * 3600 * 1000;
