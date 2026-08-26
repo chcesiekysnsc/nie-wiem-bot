@@ -2098,6 +2098,20 @@ const flagsList = [
   }
 ];
 
+const insaneEmojis = new Set([
+  "🇦🇶", "🇦🇽", "🇧🇱", "🇲🇫", "🇵🇲", "🇬🇸", "🇸🇯", "🇸🇭", "🇬🇬", "🇯🇪", "🇮🇲", "🇫🇴",
+  "🇬🇱", "🇳🇨", "🇷🇪", "🇬🇵", "🇦🇸", "🇲🇵", "🇻🇮", "🇬🇺", "🇨🇨", "🇹🇨", "🇦🇮", "🇰🇾",
+  "🇲🇸", "🇻🇬", "🇫🇰", "🇹🇰", "🇳🇺", "🇼🇸", "🇸🇧", "🇻🇺", "🇰🇲", "🇸🇹", "🇵🇼", "🇫🇲",
+  "🇲🇭", "🇰🇮", "🇳🇷", "🇹🇻", "🇧🇶", "🇹🇫", "🇭🇲", "🇧🇻", "🇮🇴", "🇺🇲", "🇵🇳", "🇨🇽",
+  "🇳🇫", "🇼🇫", "🇲🇶", "🇾🇹"
+]);
+
+for (const flag of flagsList) {
+  if (insaneEmojis.has(flag.emoji)) {
+    flag.region = "insane";
+  }
+}
+
 function getGameSettings(region) {
   let time = 20; // fallback
   let minPrize = 20000;
@@ -2108,17 +2122,17 @@ function getGameSettings(region) {
     minPrize = 40000;
     maxPrize = 80000;
   } else if (region === 'sa_asia') {
-    time = 15;
+    time = 15; // 15s limit for medium
     minPrize = 80000;
     maxPrize = 140000;
-  } else if (region === 'africa') {
-    time = 20;
+  } else if (region === 'africa' || region === 'oceania') {
+    time = 15; // 15s limit for hard
     minPrize = 140000;
-    maxPrize = 180000;
-  } else if (region === 'oceania') {
-    time = 20;
-    minPrize = 160000;
     maxPrize = 220000;
+  } else if (region === 'insane') {
+    time = 20; // 20s limit for insane
+    minPrize = 220000;
+    maxPrize = 300000;
   }
 
   const prize = Math.floor(Math.random() * (maxPrize - minPrize + 1)) + minPrize;
@@ -2132,6 +2146,8 @@ function getFlagsByDifficulty(difficulty) {
     return flagsList.filter(f => f.region === 'sa_asia');
   } else if (difficulty === 'hard') {
     return flagsList.filter(f => f.region === 'africa' || f.region === 'oceania');
+  } else if (difficulty === 'insane') {
+    return flagsList.filter(f => f.region === 'insane');
   }
   return flagsList; // fallback
 }
@@ -2150,11 +2166,18 @@ async function startNextFlag(client, threadId) {
   game.currentFlag = currentFlagData;
   game.currentFlagGuesses = [];
 
+  let roundTime = 10000;
+  if (game.difficulty === 'medium' || game.difficulty === 'hard') {
+    roundTime = 15000;
+  } else if (game.difficulty === 'insane') {
+    roundTime = 20000;
+  }
+
   const api = client.api;
   const msg = `🚩 **Runda ${game.currentRound}/5, Flaga ${game.currentFlagIndex}/3** 🚩\n` +
               `Jaki kraj reprezentuje ta flaga?\n\n` +
               `👉 **${currentFlagData.emoji}**\n\n` +
-              `⏱️ Masz 10 sekund na odpowiedź!`;
+              `⏱️ Masz ${roundTime / 1000} sekund na odpowiedź!`;
 
   if (api) {
     api.sendMessage(msg, threadId);
@@ -2162,20 +2185,23 @@ async function startNextFlag(client, threadId) {
 
   game.timeoutId = setTimeout(() => {
     finishFlagTurn(client, threadId);
-  }, 10000);
+  }, roundTime);
 }
 
 async function finishFlagTurn(client, threadId) {
   const game = client.activeFlagTournaments?.get(threadId);
-  if (!game || game.state !== 'playing') return;
+  if (!game || game.state !== 'playing' || !game.currentFlag) return;
 
   if (game.timeoutId) {
     clearTimeout(game.timeoutId);
     game.timeoutId = null;
   }
 
-  const correctCountry = game.currentFlag.name;
-  let summary = `⌛ **Koniec czasu dla flagi ${game.currentFlag.emoji}** ⌛\n` +
+  const correctFlag = game.currentFlag;
+  game.currentFlag = null; // Uniemożliwia zgadywanie w przerwie między rundami
+
+  const correctCountry = correctFlag.name;
+  let summary = `⌛ **Koniec czasu dla flagi ${correctFlag.emoji}** ⌛\n` +
                 `Poprawna odpowiedź: **${correctCountry}**\n\n` +
                 `🏆 **Punkty w tej turze:**\n`;
 
@@ -2436,7 +2462,7 @@ module.exports = {
       }
 
       const diffArg = String(args[1] || 'medium').toLowerCase().trim();
-      const validDiffs = ['easy', 'medium', 'hard'];
+      const validDiffs = ['easy', 'medium', 'hard', 'insane'];
       const difficulty = validDiffs.includes(diffArg) ? diffArg : 'medium';
 
       let maxPlayers = 8;
@@ -2488,7 +2514,7 @@ module.exports = {
     }
 
     const diffArg = sub || 'all';
-    const validDiffs = ['easy', 'medium', 'hard'];
+    const validDiffs = ['easy', 'medium', 'hard', 'insane'];
     const difficulty = validDiffs.includes(diffArg) ? diffArg : 'all';
 
     const chosenList = difficulty === 'all' ? flagsList : getFlagsByDifficulty(difficulty);

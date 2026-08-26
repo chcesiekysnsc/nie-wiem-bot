@@ -3291,13 +3291,6 @@ login({ appState }, (loginErr, api) => {
             const alreadyGuessed = tourGame.currentFlagGuesses.some(g => g.userId === senderId);
             if (!alreadyGuessed) {
               tourGame.currentFlagGuesses.push({ userId: senderId });
-              const place = tourGame.currentFlagGuesses.length;
-              const points = place === 1 ? 3 : (place === 2 ? 2 : 1);
-              
-              client.resolveUserName(api, senderId).then(pName => {
-                api.sendMessage(`✅ **${pName}** zgadł flagę! (+${points} pkt)`, threadId, () => {}, messageId);
-              }).catch(() => null);
-
               const maxGuesses = Math.min(3, tourGame.players.length);
               if (tourGame.currentFlagGuesses.length >= maxGuesses) {
                 if (typeof client.finishFlagTurn === 'function') {

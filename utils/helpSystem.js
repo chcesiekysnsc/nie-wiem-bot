@@ -1380,18 +1380,17 @@ const helpCommands = [
     name: "flagi",
     category: "SOCIAL_GANGS",
     shortDescription: "🏳️ zgadywanie flag i turnieje",
-    description: "🏳️ Komenda do zgadywania flag krajów. Dostępne tryby: pojedyncza flaga z wyborem trudności oraz turniej wieloosobowy (5 rund po 3 flagi). Nie daje pieniędzy — gra wyłącznie na punkty.",
-    usage: "!flagi [easy|medium|hard] | !flagi turniej <trudność> <ilość_osób> | !flagi dolacz | !flagi start | !flagi off",
-    examples: ["!flagi", "!flagi easy", "!flagi hard", "!flagi turniej medium 4", "!flagi turniej hard 8", "!flagi dolacz", "!flagi start", "!flagi off"],
+    description: "🏳️ Zgadywanie flag krajów (gra na punkty). Tryb pojedynczy lub turniej (5 rund po 3 flagi).",
+    usage: "!flagi [easy|medium|hard|insane] | !flagi turniej <trudność> <limit_graczy> | !flagi dolacz | !flagi off",
+    examples: ["!flagi", "!flagi easy", "!flagi turniej insane 4", "!flagi dolacz", "!flagi start", "!flagi off"],
     cooldown: "Brak.",
     requirements: "Czat grupowy. Turniej: 2-8 graczy.",
     aliases: ["flaga"],
     additionalInfo: [
-      "**Trudności:** easy (Europa/Ameryka Pn.), medium (Azja/Ameryka Pd.), hard (Afryka/Oceania).",
-      "**Pojedyncza flaga:** !flagi lub !flagi <trudność> — wyświetla jedną flagę do zgadnięcia, czas zależy od trudności (10-20s).",
-      "**Turniej:** !flagi turniej <trudność> <ilość_osób> — otwiera lobby na 2-8 graczy. Gracze dołączają przez !flagi dolacz, host startuje przez !flagi start.",
-      "**Punktacja turnieju:** Kto szybciej zgadnie, ten więcej punktów: 1. miejsce = 3 pkt, 2. miejsce = 2 pkt, 3. miejsce = 1 pkt. Każda flaga trwa 10s.",
-      "**Wyłączanie:** Administratorzy grupy mogą wpisać !flagi off, aby zablokować flagi na danej grupie (przywrócenie: !flagi on)."
+      "**Trudność:** easy (10s), medium (15s), hard (15s), insane (20s, bardzo rzadkie terytoria/wyspy).",
+      "**Turniej:** !flagi turniej <trudność> <gracze> (np. 2-8). Dołączanie: !flagi dolacz. Start: !flagi start (lub autostart gdy pełne).",
+      "**Punktacja:** Kto szybciej zgadnie, ten dostaje więcej punktów (1. = 3 pkt, 2. = 2 pkt, 3. = 1 pkt). Ciche zgadywanie (brak podpowiedzi na czacie).",
+      "**Admini:** !flagi off wyłącza flagi na grupie, !flagi on włącza."
     ]
   }
 ];
