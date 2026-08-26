@@ -121,10 +121,19 @@ module.exports = {
           await this.handleAction(client, message, action);
           return;
         }
-      await message.reply('❌ Masz już aktywną grę w Blackjacka! Napisz **hit** (dobierz), **stand** (stop) lub **double** (podwój).');
-      return;
+
+        const playerValue = getHandValue(activeGame.playerCards);
+        const dealerValue = getHandValue(activeGame.dealerCards);
+        await message.reply(
+          `🃏 **Trwa gra w Blackjacka!**\n\n` +
+          `👨‍💼 Krupier: ${renderHand(activeGame.dealerCards, true)} (Wartość: ?)\n` +
+          `👤 Twoja Ręka: ${renderHand(activeGame.playerCards)} (Wartość: ${playerValue} pkt)\n\n` +
+          `Stawka: **${formatCurrency(activeGame.bet)}**\n` +
+          `Twj ruch: wpisz **hit** (dobierz), **stand** (stop) lub **double** (podwój).`
+        );
+        return;
+      }
     }
-  }
 
   if (client.taxWarningActive) {
     await message.reply('❌ Za 15 sekund nastąpi pobór podatków. Nie można rozpocząć nowej gry.');

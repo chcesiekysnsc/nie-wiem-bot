@@ -455,6 +455,78 @@ module.exports = {
       return;
     }
 
+    if (sub === 'rob') {
+      participantIDs = await withData(store => {
+        return Object.entries(store.users || {})
+          .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+          .map(([id]) => id);
+      });
+
+      const { globalTop, groupMembers, showIds } = await withData(store => {
+        createUser(message.author.id, store.users);
+
+        const users = Object.entries(store.users || {});
+        const showIds = store.profiles.showIds || [];
+
+        const globalSorted = users
+          .map(([id, u]) => {
+            const robCount = u.commandCounts?.['rob'] || 0;
+            return { id, robCount };
+          })
+          .sort((a, b) => b.robCount - a.robCount);
+
+        const globalTop = globalSorted.slice(0, 5);
+
+        let groupMembers = [];
+        if (participantIDs && participantIDs.length > 0) {
+          groupMembers = participantIDs.map(id => {
+            const u = store.users[id] || { commandCounts: {} };
+            const robCount = u.commandCounts?.['rob'] || 0;
+            return { id, robCount };
+          })
+          .sort((a, b) => b.robCount - a.robCount)
+          .slice(0, 5);
+        } else {
+          groupMembers = [];
+        }
+
+        return { globalTop, groupMembers, showIds };
+      });
+
+      const allTopIds = [...new Set([...globalTop.map(u => u.id), ...groupMembers.map(u => u.id)])];
+      await preloadNames(allTopIds);
+
+      const globalLines = await Promise.all(
+        globalTop.map(async (u, i) => {
+          let name = await getName(u.id);
+          if (showIds.includes(u.id)) {
+            name = `${name} ${u.id}`;
+          }
+          return `${medals[i]} ${name} — ${formatNumber(u.robCount)} napadów`;
+        })
+      );
+
+      const groupLines = await Promise.all(
+        groupMembers.map(async (u, i) => {
+          let name = await getName(u.id);
+          if (showIds.includes(u.id)) {
+            name = `${name} ${u.id}`;
+          }
+          return `${medals[i]} ${name} — ${formatNumber(u.robCount)} napadów`;
+        })
+      );
+
+      const responseText =
+        `🔪 **Ranking Napadów**\n` +
+        `🌍 **Top 5 Global**\n` +
+        `${globalLines.length ? globalLines.join('\n') : 'Brak danych.'}\n` +
+        `👥 **Top 5 Grupy**\n` +
+        `${groupLines.length ? groupLines.join('\n') : 'Brak danych grupowych.'}`;
+
+      await message.reply(responseText);
+      return;
+    }
+
     participantIDs = await withData(store => {
       return Object.entries(store.users || {})
         .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
