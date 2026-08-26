@@ -1695,7 +1695,10 @@ login({ appState }, (loginErr, api) => {
             const user = createUser(userId, store.users);
             user.balance += bet;
           });
-          refunds.push({ userId, amount: bet, game: 'blackjack' });
+          refunds.push({ userId, amount: bet, game: 'blackjack', threadId: game.threadId });
+          if (game.threadId) {
+            threadsToNotify.add(game.threadId);
+          }
         }
       }
       client.activeBlackjackGames.clear();
@@ -1710,7 +1713,10 @@ login({ appState }, (loginErr, api) => {
             const user = createUser(userId, store.users);
             user.balance += bet;
           });
-          refunds.push({ userId, amount: bet, game: 'chickenroad' });
+          refunds.push({ userId, amount: bet, game: 'chickenroad', threadId: game.threadId });
+          if (game.threadId) {
+            threadsToNotify.add(game.threadId);
+          }
         }
       }
       client.activeChickenRoadGames.clear();
@@ -1740,12 +1746,14 @@ login({ appState }, (loginErr, api) => {
       for (const [threadId, session] of client.warSessions.entries()) {
         threadsToNotify.add(threadId);
         const bet = Number(session.bet || 0);
-        if (bet > 0 && session.hostId) {
-          await withData(store => {
-            const user = createUser(session.hostId, store.users);
-            user.balance += bet;
-          });
-          refunds.push({ userId: session.hostId, amount: bet, game: 'wojna', threadId });
+        if (bet > 0 && Array.isArray(session.participants)) {
+          for (const participantId of session.participants) {
+            await withData(store => {
+              const user = createUser(participantId, store.users);
+              user.balance += bet;
+            });
+            refunds.push({ userId: participantId, amount: bet, game: 'wojna', threadId });
+          }
         }
       }
       client.warSessions.clear();
@@ -1756,11 +1764,16 @@ login({ appState }, (loginErr, api) => {
       for (const userId of client.meczInProgress) {
         const bet = Number(client.meczBets?.get?.(userId) || 0);
         if (bet > 0) {
+          let userThreadId = null;
           await withData(store => {
             const user = createUser(userId, store.users);
             user.balance += bet;
+            userThreadId = user.lastActiveThreadId;
           });
-          refunds.push({ userId, amount: bet, game: 'mecz' });
+          refunds.push({ userId, amount: bet, game: 'mecz', threadId: userThreadId });
+          if (userThreadId) {
+            threadsToNotify.add(userThreadId);
+          }
         }
       }
       client.meczInProgress.clear();
@@ -1782,11 +1795,16 @@ login({ appState }, (loginErr, api) => {
       for (const [userId, multi] of client.activeMultiMatches.entries()) {
         const bet = Number(client.meczBets?.get?.(userId) || 0);
         if (bet > 0) {
+          let userThreadId = null;
           await withData(store => {
             const user = createUser(userId, store.users);
             user.balance += bet;
+            userThreadId = user.lastActiveThreadId;
           });
-          refunds.push({ userId, amount: bet, game: 'multimecz' });
+          refunds.push({ userId, amount: bet, game: 'multimecz', threadId: userThreadId });
+          if (userThreadId) {
+            threadsToNotify.add(userThreadId);
+          }
         }
       }
       client.activeMultiMatches.clear();
@@ -1794,6 +1812,26 @@ login({ appState }, (loginErr, api) => {
 
     if (client.meczBets) {
       client.meczBets.clear();
+    }
+
+    // Multiruletka
+    if (client.activeMultiRoulettes) {
+      for (const [threadId, game] of client.activeMultiRoulettes.entries()) {
+        threadsToNotify.add(threadId);
+        if (Array.isArray(game.bets)) {
+          for (const bet of game.bets) {
+            const amount = Number(bet.betAmount || 0);
+            if (amount > 0) {
+              await withData(store => {
+                const user = createUser(bet.userId, store.users);
+                user.balance += amount;
+              });
+              refunds.push({ userId: bet.userId, amount, game: 'multiruletka', threadId });
+            }
+          }
+        }
+      }
+      client.activeMultiRoulettes.clear();
     }
 
     // Rosyjska ruletka challenges (no money deducted, just delete)
@@ -1823,6 +1861,26 @@ login({ appState }, (loginErr, api) => {
 
     // Save state
     try { saveGameSessions(client); } catch (e) {}
+
+    // Send notifications to chats about refunded bets
+    if (threadsToNotify.size > 0 && client.api) {
+      for (const threadId of threadsToNotify) {
+        const threadRefunds = refunds.filter(r => r.threadId === threadId || (!r.threadId && client.lastThreadId === threadId));
+        if (threadRefunds.length > 0) {
+          let msg = `⚠️ **PRZERWANO GRY (ZBLIŻAJĄCY SIĘ PODATEK)** ⚠️\n` +
+                    `Rozgrywki w tym wątku zostały anulowane z powodu zbliżającego się poboru podatków. Zwrócono stawki:\n`;
+          for (const refund of threadRefunds) {
+            const userName = (client.userNames && client.userNames.get(refund.userId)) || `Gracz_${refund.userId.slice(-6)}`;
+            msg += `• @${userName} — **${formatCurrency(refund.amount)}** (gra: ${refund.game})\n`;
+          }
+          client.api.sendMessage(msg, threadId, (err) => {
+            if (err) console.error('[TAX-WARNING] Błąd wysyłania powiadomienia o zwrocie:', err.message || err);
+          })?.catch?.(err => {
+            console.error('[TAX-WARNING] Błąd (Promise) powiadomienia o zwrocie:', err.message || err);
+          });
+        }
+      }
+    }
 
     console.log(`[TAX-WARNING] Zakończono gry. Zwrócono ${refunds.length} stawek.`);
     return refunds;
