@@ -41,11 +41,13 @@ module.exports = {
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
 
     const threads = Array.from(client.activeThreadIds || []);
+    console.log(`[ZCZYTAJ] Aktywne wątki: ${threads.length}`);
     if (!threads.length) {
       await message.reply('❌ Bot nie jest w żadnych grupach.');
       return;
     }
 
+    console.log(`[ZCZYTAJ] Rozpoczynam skanowanie. Grupy: ${threads.length}, dni: ${days}, cutoff: ${new Date(cutoff).toISOString()}`);
     await message.reply(`🔍 **Rozpoczynam skanowanie ${threads.length} grup...**\nSzukam !bal, !eq, !pfp, !gang, !top, !daily, !work, !crime, !rob oraz odpowiedzi bota z ostatnich ${days} dni.\nLimit: 10 000 wiadomości/grupę. To może zająć kilka minut.`);
 
     const matched = [];
@@ -55,7 +57,12 @@ module.exports = {
     const seenIds = new Set();
     const COMMANDS = ['!bal', '!eq', '!pfp', '!gang', '!top', '!daily', '!work', '!crime', '!rob', '!equip'];
     const MAX_PER_GROUP = 10000;
+    const BATCH_SIZE = 200;
+    const DELAY_MS = 1500;
     const botResponsesLookup = new Map();
+    const groupStats = [];
+
+    try {
 
     for (const threadId of threads) {
       if (threadId === message.author.id) continue;
