@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const { withData, createUser } = require('../utils/storage');
 const { DATA_DIR } = require('../utils/storage');
 
 function getThreadHistoryPage(api, threadID, amount, timestamp) {
@@ -12,7 +11,7 @@ function getThreadHistoryPage(api, threadID, amount, timestamp) {
         console.warn(`[ZCZYTAJ] getThreadHistory timed out for thread ${threadID}`);
         resolve(null);
       }
-    }, 120000);
+    }, 60000);
 
     api.getThreadHistory(threadID, amount, timestamp, (err, history) => {
       clearTimeout(timeout);
@@ -36,209 +35,174 @@ module.exports = {
       return;
     }
 
-    const days = Math.min(30, Math.max(1, Number(args[0]) || 4));
-    const targetThreadId = '24956371943963938';
-    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-
-    const threads = Array.from(client.activeThreadIds || []);
-    console.log(`[ZCZYTAJ] Aktywne wątki: ${threads.length}`);
-    if (!threads.length) {
-      await message.reply('❌ Bot nie jest w żadnych grupach.');
-      return;
+    const threadId = message.threadID || message.guild.id;
+    
+    // Domyślny cutoff: 27.08.2026 21:30 w strefie czasowej Polski (1787859000000)
+    let cutoffTimestamp = 1787859000000;
+    if (args[0]) {
+      const parsed = Date.parse(args.join(' '));
+      if (!isNaN(parsed)) {
+        cutoffTimestamp = parsed;
+      } else if (!isNaN(Number(args[0]))) {
+        cutoffTimestamp = Number(args[0]);
+      }
     }
 
-    console.log(`[ZCZYTAJ] Rozpoczynam skanowanie. Grupy: ${threads.length}, dni: ${days}, cutoff: ${new Date(cutoff).toISOString()}`);
-    await message.reply(`🔍 **Rozpoczynam skanowanie ${threads.length} grup...**\nSzukam !bal, !eq, !pfp, !gang, !top, !daily, !work, !crime, !rob oraz odpowiedzi bota z ostatnich ${days} dni.\nLimit: 10 000 wiadomości/grupę. To może zająć kilka minut.`);
+    const cutoffDateStr = new Date(cutoffTimestamp).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' });
+    await message.reply(`🔍 **Rozpoczynam zczytywanie historii grupy...**\n• Cel: Ostatnie 8k wiadomości przed **${cutoffDateStr}**\n• Wyszukiwane: !bal, !eq, !gang, !top\n• Proszę czekać...`);
 
-    const COMMANDS = ['!bal', '!eq', '!pfp', '!gang', '!top', '!daily', '!work', '!crime', '!rob', '!equip'];
-    const MAX_PER_GROUP = 10000;
+    const COMMANDS = ['!bal', '!eq', '!equip', '!gang', '!top'];
+    const MAX_MESSAGES = 8000;
     const BATCH_SIZE = 200;
-    const DELAY_MS = 1500;
+    const DELAY_MS = 1000;
 
     const allMessages = [];
-    let totalScanned = 0;
-    let totalGroups = 0;
-    const seenIds = new Set();
-    const groupStats = [];
+    let scannedCount = 0;
+    let oldestTimestamp = cutoffTimestamp;
+    let pageIndex = 0;
+    let keepFetching = true;
+    let stuckPageCount = 0;
 
     const botId = typeof client.api.getCurrentUserID === 'function' ? String(client.api.getCurrentUserID()) : '61560227271099';
 
     try {
-      for (const threadId of threads) {
-        if (threadId === message.author.id) continue;
-        totalGroups++;
+      while (keepFetching && scannedCount < MAX_MESSAGES) {
+        const amount = Math.min(BATCH_SIZE, MAX_MESSAGES - scannedCount);
+        console.log(`[ZCZYTAJ] Pobieranie: strona=${pageIndex + 1}, batch=${amount}, oldestTimestamp=${oldestTimestamp}`);
 
-        let oldestTimestamp = null;
-        let keepFetching = true;
-        let fetchError = false;
-        let groupScanned = 0;
-        let pageIndex = 0;
-        let lastOldestTimestamp = null;
-        let stuckPageCount = 0;
-        const threadMessages = [];
+        const history = await getThreadHistoryPage(client.api, threadId, amount, oldestTimestamp);
+        if (history === null || history.length === 0) {
+          console.log(`[ZCZYTAJ] Brak kolejnych wiadomości.`);
+          break;
+        }
 
-        console.log(`[ZCZYTAJ] Skanuję grupę ${threadId}...`);
+        scannedCount += history.length;
+        pageIndex++;
 
-        while (keepFetching && groupScanned < MAX_PER_GROUP) {
-          const batchSize = Math.min(BATCH_SIZE, MAX_PER_GROUP - groupScanned);
-          console.log(`[ZCZYTAJ] Grupa ${threadId}, strona ${pageIndex + 1}, batch=${batchSize}, oldestTimestamp=${oldestTimestamp}, groupScanned=${groupScanned}`);
+        let pageOldest = Infinity;
+        for (const msg of history) {
+          const ts = Number(msg.timestamp);
+          if (ts < pageOldest) pageOldest = ts;
 
-          const history = await getThreadHistoryPage(client.api, threadId, batchSize, oldestTimestamp);
-          if (history === null) {
-            fetchError = true;
-            console.warn(`[ZCZYTAJ] getThreadHistory zwróciło null dla grupy ${threadId}`);
-            break;
-          }
-          if (history.length === 0) {
-            console.log(`[ZCZYTAJ] Pusta historia dla grupy ${threadId} na stronie ${pageIndex + 1}`);
-            break;
-          }
-
-          groupScanned += history.length;
-          totalScanned += history.length;
-          pageIndex++;
-          let pageOldest = Infinity;
-
-          for (const msg of history) {
-            const ts = Number(msg.timestamp);
-            if (ts < pageOldest) pageOldest = ts;
-
-            if (ts < cutoff) {
-              keepFetching = false;
-              console.log(`[ZCZYTAJ] Grupa ${threadId}: osiągnięto cutoff ${new Date(cutoff).toISOString()}, zatrzymuję.`);
-              break;
-            }
-
-            const msgId = msg.messageID ? String(msg.messageID) : null;
-            if (msgId && seenIds.has(msgId)) continue;
-            if (msgId) seenIds.add(msgId);
-
-            threadMessages.push({
-              timestamp: new Date(ts).toISOString(),
+          if (ts <= cutoffTimestamp) {
+            allMessages.push({
               ts,
               senderID: msg.senderID ? String(msg.senderID) : null,
               body: (msg.body || '').trim(),
-              threadId,
-              replyTo: msg.replyTo ? String(msg.replyTo) : null,
-              messageID: msgId
+              messageID: msg.messageID ? String(msg.messageID) : null
             });
           }
-
-          if (!keepFetching) break;
-
-          if (pageOldest !== Infinity && oldestTimestamp !== null && pageOldest === oldestTimestamp) {
-            stuckPageCount++;
-            if (stuckPageCount >= 3) {
-              console.warn(`[ZCZYTAJ] Wykryto zapętloną paginację (ten sam timestamp 3x z rzędu) dla ${threadId} — przerywam na ${groupScanned} wiadomościach.`);
-              break;
-            }
-          } else {
-            stuckPageCount = 0;
-          }
-          lastOldestTimestamp = oldestTimestamp;
-
-          oldestTimestamp = pageOldest !== Infinity && !isNaN(pageOldest) ? pageOldest - 1 : null;
-          if (!oldestTimestamp) {
-            console.log(`[ZCZYTAJ] Grupa ${threadId}: brak starszego timestampu, zatrzymuję.`);
-            break;
-          }
-
-          await new Promise(resolve => setTimeout(resolve, DELAY_MS));
         }
 
-        console.log(`[ZCZYTAJ] Grupa ${threadId} zakończona: ${groupScanned} wiadomości, ${pageIndex} stron.`);
-        groupStats.push({ threadId, scanned: groupScanned, pages: pageIndex, error: fetchError });
+        if (pageOldest !== Infinity && oldestTimestamp !== null && pageOldest === oldestTimestamp) {
+          stuckPageCount++;
+          if (stuckPageCount >= 3) {
+            console.warn(`[ZCZYTAJ] Zapętlenie paginacji.`);
+            break;
+          }
+        } else {
+          stuckPageCount = 0;
+        }
 
-        threadMessages.sort((a, b) => a.ts - b.ts);
-        allMessages.push(...threadMessages);
+        oldestTimestamp = pageOldest !== Infinity && !isNaN(pageOldest) ? pageOldest - 1 : null;
+        if (!oldestTimestamp) break;
+
+        await new Promise(resolve => setTimeout(resolve, DELAY_MS));
       }
 
-      console.log(`[ZCZYTAJ] Wszystkie grupy zeskanowane. Razem: ${totalScanned} wiadomości z ${totalGroups} grup.`);
+      console.log(`[ZCZYTAJ] Zakończono pobieranie. Pobrano ${scannedCount} wiadomości.`);
 
-      const userCommands = allMessages.filter(m => {
-        const lower = (m.body || '').toLowerCase();
+      // Sortowanie chronologiczne rosnąco
+      allMessages.sort((a, b) => a.ts - b.ts);
+
+      const matchedCommands = [];
+      for (let i = 0; i < allMessages.length; i++) {
+        const msg = allMessages[i];
+        if (!msg.body || !msg.senderID || msg.senderID === botId) continue;
+
+        const lower = msg.body.toLowerCase();
         const firstWord = lower.split(/\s+/)[0];
-        return m.senderID && m.senderID !== botId && COMMANDS.includes(firstWord);
-      });
 
-      const botResponses = allMessages.filter(m => m.senderID === botId);
-      const threadResponsesMap = new Map();
-      for (const r of botResponses) {
-        if (!threadResponsesMap.has(r.threadId)) threadResponsesMap.set(r.threadId, []);
-        threadResponsesMap.get(r.threadId).push(r);
+        if (COMMANDS.includes(firstWord)) {
+          let responseText = null;
+          for (let j = i + 1; j < allMessages.length; j++) {
+            const nextMsg = allMessages[j];
+            if (nextMsg.ts > msg.ts + 15000) break;
+            if (nextMsg.senderID === botId) {
+              responseText = nextMsg.body;
+              break;
+            }
+          }
+
+          matchedCommands.push({
+            ts: msg.ts,
+            date: new Date(msg.ts).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' }),
+            userId: msg.senderID,
+            command: firstWord,
+            body: msg.body,
+            response: responseText
+          });
+        }
       }
 
-      const matched = [];
-      for (const cmd of userCommands) {
-        const cmdTime = cmd.ts;
-        const sameThreadResponses = (threadResponsesMap.get(cmd.threadId) || []).filter(r => r.ts > cmdTime && r.ts < cmdTime + 10000);
-        const response = sameThreadResponses.length > 0 ? sameThreadResponses[0].body : null;
+      const latestBal = new Map();
+      const latestEq = new Map();
+      const latestGang = new Map();
+      const latestTop = new Map();
 
-        const firstWord = cmd.body.toLowerCase().split(/\s+/)[0];
-        const type = firstWord === '!gang' ? 'gang' : (['!bal', '!eq', '!pfp', '!equip'].includes(firstWord) ? 'user_stats' : 'other');
+      for (const entry of matchedCommands) {
+        if (!entry.response) continue;
 
-        matched.push({
-          timestamp: cmd.timestamp,
-          type,
-          userId: cmd.senderID,
-          userName: cmd.senderID,
-          command: firstWord,
-          body: cmd.body,
-          response: response || null,
-          threadId: cmd.threadId,
-          replyTo: cmd.replyTo || null
-        });
+        if (entry.command === '!bal') {
+          latestBal.set(entry.userId, entry);
+        } else if (['!eq', '!equip'].includes(entry.command)) {
+          latestEq.set(entry.userId, entry);
+        } else if (entry.command === '!gang') {
+          latestGang.set(entry.userId, entry);
+        } else if (entry.command === '!top') {
+          latestTop.set(entry.userId, entry);
+        }
       }
 
-      console.log(`[ZCZYTAJ] Znaleziono ${matched.length} komend, ${botResponses.length} odpowiedzi bota.`);
-
-      if (matched.length === 0) {
-        await message.reply(`⚠️ Nie znaleziono wpisów z !bal, !eq, !pfp, !gang, !top, !daily, !work, !crime, !rob w ostatnich ${days} dniach.\nPrzeskanowano ${totalGroups} grup, ${totalScanned} wiadomości.`);
-        return;
-      }
-
-      const output = {
-        generatedAt: new Date().toISOString(),
-        rangeDays: days,
-        cutoff: new Date(cutoff).toISOString(),
-        totalGroups,
-        totalScanned,
-        totalEntries: matched.length,
-        entries: matched
+      const outputData = {
+        meta: {
+          scannedMessagesTotal: scannedCount,
+          matchedCommandsCount: matchedCommands.length,
+          cutoffTime: cutoffDateStr,
+          cutoffTimestamp
+        },
+        bal: Array.from(latestBal.values()),
+        eq: Array.from(latestEq.values()),
+        gang: Array.from(latestGang.values()),
+        top: Array.from(latestTop.values())
       };
 
-      const fileName = `zczytaj_${Date.now()}.json`;
+      const fileName = `zczytaj_stan_${Date.now()}.json`;
       const filePath = path.join(DATA_DIR, fileName);
-      fs.writeFileSync(filePath, JSON.stringify(output, null, 2), 'utf8');
+      fs.writeFileSync(filePath, JSON.stringify(outputData, null, 2), 'utf8');
 
-      const userStats = matched.filter(e => ['!bal', '!eq', '!pfp', '!equip'].includes(e.command)).length;
-      const gangEntries = matched.filter(e => e.command === '!gang').length;
-      const topEntries = matched.filter(e => e.command === '!top').length;
-      const dailyEntries = matched.filter(e => e.command === '!daily').length;
-      const workEntries = matched.filter(e => e.command === '!work').length;
-      const crimeEntries = matched.filter(e => e.command === '!crime').length;
-      const robEntries = matched.filter(e => e.command === '!rob').length;
-      const withResponse = matched.filter(e => e.response).length;
-
-      try {
-        await message.reply(`📦 Znaleziono ${matched.length} wpisów w ${totalGroups} grupach:\n• Statystyki (!bal/!eq/!pfp): ${userStats}\n• Gang (!gang): ${gangEntries}\n• Top (!top): ${topEntries}\n• Daily (!daily): ${dailyEntries}\n• Work/Crime/Rob: ${workEntries + crimeEntries + robEntries}\n• Odpowiedzi bota: ${withResponse}\n\nWysyłam plik...`);
-        await new Promise((resolve, reject) => {
-          client.api.sendMessage({
-            body: `📦 Zczytano ${matched.length} wpisów z ${totalGroups} grup (${totalScanned} wiadomości).\n!bal/!eq/!pfp: ${userStats}\n!gang: ${gangEntries}\n!top: ${topEntries}\n!daily: ${dailyEntries}\n!work/!crime/!rob: ${workEntries + crimeEntries + robEntries}\nOdpowiedzi bota: ${withResponse}.`,
-            attachment: fs.createReadStream(filePath)
-          }, targetThreadId, (err) => {
-            try { fs.unlinkSync(filePath); } catch {}
-            if (err) reject(err);
-            else resolve();
-          });
+      await new Promise((resolve, reject) => {
+        client.api.sendMessage({
+          body: `📦 **Zczytywanie zakończone!**\n` +
+                `• Zakres: do ${cutoffDateStr}\n` +
+                `• Przeskanowano: ${scannedCount} wiadomości\n\n` +
+                `Unikalne stany końcowe przed resetem:\n` +
+                `💰 Portfele (!bal): ${latestBal.size}\n` +
+                `🎒 Ekwipunki (!eq): ${latestEq.size}\n` +
+                `👥 Gangi (!gang): ${latestGang.size}\n` +
+                `🏆 Topki (!top): ${latestTop.size}\n\n` +
+                `Wysyłam wygenerowany plik JSON...`,
+          attachment: fs.createReadStream(filePath)
+        }, threadId, (err) => {
+          try { fs.unlinkSync(filePath); } catch {}
+          if (err) reject(err);
+          else resolve();
         });
-      } catch (err) {
-        await message.reply(`❌ Błąd wysyłania pliku: ${err.message}`);
-        try { fs.unlinkSync(filePath); } catch {}
-      }
+      });
+
     } catch (err) {
-      console.error('[ZCZYTAJ] Błąd podczas skanowania:', err);
-      await message.reply(`❌ Błąd podczas skanowania: ${err.message}`);
+      console.error('[ZCZYTAJ] Błąd:', err);
+      await message.reply(`❌ Błąd podczas wykonywania zczytywania: ${err.message}`);
     }
   }
 };
