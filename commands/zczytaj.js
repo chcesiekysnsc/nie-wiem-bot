@@ -50,16 +50,18 @@ module.exports = {
     console.log(`[ZCZYTAJ] Rozpoczynam skanowanie. Grupy: ${threads.length}, dni: ${days}, cutoff: ${new Date(cutoff).toISOString()}`);
     await message.reply(`🔍 **Rozpoczynam skanowanie ${threads.length} grup...**\nSzukam !bal, !eq, !pfp, !gang, !top, !daily, !work, !crime, !rob oraz odpowiedzi bota z ostatnich ${days} dni.\nLimit: 10 000 wiadomości/grupę. To może zająć kilka minut.`);
 
-    const matched = [];
-    const allMessages = [];
-    let totalScanned = 0;
-    let totalGroups = 0;
-    const seenIds = new Set();
     const COMMANDS = ['!bal', '!eq', '!pfp', '!gang', '!top', '!daily', '!work', '!crime', '!rob', '!equip'];
     const MAX_PER_GROUP = 10000;
     const BATCH_SIZE = 200;
     const DELAY_MS = 1500;
+
+    const allMessages = [];
+    let totalScanned = 0;
+    let totalGroups = 0;
+    const seenIds = new Set();
     const groupStats = [];
+
+    const botId = typeof client.api.getCurrentUserID === 'function' ? String(client.api.getCurrentUserID()) : '61560227271099';
 
     try {
       for (const threadId of threads) {
@@ -71,6 +73,8 @@ module.exports = {
         let fetchError = false;
         let groupScanned = 0;
         let pageIndex = 0;
+        let lastOldestTimestamp = null;
+        let stuckPageCount = 0;
         const threadMessages = [];
 
         console.log(`[ZCZYTAJ] Skanuję grupę ${threadId}...`);
@@ -78,7 +82,7 @@ module.exports = {
         while (keepFetching && groupScanned < MAX_PER_GROUP) {
           const batchSize = Math.min(BATCH_SIZE, MAX_PER_GROUP - groupScanned);
           console.log(`[ZCZYTAJ] Grupa ${threadId}, strona ${pageIndex + 1}, batch=${batchSize}, oldestTimestamp=${oldestTimestamp}, groupScanned=${groupScanned}`);
-          
+
           const history = await getThreadHistoryPage(client.api, threadId, batchSize, oldestTimestamp);
           if (history === null) {
             fetchError = true;
@@ -123,9 +127,15 @@ module.exports = {
           if (!keepFetching) break;
 
           if (pageOldest !== Infinity && oldestTimestamp !== null && pageOldest === oldestTimestamp) {
-            console.warn(`[ZCZYTAJ] Grupa ${threadId}: zapętlona paginacja (pageOldest=${pageOldest}, oldestTimestamp=${oldestTimestamp}), zatrzymuję.`);
-            break;
+            stuckPageCount++;
+            if (stuckPageCount >= 3) {
+              console.warn(`[ZCZYTAJ] Wykryto zapętloną paginację (ten sam timestamp 3x z rzędu) dla ${threadId} — przerywam na ${groupScanned} wiadomościach.`);
+              break;
+            }
+          } else {
+            stuckPageCount = 0;
           }
+          lastOldestTimestamp = oldestTimestamp;
 
           oldestTimestamp = pageOldest !== Infinity && !isNaN(pageOldest) ? pageOldest - 1 : null;
           if (!oldestTimestamp) {
@@ -145,7 +155,6 @@ module.exports = {
 
       console.log(`[ZCZYTAJ] Wszystkie grupy zeskanowane. Razem: ${totalScanned} wiadomości z ${totalGroups} grup.`);
 
-      const botId = typeof client.api.getCurrentUserID === 'function' ? String(client.api.getCurrentUserID()) : '61560227271099';
       const userCommands = allMessages.filter(m => {
         const lower = (m.body || '').toLowerCase();
         const firstWord = lower.split(/\s+/)[0];
@@ -159,6 +168,7 @@ module.exports = {
         threadResponsesMap.get(r.threadId).push(r);
       }
 
+      const matched = [];
       for (const cmd of userCommands) {
         const cmdTime = cmd.ts;
         const sameThreadResponses = (threadResponsesMap.get(cmd.threadId) || []).filter(r => r.ts > cmdTime && r.ts < cmdTime + 10000);
@@ -194,17 +204,7 @@ module.exports = {
         totalGroups,
         totalScanned,
         totalEntries: matched.length,
-        entries: matched.map(e => ({
-          timestamp: e.timestamp,
-          type: e.type,
-          userId: e.userId,
-          userName: e.userName,
-          command: e.command,
-          body: e.body,
-          response: e.response || null,
-          threadId: e.threadId,
-          replyTo: e.replyTo
-        }))
+        entries: matched
       };
 
       const fileName = `zczytaj_${Date.now()}.json`;
