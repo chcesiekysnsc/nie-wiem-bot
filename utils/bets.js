@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const { withData, createUser } = require('./storage');
+const { withData, createUser, DATA_DIR } = require('./storage');
 const { formatCurrency, refreshBadges, ensureInventoryRecord, randomInt, recordGame } = require('./economy');
 
-const BETS_FILE = path.join(__dirname, '..', 'data', 'active_bets.json');
+const BETS_FILE = path.join(DATA_DIR, 'active_bets.json');
 
 function loadBets() {
   try {

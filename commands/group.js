@@ -1,6 +1,6 @@
 const config = require('../config/config');
 const { formatCurrency } = require('../utils/economy');
-const { withData } = require('../utils/storage');
+const { withData, DATA_DIR } = require('../utils/storage');
 
 module.exports = {
   name: 'group',
@@ -87,7 +87,7 @@ module.exports = {
     try {
       const path = require('path');
       const fs = require('fs');
-      const activeThreadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
+      const activeThreadsPath = path.join(DATA_DIR, 'active_threads.json');
       fs.writeFileSync(activeThreadsPath, JSON.stringify(currentActiveThreads, null, 2), 'utf8');
     } catch (e) {
       console.error('[group] Błąd zapisu active_threads.json:', e);

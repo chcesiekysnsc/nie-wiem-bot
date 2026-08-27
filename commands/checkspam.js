@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { DATA_DIR } = require('../utils/storage');
 
 module.exports = {
   name: 'checkspam',
@@ -38,7 +39,7 @@ module.exports = {
     }
 
     if (subCommand === 'debug') {
-      const debugPath = path.join(__dirname, '../data/spamcheck_debug.json');
+      const debugPath = path.join(DATA_DIR, 'spamcheck_debug.json');
       if (!fs.existsSync(debugPath)) {
         await message.reply('❌ Brak pliku debugowania. Wykonaj najpierw standardowe skanowanie !spamcheck.');
         return;
@@ -85,8 +86,8 @@ module.exports = {
 
     await message.reply('🔍 Rozpoczynam ręczne skanowanie wszystkich dostępnych folderów: Skrzynka (Inbox), Spam (Pending), Inne (Other) oraz Zarchiwizowane (Archived) w poszukiwaniu grup...');
 
-    const processedGroupsPath = path.join(__dirname, '../data/processed_groups.json');
-    const activeThreadsPath = path.join(__dirname, '../data/active_threads.json');
+    const processedGroupsPath = path.join(DATA_DIR, 'processed_groups.json');
+    const activeThreadsPath = path.join(DATA_DIR, 'active_threads.json');
     
     client.processedNewGroups = client.processedNewGroups || new Set();
     client.activeThreadIds = client.activeThreadIds || new Set();
@@ -295,7 +296,7 @@ module.exports = {
     function checkFinished() {
       // Save raw list of all checked threads to facilitate remote troubleshooting
       try {
-        const debugPath = path.join(__dirname, '../data/spamcheck_debug.json');
+        const debugPath = path.join(DATA_DIR, 'spamcheck_debug.json');
         fs.writeFileSync(debugPath, JSON.stringify({
           timestamp: new Date().toISOString(),
           inboxError: inboxError ? (inboxError.message || inboxError.error || JSON.stringify(inboxError)) : null,

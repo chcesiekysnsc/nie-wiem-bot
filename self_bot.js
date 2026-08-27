@@ -4,12 +4,13 @@ const http = require('http');
 const login = require('@dongdev/fca-unofficial');
 const gangAI = require('./utils/gangAI');
 const { saveGameSessions, loadGameSessions, restoreGameSessions } = require('./utils/gameStatePersistence');
+const { DATA_DIR } = require('./utils/storage');
 
 require('dotenv').config();
 
 // Auto-seed data directory if empty (used for migration/Railway Volume setup)
 function ensureSeededData() {
-  const dataDir = path.join(__dirname, 'data');
+  const dataDir = DATA_DIR;
   const seedDir = path.join(__dirname, 'data_seed');
   const markerPath = path.join(dataDir, '.baseline_imported');
   
@@ -481,7 +482,7 @@ function loadCommands() {
 
 loadCommands();
 
-const activeThreadsPath = path.join(__dirname, 'data', 'active_threads.json');
+const activeThreadsPath = path.join(DATA_DIR, 'active_threads.json');
 try {
   if (fs.existsSync(activeThreadsPath)) {
     const savedThreads = JSON.parse(fs.readFileSync(activeThreadsPath, 'utf8'));
@@ -493,7 +494,7 @@ try {
   console.error('[SELF-BOT] Failed to load active threads:', err);
 }
 
-const processedGroupsPath = path.join(__dirname, 'data', 'processed_groups.json');
+const processedGroupsPath = path.join(DATA_DIR, 'processed_groups.json');
 try {
   if (fs.existsSync(processedGroupsPath)) {
     const savedGroups = JSON.parse(fs.readFileSync(processedGroupsPath, 'utf8'));

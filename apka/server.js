@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const { loadData, withData, DATA_FILES } = require('../utils/storage');
+const { loadData, withData, DATA_FILES, DATA_DIR } = require('../utils/storage');
 const { getRegistry, getUserOverrides, saveUserOverrides } = require('../utils/chances');
 const { getItemDefinition } = require('../utils/gangBossShop');
 const axios = require('axios');
@@ -57,7 +57,7 @@ function sendBufferedEventNotifications() {
   const notifyMsg = `🎉 Eventy aktywne!\n${lines.join('\n')}\n💪 Korzystajcie z bonusów!`;
 
   try {
-    const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
+    const threadsPath = path.join(DATA_DIR, 'active_threads.json');
     if (fs.existsSync(threadsPath)) {
       const threadIds = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
       if (Array.isArray(threadIds) && global.botApi) {
@@ -593,7 +593,7 @@ app.get('/api/settings', (req, res) => {
   
   let groups = [];
   try {
-    const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
+    const threadsPath = path.join(DATA_DIR, 'active_threads.json');
     if (fs.existsSync(threadsPath)) {
       const threadIds = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
       if (Array.isArray(threadIds)) {
@@ -895,7 +895,7 @@ function getGeminiApiKeys() {
     if (val) keys.push(val.trim());
   }
   try {
-    const aiConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'config_ai.json'), 'utf8'));
+    const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
     if (Array.isArray(aiConfig.GEMINI_API_KEYS)) keys.push(...aiConfig.GEMINI_API_KEYS.map(k => k.trim()));
     if (aiConfig.GEMINI_API_KEY) keys.push(aiConfig.GEMINI_API_KEY.trim());
   } catch (_) {}
@@ -946,7 +946,7 @@ app.post('/api/suspects/:id/analyze', async (req, res) => {
     const users = loadData('users');
     const activeThreads = [];
     try {
-      const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
+      const threadsPath = path.join(DATA_DIR, 'active_threads.json');
       if (fs.existsSync(threadsPath)) {
         const raw = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
         if (Array.isArray(raw)) activeThreads.push(...raw.map(String));
@@ -1032,7 +1032,7 @@ app.get('/api/groups', (req, res) => {
     const groupStats = loadData('groupStats');
     const activeThreads = [];
     try {
-      const threadsPath = path.join(__dirname, '..', 'data', 'active_threads.json');
+      const threadsPath = path.join(DATA_DIR, 'active_threads.json');
       if (fs.existsSync(threadsPath)) {
         const raw = JSON.parse(fs.readFileSync(threadsPath, 'utf8'));
         if (Array.isArray(raw)) activeThreads.push(...raw.map(String));

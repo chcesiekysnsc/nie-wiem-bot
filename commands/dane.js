@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { DATA_DIR } = require('../utils/storage');
 
 function safeSend(api, content, threadID) {
   return new Promise((resolve) => {
@@ -49,7 +50,7 @@ module.exports = {
 
     await message.reply('📦 Przygotowuję aktualną kopię zapasową bazy danych...');
 
-    const dataDir = path.join(__dirname, '../data');
+    const dataDir = DATA_DIR;
     if (!fs.existsSync(dataDir)) {
       await safeSend(client.api, '❌ Folder data/ nie istnieje.', threadId);
       return;

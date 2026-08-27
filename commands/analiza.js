@@ -2,7 +2,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const config = require('../config/config');
-const { withData } = require('../utils/storage');
+const { withData, DATA_DIR } = require('../utils/storage');
 const { msToReadable } = require('../utils/economy');
 const { intelligentCensor } = require('../utils/censorship');
 
@@ -132,7 +132,7 @@ function getApiKeys() {
   }
 
   try {
-    const aiConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'config_ai.json'), 'utf8'));
+    const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
     if (Array.isArray(aiConfig.GEMINI_API_KEYS)) {
       keys.push(...aiConfig.GEMINI_API_KEYS.map(k => k.trim()));
     }
@@ -285,7 +285,7 @@ module.exports = {
 
     if (!isAllowed) {
       try {
-        const profiles = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'profiles.json'), 'utf8'));
+        const profiles = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'profiles.json'), 'utf8'));
         if (profiles.allowedAI) {
           const allowedEntry = profiles.allowedAI.find(entry => {
             if (typeof entry === 'string') return entry === message.author.id;

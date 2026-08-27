@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const { DATA_DIR } = require('./utils/storage');
 
 const BACKUP_FILE = path.join(__dirname, 'backup_database.json');
-const OUTPUT_DIR = path.join(__dirname, 'data');
+const OUTPUT_DIR = DATA_DIR;
 
 function main() {
   if (!fs.existsSync(BACKUP_FILE)) {

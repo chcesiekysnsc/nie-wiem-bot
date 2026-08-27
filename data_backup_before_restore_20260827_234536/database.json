@@ -1,0 +1,20 @@
+{
+  "users": {
+    "robber_low": {
+      "balance": 50000,
+      "bank": 200000
+    },
+    "robber_high": {
+      "balance": 120000,
+      "bank": 0
+    },
+    "victim": {
+      "balance": 5000,
+      "bank": 0
+    }
+  },
+  "inventory": {},
+  "profiles": {
+    "blacklist": []
+  }
+}

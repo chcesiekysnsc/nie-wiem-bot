@@ -14,6 +14,7 @@ require('dotenv').config();
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const { DATA_DIR } = require('../utils/storage');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -22,7 +23,6 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
 const BACKUP_DIR = path.join(__dirname, '..', 'backup', 'json');
 
 function ensureBackupDir() {

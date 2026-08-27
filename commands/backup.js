@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const { DATA_DIR } = require('../utils/storage');
 
 // Safe send helper to prevent hanging if Facebook API doesn't trigger the callback
 function safeSend(api, content, threadID) {
@@ -51,7 +52,7 @@ module.exports = {
 
     await message.reply('📦 Przygotowuję jedną skonsolidowaną kopię zapasową bazy danych...');
 
-    const dataDir = path.join(__dirname, '../data');
+    const dataDir = DATA_DIR;
     if (!fs.existsSync(dataDir)) {
       await safeSend(client.api, '❌ Folder data/ nie istnieje.', threadId);
       return;

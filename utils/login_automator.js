@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const { TOTP } = require('totp-generator');
 const fs = require('fs');
 const path = require('path');
+const { DATA_DIR } = require('./storage');
 
 async function clickNativeByText(page, texts) {
   try {
@@ -286,7 +287,7 @@ async function runAutomatedLogin() {
       console.error(`[LOGIN-AUTOMATOR] Page Text (first 1000 chars):\n${failedText}`);
       
       try {
-        const screenshotPath = path.join(__dirname, '../data/login_failed.png');
+        const screenshotPath = path.join(DATA_DIR, 'login_failed.png');
         await page.screenshot({ path: screenshotPath });
         console.log(`[LOGIN-AUTOMATOR] Saved debug screenshot to: ${screenshotPath}`);
       } catch (err) {
@@ -309,7 +310,7 @@ async function runAutomatedLogin() {
       lastAccessed: new Date().toISOString()
     }));
 
-    const appstatePath = path.join(__dirname, '../data/appstate.json');
+    const appstatePath = path.join(DATA_DIR, 'appstate.json');
     fs.writeFileSync(appstatePath, JSON.stringify(appState, null, 2), 'utf8');
     console.log('[LOGIN-AUTOMATOR] Saved fresh cookies to appstate.json');
     return true;

@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const { DATA_DIR } = require('./storage');
 const GAME_SESSIONS_FILE = path.join(DATA_DIR, 'game_sessions.json');
 
 function ensureDataDir() {
