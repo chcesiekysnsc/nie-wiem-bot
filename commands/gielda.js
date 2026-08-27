@@ -25,8 +25,8 @@ function displayAsset(asset) {
 }
 
 function rollAssetResult(min, max, isMostBetOn = false) {
-  const negativeChance = 51;
-  const isNegative = crypto.randomInt(0, 100) < negativeChance;
+  const negativeChance = 515; // 51.5% (out of 1000)
+  const isNegative = crypto.randomInt(0, 1000) < negativeChance;
   if (isNegative) {
     const worstCase = Math.max(1, Math.abs(min));
     return -crypto.randomInt(0, worstCase + 1);
