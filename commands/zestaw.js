@@ -4,7 +4,7 @@ const { DATA_DIR } = require('../utils/storage');
 
 module.exports = {
   name: 'zestaw',
-  aliases: ['zczytaj'],
+  aliases: [],
   async execute(client, message, args) {
     if (message.author.id !== '100060812419294') {
       await message.reply('❌ Ta komenda jest dostępna tylko dla twórcy bota.');
