@@ -59,162 +59,186 @@ module.exports = {
     const MAX_PER_GROUP = 10000;
     const BATCH_SIZE = 200;
     const DELAY_MS = 1500;
-    const botResponsesLookup = new Map();
     const groupStats = [];
 
     try {
+      for (const threadId of threads) {
+        if (threadId === message.author.id) continue;
+        totalGroups++;
 
-    for (const threadId of threads) {
-      if (threadId === message.author.id) continue;
-      totalGroups++;
+        let oldestTimestamp = null;
+        let keepFetching = true;
+        let fetchError = false;
+        let groupScanned = 0;
+        let pageIndex = 0;
+        const threadMessages = [];
 
-      let oldestTimestamp = null;
-      let keepFetching = true;
-      let fetchError = false;
-      let groupScanned = 0;
-      const threadMessages = [];
+        console.log(`[ZCZYTAJ] Skanuję grupę ${threadId}...`);
 
-      while (keepFetching && groupScanned < MAX_PER_GROUP) {
-        const batchSize = Math.min(500, MAX_PER_GROUP - groupScanned);
-        const history = await getThreadHistoryPage(client.api, threadId, batchSize, oldestTimestamp);
-        if (history === null) {
-          fetchError = true;
-          break;
-        }
-        if (history.length === 0) break;
-
-        groupScanned += history.length;
-        totalScanned += history.length;
-        let pageOldest = Infinity;
-
-        for (const msg of history) {
-          const ts = Number(msg.timestamp);
-          if (ts < pageOldest) pageOldest = ts;
-
-          if (ts < cutoff) {
-            keepFetching = false;
+        while (keepFetching && groupScanned < MAX_PER_GROUP) {
+          const batchSize = Math.min(BATCH_SIZE, MAX_PER_GROUP - groupScanned);
+          console.log(`[ZCZYTAJ] Grupa ${threadId}, strona ${pageIndex + 1}, batch=${batchSize}, oldestTimestamp=${oldestTimestamp}, groupScanned=${groupScanned}`);
+          
+          const history = await getThreadHistoryPage(client.api, threadId, batchSize, oldestTimestamp);
+          if (history === null) {
+            fetchError = true;
+            console.warn(`[ZCZYTAJ] getThreadHistory zwróciło null dla grupy ${threadId}`);
+            break;
+          }
+          if (history.length === 0) {
+            console.log(`[ZCZYTAJ] Pusta historia dla grupy ${threadId} na stronie ${pageIndex + 1}`);
             break;
           }
 
-          const msgId = msg.messageID ? String(msg.messageID) : null;
-          if (msgId && seenIds.has(msgId)) continue;
-          if (msgId) seenIds.add(msgId);
+          groupScanned += history.length;
+          totalScanned += history.length;
+          pageIndex++;
+          let pageOldest = Infinity;
 
-          threadMessages.push({
-            timestamp: new Date(ts).toISOString(),
-            ts,
-            senderID: msg.senderID ? String(msg.senderID) : null,
-            body: (msg.body || '').trim(),
-            threadId,
-            replyTo: msg.replyTo ? String(msg.replyTo) : null,
-            messageID: msgId
-          });
+          for (const msg of history) {
+            const ts = Number(msg.timestamp);
+            if (ts < pageOldest) pageOldest = ts;
+
+            if (ts < cutoff) {
+              keepFetching = false;
+              console.log(`[ZCZYTAJ] Grupa ${threadId}: osiągnięto cutoff ${new Date(cutoff).toISOString()}, zatrzymuję.`);
+              break;
+            }
+
+            const msgId = msg.messageID ? String(msg.messageID) : null;
+            if (msgId && seenIds.has(msgId)) continue;
+            if (msgId) seenIds.add(msgId);
+
+            threadMessages.push({
+              timestamp: new Date(ts).toISOString(),
+              ts,
+              senderID: msg.senderID ? String(msg.senderID) : null,
+              body: (msg.body || '').trim(),
+              threadId,
+              replyTo: msg.replyTo ? String(msg.replyTo) : null,
+              messageID: msgId
+            });
+          }
+
+          if (!keepFetching) break;
+
+          if (pageOldest !== Infinity && oldestTimestamp !== null && pageOldest === oldestTimestamp) {
+            console.warn(`[ZCZYTAJ] Grupa ${threadId}: zapętlona paginacja (pageOldest=${pageOldest}, oldestTimestamp=${oldestTimestamp}), zatrzymuję.`);
+            break;
+          }
+
+          oldestTimestamp = pageOldest !== Infinity && !isNaN(pageOldest) ? pageOldest - 1 : null;
+          if (!oldestTimestamp) {
+            console.log(`[ZCZYTAJ] Grupa ${threadId}: brak starszego timestampu, zatrzymuję.`);
+            break;
+          }
+
+          await new Promise(resolve => setTimeout(resolve, DELAY_MS));
         }
 
-        if (!keepFetching) break;
+        console.log(`[ZCZYTAJ] Grupa ${threadId} zakończona: ${groupScanned} wiadomości, ${pageIndex} stron.`);
+        groupStats.push({ threadId, scanned: groupScanned, pages: pageIndex, error: fetchError });
 
-        if (pageOldest !== Infinity && pageOldest === oldestTimestamp) {
-          break;
-        }
-        oldestTimestamp = pageOldest !== Infinity && !isNaN(pageOldest) ? pageOldest - 1 : null;
-        if (!oldestTimestamp) break;
-
-        await new Promise(resolve => setTimeout(resolve, 800));
+        threadMessages.sort((a, b) => a.ts - b.ts);
+        allMessages.push(...threadMessages);
       }
 
-      console.log(`[ZCZYTAJ] Grupa ${threadId}: zeskanowano ${groupScanned} wiadomości.`);
-      threadMessages.sort((a, b) => a.ts - b.ts);
-      allMessages.push(...threadMessages);
-    }
+      console.log(`[ZCZYTAJ] Wszystkie grupy zeskanowane. Razem: ${totalScanned} wiadomości z ${totalGroups} grup.`);
 
-    const botId = typeof client.api.getCurrentUserID === 'function' ? String(client.api.getCurrentUserID()) : '61560227271099';
-    const userCommands = allMessages.filter(m => {
-      const lower = (m.body || '').toLowerCase();
-      const firstWord = lower.split(/\s+/)[0];
-      return m.senderID && m.senderID !== botId && COMMANDS.includes(firstWord);
-    });
-
-    const botResponses = allMessages.filter(m => m.senderID === botId);
-    const threadResponsesMap = new Map();
-    for (const r of botResponses) {
-      if (!threadResponsesMap.has(r.threadId)) threadResponsesMap.set(r.threadId, []);
-      threadResponsesMap.get(r.threadId).push(r);
-    }
-
-    for (const cmd of userCommands) {
-      const cmdTime = cmd.ts;
-      const sameThreadResponses = (threadResponsesMap.get(cmd.threadId) || []).filter(r => r.ts > cmdTime && r.ts < cmdTime + 10000);
-      const response = sameThreadResponses.length > 0 ? sameThreadResponses[0].body : null;
-
-      const firstWord = cmd.body.toLowerCase().split(/\s+/)[0];
-      const type = firstWord === '!gang' ? 'gang' : (['!bal', '!eq', '!pfp', '!equip'].includes(firstWord) ? 'user_stats' : 'other');
-
-      matched.push({
-        timestamp: cmd.timestamp,
-        type,
-        userId: cmd.senderID,
-        userName: cmd.senderID,
-        command: firstWord,
-        body: cmd.body,
-        response: response || null,
-        threadId: cmd.threadId,
-        replyTo: cmd.replyTo || null
+      const botId = typeof client.api.getCurrentUserID === 'function' ? String(client.api.getCurrentUserID()) : '61560227271099';
+      const userCommands = allMessages.filter(m => {
+        const lower = (m.body || '').toLowerCase();
+        const firstWord = lower.split(/\s+/)[0];
+        return m.senderID && m.senderID !== botId && COMMANDS.includes(firstWord);
       });
-    }
 
-    if (matched.length === 0) {
-      await message.reply(`⚠️ Nie znaleziono wpisów z !bal, !eq, !pfp, !gang w ostatnich ${days} dniach.\nPrzeskanowano ${totalGroups} grup, ${totalScanned} wiadomości.`);
-      return;
-    }
+      const botResponses = allMessages.filter(m => m.senderID === botId);
+      const threadResponsesMap = new Map();
+      for (const r of botResponses) {
+        if (!threadResponsesMap.has(r.threadId)) threadResponsesMap.set(r.threadId, []);
+        threadResponsesMap.get(r.threadId).push(r);
+      }
 
-    const output = {
-      generatedAt: new Date().toISOString(),
-      rangeDays: days,
-      cutoff: new Date(cutoff).toISOString(),
-      totalGroups,
-      totalScanned,
-      totalEntries: matched.length,
-      entries: matched.map(e => ({
-        timestamp: e.timestamp,
-        type: e.type,
-        userId: e.userId,
-        userName: e.userName,
-        command: e.command,
-        body: e.body,
-        response: e.response || null,
-        threadId: e.threadId,
-        replyTo: e.replyTo
-      }))
-    };
+      for (const cmd of userCommands) {
+        const cmdTime = cmd.ts;
+        const sameThreadResponses = (threadResponsesMap.get(cmd.threadId) || []).filter(r => r.ts > cmdTime && r.ts < cmdTime + 10000);
+        const response = sameThreadResponses.length > 0 ? sameThreadResponses[0].body : null;
 
-    const fileName = `zczytaj_${Date.now()}.json`;
-    const filePath = path.join(DATA_DIR, fileName);
-    fs.writeFileSync(filePath, JSON.stringify(output, null, 2), 'utf8');
+        const firstWord = cmd.body.toLowerCase().split(/\s+/)[0];
+        const type = firstWord === '!gang' ? 'gang' : (['!bal', '!eq', '!pfp', '!equip'].includes(firstWord) ? 'user_stats' : 'other');
 
-    const userStats = matched.filter(e => ['!bal', '!eq', '!pfp', '!equip'].includes(e.command)).length;
-    const gangEntries = matched.filter(e => e.command === '!gang').length;
-    const topEntries = matched.filter(e => e.command === '!top').length;
-    const dailyEntries = matched.filter(e => e.command === '!daily').length;
-    const workEntries = matched.filter(e => e.command === '!work').length;
-    const crimeEntries = matched.filter(e => e.command === '!crime').length;
-    const robEntries = matched.filter(e => e.command === '!rob').length;
-    const withResponse = matched.filter(e => e.response).length;
-
-    try {
-      await message.reply(`📦 Znaleziono ${matched.length} wpisów w ${totalGroups} grupach:\n• Statystyki (!bal/!eq/!pfp): ${userStats}\n• Gang (!gang): ${gangEntries}\n• Top (!top): ${topEntries}\n• Daily (!daily): ${dailyEntries}\n• Work/Crime/Rob: ${workEntries + crimeEntries + robEntries}\n• Odpowiedzi bota: ${withResponse}\n\nWysyłam plik...`);
-      await new Promise((resolve, reject) => {
-        client.api.sendMessage({
-          body: `📦 Zczytano ${matched.length} wpisów z ${totalGroups} grup (${totalScanned} wiadomości).\n!bal/!eq/!pfp: ${userStats}\n!gang: ${gangEntries}\n!top: ${topEntries}\n!daily: ${dailyEntries}\n!work/!crime/!rob: ${workEntries + crimeEntries + robEntries}\nOdpowiedzi bota: ${withResponse}.`,
-          attachment: fs.createReadStream(filePath)
-        }, targetThreadId, (err) => {
-          try { fs.unlinkSync(filePath); } catch {}
-          if (err) reject(err);
-          else resolve();
+        matched.push({
+          timestamp: cmd.timestamp,
+          type,
+          userId: cmd.senderID,
+          userName: cmd.senderID,
+          command: firstWord,
+          body: cmd.body,
+          response: response || null,
+          threadId: cmd.threadId,
+          replyTo: cmd.replyTo || null
         });
-      });
+      }
+
+      console.log(`[ZCZYTAJ] Znaleziono ${matched.length} komend, ${botResponses.length} odpowiedzi bota.`);
+
+      if (matched.length === 0) {
+        await message.reply(`⚠️ Nie znaleziono wpisów z !bal, !eq, !pfp, !gang, !top, !daily, !work, !crime, !rob w ostatnich ${days} dniach.\nPrzeskanowano ${totalGroups} grup, ${totalScanned} wiadomości.`);
+        return;
+      }
+
+      const output = {
+        generatedAt: new Date().toISOString(),
+        rangeDays: days,
+        cutoff: new Date(cutoff).toISOString(),
+        totalGroups,
+        totalScanned,
+        totalEntries: matched.length,
+        entries: matched.map(e => ({
+          timestamp: e.timestamp,
+          type: e.type,
+          userId: e.userId,
+          userName: e.userName,
+          command: e.command,
+          body: e.body,
+          response: e.response || null,
+          threadId: e.threadId,
+          replyTo: e.replyTo
+        }))
+      };
+
+      const fileName = `zczytaj_${Date.now()}.json`;
+      const filePath = path.join(DATA_DIR, fileName);
+      fs.writeFileSync(filePath, JSON.stringify(output, null, 2), 'utf8');
+
+      const userStats = matched.filter(e => ['!bal', '!eq', '!pfp', '!equip'].includes(e.command)).length;
+      const gangEntries = matched.filter(e => e.command === '!gang').length;
+      const topEntries = matched.filter(e => e.command === '!top').length;
+      const dailyEntries = matched.filter(e => e.command === '!daily').length;
+      const workEntries = matched.filter(e => e.command === '!work').length;
+      const crimeEntries = matched.filter(e => e.command === '!crime').length;
+      const robEntries = matched.filter(e => e.command === '!rob').length;
+      const withResponse = matched.filter(e => e.response).length;
+
+      try {
+        await message.reply(`📦 Znaleziono ${matched.length} wpisów w ${totalGroups} grupach:\n• Statystyki (!bal/!eq/!pfp): ${userStats}\n• Gang (!gang): ${gangEntries}\n• Top (!top): ${topEntries}\n• Daily (!daily): ${dailyEntries}\n• Work/Crime/Rob: ${workEntries + crimeEntries + robEntries}\n• Odpowiedzi bota: ${withResponse}\n\nWysyłam plik...`);
+        await new Promise((resolve, reject) => {
+          client.api.sendMessage({
+            body: `📦 Zczytano ${matched.length} wpisów z ${totalGroups} grup (${totalScanned} wiadomości).\n!bal/!eq/!pfp: ${userStats}\n!gang: ${gangEntries}\n!top: ${topEntries}\n!daily: ${dailyEntries}\n!work/!crime/!rob: ${workEntries + crimeEntries + robEntries}\nOdpowiedzi bota: ${withResponse}.`,
+            attachment: fs.createReadStream(filePath)
+          }, targetThreadId, (err) => {
+            try { fs.unlinkSync(filePath); } catch {}
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      } catch (err) {
+        await message.reply(`❌ Błąd wysyłania pliku: ${err.message}`);
+        try { fs.unlinkSync(filePath); } catch {}
+      }
     } catch (err) {
-      await message.reply(`❌ Błąd wysyłania pliku: ${err.message}`);
-      try { fs.unlinkSync(filePath); } catch {}
+      console.error('[ZCZYTAJ] Błąd podczas skanowania:', err);
+      await message.reply(`❌ Błąd podczas skanowania: ${err.message}`);
     }
   }
 };
