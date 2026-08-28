@@ -215,6 +215,41 @@ module.exports = {
       }
 
       // --- PLIK 2: Sparsowane staty ---
+      function parseMoney(str) {
+        if (!str) return 0;
+        return Number(str.replace(/[\s\xA0\u200B-\u200D\uFEFF]/g, ''));
+      }
+
+      function parseProfileResponse(response, userId) {
+        const lvl = response.match(/🏆 Poziom:\s*(\d+)/);
+        const pres = response.match(/\[Prestiż\s*(\d+)\]/);
+        const gm = response.match(/🎮 Gry:\s*([\d\s\xA0]+)/);
+        const cm = response.match(/⌨️ Komendy:\s*([\d\s\xA0]+)/);
+        const mm = response.match(/💬 Wiadomości:\s*\*?([\d\s\xA0]+)\*?/);
+        const wm = response.match(/📈 Wygrane:\s*\*?([\d\s\xA0]+)\*?/);
+        const lm = response.match(/📉 Przegrane:\s*\*?([\d\s\xA0]+)\*?/);
+        const bm = response.match(/👛 Portfel:\s*💰\s*([\d\s\xA0]+)/);
+        const bnk = response.match(/🏦 Bank:\s*💰\s*([\d\s\xA0]+)/);
+        const nameM = response.match(/👤\s*\*?Profil:\s*([^\n*]+)\*?/);
+
+        return {
+          userId,
+          name: nameM ? nameM[1].trim() : `Użytkownik_${userId.slice(-6)}`,
+          level: lvl ? Number(lvl[1]) : 1,
+          prestige: pres ? Number(pres[1]) : 0,
+          gamesPlayed: gm ? parseMoney(gm[1]) : 0,
+          commandsUsed: cm ? parseMoney(cm[1]) : 0,
+          messageCount: mm ? parseMoney(mm[1]) : 0,
+          wins: wm ? parseMoney(wm[1]) : 0,
+          losses: lm ? parseMoney(lm[1]) : 0,
+          balance: bm ? parseMoney(bm[1]) : 5000,
+          bank: bnk ? parseMoney(bnk[1]) : 10000
+        };
+      }
+
+      const pfpList = Object.values(progress.stats.pfp || {});
+      const parsedProfiles = pfpList.map(p => parseProfileResponse(p.response, p.userId));
+
       const processedData = {
         meta: {
           description: 'Sparsowane staty z API (zczytajapi)',
@@ -230,32 +265,80 @@ module.exports = {
         daily: Object.values(progress.stats.daily),
         topdaily: Object.values(progress.stats.topdaily),
         top: Object.values(progress.stats.top),
-        pfp: Object.values(progress.stats.pfp),
+        pfp: pfpList,
+        profiles: parsedProfiles,
         gang: Object.values(progress.stats.gang)
       };
 
       const processedPath = path.join(DATA_DIR, `zczytajapi_parsed_${Date.now()}.json`);
       fs.writeFileSync(processedPath, JSON.stringify(processedData, null, 2), 'utf8');
 
+      // --- PLIK 3: Czytelny raport tekstowy (TXT) ---
+      let txtContent = 
+        `==================================================\n` +
+        `       RAPORT Z ODZYSKANYCH PROFILI GRACZY\n` +
+        `==================================================\n` +
+        `Wygenerowano: ${new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })}\n` +
+        `Okres skanowania: ${scanFromStr} → ${scanToStr}\n` +
+        `Liczba profili: ${parsedProfiles.length}\n\n` +
+        `LISTA GRACZY (posortowana od najwyższego poziomu):\n` +
+        `--------------------------------------------------\n`;
+
+      // Sortuj graczy wg poziomu, a potem wg prestiżu i majątku
+      const sortedProfilesForTxt = [...parsedProfiles].sort((a, b) => {
+        if (b.level !== a.level) return b.level - a.level;
+        if (b.prestige !== a.prestige) return b.prestige - a.prestige;
+        return (b.balance + b.bank) - (a.balance + a.bank);
+      });
+
+      sortedProfilesForTxt.forEach((p, idx) => {
+        txtContent += 
+          `${idx + 1}. ${p.name} (ID: ${p.userId})\n` +
+          `   🏆 Poziom: ${p.level} [Prestiż ${p.prestige}]\n` +
+          `   💰 Portfel: ${p.balance.toLocaleString('pl-PL')} | 🏦 Bank: ${p.bank.toLocaleString('pl-PL')} (Łącznie: ${(p.balance + p.bank).toLocaleString('pl-PL')})\n` +
+          `   💬 Wiadomości: ${p.messageCount.toLocaleString('pl-PL')} | ⌨️ Komendy: ${p.commandsUsed.toLocaleString('pl-PL')}\n` +
+          `   🎮 Gry: ${p.gamesPlayed.toLocaleString('pl-PL')} (Wygrane: ${p.wins.toLocaleString('pl-PL')} | Przegrane: ${p.losses.toLocaleString('pl-PL')})\n` +
+          `--------------------------------------------------\n`;
+      });
+
+      const txtReportPath = path.join(DATA_DIR, `zczytajapi_raport_${Date.now()}.txt`);
+      fs.writeFileSync(txtReportPath, txtContent, 'utf8');
+
       try {
         await new Promise((resolve, reject) => {
           client.api.sendMessage({
-            body: `📄 **PLIK 2: Sparsowane staty**\n` +
+            body: `📄 **PLIK 2: Sparsowane staty (JSON)**\n` +
                   `💰 bal: ${processedData.bal.length} | 🎒 eq: ${processedData.eq.length}\n` +
                   `📆 daily: ${processedData.daily.length} | 📅 topdaily: ${processedData.topdaily.length}\n` +
-                  `🏆 top: ${processedData.top.length} | 👤 pfp: ${processedData.pfp.length} | 👥 gang: ${processedData.gang.length}`,
+                  `🏆 top: ${processedData.top.length} | 👤 profile (sparsowane): ${processedData.profiles.length} | 👥 gang: ${processedData.gang.length}`,
             attachment: fs.createReadStream(processedPath)
           }, currentThreadId, (err) => {
             if (err) reject(err); else resolve();
           });
         });
       } catch (err) {
-        await message.reply(`⚠️ Nie udało się wysłać pliku: ${err.message}`);
+        await message.reply(`❌ Nie udało się wysłać pliku JSON: ${err.message}`);
+      }
+
+      try {
+        await new Promise((resolve, reject) => {
+          client.api.sendMessage({
+            body: `📝 **PLIK 3: Czytelny raport tekstowy (TXT)**\n` +
+                  `Zawiera listę wszystkich graczy posortowaną od najwyższego poziomu.\n` +
+                  `Otwórz ten plik bezpośrednio na telefonie, aby szybko przejrzeć dane bez ściągania JSON-a!`,
+            attachment: fs.createReadStream(txtReportPath)
+          }, currentThreadId, (err) => {
+            if (err) reject(err); else resolve();
+          });
+        });
+      } catch (err) {
+        await message.reply(`❌ Nie udało się wysłać raportu tekstowego: ${err.message}`);
       }
 
       // Czyszczenie plików tymczasowych
       try { fs.unlinkSync(rawExportPath); } catch {}
       try { fs.unlinkSync(processedPath); } catch {}
+      try { fs.unlinkSync(txtReportPath); } catch {}
       return;
     }
 
