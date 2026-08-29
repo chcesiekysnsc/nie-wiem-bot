@@ -834,6 +834,13 @@ try {
   process.exit(1);
 }
 
+const appstateBackupPath = path.join(DATA_DIR, 'appstate.json.bak');
+try {
+  fs.writeFileSync(appstateBackupPath, JSON.stringify(appState, null, 2), 'utf8');
+} catch (err) {
+  console.error('[APPSTATE] Nie udalo sie zrobic kopii zapasowej cookies:', err.message);
+}
+
 // ===== AUTO-COLLECT WYPŁAT Z FIRMY =====
 
 async function autoCollectPayout(userId, api, notifyThreadId) {
@@ -978,7 +985,19 @@ loadAllPeopleStats();
 login({ appState }, (loginErr, api) => {
   if (loginErr) {
     console.error('[SELF-BOT] Logowanie nie powiodlo sie:', loginErr);
+    try { fs.copyFileSync(appstateBackupPath, path.join(DATA_DIR, 'appstate.json')); } catch (_) {}
     process.exit(1);
+  }
+
+  try { fs.copyFileSync(appstateBackupPath, path.join(DATA_DIR, 'appstate.json')); } catch (err) {
+    console.error('[APPSTATE] Nie udalo sie przywrocic cookies po zalogowaniu:', err.message);
+  }
+
+  try {
+    fs.chmodSync(path.join(DATA_DIR, 'appstate.json'), 0o444);
+    console.log('[APPSTATE] appstate.json ustawiony jako read-only.');
+  } catch (err) {
+    console.error('[APPSTATE] Nie udalo sie ustawic appstate.json jako read-only:', err.message);
   }
 
   client.api = api;
