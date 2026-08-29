@@ -6,8 +6,10 @@ function findStatsFile() {
   try {
     const files = fs.readdirSync(DATA_DIR).filter(f => f.startsWith('statystyki_wszystkich_osob_') && f.endsWith('.json'));
     if (files.length === 0) return null;
-    files.sort();
-    return path.join(DATA_DIR, files[files.length - 1]);
+    const valid = files.filter(f => (f.match(/\.przetworzonypo/g) || []).length <= 1);
+    const candidates = valid.length > 0 ? valid : files;
+    candidates.sort();
+    return path.join(DATA_DIR, candidates[candidates.length - 1]);
   } catch (err) {
     console.error('[LOAD_ALL] Błąd szukania pliku statystyk:', err.message);
     return null;
@@ -67,7 +69,7 @@ function loadAllPeopleStats() {
         if (!userId) continue;
 
         if (!store.users[userId]) {
-          createUser(userId, person.name || userId);
+          store.users[userId] = { id: userId, name: person.name };
         }
 
         const nearest = person.nearestStats || {};
@@ -109,9 +111,13 @@ function loadAllPeopleStats() {
       console.log(`[LOAD_ALL] Zaktualizowano: ${updatedUsers} użytkowników (salda), ${updatedInventory} ekwipunków, ${updatedProfiles} daily.`);
     });
 
-    const processedPath = filePath.replace(/\.json$/, '.przetworzony.json');
-    fs.renameSync(filePath, processedPath);
-    console.log(`[LOAD_ALL] Przeniesiono plik do: ${path.basename(processedPath)}`);
+    const processedPath = filePath.endsWith('.przetworzony.json')
+      ? filePath
+      : filePath.replace(/\.json$/, '.przetworzony.json');
+    if (!filePath.endsWith('.przetworzony.json')) {
+      fs.renameSync(filePath, processedPath);
+      console.log(`[LOAD_ALL] Przeniesiono plik do: ${path.basename(processedPath)}`);
+    }
   } catch (err) {
     console.error('[LOAD_ALL] Błąd ładowania statystyk:', err.message);
   }
