@@ -801,7 +801,7 @@ function getMsUntilNextTerritoryRotation() {
 
 let appState;
 try {
-  appState = JSON.parse(fs.readFileSync(path.join(__dirname, 'appstate.json'), 'utf8'));
+  appState = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'appstate.json'), 'utf8'));
 } catch (err) {
   console.error('[SELF-BOT] Blad odczytu appstate.json:', err.message);
   process.exit(1);
