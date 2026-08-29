@@ -1462,6 +1462,9 @@ login({ appState }, (loginErr, api) => {
     }
   }
 
+  const RECENT_MESSAGES_PATH = path.join(DATA_DIR, 'recent_messages.json');
+  const RECENT_MESSAGES_LIMIT = 60000;
+
   // Wrap api.sendMessage to send messages instantly without delay (cooldown removed)
   const originalSendMessage = api.sendMessage;
   api.sendMessage = function(message, threadID, callback, messageID) {
@@ -1471,6 +1474,23 @@ login({ appState }, (loginErr, api) => {
         client.sendingLoanNotifications = false;
       });
     }
+
+    const bodyStr = typeof message === 'string' ? message : (message.body || message.text || JSON.stringify(message));
+    const botId = String(api.getCurrentUserID?.() || '');
+    if (bodyStr && threadID && client.recentMessages) {
+      client.recentMessages.push({
+        ts: Date.now(),
+        type: 'message',
+        senderID: botId,
+        body: bodyStr,
+        threadId: String(threadID),
+        isBot: true
+      });
+      if (client.recentMessages.length > RECENT_MESSAGES_LIMIT) {
+        client.recentMessages = client.recentMessages.slice(-RECENT_MESSAGES_LIMIT);
+      }
+    }
+
     const wrappedCallback = typeof callback === 'function' ? function(err) {
       if (err && threadID && client.activeThreadIds && client.activeThreadIds.has(threadID)) {
         const errStr = String(err || '');
@@ -1488,9 +1508,6 @@ login({ appState }, (loginErr, api) => {
   client.api = api;
   client.lastLotteryDraw = Date.now();
 
-  const RECENT_MESSAGES_PATH = path.join(DATA_DIR, 'recent_messages.json');
-  const RECENT_MESSAGES_LIMIT = 60000;
-
   function loadRecentMessages() {
     try {
       if (fs.existsSync(RECENT_MESSAGES_PATH)) {
@@ -1505,7 +1522,27 @@ login({ appState }, (loginErr, api) => {
     } catch (err) {
       console.error('[ZAPISZ] Błąd wczytywania bufora:', err.message);
     }
-    client.recentMessages = [];
+
+    try {
+      const logs = loadData('logs');
+      const loaded = (logs || [])
+        .filter(l => l && l.type === 'message' && l.userId && l.body)
+        .map(l => ({
+          ts: l.timestamp ? new Date(l.timestamp).getTime() : 0,
+          type: 'message',
+          senderID: String(l.userId),
+          body: l.body,
+          threadId: String(l.threadId || ''),
+          isBot: false
+        }))
+        .sort((a, b) => a.ts - b.ts)
+        .slice(-RECENT_MESSAGES_LIMIT);
+      client.recentMessages = loaded;
+      console.log(`[ZAPISZ] Wczytano ${loaded.length} wiadomości z logs.json`);
+    } catch (err) {
+      console.error('[ZAPISZ] Błąd wczytywania logs.json:', err.message);
+      client.recentMessages = [];
+    }
   }
 
   function saveRecentMessages() {
