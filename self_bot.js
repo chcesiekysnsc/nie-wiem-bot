@@ -368,6 +368,7 @@ const client = {
   commands: new Map(),
   config: config,
   processedMessages: new Set(),
+  recentMessages: [],
   isProcessed(id) {
     if (!id) return false;
     return this.processedMessages.has(id);
@@ -2915,6 +2916,22 @@ login({ appState }, (loginErr, api) => {
       } catch (err) {
         console.error('[STORAGE] Błąd podczas logowania wiadomości:', err);
       }
+
+      // Zapisz do bufora ostatnich wiadomości (dla komendy !zapisz)
+      try {
+        if (!client.recentMessages) client.recentMessages = [];
+        client.recentMessages.push({
+          ts: Date.now(),
+          type: event.type,
+          senderID: senderId,
+          body: cacheBody,
+          threadId,
+          isBot: String(senderId) === String(api.getCurrentUserID?.() || '')
+        });
+        if (client.recentMessages.length > 60000) {
+          client.recentMessages = client.recentMessages.slice(-60000);
+        }
+      } catch (_) {}
     }
 
     if (!['message', 'message_reply'].includes(event.type) || !event.body) {
