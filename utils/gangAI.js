@@ -1310,6 +1310,8 @@ async function ensureFixedAIGangs(store, cfg) {
 
   const createdGangIds = [];
 
+  if (!store.profiles.gangs) store.profiles.gangs = {};
+
   for (const def of fixedGangs) {
     const gangId = def.name.toLowerCase().replace(/[^a-z0-9]/g, '');
     if (store.profiles.gangs[gangId]) continue;
