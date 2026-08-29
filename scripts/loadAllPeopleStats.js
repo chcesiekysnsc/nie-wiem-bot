@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { withData, createUser, loadData, saveData, DATA_DIR } = require('../utils/storage');
 
-const STATS_FILE = 'C:\\Users\\dupek\\Downloads\\statystyki_wszystkich_osob_najblizej_27-08-2026_20-00.json';
+const STATS_FILE = path.join(__dirname, '..', 'data_seed', 'statystyki_wszystkich_osob_najblizej_27-08-2026_20-00.json');
 
 function parseBalance(response) {
   const walletMatch = response.match(/Portfel: 💰 ([\d\s]+)/);
