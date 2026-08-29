@@ -29,14 +29,9 @@ function ensureSeededData() {
     try {
       const seedFiles = fs.readdirSync(seedDir).filter(f => f.endsWith('.json'));
       for (const file of seedFiles) {
-        // ZABEZPIECZENIE: Nigdy nie nadpisujemy appstate.json z folderu seedów, aby zachować aktywne logowanie
-        if (file === 'appstate.json') {
-          continue;
-        }
-
         const targetPath = path.join(dataDir, file);
         const seedPath = path.join(seedDir, file);
-        
+
         console.log(`[SEED] Kopiowanie stanu bazowego (jednorazowo): ${file}`);
         fs.copyFileSync(seedPath, targetPath);
       }
