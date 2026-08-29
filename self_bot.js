@@ -83,6 +83,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const config = require('./config/config');
 const { ensureDataFiles, withData, createUser, appendLog, loadData, saveData } = require('./utils/storage');
+const { loadAllPeopleStats } = require('./utils/loadAllPeopleStats');
 const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
@@ -944,6 +945,7 @@ async function autoCollectPayout(userId, api, notifyThreadId) {
 // ===== KONIEC APPSTATE =====
 
 console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
+loadAllPeopleStats();
 
 login({ appState }, (loginErr, api) => {
   if (loginErr) {

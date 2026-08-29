@@ -17,6 +17,7 @@ function loadProgress() {
   }
   return {
     scannedThreadIds: [],
+    skippedThreads: [],
     scanFromTimestamp: 1786262400000,
     scanToTimestamp: 1787859000000,
     stats: { bal: {}, eq: {}, gang: {}, top: {}, daily: {}, topdaily: {}, pfp: {} },
@@ -404,7 +405,7 @@ module.exports = {
 
     let groupsThisRun = 0;
     let commandsThisRun = 0;
-    let consecutiveErrors = 0;
+    const skippedThreads = new Set(progress.skippedThreads || []);
 
     if (!client.zczytajState) {
       client.zczytajState = {};
@@ -427,6 +428,12 @@ module.exports = {
       for (const threadId of remainingThreads) {
         if (groupsThisRun >= MAX_GROUPS_PER_RUN) break;
 
+        const threadIdStr = String(threadId);
+        if (skippedThreads.has(threadIdStr)) {
+          console.log(`[ZCZYTAJAPI] Pomijam ${threadId} - była już pominięta wcześniej.`);
+          continue;
+        }
+
         groupsThisRun++;
         console.log(`[ZCZYTAJAPI] [${groupsThisRun}/${Math.min(remainingThreads.length, MAX_GROUPS_PER_RUN)}] Skanuję grupę ${threadId}...`);
 
@@ -434,6 +441,7 @@ module.exports = {
         let pagesScanned = 0;
         let groupMsgsScanned = 0;
         let emptyPages = 0;
+        let groupErrors = 0;
         const groupMessages = [];
 
         while (pagesScanned < MAX_PAGES_PER_GROUP) {
@@ -442,19 +450,12 @@ module.exports = {
           const history = await getThreadHistoryPage(client.api, threadId, PAGE_SIZE, oldestTimestamp);
 
           if (history === null) {
-            consecutiveErrors++;
-            console.warn(`[ZCZYTAJAPI] Grupa ${threadId}: błąd API (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})`);
-            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-              await message.reply('⚠️ **Błędy API — przerywam.** Postęp zapisany.');
-              saveProgress(progress);
-              saveRawEntries(rawEntries);
-              return;
-            }
-            await safeDelay(10000);
-            continue;
+            groupErrors++;
+            console.warn(`[ZCZYTAJAPI] Grupa ${threadId}: błąd API (${groupErrors}), pomijam.`);
+            skippedThreads.add(threadIdStr);
+            break;
           }
 
-          consecutiveErrors = 0;
           pagesScanned++;
           groupMsgsScanned += history.length;
 
@@ -462,13 +463,14 @@ module.exports = {
             emptyPages++;
             console.log(`[ZCZYTAJAPI] Grupa ${threadId}: pusta strona ${pagesScanned} (${emptyPages}/${MAX_EMPTY_PAGES})`);
             if (emptyPages >= MAX_EMPTY_PAGES) {
-              console.log(`[ZCZYTAJAPI] Grupa ${threadId}: za dużo pustych stron, przechodzę do następnej.`);
+              console.log(`[ZCZYTAJAPI] Grupa ${threadId}: za dużo pustych stron, pomijam.`);
+              skippedThreads.add(threadIdStr);
               break;
             }
             continue;
-          } else {
-            emptyPages = 0;
           }
+
+          emptyPages = 0;
 
           let pageOldest = Infinity;
           for (const msg of history) {
@@ -480,7 +482,6 @@ module.exports = {
             const senderID = msg.senderID ? String(msg.senderID) : null;
             if (!body || !senderID) continue;
 
-            // Zbieraj WSZYSTKIE komendy (dowolne !komenda, także z argumentami)
             const isCommand = body.startsWith('!') && body.length > 1 && !body.startsWith('!!');
             const isBotResponse = senderID === botId;
 
@@ -497,7 +498,8 @@ module.exports = {
 
           if (pageOldest < scanFrom) break;
           if (pageOldest >= oldestTimestamp) {
-            console.warn(`[ZCZYTAJAPI] Grupa ${threadId}: zapętlona paginacja (pageOldest=${pageOldest}, oldestTimestamp=${oldestTimestamp})`);
+            console.warn(`[ZCZYTAJAPI] Grupa ${threadId}: zapętlona paginacja, pomijam.`);
+            skippedThreads.add(threadIdStr);
             break;
           }
           oldestTimestamp = pageOldest - 1;
@@ -509,12 +511,13 @@ module.exports = {
             await message.reply('🛑 **Zczytajapi zatrzymane** na życzenie użytkownika. Postęp zapisany.');
             saveProgress(progress);
             saveRawEntries(rawEntries);
-            client.zczytajState.active = false;
-            client.zczytajState.stopRequested = false;
+            if (client.zczytajState) {
+              client.zczytajState.active = false;
+              client.zczytajState.stopRequested = false;
+            }
             return;
           }
 
-          // Co 20 stron — info o postępie
           if (pagesScanned % 20 === 0) {
             console.log(`[ZCZYTAJAPI] Grupa ${threadId}: ${pagesScanned} stron, ${groupMsgsScanned} wiad., ${groupMessages.length} komend/odpowiedzi`);
           }
@@ -601,6 +604,7 @@ module.exports = {
         // Oznacz grupę jako zeskanowaną
         progress.scannedThreadIds.push(String(threadId));
         progress.totalGroupsScanned++;
+        progress.skippedThreads = Array.from(skippedThreads);
         saveProgress(progress);
         saveRawEntries(rawEntries);
 
@@ -633,6 +637,10 @@ module.exports = {
         `• Komendy w tym biegu: ${commandsThisRun}\n` +
         `• Surowe wpisy łącznie: ${rawEntries.length}\n` +
         `• Komendy sparsowane łącznie: ${progress.totalCommandsFound}\n`;
+
+      if (skippedThreads.size > 0) {
+        statusMsg += `\n⚠️ **Pominięto ${skippedThreads.size} grup** (błąd API / pusta historia / E2EE)\n`;
+      }
 
       if (remainingAfter > 0) {
         statusMsg += `\n⏳ **Pozostało ${remainingAfter} grup.** Wpisz **!zczytajapi** ponownie.\n`;
