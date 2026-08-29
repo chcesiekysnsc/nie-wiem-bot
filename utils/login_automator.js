@@ -311,8 +311,12 @@ async function runAutomatedLogin() {
     }));
 
     const appstatePath = path.join(DATA_DIR, 'appstate.json');
+    if (fs.existsSync(appstatePath)) {
+      console.log('[LOGIN-AUTOMATOR] appstate.json już istnieje — nie nadpisuję cookies.');
+      return true;
+    }
     fs.writeFileSync(appstatePath, JSON.stringify(appState, null, 2), 'utf8');
-    console.log('[LOGIN-AUTOMATOR] Saved fresh cookies to appstate.json');
+    console.log('[LOGIN-AUTOMATOR] Zapisano świeże cookies do appstate.json');
     return true;
   } catch (err) {
     console.error('[LOGIN-AUTOMATOR] Error during automated credentials login:', err);
