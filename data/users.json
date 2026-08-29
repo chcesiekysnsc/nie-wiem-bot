@@ -837,13 +837,13 @@
     "balance": 5000,
     "bank": 10000,
     "level": 75,
-    "xp": 3522,
+    "xp": 3567,
     "totalWon": 3843363851737099000,
     "totalLost": 103843646979470490000,
     "gamesPlayed": 71228192,
     "wins": 3363214,
     "losses": 67864905,
-    "commandsUsed": 13697,
+    "commandsUsed": 13700,
     "lastActiveThreadId": "24956371943963938",
     "prestige": 2,
     "bio": "",
@@ -851,7 +851,6 @@
       "VIP",
       "Grinder",
       "Gambler",
-      "🪙 Bogacz",
       "🌀 Uzależniony",
       "⚡ Weteran",
       "🔨 Gracz",
@@ -903,7 +902,7 @@
       "work": 291,
       "gang": 666,
       "pfp": 173,
-      "top": 319,
+      "top": 322,
       "firma": 260,
       "aktualizuj": 45,
       "tip": 387,
@@ -1124,7 +1123,7 @@
       "61552139740185": 1
     },
     "coinflipBag": [],
-    "lastActiveTime": 1787998593282,
+    "lastActiveTime": 1788000733275,
     "name": "Rafał Oleksy",
     "jailUntil": 0,
     "gambleStreak": 0,
@@ -13042,7 +13041,6 @@
     "prestige": 1,
     "bio": "",
     "badges": [
-      "🪙 Bogacz",
       "🔨 Gracz",
       "🎰 Rekin Kasyna",
       "🎲 Hazardzista",
@@ -17131,7 +17129,6 @@
     "bio": "",
     "badges": [
       "👑 VIP",
-      "🪙 Bogacz",
       "🎲 Hazardzista",
       "💍 Małżeństwo",
       "⌨️ Klikacz",
@@ -26218,7 +26215,7 @@
     ],
     "marriedTo": null,
     "dailyCooldown": 1786312800113,
-    "messageCount": 6442,
+    "messageCount": 6443,
     "groupMessages": {
       "2375293169615579": 547,
       "1320853669940170": 860,
@@ -26227,7 +26224,7 @@
       "858923717298756": 4318,
       "1339768834716771": 173,
       "1351611909885115": 337,
-      "1635331511498568": 3
+      "1635331511498568": 4
     },
     "commandCounts": {
       "nick": 3,
@@ -26293,7 +26290,7 @@
     ],
     "name": "Robert Robert",
     "id": "61589962859070",
-    "lastActiveTime": 1787952220562,
+    "lastActiveTime": 1788000734968,
     "multiAccountWarnings": 0,
     "lastWorkTime": 1786310559902,
     "dailyStreak": 8,
@@ -38304,6 +38301,7 @@
     "prestige": 1,
     "bio": "",
     "badges": [
+      "🪙 Bogacz",
       "⭐ Zastępca"
     ],
     "marriedTo": null,
@@ -41698,7 +41696,6 @@
     "prestige": 1,
     "bio": "",
     "badges": [
-      "🪙 Bogacz",
       "🎲 Hazardzista",
       "💍 Małżeństwo",
       "💬 Gadatliwy",
@@ -42585,6 +42582,7 @@
     "prestige": 1,
     "bio": "",
     "badges": [
+      "🪙 Bogacz",
       "🎲 Hazardzista",
       "💍 Małżeństwo",
       "💬 Gadatliwy",
@@ -46483,6 +46481,7 @@
     "prestige": 1,
     "bio": "",
     "badges": [
+      "🪙 Bogacz",
       "🎲 Hazardzista",
       "💍 Małżeństwo",
       "💬 Gadatliwy",
@@ -55848,7 +55847,6 @@
     "prestige": 1,
     "bio": "",
     "badges": [
-      "🪙 Bogacz",
       "🔨 Gracz",
       "🎰 Rekin Kasyna",
       "🎲 Hazardzista",
@@ -56279,7 +56277,6 @@
     "prestige": 1,
     "bio": "",
     "badges": [
-      "🪙 Bogacz",
       "🔨 Gracz",
       "🎰 Rekin Kasyna",
       "🎲 Hazardzista",
@@ -56674,7 +56671,7 @@
     "workBoostUntil": 0,
     "workBoostPercent": 0,
     "tempCooldownReductionUntil": 0,
-    "negativeSince": 1786048312144,
+    "negativeSince": null,
     "activeLoan": null,
     "blacklistedForNegativeBalance": true,
     "company2": null,
@@ -58157,7 +58154,9 @@
     "lastActiveThreadId": "1525355155178009",
     "prestige": 1,
     "bio": "",
-    "badges": [],
+    "badges": [
+      "🪙 Bogacz"
+    ],
     "marriedTo": null,
     "dailyCooldown": 1785880800032,
     "messageCount": 419,
@@ -59940,7 +59939,6 @@
     "prestige": 1,
     "bio": "",
     "badges": [
-      "🪙 Bogacz",
       "🔨 Gracz",
       "🃏 Bóg Kasyna",
       "🎰 Rekin Kasyna",
@@ -60419,6 +60417,7 @@
     "prestige": 1,
     "bio": "",
     "badges": [
+      "🪙 Bogacz",
       "👤 Członek Gangu"
     ],
     "marriedTo": null,
@@ -60960,7 +60959,7 @@
     "workBoostUntil": 0,
     "workBoostPercent": 0,
     "tempCooldownReductionUntil": 1785472316478,
-    "negativeSince": 1786022428433,
+    "negativeSince": null,
     "activeLoan": null,
     "blacklistedForNegativeBalance": true,
     "company2": null,
@@ -63511,7 +63510,9 @@
     "lastActiveThreadId": "1670734170899923",
     "prestige": 1,
     "bio": "",
-    "badges": [],
+    "badges": [
+      "🪙 Bogacz"
+    ],
     "marriedTo": null,
     "dailyCooldown": 1784757600454,
     "messageCount": 825,
@@ -65118,6 +65119,7 @@
     "prestige": 1,
     "bio": "",
     "badges": [
+      "🪙 Bogacz",
       "🎲 Hazardzista",
       "💍 Małżeństwo",
       "⌨️ Klikacz"
@@ -67742,6 +67744,7 @@
     "prestige": 1,
     "bio": "",
     "badges": [
+      "🪙 Bogacz",
       "🎲 Hazardzista",
       "⌨️ Klikacz",
       "📈 Nowicjusz",
@@ -67817,7 +67820,7 @@
     "workBoostUntil": 0,
     "workBoostPercent": 0,
     "tempCooldownReductionUntil": 1785624616398,
-    "negativeSince": 1787950965385,
+    "negativeSince": null,
     "activeLoan": null,
     "blacklistedForNegativeBalance": false,
     "company2": null,
@@ -67968,6 +67971,8 @@
     "prestige": 1,
     "bio": "",
     "badges": [
+      "💸 Milioner",
+      "🪙 Bogacz",
       "⌨️ Klikacz",
       "📈 Nowicjusz",
       "👤 Członek Gangu"
