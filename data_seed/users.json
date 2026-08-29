@@ -8543,8 +8543,8 @@
     "workers": []
   },
   "100011378042556": {
-    "balance": 2109342,
-    "bank": 250000,
+    "balance": 43263,
+    "bank": 175000,
     "level": 92,
     "xp": 6493,
     "totalWon": 3766221025,
@@ -8709,7 +8709,7 @@
     "workBoostUntil": 0,
     "workBoostPercent": 0,
     "tempCooldownReductionUntil": 0,
-    "dailyStreak": 15,
+    "dailyStreak": 10,
     "lastDailyClaim": 1786316741505,
     "klodkaActive": true,
     "bombaActive": true,
@@ -12955,7 +12955,7 @@
     "workers": []
   },
   "61583310272500": {
-    "balance": 0,
+    "balance": null,
     "bank": 0,
     "level": 40,
     "xp": 656,
@@ -13138,8 +13138,8 @@
     "workers": []
   },
   "61589641127428": {
-    "balance": 262065,
-    "bank": 10000,
+    "balance": 816590,
+    "bank": 7272,
     "level": 9,
     "xp": 329,
     "totalWon": 204906,
@@ -13283,8 +13283,8 @@
     "workers": []
   },
   "100016685764834": {
-    "balance": 316443,
-    "bank": 10000,
+    "balance": null,
+    "bank": 0,
     "level": 9,
     "xp": 820,
     "totalWon": 1327762,
@@ -16013,8 +16013,8 @@
     "workers": []
   },
   "61580412965170": {
-    "balance": 186790,
-    "bank": 10000,
+    "balance": 913226,
+    "bank": 7164,
     "level": 14,
     "xp": 1190,
     "totalWon": 3764323,
@@ -17032,7 +17032,7 @@
     "workers": []
   },
   "61579412930068": {
-    "balance": 0,
+    "balance": 296902,
     "bank": 0,
     "level": 21,
     "xp": 1423,
@@ -17137,8 +17137,8 @@
     "gangRole": "boss"
   },
   "100051227326947": {
-    "balance": 374487,
-    "bank": 10000,
+    "balance": 360786,
+    "bank": 9991,
     "level": 10,
     "xp": 54,
     "totalWon": 300021,
@@ -18201,8 +18201,8 @@
     "workers": []
   },
   "100012870817390": {
-    "balance": 19353430,
-    "bank": 325000,
+    "balance": 48955609,
+    "bank": 467732,
     "level": 24,
     "xp": 1944,
     "totalWon": 7309769818,
@@ -18347,7 +18347,7 @@
     "id": "100012870817390",
     "lastActiveTime": 1786325467493,
     "multiAccountWarnings": 0,
-    "dailyStreak": 16,
+    "dailyStreak": 33,
     "lastDailyClaim": 1786312814133,
     "lastWorkTime": 1786324955397,
     "klodkaActive": true,
@@ -22805,8 +22805,8 @@
     "workers": []
   },
   "100055028388595": {
-    "balance": 186790,
-    "bank": 10000,
+    "balance": 932223,
+    "bank": 6419,
     "level": 18,
     "xp": 624,
     "totalWon": 18895679,
@@ -22897,7 +22897,7 @@
     "id": "100055028388595",
     "multiAccountWarnings": 0,
     "lastActiveTime": 1785251972909,
-    "dailyStreak": 7,
+    "dailyStreak": 1,
     "lastDailyClaim": 1784594214708,
     "lastWorkTime": 0,
     "jailUntil": 1785255243123,
@@ -36888,7 +36888,7 @@
     "multiAccountWarnings": 0,
     "jailUntil": 1786278091581,
     "gambleStreak": 0,
-    "dailyStreak": 23,
+    "dailyStreak": 4,
     "lastDailyClaim": 1786313388850,
     "lastWorkTime": 1786313391635,
     "company2": null,
@@ -46295,7 +46295,7 @@
     "multiAccountWarnings": 0,
     "company2": null,
     "lastWorkTime": 1786268833329,
-    "dailyStreak": 6,
+    "dailyStreak": 4,
     "lastDailyClaim": 1786226423148,
     "tipsSent": {
       "100046236224568": 8,
@@ -52329,8 +52329,8 @@
     "workers": []
   },
   "100015192882336": {
-    "balance": 4820,
-    "bank": 10000,
+    "balance": 1263490,
+    "bank": 100000,
     "level": 5,
     "xp": 240,
     "totalWon": 12000,
@@ -52364,7 +52364,8 @@
     "name": null,
     "id": "100015192882336",
     "lastWorkTime": 0,
-    "workers": []
+    "workers": [],
+    "dailyStreak": 3
   },
   "61587165651664": {
     "balance": 4820,
@@ -55539,8 +55540,8 @@
     "workers": []
   },
   "100070095279417": {
-    "balance": 0,
-    "bank": 0,
+    "balance": 3034275,
+    "bank": 100000,
     "level": 46,
     "xp": 3321,
     "totalWon": 52506811,
@@ -55633,7 +55634,7 @@
     "id": "100070095279417",
     "lastActiveTime": 1786322522038,
     "multiAccountWarnings": 0,
-    "dailyStreak": 7,
+    "dailyStreak": 5,
     "lastDailyClaim": 1786312988570,
     "jailUntil": 1786281326050,
     "gambleStreak": 1,
@@ -55969,8 +55970,8 @@
     "workers": []
   },
   "100087548303432": {
-    "balance": 0,
-    "bank": 0,
+    "balance": null,
+    "bank": 100000,
     "level": 56,
     "xp": 1997,
     "totalWon": 121017924,
@@ -56106,7 +56107,7 @@
     "lastWorkTime": 1786320144699,
     "gambleStreak": 0,
     "jailUntil": 1786318226469,
-    "dailyStreak": 26,
+    "dailyStreak": 42,
     "lastDailyClaim": 1786312825297,
     "lastGambleWin": 17544,
     "tipsSent": {
@@ -56300,7 +56301,7 @@
     "workers": []
   },
   "61557769297301": {
-    "balance": 0,
+    "balance": 121501,
     "bank": 0,
     "level": 12,
     "xp": 273,
@@ -59618,8 +59619,8 @@
     "workers": []
   },
   "61585934475590": {
-    "balance": 66,
-    "bank": 1324,
+    "balance": 1070513,
+    "bank": 3247,
     "level": 55,
     "xp": 3081,
     "totalWon": 218827514567,
@@ -60163,7 +60164,7 @@
     "gangId": "nelaispolka",
     "gangRole": "member",
     "lastWorkTime": 0,
-    "dailyStreak": 4,
+    "dailyStreak": 2,
     "lastDailyClaim": 1785450026601,
     "gambleStreak": 2,
     "lastGambleWin": 60000,
@@ -60666,7 +60667,7 @@
     "multiAccountWarnings": 0,
     "lastActiveTime": 1786105085976,
     "lastWorkTime": 1786105085977,
-    "dailyStreak": 2,
+    "dailyStreak": 1,
     "lastDailyClaim": 1787791840000,
     "gambleStreak": 0,
     "tipsSent": {
@@ -63242,7 +63243,7 @@
     "id": "100067654993414",
     "lastActiveTime": 1785085476419,
     "multiAccountWarnings": 0,
-    "dailyStreak": 1,
+    "dailyStreak": 4,
     "lastDailyClaim": 1784744965454,
     "lastWorkTime": 0,
     "workers": []
@@ -67387,8 +67388,8 @@
     "workers": []
   },
   "61585910902543": {
-    "balance": 471564,
-    "bank": 80040,
+    "balance": 1742742,
+    "bank": 100000,
     "level": 35,
     "xp": 1543,
     "totalWon": 3328501,
@@ -67494,7 +67495,7 @@
     "multiAccountWarnings": 0,
     "lastActiveTime": 1786300619074,
     "lastWorkTime": 1786275422063,
-    "dailyStreak": 35,
+    "dailyStreak": 30,
     "lastDailyClaim": 1787800953000,
     "gambleStreak": 1,
     "lastGambleWin": 9160,
@@ -67606,8 +67607,8 @@
     "workers": []
   },
   "61592229818937": {
-    "balance": 5084330,
-    "bank": 8163,
+    "balance": 4848140,
+    "bank": 2869,
     "level": 31,
     "xp": 1208,
     "totalWon": 12000,
@@ -67685,7 +67686,7 @@
     "workers": []
   },
   "61584317820776": {
-    "balance": 185996,
+    "balance": 201817,
     "bank": 0,
     "level": 15,
     "xp": 166,
@@ -67753,7 +67754,7 @@
     "multiAccountWarnings": 0,
     "lastActiveTime": 1786188470689,
     "lastWorkTime": 1786188413909,
-    "dailyStreak": 10,
+    "dailyStreak": 9,
     "lastDailyClaim": 1787845984000,
     "gambleStreak": 0,
     "lastGambleWin": 8898,
@@ -72487,8 +72488,8 @@
     "workers": []
   },
   "61590175240385": {
-    "balance": 0,
-    "bank": 0,
+    "balance": 284178,
+    "bank": 87206,
     "level": 7,
     "xp": 402,
     "totalWon": 29500,
