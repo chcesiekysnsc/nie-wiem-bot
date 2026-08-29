@@ -24,6 +24,34 @@ function ensureSeededData() {
     console.log('[SEED] Dane zostały już wcześniej zainicjalizowane. Pomijam nadpisywanie.');
     return;
   }
+
+  // Jeśli w katalogu danych już istnieją pliki z rzeczywistymi danymi,
+  // nie nadpisujemy ich - traktujemy to jako gotową bazę.
+  const usersPath = path.join(dataDir, 'users.json');
+  const profilesPath = path.join(dataDir, 'profiles.json');
+  let hasExistingData = false;
+  try {
+    if (fs.existsSync(usersPath) && fs.statSync(usersPath).size > 10) {
+      const users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
+      if (users && typeof users === 'object' && Object.keys(users).length > 0) {
+        hasExistingData = true;
+      }
+    }
+    if (!hasExistingData && fs.existsSync(profilesPath) && fs.statSync(profilesPath).size > 10) {
+      const profiles = JSON.parse(fs.readFileSync(profilesPath, 'utf8'));
+      if (profiles && typeof profiles === 'object' && Object.keys(profiles).length > 0) {
+        hasExistingData = true;
+      }
+    }
+  } catch (err) {
+    console.error('[SEED] Błąd sprawdzania istniejących danych:', err.message);
+  }
+
+  if (hasExistingData) {
+    console.log('[SEED] Wykryto istniejące dane w katalogu danych. Pomijam seedowanie.');
+    try { fs.writeFileSync(markerPath, new Date().toISOString(), 'utf8'); } catch (_) {}
+    return;
+  }
   
   if (fs.existsSync(seedDir)) {
     try {
