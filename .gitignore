@@ -1,5 +1,4 @@
 node_modules/
-data/
 Fca_Database/
 *.log
 .env
