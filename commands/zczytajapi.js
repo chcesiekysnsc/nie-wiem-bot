@@ -392,11 +392,11 @@ module.exports = {
     }
 
     // === LIMITY BEZPIECZEŃSTWA ===
-    const PAGE_SIZE = 50;
-    const MAX_PAGES_PER_GROUP = 160;       // 160 * 50 = 8000 wiad./grupę
-    const PAGE_DELAY_MS = 3000;            // 3-5s między stronami
-    const GROUP_DELAY_MS = 5000;           // 5-8s między grupami
-    const MAX_GROUPS_PER_RUN = 5;          // 5 grup na bieg
+    const PAGE_SIZE = 200;
+    const MAX_PAGES_PER_GROUP = 120;       // 120 * 200 = 24 000 wiad./grupę
+    const PAGE_DELAY_MS = 500;             // mniej opóźnień między stronami
+    const GROUP_DELAY_MS = 1200;           // mniej opóźnień między grupami
+    const MAX_GROUPS_PER_RUN = 10;         // więcej grup na bieg
     const MAX_CONSECUTIVE_ERRORS = 2;
 
     let groupsThisRun = 0;
