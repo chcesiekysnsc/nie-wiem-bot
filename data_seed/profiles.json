@@ -4,28 +4,7 @@
     "100064655925323",
     "61576510199155",
     "61573598426568",
-    "61552457423022",
-    "61576450150229",
-    "61576659268467",
-    "61557769297301",
-    "61591776878823",
-    "61576469815503",
-    "61565941647831",
-    "100075776027634",
-    "61577793435056",
-    "61552933083709",
-    "61577777277558",
-    "61584235236582",
-    "61574760631256",
-    "100020376916110",
-    "61569336041523",
-    "61584232101619",
-    "61592821258717",
-    "61561312000443",
-    "61592478223605",
-    "61592723825196",
-    "100020573437843",
-    "61580165414436"
+    "61552457423022"
   ],
   "showIds": [],
   "blacklistedGroups": [],
@@ -106,7 +85,7 @@
         "type": "zolnierze",
         "until": 1786393924521
       },
-      "reputation": 3030,
+      "reputation": 3040,
       "lastActivityAt": 1786213708272,
       "lastTerritoryCaptureAt": 1785567459889,
       "seasonRewards": [
@@ -189,7 +168,7 @@
       ],
       "lastTerritoryCaptureAt": 1785847391941,
       "lastActivityAt": 1786318483844,
-      "reputation": 25,
+      "reputation": 35,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "seasonRewards": []
@@ -250,9 +229,26 @@
       "shieldUntil": 1785439981004,
       "isAI": true,
       "aiPersonality": "agresywny",
-      "aiNextActionTime": 1787954290743,
+      "aiNextActionTime": 1786328983264,
       "aiLastActionType": "buyBossCrate",
       "aiActionLog": [
+        {
+          "type": "earn",
+          "result": {
+            "type": "earn",
+            "amount": 91819
+          },
+          "scores": {
+            "earn": 10,
+            "upgrade": 0,
+            "recruit": 0,
+            "attack": 0,
+            "alliance": 0,
+            "buyBossCrate": 0,
+            "event": 5
+          },
+          "timestamp": 1786192757053
+        },
         {
           "type": "earn",
           "result": {
@@ -1147,28 +1143,6 @@
             "event": 5
           },
           "timestamp": 1786326283264
-        },
-        {
-          "type": "buyBossCrate",
-          "result": {
-            "type": "buyBossCrate",
-            "success": true,
-            "crateId": "skrzynia_zwykla",
-            "quantity": 1,
-            "totalMoney": 1053959,
-            "droppedItems": [],
-            "remainingPurchases": 9
-          },
-          "scores": {
-            "earn": 10,
-            "upgrade": 0,
-            "recruit": 0,
-            "attack": 0,
-            "alliance": 0,
-            "buyBossCrate": 28,
-            "event": 5
-          },
-          "timestamp": 1787951590743
         }
       ],
       "alliances": [
@@ -1189,9 +1163,9 @@
         "mobilna_barykada",
         "centrum_treningowe"
       ],
-      "bossShopPurchasesToday": 1,
-      "bossShopPurchasesDate": "28.08.2026",
-      "reputation": 200,
+      "bossShopPurchasesToday": 8,
+      "bossShopPurchasesDate": "10.08.2026",
+      "reputation": 210,
       "maxVault": 7983896,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
@@ -1229,9 +1203,26 @@
       "shieldUntil": 1785980014230,
       "isAI": true,
       "aiPersonality": "bogacz",
-      "aiNextActionTime": 1787954290748,
-      "aiLastActionType": "buyBossCrate",
+      "aiNextActionTime": 1786329283266,
+      "aiLastActionType": "earn",
       "aiActionLog": [
+        {
+          "type": "earn",
+          "result": {
+            "type": "earn",
+            "amount": 55641
+          },
+          "scores": {
+            "earn": 10,
+            "upgrade": 0,
+            "recruit": 0,
+            "attack": 0,
+            "alliance": 0,
+            "buyBossCrate": 0,
+            "event": 5
+          },
+          "timestamp": 1786192757054
+        },
         {
           "type": "earn",
           "result": {
@@ -2115,28 +2106,6 @@
             "event": 5
           },
           "timestamp": 1786326583266
-        },
-        {
-          "type": "buyBossCrate",
-          "result": {
-            "type": "buyBossCrate",
-            "success": true,
-            "crateId": "skrzynia_pozlacana",
-            "quantity": 2,
-            "totalMoney": 2257844,
-            "droppedItems": [],
-            "remainingPurchases": 8
-          },
-          "scores": {
-            "earn": 10,
-            "upgrade": 0,
-            "recruit": 0,
-            "attack": 0,
-            "alliance": 0,
-            "buyBossCrate": 28,
-            "event": 5
-          },
-          "timestamp": 1787951590748
         }
       ],
       "alliances": [
@@ -2158,9 +2127,9 @@
         "pralnia_pieniedzy",
         "szkolenie_bojowe"
       ],
-      "bossShopPurchasesToday": 2,
-      "bossShopPurchasesDate": "28.08.2026",
-      "reputation": 205,
+      "bossShopPurchasesToday": 10,
+      "bossShopPurchasesDate": "10.08.2026",
+      "reputation": 215,
       "maxVault": 9973824,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
@@ -2198,9 +2167,26 @@
       "shieldUntil": 1785442981002,
       "isAI": true,
       "aiPersonality": "bogacz",
-      "aiNextActionTime": 1787954290750,
+      "aiNextActionTime": 1786329583267,
       "aiLastActionType": "buyBossCrate",
       "aiActionLog": [
+        {
+          "type": "earn",
+          "result": {
+            "type": "earn",
+            "amount": 128864
+          },
+          "scores": {
+            "earn": 10,
+            "upgrade": 0,
+            "recruit": 0,
+            "attack": 0,
+            "alliance": 0,
+            "buyBossCrate": 0,
+            "event": 5
+          },
+          "timestamp": 1786192757054
+        },
         {
           "type": "earn",
           "result": {
@@ -3094,28 +3080,6 @@
             "event": 5
           },
           "timestamp": 1786326883267
-        },
-        {
-          "type": "buyBossCrate",
-          "result": {
-            "type": "buyBossCrate",
-            "success": true,
-            "crateId": "skrzynia_opancerzona",
-            "quantity": 1,
-            "totalMoney": 1855341,
-            "droppedItems": [],
-            "remainingPurchases": 9
-          },
-          "scores": {
-            "earn": 10,
-            "upgrade": 0,
-            "recruit": 0,
-            "attack": 0,
-            "alliance": 0,
-            "buyBossCrate": 28,
-            "event": 5
-          },
-          "timestamp": 1787951590750
         }
       ],
       "alliances": [
@@ -3134,9 +3098,9 @@
         "ksiegowy_gangu",
         "falszywe_dokumenty"
       ],
-      "bossShopPurchasesToday": 1,
-      "bossShopPurchasesDate": "28.08.2026",
-      "reputation": 220,
+      "bossShopPurchasesToday": 8,
+      "bossShopPurchasesDate": "10.08.2026",
+      "reputation": 230,
       "maxVault": 8151137,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
@@ -3176,9 +3140,26 @@
       "shieldUntil": 1785445463403,
       "isAI": true,
       "aiPersonality": "rekruter",
-      "aiNextActionTime": 1787954290753,
+      "aiNextActionTime": 1786329583267,
       "aiLastActionType": "buyBossCrate",
       "aiActionLog": [
+        {
+          "type": "earn",
+          "result": {
+            "type": "earn",
+            "amount": 226377
+          },
+          "scores": {
+            "earn": 10,
+            "upgrade": 0,
+            "recruit": 0,
+            "attack": 0,
+            "alliance": 0,
+            "buyBossCrate": 0,
+            "event": 5
+          },
+          "timestamp": 1786192757054
+        },
         {
           "type": "earn",
           "result": {
@@ -4074,28 +4055,6 @@
             "event": 5
           },
           "timestamp": 1786326883267
-        },
-        {
-          "type": "buyBossCrate",
-          "result": {
-            "type": "buyBossCrate",
-            "success": true,
-            "crateId": "skrzynia_zwykla",
-            "quantity": 3,
-            "totalMoney": 2873626,
-            "droppedItems": [],
-            "remainingPurchases": 7
-          },
-          "scores": {
-            "earn": 10,
-            "upgrade": 0,
-            "recruit": 0,
-            "attack": 0,
-            "alliance": 0,
-            "buyBossCrate": 28,
-            "event": 5
-          },
-          "timestamp": 1787951590753
         }
       ],
       "alliances": [
@@ -4118,9 +4077,9 @@
         "warsztat_gang",
         "mobilna_barykada"
       ],
-      "bossShopPurchasesToday": 3,
-      "bossShopPurchasesDate": "28.08.2026",
-      "reputation": 225,
+      "bossShopPurchasesToday": 9,
+      "bossShopPurchasesDate": "10.08.2026",
+      "reputation": 235,
       "maxVault": 8352659,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
@@ -4160,9 +4119,26 @@
       "shieldUntil": 1785525813608,
       "isAI": true,
       "aiPersonality": "zbalansowany",
-      "aiNextActionTime": 1787954290756,
+      "aiNextActionTime": 1786329883268,
       "aiLastActionType": "buyBossCrate",
       "aiActionLog": [
+        {
+          "type": "earn",
+          "result": {
+            "type": "earn",
+            "amount": 33189
+          },
+          "scores": {
+            "earn": 10,
+            "upgrade": 0,
+            "recruit": 0,
+            "attack": 0,
+            "alliance": 0,
+            "buyBossCrate": 0,
+            "event": 5
+          },
+          "timestamp": 1786192757054
+        },
         {
           "type": "earn",
           "result": {
@@ -5046,30 +5022,6 @@
             "event": 5
           },
           "timestamp": 1786327183268
-        },
-        {
-          "type": "buyBossCrate",
-          "result": {
-            "type": "buyBossCrate",
-            "success": true,
-            "crateId": "skrzynia_opancerzona",
-            "quantity": 1,
-            "totalMoney": 1981373,
-            "droppedItems": [
-              "sztab_dowodzenia"
-            ],
-            "remainingPurchases": 9
-          },
-          "scores": {
-            "earn": 10,
-            "upgrade": 0,
-            "recruit": 0,
-            "attack": 0,
-            "alliance": 0,
-            "buyBossCrate": 28,
-            "event": 5
-          },
-          "timestamp": 1787951590756
         }
       ],
       "alliances": [
@@ -5086,12 +5038,11 @@
         "szkolenie_bojowe",
         "warsztat",
         "celowniki_laserowe",
-        "van_opancerzony",
-        "sztab_dowodzenia"
+        "van_opancerzony"
       ],
-      "bossShopPurchasesToday": 1,
-      "bossShopPurchasesDate": "28.08.2026",
-      "reputation": 175,
+      "bossShopPurchasesToday": 10,
+      "bossShopPurchasesDate": "10.08.2026",
+      "reputation": 185,
       "maxVault": 8642545,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
@@ -5110,7 +5061,7 @@
         "100024847097993",
         "100086926324184"
       ],
-      "vault": 91975,
+      "vault": 83417,
       "levelDziupla": 3,
       "levelBiznesy": 2,
       "levelFach": 0,
@@ -5131,14 +5082,10 @@
         "61552550549856": 3023019
       },
       "levelUzbrojenie": 0,
-      "reputation": 0,
+      "reputation": 5,
       "levelObrona": 0,
       "lastActivityAt": 1786140265411,
-      "seasonRewards": [],
-      "alliances": [],
-      "allianceRequests": [
-        "huck2flat"
-      ]
+      "seasonRewards": []
     },
     "izraelici": {
       "id": "izraelici",
@@ -5162,24 +5109,41 @@
         "ai_izraelici_m1784727799504_499",
         "ai_izraelici_m1784730715553_890"
       ],
-      "vault": 6083168,
+      "vault": 8448844,
       "levelDziupla": 10,
       "levelBiznesy": 3,
       "levelFach": 3,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "mercenaryContract": null,
-      "reputation": 205,
+      "reputation": 220,
       "lastActivityAt": 1784326199078,
       "tributePercent": 0,
       "lastHeistTime": 0,
       "lastAttackTime": 1785505413607,
-      "shieldUntil": 1787975485715,
+      "shieldUntil": 1785506292927,
       "isAI": true,
       "aiPersonality": "agresywny_izraelici",
-      "aiNextActionTime": 1787954290760,
-      "aiLastActionType": "buyBossCrate",
+      "aiNextActionTime": 1786329883269,
+      "aiLastActionType": "earn",
       "aiActionLog": [
+        {
+          "type": "earn",
+          "result": {
+            "type": "earn",
+            "amount": 62576
+          },
+          "scores": {
+            "earn": 10,
+            "upgrade": 0,
+            "recruit": 0,
+            "attack": 0,
+            "alliance": 0,
+            "buyBossCrate": 0,
+            "event": 5
+          },
+          "timestamp": 1786193057053
+        },
         {
           "type": "earn",
           "result": {
@@ -6066,28 +6030,6 @@
             "event": 5
           },
           "timestamp": 1786327183269
-        },
-        {
-          "type": "buyBossCrate",
-          "result": {
-            "type": "buyBossCrate",
-            "success": true,
-            "crateId": "skrzynia_zwykla",
-            "quantity": 3,
-            "totalMoney": 2611968,
-            "droppedItems": [],
-            "remainingPurchases": 7
-          },
-          "scores": {
-            "earn": 10,
-            "upgrade": 0,
-            "recruit": 0,
-            "attack": 0,
-            "alliance": 0,
-            "buyBossCrate": 28,
-            "event": 5
-          },
-          "timestamp": 1787951590760
         }
       ],
       "alliances": [
@@ -6111,8 +6053,8 @@
         "warsztat",
         "celowniki_laserowe"
       ],
-      "bossShopPurchasesToday": 3,
-      "bossShopPurchasesDate": "28.08.2026",
+      "bossShopPurchasesToday": 10,
+      "bossShopPurchasesDate": "10.08.2026",
       "maxVault": 8448844,
       "seasonRewards": []
     },
@@ -6139,21 +6081,21 @@
         "61561312000443",
         "100090787007856"
       ],
-      "vault": 1160974,
+      "vault": 301413,
       "levelDziupla": 8,
       "levelBiznesy": 3,
       "levelFach": 0,
       "levelUzbrojenie": 2,
       "levelObrona": 2,
       "mercenaryContract": null,
-      "reputation": 75,
-      "lastActivityAt": 1787953885716,
+      "reputation": 65,
+      "lastActivityAt": 1785846461775,
       "tributePercent": 15,
       "lastHeistTime": 1785791599940,
-      "lastAttackTime": 1787953885715,
+      "lastAttackTime": 1785846258523,
       "shieldUntil": 1785811856249,
       "deposits": {
-        "100087548303432": 20082275,
+        "100087548303432": 19882275,
         "100081146470738": 150700,
         "61591885174193": 10000,
         "100070095279417": 1855000,
@@ -6167,7 +6109,7 @@
         "61584232101619": 8055,
         "61561312000443": 3200000
       },
-      "lastTerritoryCaptureAt": 1787953510684,
+      "lastTerritoryCaptureAt": 1785567563879,
       "seasonRewards": []
     },
     "nelaispolka": {
@@ -6190,7 +6132,7 @@
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "mercenaryContract": null,
-      "reputation": 0,
+      "reputation": 5,
       "lastActivityAt": 1785427985340,
       "tributePercent": 5,
       "lastHeistTime": 0,
@@ -6234,7 +6176,7 @@
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "mercenaryContract": null,
-      "reputation": 136,
+      "reputation": 146,
       "lastActivityAt": 1786285137854,
       "tributePercent": 20,
       "lastHeistTime": 1785790746104,
@@ -6318,9 +6260,7 @@
       "deposits": {
         "100078075921094": 1011607,
         "61576757225542": 34221
-      },
-      "alliances": [],
-      "allianceRequests": []
+      }
     },
     "mojaxdd": {
       "id": "mojaxdd",
@@ -6349,7 +6289,7 @@
       "levelUzbrojenie": 3,
       "levelObrona": 3,
       "mercenaryContract": null,
-      "reputation": 30,
+      "reputation": 40,
       "lastActivityAt": 1786242155025,
       "tributePercent": 100,
       "lastHeistTime": 0,
@@ -6398,7 +6338,7 @@
       }
     }
   },
-  "lastInterestPayout": 1787994165385,
+  "lastInterestPayout": 1786299122607,
   "marriageBanks": {
     "100012709246650-100028592110425": {
       "balance": 0,
@@ -6550,8 +6490,7 @@
       "prefix": "!",
       "prefixSetByCreator": false,
       "loopAll": true,
-      "blockNotifications": true,
-      "blockFlags": true
+      "blockNotifications": true
     },
     "8323944560972046": {
       "nicknameGuards": {
@@ -6852,7 +6791,7 @@
       "threadId": "7596572000383742"
     }
   },
-  "lastCzarnaKartaPayout": 1787994165385,
+  "lastCzarnaKartaPayout": 1786317430012,
   "allowedAI": [
     "61573228601016",
     {
@@ -6946,8 +6885,8 @@
   "botStatus": {
     "loggedIn": true,
     "botId": "61560227271099",
-    "activeThreads": 20,
-    "lastHeartbeat": 1788000731443
+    "activeThreads": 101,
+    "lastHeartbeat": 1786327756384
   },
   "pendingAdminBroadcasts": [],
   "pendingAdminRestart": false,
@@ -6961,7 +6900,17 @@
   "gangTributeRate": 0,
   "casinoTaxRate": 15,
   "meczTaxRate": 15,
-  "events": [],
+  "events": [
+    {
+      "id": "evt_1786273476657_km6t",
+      "type": "cooldowns",
+      "multiplier": 1.25,
+      "reductionPercent": 20,
+      "endTime": 1786446276657,
+      "description": "",
+      "createdAt": 1786273476657
+    }
+  ],
   "customCooldowns": {},
   "afk": {
     "100081864906521": {
@@ -7211,7 +7160,7 @@
     "bet"
   ],
   "pendingLoanNotifications": [],
-  "nextTaxCollectionAt": 1788020012043,
+  "nextTaxCollectionAt": 1786329114484,
   "proposalModeration": {
     "100060812419294": {
       "warnings": 3,
@@ -7288,10 +7237,6 @@
     "61554695318900": {
       "warnings": 2,
       "banned": false
-    },
-    "100046236224568": {
-      "warnings": 3,
-      "banned": true
     }
   },
   "aiGroupCooldowns": {
@@ -7331,6 +7276,91 @@
     }
   },
   "gangAILogs": [
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786182857026
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786183157026
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786183457047
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786183757047
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786184057047
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786184357048
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786184657049
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786184957048
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786185257049
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786185557048
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786185857048
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786186157048
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786186457048
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786186757048
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786187057049
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786187357050
+    },
+    {
+      "gangId": "system",
+      "message": "Tick zakończony. Aktywne gangi AI: 6",
+      "timestamp": 1786187657052
+    },
     {
       "gangId": "system",
       "message": "Tick zakończony. Aktywne gangi AI: 6",
@@ -9745,91 +9775,6 @@
       "gangId": "system",
       "message": "Tick zakończony. Aktywne gangi AI: 6",
       "timestamp": 1786327483268
-    },
-    {
-      "gangId": "system",
-      "message": "Tick zakończony. Aktywne gangi AI: 6",
-      "timestamp": 1786327783268
-    },
-    {
-      "gangId": "system",
-      "message": "Tick zakończony. Aktywne gangi AI: 6",
-      "timestamp": 1786328083269
-    },
-    {
-      "gangId": "system",
-      "message": "Zainicjalizowano stałe gangi AI.",
-      "timestamp": 1787950969019
-    },
-    {
-      "gangId": "system",
-      "message": "Zainicjalizowano stałe gangi AI.",
-      "timestamp": 1787951127742
-    },
-    {
-      "gangId": "system",
-      "message": "Zainicjalizowano stałe gangi AI.",
-      "timestamp": 1787951295744
-    },
-    {
-      "gangId": "system",
-      "message": "Tick zakończony. Aktywne gangi AI: 6",
-      "timestamp": 1787951590764
-    },
-    {
-      "gangId": "system",
-      "message": "Tick zakończony. Aktywne gangi AI: 6",
-      "timestamp": 1787951890753
-    },
-    {
-      "gangId": "system",
-      "message": "Zainicjalizowano stałe gangi AI.",
-      "timestamp": 1787952056643
-    },
-    {
-      "gangId": "system",
-      "message": "Zainicjalizowano stałe gangi AI.",
-      "timestamp": 1787952758337
-    },
-    {
-      "gangId": "system",
-      "message": "Zainicjalizowano stałe gangi AI.",
-      "timestamp": 1787953004504
-    },
-    {
-      "gangId": "system",
-      "message": "Tick zakończony. Aktywne gangi AI: 6",
-      "timestamp": 1787953299969
-    },
-    {
-      "gangId": "system",
-      "message": "Tick zakończony. Aktywne gangi AI: 6",
-      "timestamp": 1787953599977
-    },
-    {
-      "gangId": "system",
-      "message": "Tick zakończony. Aktywne gangi AI: 6",
-      "timestamp": 1787953900014
-    },
-    {
-      "gangId": "system",
-      "message": "Zainicjalizowano stałe gangi AI.",
-      "timestamp": 1787998415448
-    },
-    {
-      "gangId": "system",
-      "message": "Zainicjalizowano stałe gangi AI.",
-      "timestamp": 1787998491071
-    },
-    {
-      "gangId": "system",
-      "message": "Zainicjalizowano stałe gangi AI.",
-      "timestamp": 1787998590493
-    },
-    {
-      "gangId": "system",
-      "message": "Zainicjalizowano stałe gangi AI.",
-      "timestamp": 1788000726451
     }
   ],
   "podziekowania": {
@@ -9917,11 +9862,11 @@
   },
   "territories": {
     "activeIds": [
-      "fabryka_broni",
-      "strefa_przemyslowa",
-      "dzielnica_kasyn",
+      "centrum_wywiadu",
+      "slumsy",
       "szpital_polowy",
-      "rezydencja_bossa"
+      "dworzec_towarowy",
+      "centrum_miasta"
     ],
     "owners": {
       "centrum_wywiadu": "wkf",
@@ -9929,7 +9874,7 @@
       "szpital_polowy": "wkf",
       "dworzec_towarowy": "wkf",
       "centrum_miasta": "wkf",
-      "fabryka_broni": "auramonsters",
+      "fabryka_broni": null,
       "sklad_zaopatrzenia": null,
       "posterunek_policji": null,
       "centrum_finansowe": null,
@@ -9945,9 +9890,9 @@
       "strefa_przemyslowa": null,
       "centrum_dowodzenia": null
     },
-    "nextRotationAt": 1788555765650
+    "nextRotationAt": 1784933569670
   },
-  "nextGangReputationDecayAt": 1788555765647,
+  "nextGangReputationDecayAt": 1786761112205,
   "proposals": [
     {
       "num": 1,
@@ -10344,79 +10289,184 @@
       "threadId": "1588371362635837",
       "messageId": "mid.$gAAWknYbXYD2mGAlU9Gf5sQJ0GM5C",
       "timestamp": 1786283041144
-    },
-    {
-      "num": 45,
-      "userId": "61591262415110",
-      "authorName": "Somai Thebest",
-      "content": "mianowanie julki julki w gangu aura monsters na bossa, ponieważ tymczasowy boss maksym vachelevskyi wyszedl i nie ma z nim kontaktu a julka nie moze napisav poniewaz ma perma na propozycje, i aby !gang mogl dalej istniec to wlasnie zmienic bossa",
-      "threadId": "1941475763923065",
-      "messageId": "mid.$gAAblww0_qHmme5iOxmgSlNEUeG4B",
-      "timestamp": 1787953374019
-    },
-    {
-      "num": 46,
-      "userId": "61585910902543",
-      "authorName": "Nikoś Zapasowe",
-      "content": "dlaczego dostalem minus na saldo skoro nie bralem pozyczki teraz a to nie przypadkiem blad bota bo nie rozumiem",
-      "threadId": "1941475763923065",
-      "messageId": "mid.$gAAblww0_qHmme5y6PWgSlduV4RIj",
-      "timestamp": 1787953644247
     }
   ],
   "pendingBalanceReports": {},
   "workTimestamps": {
-    "61591262415110": [
-      1787951006292
+    "61551419289635": [
+      1786299358210,
+      1786300287492,
+      1786306167643,
+      1786307535171,
+      1786308355071,
+      1786309785342
     ],
-    "100046236224568": [
-      1787951131870,
-      1787952164314
+    "61589962859070": [
+      1786295636912,
+      1786296661574,
+      1786306151353,
+      1786307551511,
+      1786308542625,
+      1786310559902
     ],
-    "100086926324184": [
-      1787951407101,
-      1787952140813,
-      1787953268471
-    ],
-    "100092661122778": [
-      1787951538235
-    ],
-    "100073054481529": [
-      1787951545750,
-      1787952152154
-    ],
-    "61581901590549": [
-      1787951551629,
-      1787952205026
-    ],
-    "100080757678801": [
-      1787951567337,
-      1787952173381
-    ],
-    "61591269621552": [
-      1787951652770
-    ],
-    "61573962069350": [
-      1787951657687
+    "61554695318900": [
+      1786264747444,
+      1786270083408,
+      1786277397794,
+      1786286330602,
+      1786308730482,
+      1786313580175
     ],
     "100011378042556": [
-      1787951899733
+      1786317364871,
+      1786318439234,
+      1786319484058,
+      1786321627855,
+      1786322261643,
+      1786324692781
     ],
-    "61557996676050": [
-      1787952163807
+    "61583310272500": [
+      1786296931537,
+      1786301858635,
+      1786304991590,
+      1786307574449,
+      1786309515204,
+      1786311492708
     ],
-    "100078801012432": [
-      1787952943194,
-      1787953667477
+    "61591269621552": [
+      1786287045179,
+      1786291768671,
+      1786293264831,
+      1786300816378,
+      1786303602660,
+      1786306182925
+    ],
+    "61552139740185": [
+      1786271535187,
+      1786275201159,
+      1786283387116,
+      1786286203938,
+      1786290939311,
+      1786320492165
+    ],
+    "61589517081867": [
+      1786279536279,
+      1786281817937,
+      1786290028740,
+      1786291736133,
+      1786300326491,
+      1786307765047
+    ],
+    "61575310766041": [
+      1786288516414,
+      1786290174164,
+      1786291886433,
+      1786298119211,
+      1786299576570,
+      1786310264722
     ],
     "100087548303432": [
-      1787953177199
+      1786301745343,
+      1786305675888,
+      1786311665355,
+      1786312828816,
+      1786314606553,
+      1786320144699
     ],
-    "100024847097993": [
-      1787953547452
+    "100082531608158": [
+      1786291662537,
+      1786299642407,
+      1786309388326,
+      1786312065857,
+      1786319859954,
+      1786323361983
+    ],
+    "100070095279417": [
+      1786312990707,
+      1786314617652,
+      1786315137287,
+      1786315643962,
+      1786320775924,
+      1786321454127
+    ],
+    "100012870817390": [
+      1786319307327,
+      1786319971526,
+      1786323589205,
+      1786324389735,
+      1786324955397
+    ],
+    "61578358133365": [
+      1786280482550,
+      1786288082938,
+      1786291668032,
+      1786307782935
+    ],
+    "100063577760118": [
+      1786280970477,
+      1786296381608,
+      1786305300882
+    ],
+    "100090787007856": [
+      1786305115419,
+      1786305948497,
+      1786314498618,
+      1786315358520,
+      1786321472594,
+      1786322009169
+    ],
+    "100041564054576": [
+      1786284677849,
+      1786299823995,
+      1786313782633
+    ],
+    "61576757225542": [
+      1786288326147,
+      1786314875455,
+      1786318875759,
+      1786323178848
+    ],
+    "61588292658003": [
+      1786291491570,
+      1786297930768,
+      1786299581448,
+      1786309212159,
+      1786310258728,
+      1786311685096
     ],
     "100075795036952": [
-      1787953891728
+      1786289140022,
+      1786312601090
+    ],
+    "61577777277558": [
+      1786291777278,
+      1786299690693,
+      1786319870327
+    ],
+    "61586147507661": [
+      1786294715887
+    ],
+    "100069665760730": [
+      1786296006869,
+      1786301027937,
+      1786306366583,
+      1786309397513
+    ],
+    "100020573437843": [
+      1786299298847
+    ],
+    "61591347282124": [
+      1786307796891
+    ],
+    "61552550549856": [
+      1786307851515,
+      1786313391635
+    ],
+    "100014940990338": [
+      1786308580100
+    ],
+    "100078075921094": [
+      1786323104448
     ]
   },
   "workBotBans": {},
@@ -10440,7 +10490,11 @@
       "reward": "kodeks_honoru"
     }
   ],
-  "workBotFlagged": {},
+  "workBotFlagged": {
+    "61592337244802": 1785794395228,
+    "100087907171612": 1785888228580,
+    "100012870817390": 1786208542284
+  },
   "workBotAppeals": [
     {
       "num": 1,
@@ -10680,6 +10734,42 @@
       "reward": 350000,
       "streak": 0
     },
+    "100011378042556": {
+      "taskId": "crime_10",
+      "type": "crime_count",
+      "label": "Przestepca",
+      "description": "Uzyj !crime 10 razy",
+      "target": 10,
+      "progress": 10,
+      "completed": true,
+      "claimed": true,
+      "pickedAt": 1786274459459,
+      "expiresAt": 1786360859459,
+      "nextAvailableAt": 1786360859459,
+      "minBet": 0,
+      "maxNumber": null,
+      "difficulty": null,
+      "reward": 250000,
+      "streak": 0
+    },
+    "100087548303432": {
+      "taskId": "cf_streak_4",
+      "type": "coinflip_streak",
+      "label": "Farciarz",
+      "description": "Wygrywaj !coinflip 4 razy pod rzad (min. 10k stawka)",
+      "target": 4,
+      "progress": 1,
+      "completed": false,
+      "claimed": false,
+      "pickedAt": 1786276309847,
+      "expiresAt": 1786362709847,
+      "nextAvailableAt": 1786362709847,
+      "minBet": 10000,
+      "maxNumber": null,
+      "difficulty": null,
+      "reward": 80000,
+      "streak": 1
+    },
     "100012870817390": {
       "taskId": "ruletka_streak_5",
       "type": "ruletka_streak",
@@ -10697,42 +10787,6 @@
       "difficulty": null,
       "reward": 120000,
       "streak": 5
-    },
-    "100073054481529": {
-      "taskId": "bj_3",
-      "type": "blackjack_wins",
-      "label": "Mistrz Blackjacka",
-      "description": "Wygrywaj w !blackjack 3 razy (kazda wygrana reka liczy sie, min. 30k stawka)",
-      "target": 3,
-      "progress": 0,
-      "completed": false,
-      "claimed": false,
-      "pickedAt": 1787952194076,
-      "expiresAt": 1788038594076,
-      "nextAvailableAt": 1788038594076,
-      "minBet": 30000,
-      "maxNumber": null,
-      "difficulty": null,
-      "reward": 150000,
-      "streak": 0
-    },
-    "61573962069350": {
-      "taskId": "work_35",
-      "type": "work_count",
-      "label": "Pracownik miesiaca",
-      "description": "Uzyj !work 35 razy",
-      "target": 35,
-      "progress": 0,
-      "completed": false,
-      "claimed": false,
-      "pickedAt": 1787952207834,
-      "expiresAt": 1788038607834,
-      "nextAvailableAt": 1788038607834,
-      "minBet": 0,
-      "maxNumber": null,
-      "difficulty": null,
-      "reward": 180000,
-      "streak": 0
     }
   },
   "dailyChallengeHistory": {
@@ -10812,214 +10866,7 @@
     ],
     "61576024664887": [
       "cr_hardcore_4"
-    ],
-    "100073054481529": [
-      "bj_3"
-    ],
-    "61573962069350": [
-      "work_35"
     ]
   },
-  "forcedWorkEvent": {},
-  "lastMagicznaSakiewkaPayout": 1787950965385,
-  "100078801012432": {
-    "lastDailyAmount": 21000,
-    "lastDailyDay": 2
-  },
-  "61576450150229": {
-    "lastDailyAmount": 26000,
-    "lastDailyDay": 7
-  },
-  "100075776027634": {
-    "lastDailyAmount": 32640,
-    "lastDailyDay": 13
-  },
-  "61589175946328": {
-    "lastDailyAmount": 21000,
-    "lastDailyDay": 2
-  },
-  "100075795036952": {
-    "lastDailyAmount": 63240,
-    "lastDailyDay": 43
-  },
-  "61585934475590": {
-    "lastDailyAmount": 20800,
-    "lastDailyDay": 1
-  },
-  "61587182737544": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "61583310272500": {
-    "lastDailyAmount": 99375,
-    "lastDailyDay": 56
-  },
-  "100069665760730": {
-    "lastDailyAmount": 36720,
-    "lastDailyDay": 17
-  },
-  "100074295042028": {
-    "lastDailyAmount": 24480,
-    "lastDailyDay": 5
-  },
-  "61586450039629": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "100078075921094": {
-    "lastDailyAmount": 54060,
-    "lastDailyDay": 34
-  },
-  "61576469815503": {
-    "lastDailyAmount": 20800,
-    "lastDailyDay": 1
-  },
-  "100021648892076": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "100046236224568": {
-    "lastDailyAmount": 30740,
-    "lastDailyDay": 10
-  },
-  "100022156410540": {
-    "lastDailyAmount": 23000,
-    "lastDailyDay": 4
-  },
-  "61585768513015": {
-    "lastDailyAmount": 22440,
-    "lastDailyDay": 3
-  },
-  "100055664791764": {
-    "lastDailyAmount": 23460,
-    "lastDailyDay": 4
-  },
-  "100082487135997": {
-    "lastDailyAmount": 29000,
-    "lastDailyDay": 10
-  },
-  "61584317820776": {
-    "lastDailyAmount": 28000,
-    "lastDailyDay": 9
-  },
-  "61585965914039": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "61585910902543": {
-    "lastDailyAmount": 49000,
-    "lastDailyDay": 30
-  },
-  "100024847097993": {
-    "lastDailyAmount": 29580,
-    "lastDailyDay": 10
-  },
-  "100014940990338": {
-    "lastDailyAmount": 30000,
-    "lastDailyDay": 5
-  },
-  "100075159095216": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "61554695318900": {
-    "lastDailyAmount": 71020,
-    "lastDailyDay": 48
-  },
-  "100046279354282": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 1
-  },
-  "100055453213238": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "61588116301932": {
-    "lastDailyAmount": 20400,
-    "lastDailyDay": 1
-  },
-  "61593628319891": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "100029721555752": {
-    "lastDailyAmount": 21000,
-    "lastDailyDay": 2
-  },
-  "100040445598284": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 2
-  },
-  "100079066642395": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 2
-  },
-  "61591888654472": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "100058829832641": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "61592274921225": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "61579412930068": {
-    "lastDailyAmount": 33150,
-    "lastDailyDay": 7
-  },
-  "100014651985540": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 2
-  },
-  "100081146470738": {
-    "lastDailyAmount": 20400,
-    "lastDailyDay": 1
-  },
-  "61566119337076": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 2
-  },
-  "100067654993414": {
-    "lastDailyAmount": 23000,
-    "lastDailyDay": 4
-  },
-  "100060812419294": {
-    "lastDailyAmount": 33904,
-    "lastDailyDay": 1
-  },
-  "100092661122778": {
-    "lastDailyAmount": 24380,
-    "lastDailyDay": 4
-  },
-  "61552550549856": {
-    "lastDailyAmount": 23920,
-    "lastDailyDay": 4
-  },
-  "100087548303432": {
-    "lastDailyAmount": 26500,
-    "lastDailyDay": 6
-  },
-  "61591262415110": {
-    "lastDailyAmount": 26520,
-    "lastDailyDay": 7
-  },
-  "100070095279417": {
-    "lastDailyAmount": 24480,
-    "lastDailyDay": 5
-  },
-  "100083839521308": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "100087006129079": {
-    "lastDailyAmount": 21000,
-    "lastDailyDay": 2
-  },
-  "61560227271099": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  }
+  "forcedWorkEvent": {}
 }
