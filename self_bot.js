@@ -1488,6 +1488,46 @@ login({ appState }, (loginErr, api) => {
   client.api = api;
   client.lastLotteryDraw = Date.now();
 
+  const RECENT_MESSAGES_PATH = path.join(DATA_DIR, 'recent_messages.json');
+  const RECENT_MESSAGES_LIMIT = 60000;
+
+  function loadRecentMessages() {
+    try {
+      if (fs.existsSync(RECENT_MESSAGES_PATH)) {
+        const raw = fs.readFileSync(RECENT_MESSAGES_PATH, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          client.recentMessages = parsed.slice(-RECENT_MESSAGES_LIMIT);
+          console.log(`[ZAPISZ] Wczytano ${client.recentMessages.length} wiadomości z dysku`);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('[ZAPISZ] Błąd wczytywania bufora:', err.message);
+    }
+    client.recentMessages = [];
+  }
+
+  function saveRecentMessages() {
+    try {
+      if (!client.recentMessages || client.recentMessages.length === 0) return;
+      const toSave = client.recentMessages.slice(-RECENT_MESSAGES_LIMIT);
+      fs.writeFileSync(RECENT_MESSAGES_PATH, JSON.stringify(toSave, null, 2), 'utf8');
+    } catch (err) {
+      console.error('[ZAPISZ] Błąd zapisu bufora:', err.message);
+    }
+  }
+
+  loadRecentMessages();
+
+  setInterval(() => {
+    saveRecentMessages();
+  }, 5 * 60 * 1000);
+
+  process.on('SIGINT', () => { saveRecentMessages(); process.exit(0); });
+  process.on('SIGTERM', () => { saveRecentMessages(); process.exit(0); });
+  process.on('exit', saveRecentMessages);
+
   // Funkcja do uruchamiania losowania loterii
   function startLotteryTimer() {
     setTimeout(async () => {
