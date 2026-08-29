@@ -400,10 +400,17 @@ module.exports = {
     const MAX_GROUPS_PER_RUN = 10;         // więcej grup na bieg
     const MAX_CONSECUTIVE_ERRORS = 5;
     const MAX_EMPTY_PAGES = 2;
+    const STOP_CHECK_INTERVAL = 10;
 
     let groupsThisRun = 0;
     let commandsThisRun = 0;
     let consecutiveErrors = 0;
+
+    if (!client.zczytajState) {
+      client.zczytajState = {};
+    }
+    client.zczytajState.active = true;
+    client.zczytajState.stopRequested = false;
 
     // Wczytaj istniejące surowe wpisy
     const rawEntries = loadRawEntries();
@@ -496,6 +503,16 @@ module.exports = {
           oldestTimestamp = pageOldest - 1;
 
           progress.totalMessagesScanned += history.length;
+
+          if (pagesScanned % STOP_CHECK_INTERVAL === 0 && client.zczytajState && client.zczytajState.stopRequested) {
+            console.log(`[ZCZYTAJAPI] Grupa ${threadId}: zatrzymano na życzenie użytkownika.`);
+            await message.reply('🛑 **Zczytajapi zatrzymane** na życzenie użytkownika. Postęp zapisany.');
+            saveProgress(progress);
+            saveRawEntries(rawEntries);
+            client.zczytajState.active = false;
+            client.zczytajState.stopRequested = false;
+            return;
+          }
 
           // Co 20 stron — info o postępie
           if (pagesScanned % 20 === 0) {
@@ -605,6 +622,11 @@ module.exports = {
 
       const remainingAfter = filteredThreads.filter(tid => !new Set(progress.scannedThreadIds).has(String(tid))).length;
 
+      if (client.zczytajState) {
+        client.zczytajState.active = false;
+        client.zczytajState.stopRequested = false;
+      }
+
       let statusMsg =
         `📦 **Bieg #${progress.runs} zakończony!**\n` +
         `• Grupy w tym biegu: ${groupsThisRun}\n` +
@@ -627,6 +649,10 @@ module.exports = {
       progress.lastRunAt = new Date().toISOString();
       saveProgress(progress);
       saveRawEntries(rawEntries);
+      if (client.zczytajState) {
+        client.zczytajState.active = false;
+        client.zczytajState.stopRequested = false;
+      }
       await message.reply(`❌ Błąd: ${err.message}\nPostęp zapisany.`);
     }
   }
