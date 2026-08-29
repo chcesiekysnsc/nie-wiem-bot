@@ -29,6 +29,10 @@ function ensureSeededData() {
     try {
       const seedFiles = fs.readdirSync(seedDir).filter(f => f.endsWith('.json'));
       for (const file of seedFiles) {
+        if (file === 'appstate.json') {
+          continue;
+        }
+
         const targetPath = path.join(dataDir, file);
         const seedPath = path.join(seedDir, file);
 
