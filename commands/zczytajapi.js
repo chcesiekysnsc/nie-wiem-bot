@@ -55,9 +55,10 @@ function getThreadHistoryPage(api, threadID, amount, timestamp) {
     const timeout = setTimeout(() => {
       if (!completed) {
         completed = true;
+        console.warn(`[ZCZYTAJAPI] getThreadHistory timed out for thread ${threadID}`);
         resolve(null);
       }
-    }, 60000);
+    }, 90000);
 
     api.getThreadHistory(threadID, amount, timestamp, (err, history) => {
       clearTimeout(timeout);
@@ -395,9 +396,10 @@ module.exports = {
     const PAGE_SIZE = 200;
     const MAX_PAGES_PER_GROUP = 120;       // 120 * 200 = 24 000 wiad./grupę
     const PAGE_DELAY_MS = 500;             // mniej opóźnień między stronami
-    const GROUP_DELAY_MS = 1200;           // mniej opóźnień między grupami
+    const GROUP_DELAY_MS = 2000;           // więcej opóźnień między grupami
     const MAX_GROUPS_PER_RUN = 10;         // więcej grup na bieg
-    const MAX_CONSECUTIVE_ERRORS = 2;
+    const MAX_CONSECUTIVE_ERRORS = 5;
+    const MAX_EMPTY_PAGES = 2;
 
     let groupsThisRun = 0;
     let commandsThisRun = 0;
@@ -424,6 +426,7 @@ module.exports = {
         let oldestTimestamp = scanTo;
         let pagesScanned = 0;
         let groupMsgsScanned = 0;
+        let emptyPages = 0;
         const groupMessages = [];
 
         while (pagesScanned < MAX_PAGES_PER_GROUP) {
@@ -433,6 +436,7 @@ module.exports = {
 
           if (history === null) {
             consecutiveErrors++;
+            console.warn(`[ZCZYTAJAPI] Grupa ${threadId}: błąd API (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})`);
             if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
               await message.reply('⚠️ **Błędy API — przerywam.** Postęp zapisany.');
               saveProgress(progress);
@@ -447,7 +451,17 @@ module.exports = {
           pagesScanned++;
           groupMsgsScanned += history.length;
 
-          if (history.length === 0) break;
+          if (history.length === 0) {
+            emptyPages++;
+            console.log(`[ZCZYTAJAPI] Grupa ${threadId}: pusta strona ${pagesScanned} (${emptyPages}/${MAX_EMPTY_PAGES})`);
+            if (emptyPages >= MAX_EMPTY_PAGES) {
+              console.log(`[ZCZYTAJAPI] Grupa ${threadId}: za dużo pustych stron, przechodzę do następnej.`);
+              break;
+            }
+            continue;
+          } else {
+            emptyPages = 0;
+          }
 
           let pageOldest = Infinity;
           for (const msg of history) {
@@ -475,7 +489,10 @@ module.exports = {
           }
 
           if (pageOldest < scanFrom) break;
-          if (pageOldest >= oldestTimestamp) break;
+          if (pageOldest >= oldestTimestamp) {
+            console.warn(`[ZCZYTAJAPI] Grupa ${threadId}: zapętlona paginacja (pageOldest=${pageOldest}, oldestTimestamp=${oldestTimestamp})`);
+            break;
+          }
           oldestTimestamp = pageOldest - 1;
 
           progress.totalMessagesScanned += history.length;
