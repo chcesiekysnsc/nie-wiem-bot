@@ -47,8 +47,8 @@ function main() {
     const targetPath = path.join(OUTPUT_DIR, fileName);
     const content = backup[fileName];
 
-    if (fileName === 'appstate.json') {
-      console.log(`   ↳ Pomijam przywrazanie appstate.json (cookies sesyjne nigdy nie są nadpisywane automatycznie)`);
+    if (fileName === 'appstate.json' && fs.existsSync(targetPath)) {
+      console.log(`   ↳ Pomijam przywracanie appstate.json (plik z sesją już istnieje na dysku)`);
       skippedCount++;
       continue;
     }

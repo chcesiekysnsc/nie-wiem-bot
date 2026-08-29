@@ -66,7 +66,7 @@ module.exports = {
           const content = backup[fileName];
           const targetPath = path.join(DATA_DIR, fileName);
 
-          if (fileName === 'appstate.json') {
+          if (fileName === 'appstate.json' && fs.existsSync(targetPath)) {
             skippedCount++;
             continue;
           }

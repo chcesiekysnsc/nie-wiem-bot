@@ -82,9 +82,9 @@ function ensureDataFiles() {
         
         const targetPath = path.join(DATA_DIR, fileName);
         
-        // Zabezpieczenie: cookies sesyjne NIGDY nie są nadpisywane automatycznie
-        if (fileName === 'appstate.json') {
-          console.log('[AUTO-RESTORE] Pomijam plik appstate.json (cookies sesyjne nigdy nie są nadpisywane)');
+        // Zabezpieczenie przed nadpisaniem istniejących, działających cookies
+        if (fileName === 'appstate.json' && fs.existsSync(targetPath)) {
+          console.log('[AUTO-RESTORE] Pomijam plik appstate.json (istnieją już nowsze cookies)');
           continue;
         }
         

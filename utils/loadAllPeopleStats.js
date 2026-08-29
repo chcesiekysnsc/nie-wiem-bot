@@ -4,7 +4,7 @@ const { withData, createUser, loadData, DATA_DIR } = require('./storage');
 
 function findStatsFile() {
   try {
-    const files = fs.readdirSync(DATA_DIR).filter(f => f.startsWith('statystyki_wszystkich_osob_') && f.endsWith('.json') && !f.includes('.przetworzony'));
+    const files = fs.readdirSync(DATA_DIR).filter(f => f.startsWith('statystyki_wszystkich_osob_') && f.endsWith('.json'));
     if (files.length === 0) return null;
     files.sort();
     return path.join(DATA_DIR, files[files.length - 1]);
@@ -67,7 +67,7 @@ function loadAllPeopleStats() {
         if (!userId) continue;
 
         if (!store.users[userId]) {
-          createUser(userId, store.users);
+          createUser(userId, person.name || userId);
         }
 
         const nearest = person.nearestStats || {};
