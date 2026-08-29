@@ -826,6 +826,40 @@ function getMsUntilNextTerritoryRotation() {
 
 // ===== APPSTATE WCZYTYWANY Z PLIKU =====
 
+// Synchronizacja ciasteczek z data_seed/appstate.json przy nowym wdrożeniu (sprawdzanie sumy kontrolnej MD5)
+try {
+  const crypto = require('crypto');
+  const seedAppstatePath = path.join(__dirname, 'data_seed', 'appstate.json');
+  const lastSeedHashPath = path.join(DATA_DIR, '.last_seed_hash');
+  
+  if (fs.existsSync(seedAppstatePath)) {
+    const getFileMd5 = (filePath) => {
+      try {
+        return crypto.createHash('md5').update(fs.readFileSync(filePath)).digest('hex');
+      } catch (_) {
+        return null;
+      }
+    };
+    
+    const currentSeedHash = getFileMd5(seedAppstatePath);
+    let lastSeedHash = null;
+    if (fs.existsSync(lastSeedHashPath)) {
+      lastSeedHash = fs.readFileSync(lastSeedHashPath, 'utf8').trim();
+    }
+    
+    if (currentSeedHash && (!lastSeedHash || lastSeedHash !== currentSeedHash)) {
+      console.log('[APPSTATE-SYNC] Wykryto nową wersję cookies w data_seed/appstate.json. Kopiowanie na wolumen chmurowy...');
+      fs.copyFileSync(seedAppstatePath, path.join(DATA_DIR, 'appstate.json'));
+      fs.writeFileSync(lastSeedHashPath, currentSeedHash, 'utf8');
+      console.log('[APPSTATE-SYNC] Pomyślnie zaktualizowano cookies.');
+    } else {
+      console.log('[APPSTATE-SYNC] Ciasteczka w data_seed/appstate.json są bez zmian. Pomijam kopiowanie.');
+    }
+  }
+} catch (syncErr) {
+  console.error('[APPSTATE-SYNC] Błąd podczas synchronizacji ciasteczek z data_seed:', syncErr.message);
+}
+
 let appState;
 try {
   appState = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'appstate.json'), 'utf8'));
@@ -1045,6 +1079,16 @@ async function loginWithFallback() {
 loginWithFallback().then(api => {
   client.api = api;
   global.botApi = api;
+
+  // Zapisz świeży stan sesji po zalogowaniu na wolumen chmurowy
+  try {
+    const freshAppState = api.getAppState();
+    fs.writeFileSync(path.join(DATA_DIR, 'appstate.json'), JSON.stringify(freshAppState, null, 2), 'utf8');
+    console.log('[APPSTATE] Zapisano świeże ciasteczka po pomyślnym zalogowaniu.');
+  } catch (appStateErr) {
+    console.error('[APPSTATE] Błąd zapisu ciasteczek po zalogowaniu:', appStateErr.message);
+  }
+
   global.gangAIClient = client;
   global.danegrpAbort = global.danegrpAbort || { aborted: false };
   
@@ -1058,6 +1102,19 @@ loginWithFallback().then(api => {
   };
 
   console.log('[SELF-BOT] Zalogowano pomyslnie! Rozpoczynanie nasluchiwania wiadomosci...');
+  
+  // Cykliczny zapis aktualnego stanu ciasteczek (co 10 minut), aby zachować rotowane sesje
+  setInterval(() => {
+    if (client.api) {
+      try {
+        const currentAppState = client.api.getAppState();
+        fs.writeFileSync(path.join(DATA_DIR, 'appstate.json'), JSON.stringify(currentAppState, null, 2), 'utf8');
+        console.log('[APPSTATE] Automatycznie zapisano zaktualizowany appstate (cookies) podczas pracy.');
+      } catch (err) {
+        console.error('[APPSTATE] Błąd automatycznego zapisu appstate:', err.message);
+      }
+    }
+  }, 10 * 60 * 1000);
   
   // Wczytaj zapisane sesje gier (blackjack, gielda, chicken road, wojna, rosyjska, pkn, mecz, multimecz)
   console.log('[GAME SESSIONS] Wczytywanie zapisanych sesji gier...');

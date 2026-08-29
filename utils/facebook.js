@@ -1,10 +1,11 @@
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
+const { DATA_DIR } = require('./storage');
 
 function getCookieString() {
   try {
-    const appState = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'appstate.json'), 'utf8'));
+    const appState = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'appstate.json'), 'utf8'));
     return appState.map(c => `${c.key}=${c.value}`).join('; ');
   } catch (err) {
     console.error('[FB-UTILS] Blad odczytu appstate.json:', err.message);
