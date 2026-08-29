@@ -982,24 +982,52 @@ async function autoCollectPayout(userId, api, notifyThreadId) {
 console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
 loadAllPeopleStats();
 
-login({ appState }, (loginErr, api) => {
-  if (loginErr) {
-    console.error('[SELF-BOT] Logowanie nie powiodlo sie:', loginErr);
-    try { fs.copyFileSync(appstateBackupPath, path.join(DATA_DIR, 'appstate.json')); } catch (_) {}
-    process.exit(1);
-  }
+function tryLogin(appStateObj, attemptLabel) {
+  return new Promise((resolve, reject) => {
+    login({ appState: appStateObj }, (loginErr, api) => {
+      if (!loginErr) return resolve(api);
+      reject({ error: loginErr, appState: appStateObj });
+    });
+  });
+}
 
-  try { fs.copyFileSync(appstateBackupPath, path.join(DATA_DIR, 'appstate.json')); } catch (err) {
-    console.error('[APPSTATE] Nie udalo sie przywrocic cookies po zalogowaniu:', err.message);
-  }
+async function loginWithFallback() {
+  let lastError = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const api = await tryLogin(appState, attempt === 1 ? 'primary' : 'fallback');
+      if (attempt === 2) {
+        console.log('[APPSTATE] Automatycznie zastosowano zapasowe cookies z data_seed/.');
+      }
+      return api;
+    } catch (err) {
+      lastError = err;
+      const msg = String(err.error || '');
+      const shouldTryFallback =
+        attempt === 1 &&
+        (/login_blocked|USER_ID=0|auth_error|invalid session|Please log in|1357001/i.test(msg));
 
-  try {
-    fs.chmodSync(path.join(DATA_DIR, 'appstate.json'), 0o444);
-    console.log('[APPSTATE] appstate.json ustawiony jako read-only.');
-  } catch (err) {
-    console.error('[APPSTATE] Nie udalo sie ustawic appstate.json jako read-only:', err.message);
-  }
+      if (!shouldTryFallback) break;
 
+      try {
+        const seedAppstate = path.join(__dirname, 'data_seed', 'appstate.json');
+        if (fs.existsSync(seedAppstate)) {
+          const fresh = JSON.parse(fs.readFileSync(seedAppstate, 'utf8'));
+          appState = fresh;
+          try { fs.copyFileSync(seedAppstate, path.join(DATA_DIR, 'appstate.json')); } catch (_) {}
+          console.log('[APPSTATE] Primary cookies odrzucone przez Facebook. Używam zapasowych z data_seed/...');
+        } else {
+          break;
+        }
+      } catch (_) {
+        break;
+      }
+    }
+  }
+  throw lastError?.error || new Error('Login failed');
+}
+
+loginWithFallback().then(api => {
   client.api = api;
   global.botApi = api;
   global.gangAIClient = client;
@@ -4492,6 +4520,9 @@ login({ appState }, (loginErr, api) => {
   mqttClient.on('error', (err) => {
     console.error('[SELF-BOT] Blad nasluchiwania MQTT:', err);
   });
+}).catch(err => {
+  console.error('[SELF-BOT] Logowanie nie powiodlo sie po probie z zapasowymi cookies:', err);
+  process.exit(1);
 });
 
 // Serwer HTTP: panel administratora (apka/), health check (Railway) i pobieranie kopii
