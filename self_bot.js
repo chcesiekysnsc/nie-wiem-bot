@@ -1013,23 +1013,7 @@ async function autoCollectPayout(userId, api, notifyThreadId) {
 
 // ===== KONIEC APPSTATE =====
 
-function loadStatsOnce() {
-  const markerPath = path.join(DATA_DIR, 'stats_loaded.txt');
-  if (fs.existsSync(markerPath)) {
-    console.log('[LOAD_ALL] Statystyki już zostały załadowane wcześniej. Pomijam.');
-    return;
-  }
-  try {
-    loadAllPeopleStats();
-    fs.writeFileSync(markerPath, new Date().toISOString(), 'utf8');
-    console.log('[LOAD_ALL] Zapisano marker po załadowaniu statystyk.');
-  } catch (err) {
-    console.error('[LOAD_ALL] Błąd ładowania statystyk:', err);
-  }
-}
-
 console.log('[SELF-BOT] Logowanie do Messengera za pomoca appstate.json...');
-loadStatsOnce();
 
 function tryLogin(appStateObj, attemptLabel) {
   return new Promise((resolve, reject) => {
