@@ -464,6 +464,21 @@ const helpCommands = [
       "📈 **Upgrade:** Przy zakupie droższej posiadłości płacisz jedynie różnicę ceny."
     ]
   },
+  {
+    name: "dom2",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "🏠 drugi dom (wymaga Dewelopera)",
+    description: "🏠 Zarządzanie drugą nieruchomością. Wymaga przedmiotu 🏗️ Deweloper. Drugi dom musi być o co najmniej jeden tier niższy niż pierwszy.",
+    usage: "!dom2 | !dom2 rynek | !dom2 kup <nazwa> | !dom2 ulepsz <warsztat/zbrojownia/silownia> | !dom2 sprzedaj",
+    examples: ["!dom2", "!dom2 kup domek", "!dom2 ulepsz warsztat", "!dom2 sprzedaj"],
+    cooldown: "3 sekundy",
+    requirements: "Przedmiot 🏗️ Deweloper oraz posiadanie pierwszego domu.",
+    aliases: ["mieszkanie2", "house2"],
+    additionalInfo: [
+      "💰 **Czynsz:** Wynosi 10% wartości drugiego domu co 24h.",
+      "🏗️ **Deweloper:** Zmniejsza czynsz o 50%, ulepszenia są tańsze o 15%, a domy kupujesz z 15% zniżką."
+    ]
+  },
 
   // --- KATEGORIA 2: SOCJALNE I GANGI ---
   {

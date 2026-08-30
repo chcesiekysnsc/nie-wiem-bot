@@ -1756,6 +1756,10 @@ loginWithFallback().then(api => {
             if (user.balance > 0) {
               const userInv = store.inventory[userId] || {};
               const hasKsiegowa = (userInv['dobra_ksiegowa'] || 0) > 0;
+              const hasPolityk = (userInv['polityk'] || 0) > 0;
+              if (hasPolityk && Math.random() < 0.05) {
+                continue;
+              }
               const taxRate = hasKsiegowa ? 0.02 : 0.04;
               const tax = Math.floor(user.balance * taxRate);
               user.balance -= tax;
@@ -2306,6 +2310,11 @@ loginWithFallback().then(api => {
           'czarna_karta': { emoji: '💳', name: 'Czarna Karta Bankowa' },
           'kosci_oszusta': { emoji: '🎲', name: 'Kości Oszusta' },
           'czterolistna_moneta': { emoji: '🍀', name: 'Czterolistna Moneta' },
+          'deweloper': { emoji: '🏗️', name: 'Deweloper' },
+          'polityk': { emoji: '🎩', name: 'Polityk' },
+          'eclipse': { emoji: '🌑', name: 'Eclipse' },
+          'mark_of_sacrifice': { emoji: '🎭', name: 'Mark of Sacrifice' },
+          'nether_blade': { emoji: '⚔️', name: 'Nether Blade' },
           'korona_hegemonii': { emoji: '👑', name: 'Korona Hegemonii' },
           'lepsze_ufortyfikowanie': { emoji: '🛡️', name: 'Lepsze ufortyfikowanie' },
           'kodeks_honoru': { emoji: '📜', name: 'Kodeks honoru' }

@@ -11,7 +11,8 @@ const {
   getPassiveMultiplier,
   getActiveEventMultiplier,
   getCasinoWinMultiplier,
-  getRandomXp
+  getRandomXp,
+  getMarkOfSacrificeBankCapacity
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -371,6 +372,21 @@ module.exports = {
         const xpResult = recordGame(user, net, getRandomXp(), inventory);
         refreshBadges(user, inventory);
 
+        let markRecovery = 0;
+        let markExtraRecovery = 0;
+        if (!won && hasItem(inventory, 'mark_of_sacrifice')) {
+          const balanceBeforeBet = user.balance - net;
+          const loss = Math.abs(net);
+          if (loss > balanceBeforeBet * 0.5) {
+            markRecovery = Math.floor(loss * 0.10);
+            user.balance += markRecovery;
+            if (Math.random() < 0.05) {
+              markExtraRecovery = Math.floor(loss * 0.10);
+              user.balance += markExtraRecovery;
+            }
+          }
+        }
+
         const challengeUpdate = advanceChallenge(message.author.id, store, 'bet_count');
         const challengeVolumeUpdate = advanceChallenge(message.author.id, store, 'bet_volume', bet);
         const challengeStreakUpdate = advanceChallenge(message.author.id, store, 'bet_streak_under74', won ? 1 : 0, { betAmount: bet, chosenNumber, won });
@@ -390,7 +406,9 @@ module.exports = {
           streak: user.gambleStreak || 0,
           challengeUpdate,
           challengeVolumeUpdate,
-          challengeStreakUpdate
+          challengeStreakUpdate,
+          markRecovery,
+          markExtraRecovery
         };
       });
 
@@ -417,6 +435,12 @@ module.exports = {
       }
       if (result.kosciRefunded) {
         replyText += `\n🎲 Przedmiot **Kości Oszusta** uratował Cię przed stratą i zwrócił całą stawkę!`;
+      }
+      if (result.markRecovery > 0) {
+        replyText += `\n🎭 **Mark of Sacrifice:** Odzyskałeś **${formatCurrency(result.markRecovery)}** z przegranej!`;
+        if (result.markExtraRecovery > 0) {
+          replyText += `\n🎭 **EXTRA BONUS!** Otrzymałeś dodatkowe **${formatCurrency(result.markExtraRecovery)}**!`;
+        }
       }
 
       if (result.xpResult && result.xpResult.leveledUp) {

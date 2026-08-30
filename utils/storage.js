@@ -414,11 +414,11 @@ function performMonthlyReset(store) {
 
   // 2. Distribute items to TOP 5 eligible users
   const rewards = [
-    'krolewskie_insygnia',
-    'licencja_monopolisty',
-    'szwajcarski_zegarek',
-    'ksiega_monopolisty',
-    'katalizator_bogactwa'
+    'deweloper',
+    'eclipse',
+    'mark_of_sacrifice',
+    'polityk',
+    'nether_blade'
   ];
 
   for (let i = 0; i < Math.min(5, eligibleUsers.length); i++) {
@@ -455,7 +455,12 @@ function performMonthlyReset(store) {
     'licencja_monopolisty',
     'ksiega_monopolisty',
     'katalizator_bogactwa',
-    'dobra_ksiegowa'
+    'dobra_ksiegowa',
+    'deweloper',
+    'polityk',
+    'eclipse',
+    'mark_of_sacrifice',
+    'nether_blade'
   ];
 
   for (const [userId, user] of Object.entries(store.users)) {
@@ -480,6 +485,7 @@ function performMonthlyReset(store) {
 
       // Usuń posiadane domy
       delete user.house;
+      delete user.house2;
 
       // Zresetuj poziom pracy w !work i dopalacze pracy
       user.workLevel = 1;
@@ -622,6 +628,10 @@ function runHeavyLoops(store) {
             rate += 0.02;
           }
 
+          if ((userInv['polityk'] || 0) > 0) {
+            rate += 0.02;
+          }
+
           // Dodaj bonusy z setów
           const { getItemSetBonus } = require('./itemSets');
           const setBonus = getItemSetBonus(userInv, 'bank_interest');
@@ -690,7 +700,12 @@ function runHeavyLoops(store) {
 
   // --- Czynsz domów co 24h ---
   const { HOUSE_TIERS } = require('./economy');
+  const { hasItem, ensureInventoryRecord } = require('./economy');
   for (const [userId, user] of Object.entries(store.users)) {
+    const inventory = ensureInventoryRecord(store.inventory, userId);
+    const hasDeweloper = hasItem(inventory, 'deweloper');
+    const rentDiscount = hasDeweloper ? 0.5 : 1;
+
     if (user && user.house && user.house.tier) {
       const rentIntervalMs = 24 * 60 * 60 * 1000;
       user.house.lastRentPaid = user.house.lastRentPaid || now;
@@ -698,7 +713,7 @@ function runHeavyLoops(store) {
         user.house.lastRentPaid = now - 5 * rentIntervalMs;
       }
       let timePassedRent = now - user.house.lastRentPaid;
-      
+
       let downgraded = false;
       let lostHouse = false;
       let oldTierName = '';
@@ -707,11 +722,15 @@ function runHeavyLoops(store) {
       while (timePassedRent >= rentIntervalMs) {
         const tierInfo = HOUSE_TIERS[user.house.tier];
         if (!tierInfo) break;
-        
-        const rentCost = Math.round(tierInfo.price * 0.10);
+
+        const rentCost = Math.round(tierInfo.price * 0.10 * rentDiscount);
         const totalFunds = user.balance + (user.bank || 0);
-        if (totalFunds >= rentCost) {
-          // Pobierz najpierw z portfela, potem z banku jeśli trzeba
+        
+        if (hasDeweloper && Math.random() < 0.20) {
+          const tenantBonus = Math.floor(rentCost * 0.75);
+          user.balance += tenantBonus;
+          user.house.lastRentPaid += rentIntervalMs;
+        } else if (totalFunds >= rentCost) {
           if (user.balance >= rentCost) {
             user.balance -= rentCost;
           } else {
@@ -721,10 +740,9 @@ function runHeavyLoops(store) {
           }
           user.house.lastRentPaid += rentIntervalMs;
         } else {
-          // Brak kasy na czynsz -> degradacja o 1 tier i reset ulepszeń
           oldTierName = tierInfo.name;
           user.house.upgrades = { warsztat: 0, zbrojownia: 0, silownia: 0 };
-          
+
           if (user.house.tier > 1) {
             user.house.tier -= 1;
             const newTierInfo = HOUSE_TIERS[user.house.tier];
@@ -732,13 +750,75 @@ function runHeavyLoops(store) {
             downgraded = true;
             user.house.lastRentPaid += rentIntervalMs;
           } else {
-            // Utrata domu
             delete user.house;
             lostHouse = true;
             break;
           }
         }
         timePassedRent = now - user.house.lastRentPaid;
+      }
+
+      if (downgraded || lostHouse) {
+        user.houseNotifications = user.houseNotifications || [];
+        user.houseNotifications.push({
+          type: lostHouse ? 'lost' : 'downgraded',
+          oldTierName,
+          newTierName,
+          timestamp: now
+        });
+      }
+    }
+
+    if (user && user.house2 && user.house2.tier) {
+      const rentIntervalMs = 24 * 60 * 60 * 1000;
+      user.house2.lastRentPaid = user.house2.lastRentPaid || now;
+      if (now - user.house2.lastRentPaid > 5 * rentIntervalMs) {
+        user.house2.lastRentPaid = now - 5 * rentIntervalMs;
+      }
+      let timePassedRent = now - user.house2.lastRentPaid;
+
+      let downgraded = false;
+      let lostHouse = false;
+      let oldTierName = '';
+      let newTierName = '';
+
+      while (timePassedRent >= rentIntervalMs) {
+        const tierInfo = HOUSE_TIERS[user.house2.tier];
+        if (!tierInfo) break;
+
+        const rentCost = Math.round(tierInfo.price * 0.10 * rentDiscount);
+        const totalFunds = user.balance + (user.bank || 0);
+        
+        if (hasDeweloper && Math.random() < 0.20) {
+          const tenantBonus = Math.floor(rentCost * 0.75);
+          user.balance += tenantBonus;
+          user.house2.lastRentPaid += rentIntervalMs;
+        } else if (totalFunds >= rentCost) {
+          if (user.balance >= rentCost) {
+            user.balance -= rentCost;
+          } else {
+            const fromBank = rentCost - user.balance;
+            user.balance = 0;
+            user.bank = (user.bank || 0) - fromBank;
+          }
+          user.house2.lastRentPaid += rentIntervalMs;
+        } else {
+          oldTierName = tierInfo.name;
+          user.house2.upgrades = { warsztat: 0, zbrojownia: 0, silownia: 0 };
+
+          if (user.house2.tier > 1) {
+            user.house2.tier -= 1;
+            const newTierInfo = HOUSE_TIERS[user.house2.tier];
+            newTierName = newTierInfo.name;
+            downgraded = true;
+            user.house2.lastRentPaid += rentIntervalMs;
+          } else {
+            delete user.house2;
+            lostHouse = true;
+            break;
+          }
+        }
+        timePassedRent = now - user.house2.lastRentPaid;
       }
 
       if (downgraded || lostHouse) {
@@ -814,7 +894,7 @@ function runHeavyLoops(store) {
   }
 
   // --- Odznaki i zaległe kamienie milowe ---
-  const { refreshBadges, ensureInventoryRecord, giveMilestoneReward, MILESTONE_REWARDS } = require('./economy');
+  const { refreshBadges, giveMilestoneReward, MILESTONE_REWARDS } = require('./economy');
   for (const [userId, user] of Object.entries(store.users)) {
     if (user) {
       user.claimedMilestones = user.claimedMilestones || [];

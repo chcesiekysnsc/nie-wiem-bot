@@ -99,14 +99,49 @@ const eventItems = {
     desc: 'Zwiększa zyski z Twojej firmy o 15% i zmniejsza szansę na awarię o 2 punkty procentowe.',
     award: 'TOP 4 sezonu 3'
   },
-  15: {
-    id: 'katalizator_bogactwa',
-    name: 'Katalizator Bogactwa',
-    emoji: '💎',
-    desc: 'Podwaja bazowe oprocentowanie w banku (np. zamiast +2% co 6h/12h daje +4%). Stackuje się z innymi bonusami.',
-    award: 'TOP 5 sezonu 3'
-  }
-};
+   15: {
+     id: 'katalizator_bogactwa',
+     name: 'Katalizator Bogactwa',
+     emoji: '💎',
+     desc: 'Podwaja bazowe oprocentowanie w banku (np. zamiast +2% co 6h/12h daje +4%). Stackuje się z innymi bonusami.',
+     award: 'TOP 5 sezonu 3'
+   },
+     16: {
+       id: 'deweloper',
+       name: 'Deweloper',
+       emoji: '🏗️',
+       desc: 'Zmniejsza czynsz za dom o 50%. Możesz posiadać dwa domy (drugi dom musi być o jeden tier niższy). Domy są 15% tańsze. Bank ma dodatkowe 50k miejsca. Co opłatę czynszu masz 20% szansy, że najemca zapłaci czynsz za Ciebie i da Ci dodatkowe 75% wartości czynszu. Ulepszenia domów są tańsze o 15%. Bonus +10% do zarobków z !work, !crime oraz firm.',
+       award: 'TOP 1 sezonu 4'
+     },
+     17: {
+       id: 'eclipse',
+       name: 'Eclipse',
+       emoji: '🌑',
+       desc: 'Masz 25% więcej siły w wojnach gangowych. Dostajesz 15% więcej z wojen gangowych i skoków gangu. Szansa na sukces w okradzeniu Ciebie spada o 5%. Masz dodatkowe 60k miejsca w banku.',
+       award: 'TOP 2 sezonu 4'
+     },
+     18: {
+       id: 'mark_of_sacrifice',
+       name: 'Mark of Sacrifice',
+       emoji: '🎭',
+       desc: 'Gdy podczas pojedynczego !bet stracisz ponad 50% swojego salda, odzyskujesz 10% tego co straciłeś oraz masz 5% na to, że otrzymasz dodatkowe 10%. Otrzymujesz również 65k miejsca w banku. Masz 2% szansy na uratowanie się przed przegraną w !ruletka i !blackjack.',
+       award: 'TOP 3 sezonu 4'
+     },
+     19: {
+       id: 'polityk',
+       name: 'Polityk',
+       emoji: '🎩',
+       desc: 'Masz 5% szansy na ominięcie podatków. Pracownicy i ochroniarze pobierają 15% mniej wynagrodzenia. Masz 5% mniejszą szansę na przyłapanie w !crime i dostajesz 10% więcej z !crime. Otrzymujesz 2% więcej odsetek w banku. Pracownicy mają 4% większą szansę na dodatkowe pozytywne efekty (podwójna wypłata, natychmiastowa naprawa). Jeśli firma ulegnie awarii, masz 3% szansy na automatyczną naprawę bez kosztów.',
+       award: 'TOP 4 sezonu 4'
+     },
+     20: {
+       id: 'nether_blade',
+       name: 'Nether Blade',
+       emoji: '⚔️',
+       desc: 'Gdy ktoś Cię okrada, masz 15% na to, że to Ty go okradniesz (100% na sukces, omijasz wszystkie zabezpieczenia) i okradasz go z jego bonusów 10%. Masz 15% na to, że ukradniesz mu jakiś przedmiot z ekwipunku. Szansa na sukces osoby, która Cię okrada, jest zmniejszona o 5%.',
+       award: 'TOP 5 sezonu 4'
+     }
+ };
 
 module.exports = {
   name: 'eventitemy',
@@ -124,7 +159,7 @@ module.exports = {
 
       const nr = Number(args[1]);
       if (isNaN(nr) || !eventItems[nr]) {
-        await message.reply(`❌ Podaj poprawny numer przedmiotu (1-15). Użyj: **!eventitemy ${subCommand} <nr> <@osoba/ID>**`);
+        await message.reply(`❌ Podaj poprawny numer przedmiotu (1-20). Użyj: **!eventitemy ${subCommand} <nr> <@osoba/ID>**`);
         return;
       }
 
@@ -196,7 +231,7 @@ module.exports = {
     }
 
     if (isNaN(nr) || !eventItems[nr]) {
-      await message.reply('❌ Podaj poprawny numer przedmiotu (1-15).');
+      await message.reply('❌ Podaj poprawny numer przedmiotu (1-20).');
       return;
     }
 

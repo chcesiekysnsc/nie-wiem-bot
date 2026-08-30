@@ -1,5 +1,6 @@
 const config = require('../config/config');
 const { getItemSetBonus } = require('./itemSets');
+const { hasItem: hasWorkerEffectItem, getPolitykWorkerPositiveEffectChance, getPolitykSelfRepairChance } = require('./economy');
 
 function getWorkerDef(id) {
   return config.economy.workers && config.economy.workers[id] ? { id, ...config.economy.workers[id] } : null;
@@ -24,21 +25,24 @@ function applyWorkerEffects(payout, workerId, compDef, companyObj, inventory, br
   let repairDiscount = false;
   let doubleBonus = false;
 
-  if (def.skipSalaryChance && Math.random() < def.skipSalaryChance) {
+  const positiveEffectBonus = getPolitykWorkerPositiveEffectChance(inventory);
+  const selfRepairChance = getPolitykSelfRepairChance(inventory);
+
+  if (def.skipSalaryChance && Math.random() < def.skipSalaryChance + positiveEffectBonus) {
     skipSalary = true;
   }
-  if (def.instantRepairChance && Math.random() < def.instantRepairChance) {
+  if (def.instantRepairChance && Math.random() < def.instantRepairChance + positiveEffectBonus) {
     instantRepair = true;
   }
-  if (def.repairDiscountChance && Math.random() < def.repairDiscountChance) {
+  if (def.repairDiscountChance && Math.random() < def.repairDiscountChance + positiveEffectBonus) {
     repairDiscount = true;
   }
-  if (def.doubleBonusChance && Math.random() < def.doubleBonusChance) {
+  if (def.doubleBonusChance && Math.random() < def.doubleBonusChance + positiveEffectBonus) {
     doubleBonus = true;
   }
 
   let bonusTriggered = false;
-  if (bonusChance > 0 && Math.random() < bonusChance) {
+  if (bonusChance > 0 && Math.random() < bonusChance + positiveEffectBonus) {
     bonusTriggered = true;
     if (doubleBonus) {
       payout = Math.floor(payout * (1 + bonusPercent * 2));
@@ -47,7 +51,6 @@ function applyWorkerEffects(payout, workerId, compDef, companyObj, inventory, br
     }
   }
 
-  // Dodaj bonus redukcji wypłaty pracowników z setów przedmiotów
   const salaryReduction = getItemSetBonus(inventory, 'worker_salary_reduction');
   if (salaryReduction > 0) {
     totalSalaryPercent = Math.max(0, totalSalaryPercent - salaryReduction);
@@ -63,14 +66,15 @@ function applyWorkerEffects(payout, workerId, compDef, companyObj, inventory, br
     companyObj.isBroken = false;
   }
 
+  if (selfRepairChance > 0 && companyObj.isBroken && Math.random() < selfRepairChance) {
+    companyObj.isBroken = false;
+  }
+
   let broke = false;
   if (!companyObj.isBroken) {
     let breakChance = compDef.breakChance + totalBreakChanceBonus;
-    
-    // Dodaj bonus z setów przedmiotów (np. Zestaw Biznesmena)
     const setBreakChanceBonus = getItemSetBonus(inventory, 'firm_break_chance');
     breakChance += setBreakChanceBonus;
-    
     if (breakChanceOverride !== undefined && breakChanceOverride !== null && breakChanceOverride !== '' && Number(breakChanceOverride) !== 50) {
       breakChance = Number(breakChanceOverride) / 100;
     }

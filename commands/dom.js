@@ -1,4 +1,4 @@
-const { formatCurrency, HOUSE_TIERS, WORKSHOP_BONUSES, ARMORY_BONUSES, GYM_BONUSES } = require('../utils/economy');
+const { formatCurrency, HOUSE_TIERS, WORKSHOP_BONUSES, ARMORY_BONUSES, GYM_BONUSES, hasItem, ensureInventoryRecord } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
 const UPGRADES_COSTS = {
@@ -74,6 +74,7 @@ module.exports = {
 
       const result = await withData(store => {
         const user = createUser(authorId, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, authorId);
         const currentTier = (user.house && user.house.tier) || 0;
 
         if (currentTier === targetTier) {
@@ -84,7 +85,9 @@ module.exports = {
         }
 
         const currentPrice = currentTier > 0 ? HOUSE_TIERS[currentTier].price : 0;
-        const priceToPay = targetInfo.price - currentPrice;
+        let priceToPay = targetInfo.price - currentPrice;
+        const deweloperDiscount = hasItem(inventory, 'deweloper') ? 0.85 : 1;
+        priceToPay = Math.round(priceToPay * deweloperDiscount);
 
         if (user.balance < priceToPay) {
           return { error: `❌ Nie stać Cię! Ta transakcja kosztuje **${formatCurrency(priceToPay)}**, a masz tylko **${formatCurrency(user.balance)}**.` };
@@ -124,6 +127,7 @@ module.exports = {
 
       const result = await withData(store => {
         const user = createUser(authorId, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, authorId);
         if (!user.house || !user.house.tier) {
           return { error: '❌ Nie posiadasz żadnego domu! Najpierw kup nieruchomość za pomocą `!dom kup`.' };
         }
@@ -139,7 +143,10 @@ module.exports = {
           return { error: `❌ Osiągnąłeś limit ulepszeń (**poziom ${tierInfo.maxUpgradeLvl}**) dla klasy **${tierInfo.name}**! Kup większy dom, aby ulepszać dalej.` };
         }
 
-        const cost = UPGRADES_COSTS[upgradeName][currentLvl];
+        let cost = UPGRADES_COSTS[upgradeName][currentLvl];
+        if (hasItem(inventory, 'deweloper')) {
+          cost = Math.round(cost * 0.85);
+        }
         if (user.balance < cost) {
           return { error: `❌ Brak środków! Ulepszenie na poziom **${currentLvl + 1}** kosztuje **${formatCurrency(cost)}** (posiadasz **${formatCurrency(user.balance)}**).` };
         }
@@ -208,7 +215,6 @@ module.exports = {
     const hours = Math.floor(timeLeftMs / (1000 * 60 * 60));
     const minutes = Math.floor((timeLeftMs % (1000 * 60 * 60)) / (1000 * 60));
 
-    // Mnożniki opisów
     const workBonusPct = (tierInfo.workBonus * 100).toFixed(1);
     const bonusWarsztatPct = (WORKSHOP_BONUSES[warsztatLvl] * 100).toFixed(0);
     const zbrojowniaStrengthPct = (ARMORY_BONUSES[zbrojowniaLvl].strength * 100).toFixed(0);
@@ -237,7 +243,51 @@ module.exports = {
     statusMsg += `  ⚔️ **Zbrojownia:** \`${buildBar(zbrojowniaLvl, tierInfo.maxUpgradeLvl)}\` (lvl ${zbrojowniaLvl}/5) -> +${zbrojowniaStrengthPct}% siły gangu, +${zbrojowniaLootPct}% łupu\n`;
     statusMsg += `  🏋️ **Siłownia:** \`${buildBar(silowniaLvl, tierInfo.maxUpgradeLvl)}\` (lvl ${silowniaLvl}/5) -> -${silowniaPct}% do cooldownów\n\n`;
 
-    statusMsg += `👉 *Użyj \`!dom ulepsz <warsztat/zbrojownia/silownia>\` aby podnieść ulepszenia, lub \`!dom rynek\` aby przejrzeć inne domy.*`;
+    if (user.house2) {
+      const tierInfo2 = HOUSE_TIERS[user.house2.tier];
+      if (tierInfo2) {
+        const upgrades2 = user.house2.upgrades || { warsztat: 0, zbrojownia: 0, silownia: 0 };
+        const warsztatLvl2 = upgrades2.warsztat || 0;
+        const zbrojowniaLvl2 = upgrades2.zbrojownia || 0;
+        const silowniaLvl2 = upgrades2.silownia || 0;
+
+        const nextRentMs2 = (user.house2.lastRentPaid || Date.now()) + 24 * 60 * 60 * 1000;
+        const timeLeftMs2 = Math.max(0, nextRentMs2 - Date.now());
+        const hours2 = Math.floor(timeLeftMs2 / (1000 * 60 * 60));
+        const minutes2 = Math.floor((timeLeftMs2 % (1000 * 60 * 60)) / (1000 * 60));
+
+        const workBonusPct2 = (tierInfo2.workBonus * 100).toFixed(1);
+        const bonusWarsztatPct2 = (WORKSHOP_BONUSES[warsztatLvl2] * 100).toFixed(0);
+        const zbrojowniaStrengthPct2 = (ARMORY_BONUSES[zbrojowniaLvl2].strength * 100).toFixed(0);
+        const zbrojowniaLootPct2 = (ARMORY_BONUSES[zbrojowniaLvl2].loot * 100).toFixed(0);
+        const silowniaPct2 = (GYM_BONUSES[silowniaLvl2] * 100).toFixed(0);
+
+        statusMsg += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        statusMsg += `🏠 **TWÓJ DRUGI DOM** 🏠\n`;
+        statusMsg += `Nieruchomość: **${tierInfo2.name}** ${tierInfo2.emoji}\n`;
+        statusMsg += `Opłacany czynsz: **${formatCurrency(Math.round(tierInfo2.price * 0.10))} / 24h**\n`;
+        statusMsg += `Następna płatność za: **${hours2}h ${minutes2}min**\n\n`;
+
+        statusMsg += `📊 **Pasywne bonusy:**\n`;
+        statusMsg += `  • +${workBonusPct2}% do zarobków z pracy (\`!work\`)\n`;
+        if (tierInfo2.crimeCooldown > 0 || tierInfo2.workCooldown > 0) {
+          const cds2 = [];
+          if (tierInfo2.workCooldown > 0) cds2.push(`work: -${(tierInfo2.workCooldown * 100).toFixed(1)}%`);
+          if (tierInfo2.crimeCooldown > 0) cds2.push(`crime: -${(tierInfo2.crimeCooldown * 100).toFixed(1)}%`);
+          statusMsg += `  • Cooldowny: ${cds2.join(', ')}\n`;
+        }
+        if (tierInfo2.bankCap > 0) {
+          statusMsg += `  • Pojemność banku: +${formatCurrency(tierInfo2.bankCap)}\n`;
+        }
+
+        statusMsg += `\n🛠️ **Ulepszenia (limit dla tego domu: ${tierInfo2.maxUpgradeLvl}/5):**\n`;
+        statusMsg += `  🔧 **Warsztat:** \`${buildBar(warsztatLvl2, tierInfo2.maxUpgradeLvl)}\` (lvl ${warsztatLvl2}/5) -> +${bonusWarsztatPct2}% do \`!work\`\n`;
+        statusMsg += `  ⚔️ **Zbrojownia:** \`${buildBar(zbrojowniaLvl2, tierInfo2.maxUpgradeLvl)}\` (lvl ${zbrojowniaLvl2}/5) -> +${zbrojowniaStrengthPct2}% siły gangu, +${zbrojowniaLootPct2}% łupu\n`;
+        statusMsg += `  🏋️ **Siłownia:** \`${buildBar(silowniaLvl2, tierInfo2.maxUpgradeLvl)}\` (lvl ${silowniaLvl2}/5) -> -${silowniaPct2}% do cooldownów\n\n`;
+      }
+    }
+
+    statusMsg += `👉 *Użyj \`!dom ulepsz <warsztat/zbrojownia/silownia>\` aby podnieść ulepszenia pierwszego domu, \`!dom2 ulepsz <...>\` dla drugiego, lub \`!dom rynek\` aby przejrzeć inne domy.*`;
 
     await message.reply(statusMsg);
   }

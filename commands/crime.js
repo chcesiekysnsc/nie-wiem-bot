@@ -1,6 +1,6 @@
 const config = require('../config/config');
 const { formatCurrency, recordGame, refreshBadges, ensureInventoryRecord, randomInt, msToReadable, getCrimeSuccessMultiplier, hasItem, getGlobalIncomeMultiplier, getGlobalCooldownReduction,   getItemUpgradeLevel,
-  getRandomXp, getPassiveMultiplier
+  getRandomXp, getPassiveMultiplier, getDeweloperWorkCrimeFirmBonus, getPolitykCrimeBonus, getPolitykCrimeCatchReduction
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -157,11 +157,25 @@ module.exports = {
         const crimeChanceBonus = getTerritoryBonus(user.gangId, 'crime_chance');
         baseSuccessChance += crimeChanceBonus;
       }
+      const politykCatchReduction = getPolitykCrimeCatchReduction(inventory);
+      if (politykCatchReduction > 0) {
+        baseSuccessChance += politykCatchReduction;
+      }
       const roll = Math.random();
       let success = roll < Math.min(baseSuccessChance, 1);
       let amount = randomInt(15000, 70000);
       if (hasItem(inventory, 'krolewskie_insygnia')) {
         amount = Math.floor(amount * 1.10);
+      }
+
+      const deweloperBonus = getDeweloperWorkCrimeFirmBonus(inventory);
+      if (deweloperBonus > 0) {
+        amount = Math.floor(amount * (1 + deweloperBonus));
+      }
+
+      const politykCrimeBonus = getPolitykCrimeBonus(inventory);
+      if (politykCrimeBonus > 0) {
+        amount = Math.floor(amount * (1 + politykCrimeBonus));
       }
 
       const falszerBonus = getPassiveMultiplier(inventory, 'falszer', 0.03);

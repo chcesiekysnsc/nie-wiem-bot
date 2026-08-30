@@ -1,5 +1,7 @@
 const config = require('../config/config');
-const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier, getActiveEventMultiplier } = require('../utils/economy');
+const { formatCurrency, resolveAmount, ensureInventoryRecord, addItem, hasItem, getPassiveMultiplier, getActiveEventMultiplier,
+  getEclipseGangBonus, getEclipseHeistBonus, getEclipseWarStrengthBonus
+} = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 
@@ -1635,8 +1637,14 @@ module.exports = {
             if (gangBonus && gangBonus.loot > 0) {
               zbrojowniaLootBonus = Math.floor(finalReward * gangBonus.loot);
             }
+
+            const eclipseHeistBonus = getEclipseHeistBonus(inventory);
+            let eclipseHeistBonusAmt = 0;
+            if (eclipseHeistBonus > 0) {
+              eclipseHeistBonusAmt = Math.floor(finalReward * eclipseHeistBonus);
+            }
             
-            finalReward += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt + zbrojowniaLootBonus;
+            finalReward += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt + zbrojowniaLootBonus + eclipseHeistBonusAmt;
             pUser.balance += finalReward;
             
             participantBonuses[pid] = godloBonus;
@@ -2075,13 +2083,30 @@ module.exports = {
           const membersForReward = listAttackers.length;
           const membersForPowerDef = defenderGang.members.length;
           const membersForRewardDef = listDefenders.length;
-          const effectiveAttackerCount = membersForPower + getMercenaryPowerBonus(attackerGang, 'attack');
-          const effectiveDefenderCount = membersForPowerDef + getMercenaryPowerBonus(defenderGang, 'defense');
+           const effectiveAttackerCount = membersForPower + getMercenaryPowerBonus(attackerGang, 'attack');
+           const effectiveDefenderCount = membersForPowerDef + getMercenaryPowerBonus(defenderGang, 'defense');
 
-          let baseAttackPower = 0;
-          for (let i = 0; i < effectiveAttackerCount; i++) {
-            baseAttackPower += randomInt(15, 60);
-          }
+           let eclipseAttackerBonus = 0;
+           let eclipseDefenderBonus = 0;
+           for (const pid of listAttackers) {
+             const pInv = ensureInventoryRecord(store.inventory, pid);
+             if (hasItem(pInv, 'eclipse')) {
+               eclipseAttackerBonus += 0.20;
+             }
+           }
+           for (const pid of listDefenders) {
+             const pInv = ensureInventoryRecord(store.inventory, pid);
+             if (hasItem(pInv, 'eclipse')) {
+               eclipseDefenderBonus += 0.20;
+             }
+           }
+           const finalEffectiveAttackers = Math.ceil(effectiveAttackerCount * (1 + eclipseAttackerBonus));
+           const finalEffectiveDefenders = Math.ceil(effectiveDefenderCount * (1 + eclipseDefenderBonus));
+
+           let baseAttackPower = 0;
+           for (let i = 0; i < finalEffectiveAttackers; i++) {
+             baseAttackPower += randomInt(15, 60);
+           }
           const attFachLvl = attackerGang.levelFach || 0;
           const attBossBonus = getGangBossShopMultiplier(attackerGang, 'attack');
           const territoryAttBonus = getTerritoryBonus(attackerGang.id, 'gang_attack') + getTerritoryBonus(attackerGang.id, 'war_both');
@@ -2089,12 +2114,12 @@ module.exports = {
           const attackPower = Math.floor(rawAttackPower * (1 + getWeaponMultiplier(attackerGang) + getSpecialGangMultiplier(attackerGang, 'attack')));
 
           // Calculate Defense Power
-          let baseDefensePower = 0;
-          if (effectiveDefenderCount > 0) {
-            for (let i = 0; i < effectiveDefenderCount; i++) {
-              baseDefensePower += randomInt(15, 60);
-            }
-          }
+           let baseDefensePower = 0;
+           if (finalEffectiveDefenders > 0) {
+             for (let i = 0; i < finalEffectiveDefenders; i++) {
+               baseDefensePower += randomInt(15, 60);
+             }
+           }
           const defFachLvl = defenderGang.levelFach || 0;
           const defBossBonus = getGangBossShopMultiplier(defenderGang, 'defense');
           const territoryDefBonus = getTerritoryBonus(defenderGang.id, 'gang_defense') + getTerritoryBonus(defenderGang.id, 'war_both');
@@ -2183,15 +2208,21 @@ module.exports = {
                if (hasItem(inventory, 'krolewskie_insygnia')) {
                  krolewskieBonus = Math.floor(finalShare * 0.10);
                }
-               const gangRewardsBonus = getItemSetBonus(inventory, 'gang_rewards');
-               let gangRewardsBonusAmt = 0;
-               if (gangRewardsBonus > 0) {
-                 gangRewardsBonusAmt = Math.floor(finalShare * gangRewardsBonus);
-               }
-               
-               finalShare += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt;
-              pUser.balance += finalShare;
-              attackerBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
+                const gangRewardsBonus = getItemSetBonus(inventory, 'gang_rewards');
+                let gangRewardsBonusAmt = 0;
+                if (gangRewardsBonus > 0) {
+                  gangRewardsBonusAmt = Math.floor(finalShare * gangRewardsBonus);
+                }
+                
+                const eclipseGangBonus = getEclipseGangBonus(inventory);
+                let eclipseBonusAmt = 0;
+                if (eclipseGangBonus > 0) {
+                  eclipseBonusAmt = Math.floor(finalShare * eclipseGangBonus);
+                }
+                
+                finalShare += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt + eclipseBonusAmt;
+               pUser.balance += finalShare;
+               attackerBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
               
               if (Math.random() < 0.04) {
                 const pInv = ensureInventoryRecord(store.inventory, pid);
@@ -2254,15 +2285,21 @@ module.exports = {
                  if (hasItem(inventory, 'krolewskie_insygnia')) {
                    krolewskieBonus = Math.floor(finalShare * 0.10);
                  }
-                 const gangRewardsBonus = getItemSetBonus(inventory, 'gang_rewards');
-                 let gangRewardsBonusAmt = 0;
-                 if (gangRewardsBonus > 0) {
-                   gangRewardsBonusAmt = Math.floor(finalShare * gangRewardsBonus);
-                 }
-                 
-                 finalShare += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt;
-                pUser.balance += finalShare;
-                defenderBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
+                  const gangRewardsBonus = getItemSetBonus(inventory, 'gang_rewards');
+                  let gangRewardsBonusAmt = 0;
+                  if (gangRewardsBonus > 0) {
+                    gangRewardsBonusAmt = Math.floor(finalShare * gangRewardsBonus);
+                  }
+                  
+                  const eclipseGangBonus = getEclipseGangBonus(inventory);
+                  let eclipseBonusAmt = 0;
+                  if (eclipseGangBonus > 0) {
+                    eclipseBonusAmt = Math.floor(finalShare * eclipseGangBonus);
+                  }
+                  
+                  finalShare += godloBonus + insygniaBonus + krolewskieBonus + gangRewardsBonusAmt + eclipseBonusAmt;
+                 pUser.balance += finalShare;
+                 defenderBonuses[pid] = { godlo: godloBonus, insygnia: insygniaBonus };
               }
             } else {
               // If there were no defending players checked in, the 15% goes to defender's vault

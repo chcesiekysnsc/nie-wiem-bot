@@ -319,6 +319,18 @@ function getBankCapacity(user, inventoryRecord) {
     capacity += 250000;
   }
 
+  if (hasItem(inventoryRecord, 'eclipse')) {
+    capacity += 60000;
+  }
+
+  if (hasItem(inventoryRecord, 'mark_of_sacrifice')) {
+    capacity += 65000;
+  }
+
+  if (hasItem(inventoryRecord, 'deweloper')) {
+    capacity += 50000;
+  }
+
   if (user.badges && user.badges.includes(config.badges.milioner)) {
     capacity += 25000;
   }
@@ -716,8 +728,97 @@ function getPolishMidnight(date) {
   const polandTime = date.getTime() + offset;
   const todayMidnight = new Date(polandTime);
   todayMidnight.setUTCHours(0, 0, 0, 0);
-  // Floor to full seconds for stable comparisons
   return Math.floor((todayMidnight.getTime() - offset) / 1000) * 1000;
+}
+
+function getDeweloperRentDiscount(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'deweloper')) return 1;
+  return 0.5;
+}
+
+function getDeweloperHousePriceDiscount(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'deweloper')) return 1;
+  return 0.85;
+}
+
+function getDeweloperWorkCrimeFirmBonus(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'deweloper')) return 0;
+  return 0.10;
+}
+
+function getPolitykTaxSkipChance(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'polityk')) return 0;
+  return 0.05;
+}
+
+function getPolitykSalaryReduction(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'polityk')) return 0;
+  return 0.15;
+}
+
+function getPolitykCrimeBonus(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'polityk')) return 0;
+  return 0.10;
+}
+
+function getPolitykWorkerPositiveEffectChance(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'polityk')) return 0;
+  return 0.04;
+}
+
+function getPolitykSelfRepairChance(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'polityk')) return 0;
+  return 0.03;
+}
+
+function getMarkOfSacrificeCasinoSaveChance(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'mark_of_sacrifice')) return 0;
+  return 0.02;
+}
+
+function getNetherBladeRobDefenseReduction(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'nether_blade')) return 0;
+  return 0.05;
+}
+
+function getPolitykCrimeCatchReduction(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'polityk')) return 0;
+  return 0.05;
+}
+
+function getPolitykBankInterestBonus(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'polityk')) return 0;
+  return 0.02;
+}
+
+function getEclipseGangBonus(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'eclipse')) return 0;
+  return 0.10;
+}
+
+function getEclipseHeistBonus(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'eclipse')) return 0;
+  return 0.15;
+}
+
+function getEclipseWarStrengthBonus(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'eclipse')) return 0;
+  return 0.20;
+}
+
+function getEclipseRobDefenseReduction(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'eclipse')) return 0;
+  return 0.05;
+}
+
+function getMarkOfSacrificeBankCapacity(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'mark_of_sacrifice')) return 0;
+  return 65000;
+}
+
+function getNetherBladeCounterRobChance(inventoryRecord) {
+  if (!inventoryRecord || !hasItem(inventoryRecord, 'nether_blade')) return 0;
+  return 0.15;
 }
 
 module.exports = {
@@ -762,5 +863,22 @@ module.exports = {
   WORKSHOP_BONUSES,
   ARMORY_BONUSES,
   GYM_BONUSES,
-  getRandomXp
+  getRandomXp,
+  getDeweloperRentDiscount,
+  getDeweloperHousePriceDiscount,
+  getDeweloperWorkCrimeFirmBonus,
+  getPolitykTaxSkipChance,
+  getPolitykSalaryReduction,
+  getPolitykCrimeBonus,
+  getPolitykWorkerPositiveEffectChance,
+  getPolitykSelfRepairChance,
+  getPolitykBankInterestBonus,
+  getEclipseGangBonus,
+  getEclipseHeistBonus,
+  getEclipseWarStrengthBonus,
+  getEclipseRobDefenseReduction,
+  getMarkOfSacrificeBankCapacity,
+  getMarkOfSacrificeCasinoSaveChance,
+  getNetherBladeCounterRobChance,
+  getNetherBladeRobDefenseReduction
 };

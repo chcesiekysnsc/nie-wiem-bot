@@ -16,7 +16,8 @@ const {
   getUpgradedLinearBonus,
   getUpgradedCapBonus,
   getRandomXp,
-  removeItem
+  removeItem,
+  getDeweloperWorkCrimeFirmBonus
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -301,6 +302,11 @@ module.exports = {
 
       if (hasItem(inventory, 'krolewskie_insygnia')) {
         reward = Math.floor(reward * 1.10);
+      }
+
+      const deweloperBonus = getDeweloperWorkCrimeFirmBonus(inventory);
+      if (deweloperBonus > 0) {
+        reward = Math.floor(reward * (1 + deweloperBonus));
       }
 
       const { getHouseWorkBonus } = require('../utils/economy');

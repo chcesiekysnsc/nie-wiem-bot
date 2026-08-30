@@ -6,7 +6,10 @@ const {
   hasItem,
   getPassiveMultiplier,
   getItemUpgradeLevel,
-  getGlobalCooldownReduction
+  getGlobalCooldownReduction,
+  getEclipseRobDefenseReduction,
+  getNetherBladeCounterRobChance,
+  getNetherBladeRobDefenseReduction
 } = require('../utils/economy');
 const { getItemSetBonus } = require('../utils/itemSets');
 const { createUser, withData } = require('../utils/storage');
@@ -106,6 +109,16 @@ function calculateSuccessChance(robberInv, victimInv, robber, overrideChance, vi
     if (bodyguardDef && bodyguardDef.robDefenseBonus) {
       chance -= bodyguardDef.robDefenseBonus;
     }
+  }
+
+  const eclipseDefenseReduction = getEclipseRobDefenseReduction(victimInv);
+  if (eclipseDefenseReduction > 0) {
+    chance -= eclipseDefenseReduction;
+  }
+
+  const netherBladeDefenseReduction = getNetherBladeRobDefenseReduction(victimInv);
+  if (netherBladeDefenseReduction > 0) {
+    chance -= netherBladeDefenseReduction;
   }
 
   return Math.min(chance, 1);
@@ -677,6 +690,33 @@ module.exports = {
               let secNote = `\n🏴 **Czarna Bandera: DRUGI NAPAD!** Wpadka! Zostałeś złapany i tracisz dodatkowe **${formatCurrency(secFine)}** na rzecz **${targetName}**. Ban na okradanie: 1h.`;
               replyMsg += secNote;
               notifyMsg += `\n🏴 **DRUGI NAPAD!** Napastnik zaatakował ponownie, ale wpadł! Otrzymujesz dodatkowe zadośćuczynienie w wysokości **+${formatCurrency(secPayout)}**!`;
+            }
+          }
+
+          const netherBladeChance = getNetherBladeCounterRobChance(victimInv);
+          if (netherBladeChance > 0 && Math.random() < netherBladeChance) {
+            const counterRobAmount = Math.floor(result.stolen * 0.10);
+            if (counterRobAmount > 0) {
+              victim.balance += counterRobAmount;
+              robber.balance = Math.max(0, robber.balance - counterRobAmount);
+              replyMsg += `\n⚔️ **Nether Blade: KONTRA-NAPAD!** Odwróciłeś sytuację i okradłeś **${robberName}** z **${formatCurrency(counterRobAmount)}**!`;
+              notifyMsg += `\n⚔️ **Nether Blade:** **${targetName}** odwrócił napad i okradł Cię z **${formatCurrency(counterRobAmount)}**!`;
+            }
+            if (Math.random() < 0.15) {
+              const { removeItem: removeItemInv, getItemQuantity, addItem } = require('../utils/economy');
+              const robberItems = Object.keys(robberInv).filter(k => !k.startsWith('_') && getItemQuantity(robberInv, k) > 0 && !['balance', 'bank', 'xp', 'level', 'prestige', 'gamesPlayed', 'wins', 'losses', 'gambleStreak', 'totalWon', 'totalLost', 'lastGambleWin', 'workLevel', 'workBoostUntil', 'workBoostPercent', 'lastWorkTime', 'robAttempts', 'lastSztyletResetTime', 'activeLoan', 'negativeSince', 'blacklistedForNegativeBalance', 'company', 'company2', 'house', 'house2', 'worker', 'bodyguard', 'workerUseCount', 'workerTotalPayout', 'bodyguardUseCount', 'bodyguardTotalPayout', 'gangId', 'gangRole', 'lastActiveThreadId', 'jailUntil', 'bombaActive', 'klodkaActive', 'piwoActive', 'activeLoan', 'id', 'name', 'badges', 'commandCounts', 'claimedMilestones', 'lastRobTime', 'robCooldown', 'taxesPaid', 'dailyStreak', 'lastDailyTime', 'marry', 'marriedTo', 'lastActiveThreadId'].includes(k));
+              if (robberItems.length > 0) {
+                const stolenItem = robberItems[Math.floor(Math.random() * robberItems.length)];
+                const qty = getItemQuantity(robberInv, stolenItem);
+                if (qty > 0) {
+                  removeItemInv(robberInv, stolenItem, 1);
+                  addItem(victimInv, stolenItem, 1);
+                  const stolenItemName = config.shopItems[stolenItem]?.name || stolenItem;
+                  const stolenItemEmoji = config.shopItems[stolenItem]?.emoji || '';
+                  replyMsg += `\n🎒 **Ukradłeś przedmiot:** ${stolenItemEmoji} **${stolenItemName}**!`;
+                  notifyMsg += `\n🎒 **Stracisz przedmiot:** ${stolenItemEmoji} **${stolenItemName}**!`;
+                }
+              }
             }
           }
         } else {

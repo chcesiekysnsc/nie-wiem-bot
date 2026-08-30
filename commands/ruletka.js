@@ -11,7 +11,8 @@ const {
   getActiveEventMultiplier,
   getCasinoWinMultiplier,
   getDealerBonusChance,
-  getRandomXp
+  getRandomXp,
+  getMarkOfSacrificeCasinoSaveChance
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -143,6 +144,7 @@ module.exports = {
       let szkarlatneOkoSaved = false;
       let ananasSaved = false;
       let kosciRefunded = false;
+      let markOfSacrificeSaved = false;
       let activeBadgeName = '';
       let dealerCheated = false;
 
@@ -235,6 +237,13 @@ module.exports = {
             kosciRefunded = true;
           }
         }
+
+        const markSaveChance = getMarkOfSacrificeCasinoSaveChance(inventory);
+        if (markSaveChance > 0 && !won && Math.random() < markSaveChance) {
+          won = true;
+          multiplier = 1.0;
+          markOfSacrificeSaved = true;
+        }
       }
 
       let payout = won ? (kosciRefunded ? bet : bet * multiplier) : 0;
@@ -300,6 +309,7 @@ module.exports = {
         szkarlatneOkoSaved,
         ananasSaved,
         kosciRefunded,
+        markOfSacrificeSaved,
         activeBadgeName,
         dealerCheated,
         tarotTriggered,
@@ -332,6 +342,9 @@ module.exports = {
     }
     if (result.kosciRefunded) {
       replyText += `\n🎲 Przedmiot **Kości Oszusta** uratował Cię przed stratą i zwrócił całą stawkę!`;
+    }
+    if (result.markOfSacrificeSaved) {
+      replyText += `\n🎭 Przedmiot **Mark of Sacrifice** dał Ci dodatkową szansę i uratował przed przegraną!`;
     }
 
     if (result.tarotTriggered) {

@@ -7,7 +7,8 @@ const UPGRADE_COSTS = config.upgradeCosts || [100000, 250000, 500000, 1000000, 2
 const MAX_LEVEL = 5;
 const EVENT_ITEMS = [
   'szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia',
-  'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta', 'kosci_oszusta', 'czterolistna_moneta'
+  'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta', 'kosci_oszusta', 'czterolistna_moneta',
+  'deweloper', 'polityk', 'eclipse', 'mark_of_sacrifice', 'nether_blade'
 ];
 
 function getUpgradePath(itemId) {
@@ -167,7 +168,8 @@ function resolveItemId(input) {
     const num = parseInt(artMatch[1], 10);
     const eventItemIds = [
       'szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia',
-      'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta', 'kosci_oszusta', 'czterolistna_moneta'
+      'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta', 'kosci_oszusta', 'czterolistna_moneta',
+      'deweloper', 'polityk', 'eclipse', 'mark_of_sacrifice', 'nether_blade'
     ];
     let currentNum = 1;
     for (const [id, item] of Object.entries(config.shopItems)) {

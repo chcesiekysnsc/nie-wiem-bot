@@ -1,5 +1,7 @@
 const config = require('../config/config');
-const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier, getGlobalIncomeMultiplier, getItemUpgradeLevel } = require('../utils/economy');
+const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier, getGlobalIncomeMultiplier, getItemUpgradeLevel,
+  getDeweloperWorkCrimeFirmBonus, getPolitykSalaryReduction
+} = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
 const { getItemSetBonus } = require('../utils/itemSets');
@@ -255,6 +257,11 @@ module.exports = {
             payout += insygniaBonus;
           }
 
+          const deweloperBonus = getDeweloperWorkCrimeFirmBonus(inventory);
+          if (deweloperBonus > 0) {
+            payout = Math.floor(payout * (1 + deweloperBonus));
+          }
+
           companyObj.lastPayout = now;
 
           // Apply worker effects only if worker exists
@@ -272,6 +279,12 @@ module.exports = {
               bodyguardSalary = Math.floor(payout * bodyguardDef.salaryPercent);
               payout -= bodyguardSalary;
             }
+          }
+
+          const politykSalaryReduction = getPolitykSalaryReduction(inventory);
+          if (politykSalaryReduction > 0) {
+            workerResult.workerSalary = Math.floor(workerResult.workerSalary * (1 - politykSalaryReduction));
+            bodyguardSalary = Math.floor(bodyguardSalary * (1 - politykSalaryReduction));
           }
 
            return { compDef, payout, garniturBonus, kaczkaBonus, ksiegaBonus, insygniaBonus, globalBonus, setBonus, kalkulatorBonus, terminalDoubled, workerSalary: workerResult.workerSalary, bodyguardSalary, bonusTriggered: workerResult.bonusTriggered, skipSalary: workerResult.skipSalary, instantRepair: workerResult.instantRepair, repairDiscount: workerResult.repairDiscount, broke: companyObj.isBroken };

@@ -11,7 +11,8 @@ const {
   getActiveEventMultiplier,
   getCasinoWinMultiplier,
   getDealerBonusChance,
-  getRandomXp
+  getRandomXp,
+  getMarkOfSacrificeCasinoSaveChance
 } = require('../utils/economy');
 const { createUser, withData, loadData } = require('../utils/storage');
 const { getEffectiveChance } = require('../utils/chances');
@@ -249,11 +250,18 @@ module.exports = {
           finalNet = finalPayout - bet;
         }
 
+        const markSaveChance = getMarkOfSacrificeCasinoSaveChance(inventory);
+        if (markSaveChance > 0 && finalNet < 0 && Math.random() < markSaveChance) {
+          finalPayout = bet;
+          finalNet = 0;
+          markOfSacrificeSaved = true;
+        }
+
         user.balance += finalPayout;
         const xpResult = recordGame(user, finalNet, getRandomXp(), inventory);
         refreshBadges(user, inventory);
         const challengeUpdate = finalNet > 0 ? advanceChallenge(message.author.id, store, 'blackjack_wins', 1, { won: true, betAmount: bet }) : advanceChallenge(message.author.id, store, 'blackjack_wins', 0, { won: false, betAmount: bet });
-        return { balance: user.balance, xpResult, talizmanBonus, streak: user.gambleStreak || 0, finalPayout, finalNet, challengeUpdate };
+        return { balance: user.balance, xpResult, talizmanBonus, streak: user.gambleStreak || 0, finalPayout, finalNet, challengeUpdate, markOfSacrificeSaved };
       });
 
       let replyText = `🃏 **Gra w Blackjacka rozstrzygnięta!**\n\n` +
@@ -264,6 +272,10 @@ module.exports = {
 
       if (dbResult.finalPayout > bet && dbResult.talizmanBonus > 0) {
         replyText += `\n📿 **Talizman Fortuny:** Otrzymujesz bonus **+${formatCurrency(dbResult.talizmanBonus)}** (seria: ${dbResult.streak} wygranych pod rząd)`;
+      }
+
+      if (dbResult.markOfSacrificeSaved) {
+        replyText += `\n🎭 **Mark of Sacrifice:** Uratowałeś stawkę! Otrzymujesz zwrot **${formatCurrency(bet)}**`;
       }
 
       if (dbResult.xpResult && dbResult.xpResult.leveledUp) {
@@ -663,6 +675,13 @@ module.exports = {
             finalNet = 0;
             finalOutcome = `❌ **Przegrana!** Krupier ma więcej punktów. Jednak dzięki przedmiotowi 🎲 Kości Oszusta otrzymujesz zwrot pełnej stawki!`;
           }
+        }
+
+        const markSaveChance = getMarkOfSacrificeCasinoSaveChance(inventory);
+        if (markSaveChance > 0 && finalNet < 0 && Math.random() < markSaveChance) {
+          finalPayout = game.bet;
+          finalNet = 0;
+          finalOutcome = `❌ **Przegrana!** Krupier ma więcej punktów. Jednak dzięki przedmiotowi 🎭 Mark of Sacrifice otrzymujesz zwrot pełnej stawki!`;
         }
       }
 

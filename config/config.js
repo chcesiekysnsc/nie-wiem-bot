@@ -1002,6 +1002,56 @@ module.exports = {
       buyable: false,
       shopNote: 'Unikalna nagroda za TOP 4 sezonu!'
     },
+    deweloper: {
+      name: 'Deweloper',
+      emoji: '🏗️',
+      price: 0,
+      shortDesc: 'Event: -50% czynszu, 2 domy, -15% na domy, +10% work/crime/firma.',
+      description: 'Permanentny przedmiot eventowy. Zmniejsza czynsz za dom o 50%. Możesz posiadać dwa domy (drugi dom musi być o jeden tier niższy). Domy są 15% tańsze. Bank ma dodatkowe 50k miejsca. Co opłatę czynszu masz 20% szansy, że najemca zapłaci czynsz za Ciebie i da Ci dodatkowe 75% wartości czynszu. Ulepszenia domów są tańsze o 15%. Bonus +10% do zarobków z !work, !crime oraz firm.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 1 globalnej topki finansowej!'
+    },
+    eclipse: {
+      name: 'Eclipse',
+      emoji: '🌑',
+      price: 0,
+      shortDesc: 'Event: +25% siła wojny, +15% gang, -5% rob def, +60k bank.',
+      description: 'Permanentny przedmiot eventowy. Masz 25% więcej siły w wojnach gangowych. Dostajesz 15% więcej z wojen gangowych i skoków gangu. Szansa na sukces w okradzeniu Ciebie spada o 5%. Masz dodatkowe 60k miejsca w banku.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 2 globalnej topki finansowej!'
+    },
+    mark_of_sacrifice: {
+      name: 'Mark of Sacrifice',
+      emoji: '🎭',
+      price: 0,
+      shortDesc: 'Event: Odzyskiwanie strat bet +65k bank +2% ruletka/BJ.',
+      description: 'Permanentny przedmiot eventowy. Gdy podczas pojedynczego !bet stracisz ponad 50% swojego salda, odzyskujesz 10% tego co straciłeś oraz masz 5% na to, że otrzymasz dodatkowe 10%. Otrzymujesz również 65k miejsca w banku. Masz 2% szansy na uratowanie się przed przegraną w !ruletka i !blackjack.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 3 globalnej topki finansowej!'
+    },
+    polityk: {
+      name: 'Polityk',
+      emoji: '🎩',
+      price: 0,
+      shortDesc: 'Event: 5% omijanie podatków, -15% pensja, -5% crime wpadka, +10% crime zysk, +2% odsetki.',
+      description: 'Permanentny przedmiot eventowy. Masz 5% szansy na ominięcie podatków. Pracownicy i ochroniarze pobierają 15% mniej wynagrodzenia. Masz 5% mniejszą szansę na przyłapanie w !crime i dostajesz 10% więcej z !crime. Otrzymujesz 2% więcej odsetek w banku. Pracownicy mają 4% większą szansę na dodatkowe pozytywne efekty (podwójna wypłata, natychmiastowa naprawa). Jeśli firma ulegnie awarii, masz 3% szansy na automatyczną naprawę bez kosztów.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 4 globalnej topki finansowej!'
+    },
+    nether_blade: {
+      name: 'Nether Blade',
+      emoji: '⚔️',
+      price: 0,
+      shortDesc: 'Event: 15% kontra-rob, 15% kradzież przedmiotu, -5% sukces okradającego.',
+      description: 'Permanentny przedmiot eventowy. Gdy ktoś Cię okrada, masz 15% na to, że to Ty go okradniesz (100% na sukces, omijasz wszystkie zabezpieczenia) i okradasz go z jego bonusów 10%. Masz 15% na to, że ukradniesz mu jakiś przedmiot z ekwipunku. Szansa na sukces osoby, która Cię okrada, jest zmniejszona o 5%.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Unikalna nagroda za TOP 5 globalnej topki finansowej!'
+    },
     walizka: {
       name: 'Walizka',
       emoji: '💼',
