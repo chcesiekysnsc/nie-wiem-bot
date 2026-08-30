@@ -2823,7 +2823,7 @@ module.exports = {
               return { error: `❌ Aby kupić **${contractDef.name}**, gang potrzebuje co najmniej **${contractDef.minRep} REP**. Obecnie: **${gang.reputation || 0} REP**.` };
             }
             if ((gang.vault || 0) < contractDef.price) {
-              return { error: '❌ Brak środków w sejfie gangu. Potrzeba: **${formatCurrency(contractDef.price)}**, posiadacie: **${formatCurrency(gang.vault || 0)}**.' };
+              return { error: `❌ Brak środków w sejfie gangu. Potrzeba: **${formatCurrency(contractDef.price)}**, posiadacie: **${formatCurrency(gang.vault || 0)}**.` };
             }
             gang.vault -= contractDef.price;
             if (!Array.isArray(gang.mercenaryContracts)) {
