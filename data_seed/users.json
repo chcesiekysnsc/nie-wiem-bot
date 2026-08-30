@@ -1061,7 +1061,7 @@
     "bombaActive": true,
     "klodkaActive": true,
     "dailyStreak": 1,
-    "lastDailyClaim": 1785536328552,
+    "lastDailyClaim": 1788087161413,
     "gangId": "wkf",
     "gangRole": "boss",
     "negativeSince": null,
@@ -1902,7 +1902,7 @@
     "tempCooldownReductionUntil": 0,
     "piwoActive": false,
     "dailyStreak": 1,
-    "lastDailyClaim": 1787669433000,
+    "lastDailyClaim": 1788087161414,
     "negativeSince": null,
     "activeLoan": null,
     "gangId": "wkf",
@@ -8710,7 +8710,7 @@
     "workBoostPercent": 0,
     "tempCooldownReductionUntil": 0,
     "dailyStreak": 10,
-    "lastDailyClaim": 1786316741505,
+    "lastDailyClaim": 1788087161455,
     "klodkaActive": true,
     "bombaActive": true,
     "piwoActive": true,
@@ -13058,7 +13058,7 @@
     "blacklistedForNegativeBalance": false,
     "id": "61583310272500",
     "dailyStreak": 56,
-    "lastDailyClaim": 1787648914000,
+    "lastDailyClaim": 1788087161433,
     "multiAccountWarnings": 0,
     "lastWorkTime": 1786311492708,
     "claimedMilestones": [
@@ -13361,7 +13361,7 @@
     },
     "lastGambleWin": 44579,
     "dailyStreak": 1,
-    "lastDailyClaim": 1784649258427,
+    "lastDailyClaim": 1788087161453,
     "gieldaHostCooldownUntil": 1785173998659,
     "workers": []
   },
@@ -17120,7 +17120,7 @@
     "lastWorkTime": 1786286697399,
     "gambleStreak": 1,
     "dailyStreak": 7,
-    "lastDailyClaim": 1787811186000,
+    "lastDailyClaim": 1788087161420,
     "company2": null,
     "lastGambleWin": 8956,
     "paczkiBoughtLimitDate": "9.08.2026",
@@ -17213,7 +17213,9 @@
     "lastGambleWin": 23126,
     "lastWorkTime": 1785774554925,
     "company2": null,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "100057815070720": {
     "balance": 186790,
@@ -18348,7 +18350,7 @@
     "lastActiveTime": 1786325467493,
     "multiAccountWarnings": 0,
     "dailyStreak": 33,
-    "lastDailyClaim": 1786312814133,
+    "lastDailyClaim": 1788087161454,
     "lastWorkTime": 1786324955397,
     "klodkaActive": true,
     "jailUntil": 1786328569137,
@@ -19996,7 +19998,7 @@
     "lastActiveTime": 1786305427750,
     "multiAccountWarnings": 0,
     "dailyStreak": 4,
-    "lastDailyClaim": 1787831847000,
+    "lastDailyClaim": 1788087161441,
     "tipsSent": {
       "61588992641631": 3
     },
@@ -21011,7 +21013,9 @@
     "lastActiveTime": 1786309116633,
     "lastWorkTime": 0,
     "company2": null,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "100043529272941": {
     "balance": 114530,
@@ -22898,7 +22902,7 @@
     "multiAccountWarnings": 0,
     "lastActiveTime": 1785251972909,
     "dailyStreak": 1,
-    "lastDailyClaim": 1784594214708,
+    "lastDailyClaim": 1788087161455,
     "lastWorkTime": 0,
     "jailUntil": 1785255243123,
     "gangId": "taksiczuj",
@@ -25323,7 +25327,9 @@
     "lastActiveTime": 1786274887526,
     "lastWorkTime": 0,
     "company2": null,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "61584680616947": {
     "balance": 4820,
@@ -27730,7 +27736,9 @@
     "company2": null,
     "workers": [],
     "gangId": null,
-    "gangRole": null
+    "gangRole": null,
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "61558483636689": {
     "balance": 4820,
@@ -36889,7 +36897,7 @@
     "jailUntil": 1786278091581,
     "gambleStreak": 0,
     "dailyStreak": 4,
-    "lastDailyClaim": 1786313388850,
+    "lastDailyClaim": 1788087161415,
     "lastWorkTime": 1786313391635,
     "company2": null,
     "tipsSent": {
@@ -37137,7 +37145,7 @@
       "100087548303432": 1
     },
     "dailyStreak": 34,
-    "lastDailyClaim": 1786659194000,
+    "lastDailyClaim": 1788087161414,
     "lastWorkTime": 1786323104448,
     "jailUntil": 1785426209376,
     "gambleStreak": 3,
@@ -37817,7 +37825,9 @@
     "lastActiveTime": 1783954957914,
     "company2": null,
     "lastWorkTime": 0,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "100053568668315": {
     "balance": 4820,
@@ -38181,7 +38191,7 @@
     "gambleStreak": 1,
     "lastGambleWin": 29105,
     "dailyStreak": 5,
-    "lastDailyClaim": 1787675488000,
+    "lastDailyClaim": 1788087161434,
     "jailUntil": 1785950871177,
     "company2": null,
     "tipsSent": {
@@ -40559,7 +40569,9 @@
     "lastActiveTime": 1786326278145,
     "company2": null,
     "lastWorkTime": 0,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "100067403163483": {
     "balance": 4820,
@@ -41620,7 +41632,7 @@
     "gambleStreak": 1,
     "lastGambleWin": 10,
     "dailyStreak": 48,
-    "lastDailyClaim": 1787782233000,
+    "lastDailyClaim": 1788087161441,
     "company2": null,
     "lastWorkTime": 1786313580175,
     "gangId": "auramonsters",
@@ -42447,7 +42459,7 @@
     "lastActiveTime": 1786297720757,
     "lastWorkTime": 1786289932985,
     "dailyStreak": 10,
-    "lastDailyClaim": 1787370712000,
+    "lastDailyClaim": 1788087161415,
     "company2": null,
     "paczkiBoughtLimitDate": "27.07.2026",
     "paczkiBoughtToday": 1,
@@ -42555,7 +42567,7 @@
     "multiAccountWarnings": 0,
     "company2": null,
     "dailyStreak": 10,
-    "lastDailyClaim": 1787198235000,
+    "lastDailyClaim": 1788087161415,
     "lastWorkTime": 1786290340112,
     "gambleStreak": 9,
     "lastGambleWin": 1998,
@@ -43349,7 +43361,7 @@
     "gangId": "mojaxdd",
     "gangRole": "member",
     "dailyStreak": 7,
-    "lastDailyClaim": 1787807574000,
+    "lastDailyClaim": 1788087161434,
     "jailUntil": 1786169457021,
     "gambleStreak": 0
   },
@@ -44086,7 +44098,7 @@
     "lastWorkTime": 0,
     "workers": [],
     "dailyStreak": 2,
-    "lastDailyClaim": 1787349750000
+    "lastDailyClaim": 1788087161442
   },
   "100005950659097": {
     "balance": 4820,
@@ -44222,7 +44234,7 @@
     "multiAccountWarnings": 0,
     "company2": null,
     "dailyStreak": 2,
-    "lastDailyClaim": 1787696084000,
+    "lastDailyClaim": 1788087161440,
     "lastWorkTime": 1786182125706,
     "gambleStreak": 0,
     "lastGambleWin": 75000,
@@ -45740,7 +45752,9 @@
     "lastActiveTime": 1786314844847,
     "company2": null,
     "lastWorkTime": 0,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "100084768254222": {
     "balance": 4820,
@@ -45981,7 +45995,7 @@
     "gambleStreak": 1,
     "lastGambleWin": 12350,
     "dailyStreak": 1,
-    "lastDailyClaim": 1786664334000,
+    "lastDailyClaim": 1788087161441,
     "tipsSent": {
       "100092661122778": 1
     },
@@ -46296,7 +46310,7 @@
     "company2": null,
     "lastWorkTime": 1786268833329,
     "dailyStreak": 4,
-    "lastDailyClaim": 1786226423148,
+    "lastDailyClaim": 1788087161414,
     "tipsSent": {
       "100046236224568": 8,
       "100056936956080": 8,
@@ -46453,7 +46467,7 @@
     "gambleStreak": 1,
     "lastGambleWin": 50000,
     "dailyStreak": 1,
-    "lastDailyClaim": 1787848873000,
+    "lastDailyClaim": 1788087161441,
     "tipsSent": {
       "100087548303432": 3,
       "61591885174193": 2,
@@ -52365,7 +52379,8 @@
     "id": "100015192882336",
     "lastWorkTime": 0,
     "workers": [],
-    "dailyStreak": 3
+    "dailyStreak": 3,
+    "lastDailyClaim": 1788087161454
   },
   "61587165651664": {
     "balance": 4820,
@@ -55182,7 +55197,7 @@
     },
     "jailUntil": 1785691205656,
     "dailyStreak": 43,
-    "lastDailyClaim": 1787695993000,
+    "lastDailyClaim": 1788087161440,
     "klodkaActive": true,
     "piwoActive": false,
     "gangId": "nelaispolka",
@@ -55381,7 +55396,7 @@
     "multiAccountWarnings": 0,
     "lastWorkTime": 1786199711699,
     "dailyStreak": 1,
-    "lastDailyClaim": 1786671299000,
+    "lastDailyClaim": 1788087161439,
     "tipsSent": {
       "100081146470738": 14,
       "61592274921225": 1
@@ -55440,7 +55455,9 @@
     "multiAccountWarnings": 0,
     "lastWorkTime": 0,
     "gambleStreak": 0,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "100068295146923": {
     "balance": 186790,
@@ -55635,7 +55652,7 @@
     "lastActiveTime": 1786322522038,
     "multiAccountWarnings": 0,
     "dailyStreak": 5,
-    "lastDailyClaim": 1786312988570,
+    "lastDailyClaim": 1788087161417,
     "jailUntil": 1786281326050,
     "gambleStreak": 1,
     "lastGambleWin": 217192,
@@ -56108,7 +56125,7 @@
     "gambleStreak": 0,
     "jailUntil": 1786318226469,
     "dailyStreak": 42,
-    "lastDailyClaim": 1786312825297,
+    "lastDailyClaim": 1788087161442,
     "lastGambleWin": 17544,
     "tipsSent": {
       "100089617171766": 4,
@@ -56620,7 +56637,7 @@
     "multiAccountWarnings": 0,
     "lastWorkTime": 1786010615162,
     "dailyStreak": 1,
-    "lastDailyClaim": 1787410371000,
+    "lastDailyClaim": 1788087161440,
     "tipsSent": {
       "61554695318900": 2
     },
@@ -57781,7 +57798,7 @@
     "lastActiveTime": 1786313544445,
     "multiAccountWarnings": 0,
     "dailyStreak": 1,
-    "lastDailyClaim": 1786313323000,
+    "lastDailyClaim": 1788087161439,
     "gambleStreak": 0,
     "lastGambleWin": 8000,
     "lastWorkTime": 1785542722141,
@@ -57897,7 +57914,7 @@
     "gambleStreak": 3,
     "lastGambleWin": 1332,
     "dailyStreak": 3,
-    "lastDailyClaim": 1787648858000,
+    "lastDailyClaim": 1788087161440,
     "lastWorkTime": 1785782955951,
     "workers": []
   },
@@ -58831,7 +58848,7 @@
       "100056936956080": 1
     },
     "dailyStreak": 1,
-    "lastDailyClaim": 1786623851000,
+    "lastDailyClaim": 1788087161414,
     "jailUntil": 1785684433513,
     "workers": []
   },
@@ -59753,7 +59770,7 @@
     "gambleStreak": 1,
     "lastGambleWin": 310046,
     "dailyStreak": 1,
-    "lastDailyClaim": 1787730141000,
+    "lastDailyClaim": 1788087161438,
     "jailUntil": 1784660115771,
     "bombaActive": true,
     "gangId": "parafiatuptusiow",
@@ -60006,7 +60023,7 @@
     "lastActiveTime": 1786183180243,
     "lastWorkTime": 1786183162987,
     "dailyStreak": 1,
-    "lastDailyClaim": 1787169922000,
+    "lastDailyClaim": 1788087161439,
     "gambleStreak": 0,
     "lastGambleWin": 36840,
     "tipsSent": {
@@ -60165,7 +60182,7 @@
     "gangRole": "member",
     "lastWorkTime": 0,
     "dailyStreak": 2,
-    "lastDailyClaim": 1785450026601,
+    "lastDailyClaim": 1788087161440,
     "gambleStreak": 2,
     "lastGambleWin": 60000,
     "jailUntil": 1785426302936,
@@ -60246,7 +60263,7 @@
     "gangRole": "deputy",
     "lastWorkTime": 0,
     "dailyStreak": 5,
-    "lastDailyClaim": 1787782216000,
+    "lastDailyClaim": 1788087161441,
     "gambleStreak": 1,
     "lastGambleWin": 13898,
     "tipsSent": {
@@ -60668,7 +60685,7 @@
     "lastActiveTime": 1786105085976,
     "lastWorkTime": 1786105085977,
     "dailyStreak": 1,
-    "lastDailyClaim": 1787791840000,
+    "lastDailyClaim": 1788087161438,
     "gambleStreak": 0,
     "tipsSent": {
       "61585934475590": 59,
@@ -60772,7 +60789,7 @@
     "gangRole": "member",
     "lastWorkTime": 1786188075382,
     "dailyStreak": 10,
-    "lastDailyClaim": 1787845888000,
+    "lastDailyClaim": 1788087161438,
     "gambleStreak": 0,
     "jailUntil": 1785064055496,
     "lastGambleWin": 3000,
@@ -63244,7 +63261,7 @@
     "lastActiveTime": 1785085476419,
     "multiAccountWarnings": 0,
     "dailyStreak": 4,
-    "lastDailyClaim": 1784744965454,
+    "lastDailyClaim": 1788087161409,
     "lastWorkTime": 0,
     "workers": []
   },
@@ -63870,7 +63887,9 @@
     "gangId": "parafiatuptusiow",
     "gangRole": "member",
     "lastWorkTime": 0,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "100057133705511": {
     "balance": 4820,
@@ -65265,7 +65284,7 @@
     "gambleStreak": 2,
     "lastGambleWin": 12904,
     "dailyStreak": 4,
-    "lastDailyClaim": 1787493647000,
+    "lastDailyClaim": 1788087161437,
     "workers": []
   },
   "100057241446595": {
@@ -65425,7 +65444,7 @@
     "lastActiveTime": 1786258360145,
     "multiAccountWarnings": 0,
     "dailyStreak": 13,
-    "lastDailyClaim": 1787825734000,
+    "lastDailyClaim": 1788087161409,
     "gambleStreak": 0,
     "jailUntil": 1785594257059,
     "lastWorkTime": 1786258360145,
@@ -66803,7 +66822,9 @@
     "gangId": "parafiatuptusiow",
     "gangRole": "member",
     "isMultiAccount": false,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "61592103133604": {
     "balance": 4820,
@@ -66854,7 +66875,9 @@
     "lastWorkTime": 0,
     "isMultiAccount": true,
     "unblockMessageTarget": 111,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "61587307979966": {
     "balance": 6161,
@@ -67496,7 +67519,7 @@
     "lastActiveTime": 1786300619074,
     "lastWorkTime": 1786275422063,
     "dailyStreak": 30,
-    "lastDailyClaim": 1787800953000,
+    "lastDailyClaim": 1788087161442,
     "gambleStreak": 1,
     "lastGambleWin": 9160,
     "tipsSent": {
@@ -67683,7 +67706,9 @@
     "tipsSent": {
       "61585934475590": 92
     },
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "61584317820776": {
     "balance": 201817,
@@ -67755,7 +67780,7 @@
     "lastActiveTime": 1786188470689,
     "lastWorkTime": 1786188413909,
     "dailyStreak": 9,
-    "lastDailyClaim": 1787845984000,
+    "lastDailyClaim": 1788087161438,
     "gambleStreak": 0,
     "lastGambleWin": 8898,
     "tipsSent": {
@@ -68097,7 +68122,9 @@
     },
     "gambleStreak": 0,
     "lastGambleWin": 741058,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "100095407830089": {
     "balance": 4820,
@@ -69191,7 +69218,7 @@
     "lastActiveTime": 1786283036166,
     "lastWorkTime": 1786282932898,
     "dailyStreak": 1,
-    "lastDailyClaim": 1786282935409,
+    "lastDailyClaim": 1788087161442,
     "gambleStreak": 0,
     "gangId": "auramonsters",
     "gangRole": "member",
@@ -69706,7 +69733,9 @@
     "lastActiveTime": 1786220338629,
     "multiAccountWarnings": 0,
     "lastWorkTime": 0,
-    "workers": []
+    "workers": [],
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "100080481495602": {
     "balance": 4820,
@@ -70571,7 +70600,7 @@
     "gambleStreak": 0,
     "lastGambleWin": 30000,
     "dailyStreak": 17,
-    "lastDailyClaim": 1787810244000,
+    "lastDailyClaim": 1788087161409,
     "tipsSent": {
       "61585910902543": 2,
       "61577777277558": 1,
@@ -72281,7 +72310,7 @@
     "lastActiveTime": 1786199540074,
     "multiAccountWarnings": 0,
     "dailyStreak": 1,
-    "lastDailyClaim": 1787846331000,
+    "lastDailyClaim": 1788087161434,
     "tipsSent": {
       "61585910902543": 14,
       "100082487135997": 1
@@ -72537,7 +72566,9 @@
     "workers": [],
     "jailUntil": 1785924093687,
     "gambleStreak": 1,
-    "lastGambleWin": 10000
+    "lastGambleWin": 10000,
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "61591397213729": {
     "balance": 4820,
@@ -74302,7 +74333,7 @@
     "multiAccountWarnings": 0,
     "lastWorkTime": 1786014283419,
     "dailyStreak": 2,
-    "lastDailyClaim": 1786600109000
+    "lastDailyClaim": 1788087161410
   },
   "100074402783504": {
     "balance": 4945,
@@ -74664,7 +74695,9 @@
     "workers": [],
     "id": "61592026233189",
     "lastActiveTime": 1785931874657,
-    "multiAccountWarnings": 0
+    "multiAccountWarnings": 0,
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "61590367933457": {
     "balance": 4956,
@@ -74704,7 +74737,9 @@
     "name": null,
     "workers": [],
     "id": "61590367933457",
-    "lastActiveTime": 1786102431989
+    "lastActiveTime": 1786102431989,
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "61580165414436": {
     "balance": -19753,
@@ -75066,7 +75101,9 @@
     "name": null,
     "workers": [],
     "id": "100032934377410",
-    "lastActiveTime": 1786021154329
+    "lastActiveTime": 1786021154329,
+    "dailyStreak": null,
+    "lastDailyClaim": null
   },
   "100024641251064": {
     "balance": 4953,
