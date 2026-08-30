@@ -331,7 +331,9 @@ module.exports = {
           tributePercent: 0,
           lastHeistTime: 0,
           lastAttackTime: 0,
-          shieldUntil: 0
+          shieldUntil: 0,
+          bossShopItems: [],
+          seasonRewards: []
         };
 
         return { success: true, cost };

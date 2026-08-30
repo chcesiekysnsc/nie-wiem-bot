@@ -552,6 +552,12 @@ function performMonthlyReset(store) {
       if (!Array.isArray(gang.seasonRewards)) {
         gang.seasonRewards = [];
       }
+      if (!Array.isArray(gang.bossShopItems)) {
+        gang.bossShopItems = [];
+      }
+      if (!Array.isArray(gang.bossShopItems)) {
+        gang.bossShopItems = [];
+      }
       if (i < gangRewards.length && !gang.seasonRewards.includes(gangRewards[i])) {
         gang.seasonRewards.push(gangRewards[i]);
       }

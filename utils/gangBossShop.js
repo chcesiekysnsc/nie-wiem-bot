@@ -45,8 +45,8 @@ function hasGangItem(gang, itemId) {
 }
 
 function getMultiplier(gang, effectType) {
-  if (!gang || !Array.isArray(gang.bossShopItems)) return 0;
-  const items = gang.bossShopItems;
+  if (!gang) return 0;
+  const items = Array.isArray(gang.bossShopItems) ? gang.bossShopItems : [];
   let mult = 0;
 
   switch (effectType) {
