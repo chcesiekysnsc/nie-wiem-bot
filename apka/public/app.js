@@ -540,6 +540,10 @@ async function loadGangs() {
           <button class="small" onclick="saveGang('${esc(g.id)}')">Zapisz</button>
           <button class="small danger" onclick="deleteGang('${esc(g.id)}','${esc(g.name)}')">Usuń gang</button>
         </div>
+        ${g.members.length ? `<div class="gang-edit">
+          <label>Nowy szef <select id="gang-boss-${esc(g.id)}">${g.members.map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('')}</select></label>
+          <button class="small" onclick="changeBoss('${esc(g.id)}')">Zmień szefa</button>
+        </div>` : ''}
         <details>
           <summary>Członkowie (${g.members.length})</summary>
           <ul>${g.members.map(m => `<li>${esc(m.name)} <span class="muted">${esc(m.id)}</span> ${m.id !== g.boss.id ? `<button class="small danger" onclick="kickMember('${esc(g.id)}','${esc(m.id)}')">Wyrzuć</button>` : '<span class="badge warn">Szef</span>'}</li>`).join('')}</ul>
@@ -589,6 +593,18 @@ window.removeGangItem = async function (gangId, itemId, itemName) {
   try {
     await api(`/api/gangs/${encodeURIComponent(gangId)}`, { method: 'POST', body: JSON.stringify({ removeItem: itemId }) });
     toast('Przedmiot usunięty.');
+    loadGangs();
+  } catch (err) { toast(err.message, true); }
+};
+
+window.changeBoss = async function (gangId) {
+  const select = document.getElementById(`gang-boss-${gangId}`);
+  if (!select) return toast('Brak listy członków.', true);
+  const newBossId = String(select.value || '').trim();
+  if (!newBossId) return toast('Wybierz nowego szefa.', true);
+  try {
+    await api(`/api/gangs/${encodeURIComponent(gangId)}/change-boss`, { method: 'POST', body: JSON.stringify({ newBossId }) });
+    toast('Zmieniono szefa gangu.');
     loadGangs();
   } catch (err) { toast(err.message, true); }
 };

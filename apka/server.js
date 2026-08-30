@@ -466,6 +466,38 @@ app.post('/api/gangs/:id', async (req, res) => {
   }
 });
 
+app.post('/api/gangs/:id/change-boss', async (req, res) => {
+  const { newBossId } = req.body || {};
+  try {
+    const result = await withData(store => {
+      const gang = (store.profiles.gangs || {})[req.params.id];
+      if (!gang) return { error: 'Nie znaleziono gangu.' };
+      const users = store.users || {};
+      const oldBossId = gang.bossId;
+      if (newBossId === oldBossId) return { error: 'Ten użytkownik już jest szefem.' };
+      const newBoss = users[newBossId];
+      if (!newBoss) return { error: 'Nie znaleziono użytkownika.' };
+      if (newBoss.gangId !== req.params.id) return { error: 'Ten użytkownik nie należy do tego gangu.' };
+      if (oldBossId && users[oldBossId]) {
+        users[oldBossId].gangRole = 'member';
+      }
+      gang.bossId = newBossId;
+      newBoss.gangRole = 'boss';
+      if (!gang.deputies) gang.deputies = [];
+      if (!gang.members) gang.members = [];
+      const memberIdx = gang.members.indexOf(newBossId);
+      if (memberIdx >= 0) gang.members.splice(memberIdx, 1);
+      const deputyIdx = gang.deputies.indexOf(newBossId);
+      if (deputyIdx >= 0) gang.deputies.splice(deputyIdx, 1);
+      return { ok: true };
+    });
+    if (result.error) return res.status(400).json(result);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/ai-gangs', (req, res) => {
   const profiles = loadData('profiles');
   const gangs = Object.entries(profiles.gangs || {})
