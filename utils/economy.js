@@ -870,6 +870,7 @@ module.exports = {
   getPolitykTaxSkipChance,
   getPolitykSalaryReduction,
   getPolitykCrimeBonus,
+  getPolitykCrimeCatchReduction,
   getPolitykWorkerPositiveEffectChance,
   getPolitykSelfRepairChance,
   getPolitykBankInterestBonus,
