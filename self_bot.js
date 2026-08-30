@@ -1014,7 +1014,7 @@ async function autoCollectPayout(userId, api, notifyThreadId) {
 // ===== KONIEC APPSTATE =====
 
 function loadStatsOnce() {
-  const markerPath = path.join(DATA_DIR, '.stats_loaded');
+  const markerPath = path.join(DATA_DIR, 'stats_loaded.txt');
   if (fs.existsSync(markerPath)) {
     console.log('[LOAD_ALL] Statystyki już zostały załadowane wcześniej. Pomijam.');
     return;
