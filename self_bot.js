@@ -8,42 +8,9 @@ const { DATA_DIR } = require('./utils/storage');
 
 require('dotenv').config();
 
-// Auto-seed data directory if empty (used for migration/Railway Volume setup)
+// Auto-seed disabled - data is managed manually on Railway
 function ensureSeededData() {
-  const dataDir = DATA_DIR;
-  const seedDir = path.join(__dirname, 'data_seed');
-  
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-  
-  if (!fs.existsSync(seedDir)) {
-    return;
-  }
-
-  const seedFiles = fs.readdirSync(seedDir).filter(f => f.endsWith('.json'));
-  for (const file of seedFiles) {
-    if (file === 'appstate.json') {
-      continue;
-    }
-
-    const targetPath = path.join(dataDir, file);
-    const seedPath = path.join(seedDir, file);
-
-    if (fs.existsSync(targetPath)) {
-      try {
-        const targetContent = JSON.parse(fs.readFileSync(targetPath, 'utf8'));
-        const seedContent = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
-        if (JSON.stringify(targetContent) === JSON.stringify(seedContent)) {
-          console.log(`[SEED] Plik ${file} jest aktualny. Pomijam.`);
-          continue;
-        }
-      } catch (_) {}
-    }
-
-    console.log(`[SEED] Aktualizacja pliku: ${file}`);
-    fs.copyFileSync(seedPath, targetPath);
-  }
+  // seedowanie wyłączone - dane są zarządzane ręcznie
 }
 ensureSeededData();
 
