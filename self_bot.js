@@ -12,68 +12,37 @@ require('dotenv').config();
 function ensureSeededData() {
   const dataDir = DATA_DIR;
   const seedDir = path.join(__dirname, 'data_seed');
-  const markerPath = path.join(dataDir, '.baseline_imported');
   
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
   
-  // Jeśli marker już istnieje, oznacza to, że jednorazowy import został wykonany.
-  // Pomijamy nadpisywanie plików, aby nie resetować postępów graczy przy restartach.
-  if (fs.existsSync(markerPath)) {
-    console.log('[SEED] Dane zostały już wcześniej zainicjalizowane. Pomijam nadpisywanie.');
+  if (!fs.existsSync(seedDir)) {
     return;
   }
 
-  // Jeśli w katalogu danych już istnieją pliki z rzeczywistymi danymi,
-  // nie nadpisujemy ich - traktujemy to jako gotową bazę.
-  const usersPath = path.join(dataDir, 'users.json');
-  const profilesPath = path.join(dataDir, 'profiles.json');
-  let hasExistingData = false;
-  try {
-    if (fs.existsSync(usersPath) && fs.statSync(usersPath).size > 10) {
-      const users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
-      if (users && typeof users === 'object' && Object.keys(users).length > 0) {
-        hasExistingData = true;
-      }
+  const seedFiles = fs.readdirSync(seedDir).filter(f => f.endsWith('.json'));
+  for (const file of seedFiles) {
+    if (file === 'appstate.json') {
+      continue;
     }
-    if (!hasExistingData && fs.existsSync(profilesPath) && fs.statSync(profilesPath).size > 10) {
-      const profiles = JSON.parse(fs.readFileSync(profilesPath, 'utf8'));
-      if (profiles && typeof profiles === 'object' && Object.keys(profiles).length > 0) {
-        hasExistingData = true;
-      }
-    }
-  } catch (err) {
-    console.error('[SEED] Błąd sprawdzania istniejących danych:', err.message);
-  }
 
-  if (hasExistingData) {
-    console.log('[SEED] Wykryto istniejące dane w katalogu danych. Pomijam seedowanie.');
-    try { fs.writeFileSync(markerPath, new Date().toISOString(), 'utf8'); } catch (_) {}
-    return;
-  }
-  
-  if (fs.existsSync(seedDir)) {
-    try {
-      const seedFiles = fs.readdirSync(seedDir).filter(f => f.endsWith('.json'));
-      for (const file of seedFiles) {
-        if (file === 'appstate.json') {
+    const targetPath = path.join(dataDir, file);
+    const seedPath = path.join(seedDir, file);
+
+    if (fs.existsSync(targetPath)) {
+      try {
+        const targetContent = JSON.parse(fs.readFileSync(targetPath, 'utf8'));
+        const seedContent = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+        if (JSON.stringify(targetContent) === JSON.stringify(seedContent)) {
+          console.log(`[SEED] Plik ${file} jest aktualny. Pomijam.`);
           continue;
         }
-
-        const targetPath = path.join(dataDir, file);
-        const seedPath = path.join(seedDir, file);
-
-        console.log(`[SEED] Kopiowanie stanu bazowego (jednorazowo): ${file}`);
-        fs.copyFileSync(seedPath, targetPath);
-      }
-      
-      // Zapisujemy marker na wolumenie, aby zapobiec ponownemu kopiowaniu przy restartach
-      fs.writeFileSync(markerPath, new Date().toISOString(), 'utf8');
-      console.log('[SEED] Pomyślnie zaimportowano bazę danych i utworzono marker startowy.');
-    } catch (err) {
-      console.error('[SEED] Failed to seed data directory:', err);
+      } catch (_) {}
     }
+
+    console.log(`[SEED] Aktualizacja pliku: ${file}`);
+    fs.copyFileSync(seedPath, targetPath);
   }
 }
 ensureSeededData();
