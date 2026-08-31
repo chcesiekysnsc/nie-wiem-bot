@@ -796,40 +796,6 @@ function getMsUntilNextTerritoryRotation() {
 
 // ===== APPSTATE WCZYTYWANY Z PLIKU =====
 
-// Synchronizacja ciasteczek z data_seed/appstate.json przy nowym wdrożeniu (sprawdzanie sumy kontrolnej MD5)
-try {
-  const crypto = require('crypto');
-  const seedAppstatePath = path.join(__dirname, 'data_seed', 'appstate.json');
-  const lastSeedHashPath = path.join(DATA_DIR, '.last_seed_hash');
-  
-  if (fs.existsSync(seedAppstatePath)) {
-    const getFileMd5 = (filePath) => {
-      try {
-        return crypto.createHash('md5').update(fs.readFileSync(filePath)).digest('hex');
-      } catch (_) {
-        return null;
-      }
-    };
-    
-    const currentSeedHash = getFileMd5(seedAppstatePath);
-    let lastSeedHash = null;
-    if (fs.existsSync(lastSeedHashPath)) {
-      lastSeedHash = fs.readFileSync(lastSeedHashPath, 'utf8').trim();
-    }
-    
-    if (currentSeedHash && (!lastSeedHash || lastSeedHash !== currentSeedHash)) {
-      console.log('[APPSTATE-SYNC] Wykryto nową wersję cookies w data_seed/appstate.json. Kopiowanie na wolumen chmurowy...');
-      fs.copyFileSync(seedAppstatePath, path.join(DATA_DIR, 'appstate.json'));
-      fs.writeFileSync(lastSeedHashPath, currentSeedHash, 'utf8');
-      console.log('[APPSTATE-SYNC] Pomyślnie zaktualizowano cookies.');
-    } else {
-      console.log('[APPSTATE-SYNC] Ciasteczka w data_seed/appstate.json są bez zmian. Pomijam kopiowanie.');
-    }
-  }
-} catch (syncErr) {
-  console.error('[APPSTATE-SYNC] Błąd podczas synchronizacji ciasteczek z data_seed:', syncErr.message);
-}
-
 let appState;
 try {
   appState = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'appstate.json'), 'utf8'));
@@ -838,12 +804,37 @@ try {
   process.exit(1);
 }
 
-const appstateBackupPath = path.join(DATA_DIR, 'appstate.json.bak');
-try {
-  fs.writeFileSync(appstateBackupPath, JSON.stringify(appState, null, 2), 'utf8');
-} catch (err) {
-  console.error('[APPSTATE] Nie udalo sie zrobic kopii zapasowej cookies:', err.message);
+const originalWriteFileSync = fs.writeFileSync;
+const originalCopyFileSync = fs.copyFileSync;
+const APPSTATE_FILES = new Set([
+  path.join(DATA_DIR, 'appstate.json').toLowerCase(),
+  path.join(DATA_DIR, 'appstate.json.bak').toLowerCase(),
+  path.join(__dirname, 'data_seed', 'appstate.json').toLowerCase()
+]);
+
+function isAppStateWrite(targetPath) {
+  const normalized = String(targetPath || '').toLowerCase();
+  for (const forbidden of APPSTATE_FILES) {
+    if (normalized === forbidden) return true;
+  }
+  return false;
 }
+
+fs.writeFileSync = function writeFileSync(filePath, ...args) {
+  if (isAppStateWrite(filePath)) {
+    console.warn('[APPSTATE-LOCK] Blokuje zapis do appstate.json:', filePath);
+    return;
+  }
+  return originalWriteFileSync.call(fs, filePath, ...args);
+};
+
+fs.copyFileSync = function copyFileSync(src, dest, ...args) {
+  if (isAppStateWrite(dest)) {
+    console.warn('[APPSTATE-LOCK] Blokuje kopiowanie do appstate.json:', dest);
+    return;
+  }
+  return originalCopyFileSync.call(fs, src, dest, ...args);
+};
 
 // ===== AUTO-COLLECT WYPŁAT Z FIRMY =====
 
@@ -1017,7 +1008,6 @@ async function loginWithFallback() {
         if (fs.existsSync(seedAppstate)) {
           const fresh = JSON.parse(fs.readFileSync(seedAppstate, 'utf8'));
           appState = fresh;
-          try { fs.copyFileSync(seedAppstate, path.join(DATA_DIR, 'appstate.json')); } catch (_) {}
           console.log('[APPSTATE] Primary cookies odrzucone przez Facebook. Używam zapasowych z data_seed/...');
         } else {
           break;
