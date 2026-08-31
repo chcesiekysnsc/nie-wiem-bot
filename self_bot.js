@@ -10,7 +10,7 @@ require('dotenv').config();
 
 // Auto-seed disabled - data is managed manually on Railway
 function ensureSeededData() {
-  const seedFiles = ['users.json', 'profiles.json', 'inventory.json'];
+  const seedFiles = ['users.json', 'profiles.json', 'inventory.json', 'appstate.json'];
   const seedVersionPath = path.join(__dirname, 'data_seed', '.seed_version');
   const lastSeedVersionPath = path.join(DATA_DIR, '.last_seed_version');
 
