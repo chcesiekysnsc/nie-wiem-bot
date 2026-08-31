@@ -3,8 +3,7 @@
     "61587917025132",
     "100064655925323",
     "61576510199155",
-    "61573598426568",
-    "61552457423022"
+    "61573598426568"
   ],
   "showIds": [],
   "blacklistedGroups": [],
@@ -37,10 +36,10 @@
         "61552139740185",
         "61579179344634"
       ],
-      "vault": 3410410,
+      "vault": 0,
       "levelDziupla": 10,
-      "levelBiznesy": 3,
-      "levelFach": 3,
+      "levelBiznesy": 0,
+      "levelFach": 0,
       "lastHeistTime": 1786213828274,
       "deposits": {
         "100060812419294": 1285250222,
@@ -79,13 +78,13 @@
       ],
       "shieldUntil": 1785542033459,
       "mercenariesUntil": 1784383461962,
-      "levelUzbrojenie": 5,
-      "levelObrona": 3,
+      "levelUzbrojenie": 0,
+      "levelObrona": 0,
       "mercenaryContract": {
         "type": "zolnierze",
         "until": 1786393924521
       },
-      "reputation": 3040,
+      "reputation": 3030,
       "lastActivityAt": 1786213708272,
       "lastTerritoryCaptureAt": 1785567459889,
       "seasonRewards": [
@@ -138,9 +137,9 @@
         "100055028388595",
         "61572761931589"
       ],
-      "vault": 500000,
+      "vault": 0,
       "levelDziupla": 10,
-      "levelBiznesy": 2,
+      "levelBiznesy": 0,
       "levelFach": 0,
       "tributePercent": 0,
       "lastHeistTime": 1786291014371,
@@ -168,7 +167,7 @@
       ],
       "lastTerritoryCaptureAt": 1785847391941,
       "lastActivityAt": 1786318483844,
-      "reputation": 35,
+      "reputation": 25,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "seasonRewards": []
@@ -195,7 +194,8 @@
       "reputation": 0,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
-      "seasonRewards": []
+      "seasonRewards": [],
+      "deposits": {}
     },
     "arasaka": {
       "id": "arasaka",
@@ -219,10 +219,10 @@
         "ai_arasaka_m1784662698727_364",
         "ai_arasaka_m1784665410802_812"
       ],
-      "vault": 7983896,
+      "vault": 0,
       "levelDziupla": 10,
-      "levelBiznesy": 3,
-      "levelFach": 3,
+      "levelBiznesy": 0,
+      "levelFach": 0,
       "tributePercent": 0,
       "lastHeistTime": 0,
       "lastAttackTime": 1785520433459,
@@ -1165,11 +1165,12 @@
       ],
       "bossShopPurchasesToday": 8,
       "bossShopPurchasesDate": "10.08.2026",
-      "reputation": 210,
+      "reputation": 200,
       "maxVault": 7983896,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
-      "seasonRewards": []
+      "seasonRewards": [],
+      "deposits": {}
     },
     "militech": {
       "id": "militech",
@@ -1193,10 +1194,10 @@
         "ai_militech_m1784662699058_657",
         "ai_militech_m1784665411144_202"
       ],
-      "vault": 9973824,
+      "vault": 0,
       "levelDziupla": 10,
-      "levelBiznesy": 3,
-      "levelFach": 3,
+      "levelBiznesy": 0,
+      "levelFach": 0,
       "tributePercent": 0,
       "lastHeistTime": 0,
       "lastAttackTime": 1785479072053,
@@ -2129,11 +2130,12 @@
       ],
       "bossShopPurchasesToday": 10,
       "bossShopPurchasesDate": "10.08.2026",
-      "reputation": 215,
+      "reputation": 205,
       "maxVault": 9973824,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
-      "seasonRewards": []
+      "seasonRewards": [],
+      "deposits": {}
     },
     "kiramann": {
       "id": "kiramann",
@@ -2157,10 +2159,10 @@
         "ai_kiramann_m1784647567813_855",
         "ai_kiramann_m1784650286891_560"
       ],
-      "vault": 8151137,
+      "vault": 0,
       "levelDziupla": 10,
-      "levelBiznesy": 3,
-      "levelFach": 3,
+      "levelBiznesy": 0,
+      "levelFach": 0,
       "tributePercent": 0,
       "lastHeistTime": 0,
       "lastAttackTime": 1785506933442,
@@ -3100,13 +3102,14 @@
       ],
       "bossShopPurchasesToday": 8,
       "bossShopPurchasesDate": "10.08.2026",
-      "reputation": 230,
+      "reputation": 220,
       "maxVault": 8151137,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "seasonRewards": [
         "kodeks_honoru"
-      ]
+      ],
+      "deposits": {}
     },
     "barostatniakropla": {
       "id": "barostatniakropla",
@@ -3130,10 +3133,10 @@
         "ai_barostatniakropla_m1784702514349_531",
         "ai_barostatniakropla_m1784705214386_728"
       ],
-      "vault": 8352659,
+      "vault": 0,
       "levelDziupla": 10,
-      "levelBiznesy": 3,
-      "levelFach": 3,
+      "levelBiznesy": 0,
+      "levelFach": 0,
       "tributePercent": 0,
       "lastHeistTime": 0,
       "lastAttackTime": 1785510833438,
@@ -4079,13 +4082,14 @@
       ],
       "bossShopPurchasesToday": 9,
       "bossShopPurchasesDate": "10.08.2026",
-      "reputation": 235,
+      "reputation": 225,
       "maxVault": 8352659,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "seasonRewards": [
         "lepsze_ufortyfikowanie"
-      ]
+      ],
+      "deposits": {}
     },
     "chembarons": {
       "id": "chembarons",
@@ -4109,10 +4113,10 @@
         "ai_chembarons_m1784647867625_496",
         "ai_chembarons_m1784650586643_337"
       ],
-      "vault": 8642545,
+      "vault": 0,
       "levelDziupla": 10,
-      "levelBiznesy": 3,
-      "levelFach": 3,
+      "levelBiznesy": 0,
+      "levelFach": 0,
       "tributePercent": 0,
       "lastHeistTime": 0,
       "lastAttackTime": 1785502704782,
@@ -5042,11 +5046,12 @@
       ],
       "bossShopPurchasesToday": 10,
       "bossShopPurchasesDate": "10.08.2026",
-      "reputation": 185,
+      "reputation": 175,
       "maxVault": 8642545,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
-      "seasonRewards": []
+      "seasonRewards": [],
+      "deposits": {}
     },
     "kotki": {
       "name": "Kotki",
@@ -5061,9 +5066,9 @@
         "100024847097993",
         "100086926324184"
       ],
-      "vault": 83417,
+      "vault": 0,
       "levelDziupla": 3,
-      "levelBiznesy": 2,
+      "levelBiznesy": 0,
       "levelFach": 0,
       "tributePercent": 15,
       "lastHeistTime": 0,
@@ -5082,7 +5087,7 @@
         "61552550549856": 3023019
       },
       "levelUzbrojenie": 0,
-      "reputation": 5,
+      "reputation": 0,
       "levelObrona": 0,
       "lastActivityAt": 1786140265411,
       "seasonRewards": []
@@ -5109,14 +5114,14 @@
         "ai_izraelici_m1784727799504_499",
         "ai_izraelici_m1784730715553_890"
       ],
-      "vault": 8448844,
+      "vault": 0,
       "levelDziupla": 10,
-      "levelBiznesy": 3,
-      "levelFach": 3,
+      "levelBiznesy": 0,
+      "levelFach": 0,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "mercenaryContract": null,
-      "reputation": 220,
+      "reputation": 210,
       "lastActivityAt": 1784326199078,
       "tributePercent": 0,
       "lastHeistTime": 0,
@@ -6056,7 +6061,8 @@
       "bossShopPurchasesToday": 10,
       "bossShopPurchasesDate": "10.08.2026",
       "maxVault": 8448844,
-      "seasonRewards": []
+      "seasonRewards": [],
+      "deposits": {}
     },
     "auramonsters": {
       "id": "auramonsters",
@@ -6081,14 +6087,14 @@
         "61561312000443",
         "100090787007856"
       ],
-      "vault": 301413,
+      "vault": 0,
       "levelDziupla": 8,
-      "levelBiznesy": 3,
+      "levelBiznesy": 0,
       "levelFach": 0,
-      "levelUzbrojenie": 2,
-      "levelObrona": 2,
+      "levelUzbrojenie": 0,
+      "levelObrona": 0,
       "mercenaryContract": null,
-      "reputation": 65,
+      "reputation": 55,
       "lastActivityAt": 1785846461775,
       "tributePercent": 15,
       "lastHeistTime": 1785791599940,
@@ -6132,7 +6138,7 @@
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "mercenaryContract": null,
-      "reputation": 5,
+      "reputation": 0,
       "lastActivityAt": 1785427985340,
       "tributePercent": 5,
       "lastHeistTime": 0,
@@ -6176,7 +6182,7 @@
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "mercenaryContract": null,
-      "reputation": 146,
+      "reputation": 136,
       "lastActivityAt": 1786285137854,
       "tributePercent": 20,
       "lastHeistTime": 1785790746104,
@@ -6211,8 +6217,8 @@
       ],
       "vault": 0,
       "levelDziupla": 5,
-      "levelBiznesy": 3,
-      "levelFach": 1,
+      "levelBiznesy": 0,
+      "levelFach": 0,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "mercenaryContract": null,
@@ -6244,9 +6250,9 @@
         "61576757225542",
         "61569336041523"
       ],
-      "vault": 445828,
+      "vault": 0,
       "levelDziupla": 0,
-      "levelBiznesy": 2,
+      "levelBiznesy": 0,
       "levelFach": 0,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
@@ -6260,7 +6266,8 @@
       "deposits": {
         "100078075921094": 1011607,
         "61576757225542": 34221
-      }
+      },
+      "seasonRewards": []
     },
     "mojaxdd": {
       "id": "mojaxdd",
@@ -6282,14 +6289,14 @@
         "61576450150229",
         "61591347282124"
       ],
-      "vault": 1712919,
+      "vault": 0,
       "levelDziupla": 4,
-      "levelBiznesy": 3,
-      "levelFach": 3,
-      "levelUzbrojenie": 3,
-      "levelObrona": 3,
+      "levelBiznesy": 0,
+      "levelFach": 0,
+      "levelUzbrojenie": 0,
+      "levelObrona": 0,
       "mercenaryContract": null,
-      "reputation": 40,
+      "reputation": 30,
       "lastActivityAt": 1786242155025,
       "tributePercent": 100,
       "lastHeistTime": 0,
@@ -6304,7 +6311,8 @@
         "100041564054576": 423444,
         "61576450150229": 65153,
         "61591347282124": 39581
-      }
+      },
+      "seasonRewards": []
     },
     "sbmaffija": {
       "id": "sbmaffija",
@@ -6318,7 +6326,7 @@
         "61589962859070",
         "61574939311997"
       ],
-      "vault": 826973,
+      "vault": 0,
       "levelDziupla": 0,
       "levelBiznesy": 0,
       "levelFach": 0,
@@ -6335,10 +6343,11 @@
         "61579412930068": 651059,
         "61589962859070": 723670,
         "61574939311997": 156102
-      }
+      },
+      "seasonRewards": []
     }
   },
-  "lastInterestPayout": 1786299122607,
+  "lastInterestPayout": 1788216726954,
   "marriageBanks": {
     "100012709246650-100028592110425": {
       "balance": 0,
@@ -6394,7 +6403,7 @@
   "trueBlacklist": [],
   "market": [],
   "lastResetYear": 2026,
-  "lastResetMonth": 7,
+  "lastResetMonth": 8,
   "lastfmConnections": {
     "100088863765243": {
       "username": "oklamaa",
@@ -6791,7 +6800,7 @@
       "threadId": "7596572000383742"
     }
   },
-  "lastCzarnaKartaPayout": 1786317430012,
+  "lastCzarnaKartaPayout": 1788216726954,
   "allowedAI": [
     "61573228601016",
     {
@@ -6855,29 +6864,29 @@
   },
   "lastResetWinners": [
     {
-      "userId": "100012870817390",
-      "total": 230536698,
-      "item": "krolewskie_insygnia"
+      "userId": "0",
+      "total": 15000,
+      "item": "deweloper"
     },
     {
-      "userId": "100011378042556",
-      "total": 54924906,
-      "item": "licencja_monopolisty"
+      "userId": "1",
+      "total": 15000,
+      "item": "eclipse"
     },
     {
-      "userId": "61585934475590",
-      "total": 17719039,
-      "item": "szwajcarski_zegarek"
+      "userId": "2",
+      "total": 15000,
+      "item": "mark_of_sacrifice"
     },
     {
-      "userId": "61572761931589",
-      "total": 5067127,
-      "item": "ksiega_monopolisty"
+      "userId": "3",
+      "total": 15000,
+      "item": "polityk"
     },
     {
-      "userId": "100055453213238",
-      "total": 1617853,
-      "item": "katalizator_bogactwa"
+      "userId": "5",
+      "total": 15000,
+      "item": "nether_blade"
     }
   ],
   "justReset": false,
@@ -6885,8 +6894,8 @@
   "botStatus": {
     "loggedIn": true,
     "botId": "61560227271099",
-    "activeThreads": 101,
-    "lastHeartbeat": 1786327756384
+    "activeThreads": 108,
+    "lastHeartbeat": 1788216956987
   },
   "pendingAdminBroadcasts": [],
   "pendingAdminRestart": false,
@@ -6900,17 +6909,7 @@
   "gangTributeRate": 0,
   "casinoTaxRate": 15,
   "meczTaxRate": 15,
-  "events": [
-    {
-      "id": "evt_1786273476657_km6t",
-      "type": "cooldowns",
-      "multiplier": 1.25,
-      "reductionPercent": 20,
-      "endTime": 1786446276657,
-      "description": "",
-      "createdAt": 1786273476657
-    }
-  ],
+  "events": [],
   "customCooldowns": {},
   "afk": {
     "100081864906521": {
@@ -7160,7 +7159,7 @@
     "bet"
   ],
   "pendingLoanNotifications": [],
-  "nextTaxCollectionAt": 1786329114484,
+  "nextTaxCollectionAt": 1788238327216,
   "proposalModeration": {
     "100060812419294": {
       "warnings": 3,
@@ -7276,11 +7275,6 @@
     }
   },
   "gangAILogs": [
-    {
-      "gangId": "system",
-      "message": "Tick zakończony. Aktywne gangi AI: 6",
-      "timestamp": 1786182857026
-    },
     {
       "gangId": "system",
       "message": "Tick zakończony. Aktywne gangi AI: 6",
@@ -9775,6 +9769,11 @@
       "gangId": "system",
       "message": "Tick zakończony. Aktywne gangi AI: 6",
       "timestamp": 1786327483268
+    },
+    {
+      "gangId": "system",
+      "message": "Zainicjalizowano stałe gangi AI.",
+      "timestamp": 1788216730464
     }
   ],
   "podziekowania": {
@@ -9862,11 +9861,11 @@
   },
   "territories": {
     "activeIds": [
-      "centrum_wywiadu",
-      "slumsy",
+      "centrum_dowodzenia",
+      "centrum_finansowe",
+      "magazyny",
       "szpital_polowy",
-      "dworzec_towarowy",
-      "centrum_miasta"
+      "dzielnica_kasyn"
     ],
     "owners": {
       "centrum_wywiadu": "wkf",
@@ -9890,9 +9889,9 @@
       "strefa_przemyslowa": null,
       "centrum_dowodzenia": null
     },
-    "nextRotationAt": 1784933569670
+    "nextRotationAt": 1788821527194
   },
-  "nextGangReputationDecayAt": 1786761112205,
+  "nextGangReputationDecayAt": 1788821527192,
   "proposals": [
     {
       "num": 1,
@@ -10293,180 +10292,20 @@
   ],
   "pendingBalanceReports": {},
   "workTimestamps": {
-    "61551419289635": [
-      1786299358210,
-      1786300287492,
-      1786306167643,
-      1786307535171,
-      1786308355071,
-      1786309785342
+    "100015192882336": [
+      1788216738598
+    ],
+    "100085299561012": [
+      1788216763138
     ],
     "61589962859070": [
-      1786295636912,
-      1786296661574,
-      1786306151353,
-      1786307551511,
-      1786308542625,
-      1786310559902
-    ],
-    "61554695318900": [
-      1786264747444,
-      1786270083408,
-      1786277397794,
-      1786286330602,
-      1786308730482,
-      1786313580175
-    ],
-    "100011378042556": [
-      1786317364871,
-      1786318439234,
-      1786319484058,
-      1786321627855,
-      1786322261643,
-      1786324692781
-    ],
-    "61583310272500": [
-      1786296931537,
-      1786301858635,
-      1786304991590,
-      1786307574449,
-      1786309515204,
-      1786311492708
-    ],
-    "61591269621552": [
-      1786287045179,
-      1786291768671,
-      1786293264831,
-      1786300816378,
-      1786303602660,
-      1786306182925
-    ],
-    "61552139740185": [
-      1786271535187,
-      1786275201159,
-      1786283387116,
-      1786286203938,
-      1786290939311,
-      1786320492165
-    ],
-    "61589517081867": [
-      1786279536279,
-      1786281817937,
-      1786290028740,
-      1786291736133,
-      1786300326491,
-      1786307765047
-    ],
-    "61575310766041": [
-      1786288516414,
-      1786290174164,
-      1786291886433,
-      1786298119211,
-      1786299576570,
-      1786310264722
-    ],
-    "100087548303432": [
-      1786301745343,
-      1786305675888,
-      1786311665355,
-      1786312828816,
-      1786314606553,
-      1786320144699
-    ],
-    "100082531608158": [
-      1786291662537,
-      1786299642407,
-      1786309388326,
-      1786312065857,
-      1786319859954,
-      1786323361983
-    ],
-    "100070095279417": [
-      1786312990707,
-      1786314617652,
-      1786315137287,
-      1786315643962,
-      1786320775924,
-      1786321454127
+      1788216768054
     ],
     "100012870817390": [
-      1786319307327,
-      1786319971526,
-      1786323589205,
-      1786324389735,
-      1786324955397
+      1788216806590
     ],
-    "61578358133365": [
-      1786280482550,
-      1786288082938,
-      1786291668032,
-      1786307782935
-    ],
-    "100063577760118": [
-      1786280970477,
-      1786296381608,
-      1786305300882
-    ],
-    "100090787007856": [
-      1786305115419,
-      1786305948497,
-      1786314498618,
-      1786315358520,
-      1786321472594,
-      1786322009169
-    ],
-    "100041564054576": [
-      1786284677849,
-      1786299823995,
-      1786313782633
-    ],
-    "61576757225542": [
-      1786288326147,
-      1786314875455,
-      1786318875759,
-      1786323178848
-    ],
-    "61588292658003": [
-      1786291491570,
-      1786297930768,
-      1786299581448,
-      1786309212159,
-      1786310258728,
-      1786311685096
-    ],
-    "100075795036952": [
-      1786289140022,
-      1786312601090
-    ],
-    "61577777277558": [
-      1786291777278,
-      1786299690693,
-      1786319870327
-    ],
-    "61586147507661": [
-      1786294715887
-    ],
-    "100069665760730": [
-      1786296006869,
-      1786301027937,
-      1786306366583,
-      1786309397513
-    ],
-    "100020573437843": [
-      1786299298847
-    ],
-    "61591347282124": [
-      1786307796891
-    ],
-    "61552550549856": [
-      1786307851515,
-      1786313391635
-    ],
-    "100014940990338": [
-      1786308580100
-    ],
-    "100078075921094": [
-      1786323104448
+    "100055028388595": [
+      1788216838151
     ]
   },
   "workBotBans": {},
@@ -10474,27 +10313,23 @@
     {
       "gangId": "wkf",
       "name": "WKF",
-      "reputation": 3001,
+      "reputation": 3040,
       "reward": "korona_hegemonii"
     },
     {
       "gangId": "barostatniakropla",
       "name": "Bar Ostatnia Kropla",
-      "reputation": 255,
+      "reputation": 235,
       "reward": "lepsze_ufortyfikowanie"
     },
     {
       "gangId": "kiramann",
       "name": "Kiramann",
-      "reputation": 250,
+      "reputation": 230,
       "reward": "kodeks_honoru"
     }
   ],
-  "workBotFlagged": {
-    "61592337244802": 1785794395228,
-    "100087907171612": 1785888228580,
-    "100012870817390": 1786208542284
-  },
+  "workBotFlagged": {},
   "workBotAppeals": [
     {
       "num": 1,
@@ -10769,24 +10604,6 @@
       "difficulty": null,
       "reward": 80000,
       "streak": 1
-    },
-    "100012870817390": {
-      "taskId": "ruletka_streak_5",
-      "type": "ruletka_streak",
-      "label": "Urodzony hazardzista",
-      "description": "Wygrywaj !ruletka 5 razy pod rzad (min. 10k stawka)",
-      "target": 5,
-      "progress": 5,
-      "completed": true,
-      "claimed": true,
-      "pickedAt": 1786311384902,
-      "expiresAt": 1786397784902,
-      "nextAvailableAt": 1786397784902,
-      "minBet": 10000,
-      "maxNumber": null,
-      "difficulty": null,
-      "reward": 120000,
-      "streak": 5
     }
   },
   "dailyChallengeHistory": {
@@ -10868,5 +10685,6 @@
       "cr_hardcore_4"
     ]
   },
-  "forcedWorkEvent": {}
+  "forcedWorkEvent": {},
+  "lastMagicznaSakiewkaPayout": 1788216726954
 }
