@@ -52392,7 +52392,7 @@
     "workBoostUntil": 0,
     "workBoostPercent": 0,
     "tempCooldownReductionUntil": 0,
-    "negativeSince": 1788216787518,
+    "negativeSince": null,
     "activeLoan": null,
     "blacklistedForNegativeBalance": false,
     "company2": null,
@@ -66578,9 +66578,9 @@
     "badges": [],
     "marriedTo": null,
     "dailyCooldown": 0,
-    "messageCount": 3,
+    "messageCount": 4,
     "groupMessages": {
-      "4250424458562247": 3
+      "4250424458562247": 4
     },
     "commandCounts": {},
     "company": null,
@@ -66598,7 +66598,7 @@
     "claimedMilestones": [],
     "name": null,
     "id": "61575828606069",
-    "lastActiveTime": 1788216818347,
+    "lastActiveTime": 1788218188023,
     "lastWorkTime": 0,
     "workers": [],
     "worker": null,

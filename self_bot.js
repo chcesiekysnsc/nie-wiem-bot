@@ -11,18 +11,38 @@ require('dotenv').config();
 // Auto-seed disabled - data is managed manually on Railway
 function ensureSeededData() {
   const seedFiles = ['users.json', 'profiles.json', 'inventory.json'];
+  const seedVersionPath = path.join(__dirname, 'data_seed', '.seed_version');
+  const lastSeedVersionPath = path.join(DATA_DIR, '.last_seed_version');
+
   let copied = false;
+  const currentVersion = fs.existsSync(seedVersionPath)
+    ? fs.readFileSync(seedVersionPath, 'utf8').trim()
+    : '';
+
+  let lastVersion = null;
+  if (fs.existsSync(lastSeedVersionPath)) {
+    lastVersion = fs.readFileSync(lastSeedVersionPath, 'utf8').trim();
+  }
+
+  const forceRefresh = currentVersion && lastVersion && currentVersion !== lastVersion;
+
   for (const file of seedFiles) {
     const seedPath = path.join(__dirname, 'data_seed', file);
     const targetPath = path.join(DATA_DIR, file);
-    if (fs.existsSync(seedPath) && !fs.existsSync(targetPath)) {
+    if (!fs.existsSync(seedPath)) continue;
+
+    if (!fs.existsSync(targetPath) || forceRefresh) {
       fs.copyFileSync(seedPath, targetPath);
-      console.log(`[SEED] Skopiowano ${file} z data_seed/ do wolumenu (pusty wolumen).`);
+      console.log(`[SEED] Skopiowano ${file} z data_seed/ do wolumenu.`);
       copied = true;
     }
   }
-  if (copied) {
-    console.log('[SEED] Zainicjalizowano dane na pustym wolumenie z data_seed/.');
+
+  if (copied && currentVersion) {
+    fs.writeFileSync(lastSeedVersionPath, currentVersion, 'utf8');
+    console.log(`[SEED] Zaktualizowano wersję seedów do ${currentVersion}.`);
+  } else if (!fs.existsSync(lastSeedVersionPath) && currentVersion) {
+    fs.writeFileSync(lastSeedVersionPath, currentVersion, 'utf8');
   }
 }
 ensureSeededData();

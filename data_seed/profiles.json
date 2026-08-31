@@ -6895,7 +6895,7 @@
     "loggedIn": true,
     "botId": "61560227271099",
     "activeThreads": 108,
-    "lastHeartbeat": 1788216956987
+    "lastHeartbeat": 1788218193995
   },
   "pendingAdminBroadcasts": [],
   "pendingAdminRestart": false,
@@ -7275,11 +7275,6 @@
     }
   },
   "gangAILogs": [
-    {
-      "gangId": "system",
-      "message": "Tick zakończony. Aktywne gangi AI: 6",
-      "timestamp": 1786183157026
-    },
     {
       "gangId": "system",
       "message": "Tick zakończony. Aktywne gangi AI: 6",
@@ -9774,6 +9769,11 @@
       "gangId": "system",
       "message": "Zainicjalizowano stałe gangi AI.",
       "timestamp": 1788216730464
+    },
+    {
+      "gangId": "system",
+      "message": "Zainicjalizowano stałe gangi AI.",
+      "timestamp": 1788218188997
     }
   ],
   "podziekowania": {
