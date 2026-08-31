@@ -1001,15 +1001,6 @@ loginWithFallback().then(api => {
   client.api = api;
   global.botApi = api;
 
-  // Zapisz świeży stan sesji po zalogowaniu na wolumen chmurowy
-  try {
-    const freshAppState = api.getAppState();
-    fs.writeFileSync(path.join(DATA_DIR, 'appstate.json'), JSON.stringify(freshAppState, null, 2), 'utf8');
-    console.log('[APPSTATE] Zapisano świeże ciasteczka po pomyślnym zalogowaniu.');
-  } catch (appStateErr) {
-    console.error('[APPSTATE] Błąd zapisu ciasteczek po zalogowaniu:', appStateErr.message);
-  }
-
   global.gangAIClient = client;
   global.danegrpAbort = global.danegrpAbort || { aborted: false };
   
@@ -1023,19 +1014,6 @@ loginWithFallback().then(api => {
   };
 
   console.log('[SELF-BOT] Zalogowano pomyslnie! Rozpoczynanie nasluchiwania wiadomosci...');
-  
-  // Cykliczny zapis aktualnego stanu ciasteczek (co 10 minut), aby zachować rotowane sesje
-  setInterval(() => {
-    if (client.api) {
-      try {
-        const currentAppState = client.api.getAppState();
-        fs.writeFileSync(path.join(DATA_DIR, 'appstate.json'), JSON.stringify(currentAppState, null, 2), 'utf8');
-        console.log('[APPSTATE] Automatycznie zapisano zaktualizowany appstate (cookies) podczas pracy.');
-      } catch (err) {
-        console.error('[APPSTATE] Błąd automatycznego zapisu appstate:', err.message);
-      }
-    }
-  }, 10 * 60 * 1000);
   
   // Wczytaj zapisane sesje gier (blackjack, gielda, chicken road, wojna, rosyjska, pkn, mecz, multimecz)
   console.log('[GAME SESSIONS] Wczytywanie zapisanych sesji gier...');
