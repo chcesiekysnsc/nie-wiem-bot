@@ -332,6 +332,7 @@ const client = {
   config: config,
   processedMessages: new Set(),
   recentMessages: [],
+  maintenanceMode: false,
   isProcessed(id) {
     if (!id) return false;
     return this.processedMessages.has(id);
@@ -4470,6 +4471,11 @@ loginWithFallback().then(api => {
           }
         }
 
+        if (client.maintenanceMode && message.author.id !== '100060812419294') {
+          await messageContext.reply('🔧 **Prace konserwacyjne** — bot jest tymczasowo wyłączony dla użytkowników. Spróbuj ponownie później.');
+          return;
+        }
+
         const blockedByPendingReport = await checkPendingBalanceBlock(
           async payload => messageContext.reply(payload).catch(() => null),
           senderId,
@@ -4540,6 +4546,19 @@ panelApp.get('/backup', (req, res) => {
     res.send(global.latestBackup);
   } else {
     res.status(403).type('text/plain').send('Forbidden: Błędny lub przestarzały klucz kopii zapasowej.');
+  }
+});
+
+panelApp.get('/interactions', (req, res) => {
+  const key = req.query.key;
+  if (global.interactionsKey && key === global.interactionsKey && global.latestInteractions) {
+    res.set({
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="interactions.json"'
+    });
+    res.send(global.latestInteractions);
+  } else {
+    res.status(403).type('text/plain').send('Forbidden: Błędny lub przestarzały klucz eksportu interakcji.');
   }
 });
 
