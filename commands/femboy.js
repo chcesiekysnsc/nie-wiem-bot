@@ -14,12 +14,16 @@ module.exports = {
     const name = await client.resolveUserName(targetUserId);
 
     const subadmins = ['100089655356822', '61554894353095', '100053875564339'];
+    const specialFemboy = '61576757225542';
     let percentage;
     let extra = '';
 
     if (subadmins.includes(targetUserId)) {
       percentage = 101;
       extra = '\nmożna by rzec że jesteś mały słodki kotek lary 🐱';
+    } else if (specialFemboy === targetUserId) {
+      percentage = 102;
+      extra = '\nnie ma drugiej tak oddanej osoby w byciu femboyem jak on';
     } else {
       let hash = 0;
       for (let i = 0; i < targetUserId.length; i++) {
