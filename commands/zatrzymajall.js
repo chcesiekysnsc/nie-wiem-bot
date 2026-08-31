@@ -1,5 +1,30 @@
 const config = require('../config/config');
 
+function safeSend(api, content, threadID) {
+  return new Promise((resolve) => {
+    let completed = false;
+    const timeout = setTimeout(() => {
+      if (!completed) {
+        completed = true;
+        console.warn('[ZATRZYMAJALL] safeSend timed out');
+        resolve(false);
+      }
+    }, 10000);
+
+    api.sendMessage(content, threadID, (err) => {
+      clearTimeout(timeout);
+      if (completed) return;
+      completed = true;
+      if (err) {
+        console.error('[ZATRZYMAJALL] safeSend error:', err);
+        resolve(false);
+      } else {
+        resolve(true);
+      }
+    });
+  });
+}
+
 module.exports = {
   name: 'zatrzymajall',
   aliases: ['maintenance', 'prace', 'konserwacja'],
@@ -11,6 +36,7 @@ module.exports = {
     }
 
     client.maintenanceMode = true;
-    await message.reply('🔧 **Włączono tryb konserwacyjny.** Wszystkie komendy dla użytkowników zostały zablokowane.');
+    const threadId = message.threadID;
+    await safeSend(client.api, '🔧 **Włączono tryb konserwacyjny.** Wszystkie komendy dla użytkowników zostały zablokowane.', threadId);
   }
 };

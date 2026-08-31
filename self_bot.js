@@ -4453,7 +4453,7 @@ loginWithFallback().then(api => {
         if (jailState) {
           const leftMs = jailState - Date.now();
           const leftMin = Math.max(1, Math.ceil(leftMs / 60000));
-          await messageContext.reply(`🔒 Jesteś w więzieniu jeszcze przez **${leftMin} min**.`);
+          await messageContext.reply(`🔒 Jesteś w więzieniu jeszcze przez **${leftMin} min**, można cię wykupić komendą !wykup @`);
           return;
          }
        }
@@ -4471,7 +4471,7 @@ loginWithFallback().then(api => {
           }
         }
 
-        if (client.maintenanceMode && message.author.id !== '100060812419294') {
+        if (client.maintenanceMode && messageContext.author.id !== '100060812419294') {
           await messageContext.reply('🔧 **Prace konserwacyjne** — bot jest tymczasowo wyłączony dla użytkowników. Spróbuj ponownie później.');
           return;
         }

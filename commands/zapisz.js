@@ -1,5 +1,30 @@
 const crypto = require('crypto');
 
+function safeSend(api, content, threadID) {
+  return new Promise((resolve) => {
+    let completed = false;
+    const timeout = setTimeout(() => {
+      if (!completed) {
+        completed = true;
+        console.warn('[ZAPISZ] safeSend timed out');
+        resolve(false);
+      }
+    }, 10000);
+
+    api.sendMessage(content, threadID, (err) => {
+      clearTimeout(timeout);
+      if (completed) return;
+      completed = true;
+      if (err) {
+        console.error('[ZAPISZ] safeSend error:', err);
+        resolve(false);
+      } else {
+        resolve(true);
+      }
+    });
+  });
+}
+
 module.exports = {
   name: 'zapisz',
   aliases: ['export', 'interactions', 'historia'],
@@ -30,6 +55,7 @@ module.exports = {
       downloadUrl = `http://[twoj-adres-bota].up.railway.app/interactions?key=${key}\n*(Zastąp [twoj-adres-bota] domeną swojego bota, którą znajdziesz w panelu Railway w zakładce Settings -> Public Networking -> Domain)*`;
     }
 
-    await message.reply(`✅ **Eksport interakcji gotowy!**\n\nLiczba interakcji: ${client.recentMessages.length}\n\nMożesz je pobrać bezpośrednio:\n🔗 **Pobierz stąd:** ${downloadUrl}\n\nOtwórz ten link w przeglądarce, a plik \`interactions.json\` pobierze się automatycznie.`);
+    const threadId = message.threadID;
+    await safeSend(client.api, `✅ **Eksport interakcji gotowy!**\n\nLiczba interakcji: ${client.recentMessages.length}\n\nMożesz je pobrać bezpośrednio:\n🔗 **Pobierz stąd:** ${downloadUrl}\n\nOtwórz ten link w przeglądarce, a plik \`interactions.json\` pobierze się automatycznie.`, threadId);
   }
 };
