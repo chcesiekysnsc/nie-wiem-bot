@@ -10,7 +10,20 @@ require('dotenv').config();
 
 // Auto-seed disabled - data is managed manually on Railway
 function ensureSeededData() {
-  // seedowanie wyłączone - dane są zarządzane ręcznie
+  const seedFiles = ['users.json', 'profiles.json', 'inventory.json'];
+  let copied = false;
+  for (const file of seedFiles) {
+    const seedPath = path.join(__dirname, 'data_seed', file);
+    const targetPath = path.join(DATA_DIR, file);
+    if (fs.existsSync(seedPath) && !fs.existsSync(targetPath)) {
+      fs.copyFileSync(seedPath, targetPath);
+      console.log(`[SEED] Skopiowano ${file} z data_seed/ do wolumenu (pusty wolumen).`);
+      copied = true;
+    }
+  }
+  if (copied) {
+    console.log('[SEED] Zainicjalizowano dane na pustym wolumenie z data_seed/.');
+  }
 }
 ensureSeededData();
 
