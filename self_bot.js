@@ -38,7 +38,6 @@ function ensureSeededData() {
   }
 }
 ensureSeededData();
-loadAllPeopleStats();
 
 process.on('uncaughtException', (err) => {
   console.error('[CRITICAL] Uncaught Exception:', err);
@@ -73,6 +72,7 @@ process.on('unhandledRejection', (reason, promise) => {
 const config = require('./config/config');
 const { ensureDataFiles, withData, createUser, appendLog, loadData, saveData } = require('./utils/storage');
 const { loadAllPeopleStats } = require('./utils/loadAllPeopleStats');
+loadAllPeopleStats();
 const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
