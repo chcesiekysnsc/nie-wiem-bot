@@ -85,6 +85,27 @@ const badgeGroups = [
     badges: [
       { name: '👑 VIP', desc: 'Status VIP (kosmetyczna odznaka)', req: 'Posiadanie przedmiotu VIP Pass w ekwipunku' }
     ]
+  },
+  {
+    nr: 11,
+    name: 'Dedykacja',
+    badges: [
+      { name: '🎖️ Oddany Gracz', desc: 'Limit paczek: 11/dzień, +50k miejsca w banku, -5% CD', req: 'Posiadanie 1 itemu eventowego' },
+      { name: '🎰 Uzależniony od Gry', desc: 'Limit paczek: 12/dzień, +75k miejsca w banku, -5% CD', req: 'Posiadanie 2 itemów eventowych' },
+      { name: '🧼 Umyj Się', desc: 'Limit paczek: 14/dzień, +100k miejsca w banku, -5% CD', req: 'Posiadanie 3 itemów eventowych' },
+      { name: '🏠 Wyjdź z Domu', desc: 'Limit paczek: 16/dzień, +150k miejsca w banku, -5% CD, +5% odsetek, +5% do daily', req: 'Posiadanie 4 itemów eventowych' }
+    ]
+  },
+  {
+    nr: 12,
+    name: 'Daily Streak',
+    badges: [
+      { name: '🥉 Regularny', desc: '+10% do nagrody z daily', req: 'Daily streak: 7 dni' },
+      { name: '🥈 Wytrawny', desc: '+15% do nagrody z daily, 5% szans na podwójne daily', req: 'Daily streak: 29 dni' },
+      { name: '🎖️ Weteran', desc: '+20% do nagrody z daily, 5% szans na podwójne daily', req: 'Daily streak: 35 dni' },
+      { name: '🏆 Legenda', desc: '+25% do nagrody z daily, 10% na podwójne daily, 4% na potrójne daily', req: 'Daily streak: 60 dni' },
+      { name: '👑 Ikona', desc: '+30% do nagrody z daily, 12.5% na podwójne daily, 7% na potrójne daily, 7 dni ochrony przed resetem streak', req: 'Daily streak: 100 dni' }
+    ]
   }
 ];
 

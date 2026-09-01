@@ -1485,7 +1485,16 @@ module.exports = {
     placzek: '😭 Płaczka',
     boss: '👑 Boss Gangu',
     zastepca: '⭐ Zastępca',
-    czlonek: '👤 Członek Gangu'
+    czlonek: '👤 Członek Gangu',
+    oddany_gracz: '🎖️ Oddany Gracz',
+    wyjdz_z_domu: '🏠 Wyjdź z Domu',
+    umyj_sie: '🧼 Umyj Się',
+    uzalezniony_od_gry: '🎰 Uzależniony od Gry',
+    regularny: '🥉 Regularny',
+    wytrwaly: '🥈 Wytrawny',
+    weteran_streak: '🎖️ Weteran',
+    legenda: '🏆 Legenda',
+    ikona: '👑 Ikona'
   },
   gangAI: {
     enabled: true,

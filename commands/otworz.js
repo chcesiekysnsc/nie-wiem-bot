@@ -1,6 +1,7 @@
 const { formatCurrency, randomInt, addItem, removeItem, hasItem, ensureInventoryRecord, getItemQuantity, getActiveEventMultiplier } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveLuck } = require('../utils/chances');
+const config = require('../config/config');
 
 // Normalizacja polskich liter z wejścia gracza
 function normalizePack(str) {
@@ -252,7 +253,18 @@ module.exports = {
       }
 
       const openedToday = user.openedPackagesToday || 0;
-      const limit = 10;
+      let limit = 10;
+      if (user.badges) {
+        if (user.badges.includes(config.badges.wyjdz_z_domu)) {
+          limit = 16;
+        } else if (user.badges.includes(config.badges.umyj_sie)) {
+          limit = 14;
+        } else if (user.badges.includes(config.badges.uzalezniony_od_gry)) {
+          limit = 12;
+        } else if (user.badges.includes(config.badges.oddany_gracz)) {
+          limit = 11;
+        }
+      }
       const remaining = limit - openedToday;
 
       if (remaining <= 0) {
@@ -304,7 +316,7 @@ module.exports = {
 
       user.balance = (user.balance || 0) + totalCash;
 
-      return { count, totalCash, balance: user.balance, itemsSummary, fallbackCount, openedPackagesToday: user.openedPackagesToday };
+      return { count, totalCash, balance: user.balance, itemsSummary, fallbackCount, openedPackagesToday: user.openedPackagesToday, limit };
     });
 
     if (result.error) {
@@ -342,7 +354,7 @@ module.exports = {
         `✨ **BUM!** ✨\n` +
         `💰 Wygrałeś: **${formatCurrency(result.totalCash)}**!\n` +
         `${dropLine}\n\n` +
-        `📅 Limit otwierania na dziś: **${result.openedPackagesToday}/10**\n` +
+        `📅 Limit otwierania na dziś: **${result.openedPackagesToday}/${result.limit}**\n` +
         `👛 Portfel: **${formatCurrency(result.balance)}**`
       );
     } else {
@@ -372,7 +384,7 @@ module.exports = {
         `✨ **PODSUMOWANIE OTWARCIA** ✨\n` +
         `💰 Łączna wygrana gotówka: **+${formatCurrency(result.totalCash)}**!\n\n` +
         `${dropLine}\n\n` +
-        `📅 Limit otwierania na dziś: **${result.openedPackagesToday}/10**\n` +
+        `📅 Limit otwierania na dziś: **${result.openedPackagesToday}/${result.limit}**\n` +
         `👛 Portfel: **${formatCurrency(result.balance)}**`
       );
     }

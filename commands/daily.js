@@ -65,7 +65,11 @@ module.exports = {
       const yesterdayMidnight = getPolishMidnight(new Date(todayMidnight - 12 * 60 * 60 * 1000));
       const lastClaim = user.lastDailyClaim || 0;
 
-      if (lastClaim >= yesterdayMidnight) {
+      const hasIkona = user.badges && user.badges.includes(config.badges.ikona);
+      const streakResetLimit = hasIkona ? 7 * 24 * 60 * 60 * 1000 : 12 * 60 * 60 * 1000;
+      const streakResetMidnight = getPolishMidnight(new Date(todayMidnight - streakResetLimit));
+
+      if (lastClaim >= streakResetMidnight) {
         user.dailyStreak = (user.dailyStreak || 0) + 1;
       } else {
         user.dailyStreak = 1;
@@ -95,8 +99,37 @@ module.exports = {
         if (user.badges.includes(config.badges.married)) {
           dailyBonusMult += 0.02;
         }
+
+        if (user.badges.includes(config.badges.regularny)) {
+          dailyBonusMult += 0.10;
+        }
+        if (user.badges.includes(config.badges.wytrwaly)) {
+          dailyBonusMult += 0.15;
+        }
+        if (user.badges.includes(config.badges.weteran_streak)) {
+          dailyBonusMult += 0.20;
+        }
+        if (user.badges.includes(config.badges.legenda)) {
+          dailyBonusMult += 0.25;
+        }
+        if (user.badges.includes(config.badges.ikona)) {
+          dailyBonusMult += 0.30;
+        }
       }
       reward = Math.floor(reward * dailyBonusMult);
+
+      let dailyMultiplier = 1;
+      if (user.badges) {
+        if (user.badges.includes(config.badges.legenda)) {
+          if (Math.random() < 0.04) dailyMultiplier *= 3;
+          else if (Math.random() < 0.10) dailyMultiplier *= 2;
+        }
+        if (user.badges.includes(config.badges.ikona)) {
+          if (Math.random() < 0.07) dailyMultiplier *= 3;
+          else if (Math.random() < 0.125) dailyMultiplier *= 2;
+        }
+      }
+      reward = Math.floor(reward * dailyMultiplier);
 
       if (hasItem(inventory, 'krolewskie_insygnia')) {
         reward = Math.floor(reward * 1.10);
@@ -124,7 +157,8 @@ module.exports = {
 
       return {
         reward,
-        streak: user.dailyStreak
+        streak: user.dailyStreak,
+        dailyMultiplier
       };
     });
 
@@ -133,6 +167,11 @@ module.exports = {
       return;
     }
 
-    await message.reply(`📅 Odebrano daily! **+${formatCurrency(result.reward)}** (Dzień: ${result.streak})`);
+    let reply = `📅 Odebrano daily! **+${formatCurrency(result.reward)}** (Dzień: ${result.streak})`;
+    if (result.dailyMultiplier && result.dailyMultiplier > 1) {
+      const multText = result.dailyMultiplier === 3 ? '**POTRÓJNE DAILY!** 🎉' : '**PODWÓJNE DAILY!** 🎉';
+      reply = `📅 Odebrano daily! ${multText} **+${formatCurrency(result.reward)}** (Dzień: ${result.streak})`;
+    }
+    await message.reply(reply);
   }
 };

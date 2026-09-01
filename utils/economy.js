@@ -338,6 +338,19 @@ function getBankCapacity(user, inventoryRecord) {
     capacity += 50000;
   }
 
+  if (user.badges && user.badges.includes(config.badges.oddany_gracz)) {
+    capacity += 50000;
+  }
+  if (user.badges && user.badges.includes(config.badges.uzalezniony_od_gry)) {
+    capacity += 75000;
+  }
+  if (user.badges && user.badges.includes(config.badges.umyj_sie)) {
+    capacity += 100000;
+  }
+  if (user.badges && user.badges.includes(config.badges.wyjdz_z_domu)) {
+    capacity += 150000;
+  }
+
   capacity += getHouseBankCapacityBonus(user);
 
   const { getItemSetBonus } = require('./itemSets');
@@ -454,6 +467,25 @@ function refreshBadges(user, inventoryRecord) {
       staticBadges.push('🏛️ Radny');
     }
   }
+
+  const EVENT_ITEM_IDS = [
+    'szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz',
+    'krysztal_doswiadczenia', 'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta',
+    'kosci_oszusta', 'czterolistna_moneta', 'deweloper', 'eclipse',
+    'mark_of_sacrifice', 'polityk', 'nether_blade'
+  ];
+  const eventItemCount = EVENT_ITEM_IDS.filter(id => hasItem(inventoryRecord, id)).length;
+  if (eventItemCount >= 4) staticBadges.push(config.badges.wyjdz_z_domu);
+  else if (eventItemCount >= 3) staticBadges.push(config.badges.umyj_sie);
+  else if (eventItemCount >= 2) staticBadges.push(config.badges.uzalezniony_od_gry);
+  else if (eventItemCount >= 1) staticBadges.push(config.badges.oddany_gracz);
+
+  const streak = user.dailyStreak || 0;
+  if (streak >= 100) staticBadges.push(config.badges.ikona);
+  else if (streak >= 60) staticBadges.push(config.badges.legenda);
+  else if (streak >= 35) staticBadges.push(config.badges.weteran_streak);
+  else if (streak >= 29) staticBadges.push(config.badges.wytrwaly);
+  else if (streak >= 7) staticBadges.push(config.badges.regularny);
 
   user.badges = [...new Set(staticBadges)];
   if (user.id === '100014929176652') {

@@ -52,7 +52,12 @@ module.exports = {
       const setBonus = getItemSetBonus(inventory, 'bank_interest');
       
       const totalInterestRate = baseInterestRate + itemBonus + setBonus;
-      const finalInterestRate = totalInterestRate * eventInterestMul;
+
+      let badgeInterestBonus = 0;
+      if (user.badges && user.badges.includes(config.badges.wyjdz_z_domu)) {
+        badgeInterestBonus += 0.05;
+      }
+      const finalInterestRate = totalInterestRate + badgeInterestBonus + (eventInterestMul - 1);
       const interestPercent = Math.round(finalInterestRate * 100);
 
       return {

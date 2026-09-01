@@ -171,6 +171,13 @@ async function checkCooldown(commandName, userId) {
       if (user.badges.includes(config.badges.wladcaBota)) {
         duration = Math.floor(duration * 0.95);
       }
+
+      if (user.badges.includes(config.badges.oddany_gracz) ||
+          user.badges.includes(config.badges.uzalezniony_od_gry) ||
+          user.badges.includes(config.badges.umyj_sie) ||
+          user.badges.includes(config.badges.wyjdz_z_domu)) {
+        duration = Math.floor(duration * 0.95);
+      }
     }
 
     // Dom i Siłownia cooldown reduction
