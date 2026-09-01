@@ -190,11 +190,25 @@ module.exports = {
           user.paczkiBoughtLimitDate = today;
           user.paczkiBoughtToday = 0;
         }
-        if (user.paczkiBoughtToday >= 10) {
-          return { error: `❌ Osiągnąłeś już dzisiejszy limit zakupu paczek w sklepie (10/10).` };
+
+        let limit = 10;
+        if (user.badges) {
+          if (user.badges.includes(config.badges.wyjdz_z_domu)) {
+            limit = 16;
+          } else if (user.badges.includes(config.badges.umyj_sie)) {
+            limit = 14;
+          } else if (user.badges.includes(config.badges.uzalezniony_od_gry)) {
+            limit = 12;
+          } else if (user.badges.includes(config.badges.oddany_gracz)) {
+            limit = 11;
+          }
         }
-        if (user.paczkiBoughtToday + quantity > 10) {
-          return { error: `❌ Możesz dziś kupić jeszcze tylko **${10 - user.paczkiBoughtToday}** paczek (chcesz kupić: ${quantity}).` };
+
+        if (user.paczkiBoughtToday >= limit) {
+          return { error: `❌ Osiągnąłeś już dzisiejszy limit zakupu paczek w sklepie (${limit}/${limit}).` };
+        }
+        if (user.paczkiBoughtToday + quantity > limit) {
+          return { error: `❌ Możesz dziś kupić jeszcze tylko **${limit - user.paczkiBoughtToday}** paczek (chcesz kupić: ${quantity}).` };
         }
       }
 
@@ -210,7 +224,7 @@ module.exports = {
       }
       refreshBadges(user, inventory);
 
-      return { quantity, totalPrice, balance: user.balance, paczkiBoughtToday: isPackage ? user.paczkiBoughtToday : undefined };
+      return { quantity, totalPrice, balance: user.balance, paczkiBoughtToday: isPackage ? user.paczkiBoughtToday : undefined, packageLimit: isPackage ? limit : undefined };
     });
 
     if (result.error) {
@@ -218,7 +232,7 @@ module.exports = {
       return;
     }
 
-    const boughtInfo = result.paczkiBoughtToday !== undefined ? ` [Kupiono dziś paczek: ${result.paczkiBoughtToday}/10]` : '';
+    const boughtInfo = result.paczkiBoughtToday !== undefined ? ` [Kupiono dziś paczek: ${result.paczkiBoughtToday}/${result.packageLimit || 10}]` : '';
     await message.reply(`🛒 Zakup udany! Kupiono **${item.name}** x${result.quantity} za **${formatCurrency(result.totalPrice)}**. (Portfel: ${formatCurrency(result.balance)})${boughtInfo}`);
   }
 };
