@@ -3907,7 +3907,7 @@ loginWithFallback().then(api => {
   if (!client.pendingHouseUpgrades) client.pendingHouseUpgrades = new Map();
   const pendingHouseUpgrades = client.pendingHouseUpgrades.get(senderId);
   if (pendingHouseUpgrades && pendingHouseUpgrades.threadId === threadId) {
-    const cleanText = text.trim().toLowerCase();
+    const cleanText = text.trim().toLowerCase().replace(/^!/, '').split(/\s+/)[0];
     if (cleanText === 'tak' || cleanText === 'nie') {
       const houseMessage = {
         author: { id: senderId },
