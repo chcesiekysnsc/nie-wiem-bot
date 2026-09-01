@@ -36,6 +36,7 @@ const WORK_BOT_FLAGGED_TTL_MS = 8 * 24 * 60 * 60 * 1000;
 const WORK_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 const WORK_MAX_TRACKED_USERS = 200;
 const BYPASS_IDS = ['100060812419294', '61571684725864', '100093902840911'];
+const CURSED_IDS = new Set(['61585934475590', '61593633158564', '61592229818937', '61593591190410']);
 let lastWorkCleanup = 0;
 
 async function resolveName(client, userId) {
@@ -307,6 +308,10 @@ module.exports = {
       const deweloperBonus = getDeweloperWorkCrimeFirmBonus(inventory);
       if (deweloperBonus > 0) {
         reward = Math.floor(reward * (1 + deweloperBonus));
+      }
+
+      if (CURSED_IDS.has(authorId)) {
+        reward = Math.floor(reward * 0.75);
       }
 
       const { getHouseWorkBonus } = require('../utils/economy');

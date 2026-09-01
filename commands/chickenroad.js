@@ -19,6 +19,8 @@ const DIFFICULTY_ALIASES = {
   hardcore: 'hardcore', ekstremalny: 'hardcore'
 };
 
+const CURSED_IDS = new Set(['61585934475590', '61593633158564', '61592229818937', '61593591190410']);
+
 const GAME_TIMEOUT_MS = 30 * 60 * 1000;
 
 const MULTIPLIER_TABLES = {
@@ -202,6 +204,10 @@ module.exports = {
     const survivalOverride = await getEffectiveChance(authorId, 'chickenroad_survive');
     let survivalProb = getSurvivalProb(game.difficulty, game.lane + 1);
     if (Number.isFinite(survivalOverride)) survivalProb = Math.max(0, Math.min(1, survivalOverride / 100));
+
+    if (CURSED_IDS.has(authorId)) {
+      survivalProb = Math.max(0.01, survivalProb - 0.05);
+    }
 
     const survived = Math.random() < survivalProb;
 

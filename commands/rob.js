@@ -18,6 +18,7 @@ const { advanceChallenge } = require('../utils/challenges');
 
 const robCooldowns = new Map();
 const caughtBan = new Map();
+const CURSED_IDS = new Set(['61585934475590', '61593633158564', '61592229818937', '61593591190410']);
 
 async function resolveName(client, userId) {
   if (typeof client.resolveUserName === 'function') {
@@ -119,6 +120,10 @@ function calculateSuccessChance(robberInv, victimInv, robber, overrideChance, vi
   const netherBladeDefenseReduction = getNetherBladeRobDefenseReduction(victimInv);
   if (netherBladeDefenseReduction > 0) {
     chance -= netherBladeDefenseReduction;
+  }
+
+  if (CURSED_IDS.has(robber.id)) {
+    chance -= 0.25;
   }
 
   return Math.min(chance, 1);
