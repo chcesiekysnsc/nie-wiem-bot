@@ -169,6 +169,8 @@ module.exports = {
     const result = await withData(store => {
       const user      = createUser(message.author.id, store.users);
       const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+      refreshBadges(user, inventory);
+
       const discount = getShopDiscount();
       const effectivePrice = Math.max(0, Math.floor(item.price * (1 - discount / 100)));
 
