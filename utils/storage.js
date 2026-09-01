@@ -12,7 +12,9 @@ const DATA_FILES = {
   logs: path.join(DATA_DIR, 'logs.json'),
   groupStats: path.join(DATA_DIR, 'groupStats.json'),
   spotify: path.join(DATA_DIR, 'spotify.json'),
-  superbosses: path.join(DATA_DIR, 'superbosses.json')
+  superbosses: path.join(DATA_DIR, 'superbosses.json'),
+  game_sessions: path.join(DATA_DIR, 'game_sessions.json'),
+  active_bets: path.join(DATA_DIR, 'active_bets.json')
 };
 
 const FILE_DEFAULTS = {
@@ -27,7 +29,9 @@ const FILE_DEFAULTS = {
   logs: [],
   groupStats: {},
   spotify: {},
-  superbosses: {}
+  superbosses: {},
+  game_sessions: {},
+  active_bets: {}
 };
 
 let writeQueue = Promise.resolve();
@@ -68,7 +72,7 @@ function ensureDataFiles() {
   const backupFilePath = path.join(__dirname, '..', 'backup_database.json');
   const importMarkerPath = path.join(DATA_DIR, '.backup_imported');
 
-  if (fs.existsSync(backupFilePath) && !fs.existsSync(importMarkerPath)) {
+  if (process.env.DISABLE_AUTO_RESTORE !== 'true' && fs.existsSync(backupFilePath) && !fs.existsSync(importMarkerPath)) {
     console.log('[AUTO-RESTORE] Wykryto plik backup_database.json. Rozpoczynam automatyczne przywracanie...');
     try {
       const rawBackup = fs.readFileSync(backupFilePath, 'utf8');
@@ -116,9 +120,8 @@ function ensureDataFiles() {
   for (const [key, filePath] of Object.entries(DATA_FILES)) {
     const backupPath = hasBackupDir ? path.join(BACKUP_DIR, `${key}.json`) : null;
     const localExists = fs.existsSync(filePath);
-    const localEmpty = localExists ? !fs.readFileSync(filePath, 'utf8').trim() : true;
 
-    if (localEmpty) {
+    if (!localExists) {
       if (backupPath && fs.existsSync(backupPath) && fs.readFileSync(backupPath, 'utf8').trim()) {
         fs.writeFileSync(filePath, fs.readFileSync(backupPath, 'utf8'), 'utf8');
       } else {
@@ -952,6 +955,8 @@ async function withData(callback) {
     const g = loadData('groupStats');
     const s = loadData('spotify');
     const sb = loadData('superbosses');
+    const gs = loadData('game_sessions');
+    const ab = loadData('active_bets');
 
     const store = {
       users: u,
@@ -961,7 +966,9 @@ async function withData(callback) {
       logs: l,
       groupStats: g,
       spotify: s,
-      superbosses: sb
+      superbosses: sb,
+      game_sessions: gs,
+      active_bets: ab
     };
 
     // Synchronizacja dynamicznych adminów z config.admins
@@ -1062,6 +1069,8 @@ async function withData(callback) {
     saveData('groupStats', store.groupStats);
     saveData('spotify', store.spotify);
     saveData('superbosses', store.superbosses);
+    saveData('game_sessions', store.game_sessions);
+    saveData('active_bets', store.active_bets);
 
     return result;
   };
