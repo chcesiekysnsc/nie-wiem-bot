@@ -3908,7 +3908,29 @@ loginWithFallback().then(api => {
   const pendingHouseUpgrades = client.pendingHouseUpgrades.get(senderId);
   if (pendingHouseUpgrades && pendingHouseUpgrades.threadId === threadId) {
     const cleanText = text.trim().toLowerCase();
-    if (cleanText === 'tak') {
+    if (cleanText === 'tak' || cleanText === 'nie') {
+      const houseMessage = {
+        author: { id: senderId },
+        mentions: event.mentions || {},
+        reply: async (payload) => {
+          const replyText = renderPayloadToText(payload);
+          if (!replyText) return null;
+          return new Promise((resolve, reject) => {
+            api.sendMessage(replyText, threadId, (sendErr, msgInfo) => {
+              if (sendErr) return reject(sendErr);
+              resolve(msgInfo);
+            }, messageId);
+          });
+        }
+      };
+
+      if (cleanText === 'nie') {
+        clearTimeout(pendingHouseUpgrades.timeout);
+        client.pendingHouseUpgrades.delete(senderId);
+        await houseMessage.reply('❌ Anulowano ulepszenie domu.');
+        return;
+      }
+
       clearTimeout(pendingHouseUpgrades.timeout);
       client.pendingHouseUpgrades.delete(senderId);
 
@@ -3953,19 +3975,12 @@ loginWithFallback().then(api => {
       });
 
       if (upgradeResult.error) {
-        await messageContext.reply(upgradeResult.error);
+        await houseMessage.reply(upgradeResult.error);
         return;
       }
 
       const slotEmoji = pendingHouseUpgrades.upgradeName === 'warsztat' ? '🔧' : (pendingHouseUpgrades.upgradeName === 'zbrojownia' ? '⚔️' : '🏋️');
-      await messageContext.reply(`🔨 Pomyślnie ulepszyłeś ${slotEmoji} **${pendingHouseUpgrades.upgradeName.toUpperCase()}** na poziom **${upgradeResult.newLvl}/5** za **${formatCurrency(upgradeResult.totalCost)}**!`);
-      return;
-    }
-
-    if (cleanText === 'nie') {
-      clearTimeout(pendingHouseUpgrades.timeout);
-      client.pendingHouseUpgrades.delete(senderId);
-      await messageContext.reply('❌ Anulowano ulepszenie domu.');
+      await houseMessage.reply(`🔨 Pomyślnie ulepszyłeś ${slotEmoji} **${pendingHouseUpgrades.upgradeName.toUpperCase()}** na poziom **${upgradeResult.newLvl}/5** za **${formatCurrency(upgradeResult.totalCost)}**!`);
       return;
     }
   }

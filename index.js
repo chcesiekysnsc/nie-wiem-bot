@@ -170,9 +170,16 @@ async function executeCommand(event, pageId) {
   const pendingHouseUpgrades = client.pendingHouseUpgrades.get(senderId);
   if (pendingHouseUpgrades && pendingHouseUpgrades.threadId === (event.threadID || pageId)) {
     const cleanText = text.trim().toLowerCase();
-    if (cleanText === 'tak') {
+    if (cleanText === 'tak' || cleanText === 'nie') {
+      const senderUser = await client.cacheUser(senderId);
+      const message = createMessageContext(client, senderUser, text, [], event, pageId);
       clearTimeout(pendingHouseUpgrades.timeout);
       client.pendingHouseUpgrades.delete(senderId);
+
+      if (cleanText === 'nie') {
+        await message.reply('❌ Anulowano ulepszenie domu.');
+        return;
+      }
 
       const upgradeResult = await withData(store => {
         const user = createUser(senderId, store.users);
@@ -221,13 +228,6 @@ async function executeCommand(event, pageId) {
 
       const slotEmoji = pendingHouseUpgrades.upgradeName === 'warsztat' ? '🔧' : (pendingHouseUpgrades.upgradeName === 'zbrojownia' ? '⚔️' : '🏋️');
       await message.reply(`🔨 Pomyślnie ulepszyłeś ${slotEmoji} **${pendingHouseUpgrades.upgradeName.toUpperCase()}** na poziom **${upgradeResult.newLvl}/5** za **${formatCurrency(upgradeResult.totalCost)}**!`);
-      return;
-    }
-
-    if (cleanText === 'nie') {
-      clearTimeout(pendingHouseUpgrades.timeout);
-      client.pendingHouseUpgrades.delete(senderId);
-      await message.reply('❌ Anulowano ulepszenie domu.');
       return;
     }
   }
