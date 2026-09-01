@@ -10,8 +10,8 @@ require('dotenv').config();
 
 // Auto-seed disabled - data is managed manually on Railway
 function ensureSeededData() {
-  const seedFiles = ['users.json', 'profiles.json', 'inventory.json', 'appstate.json'];
-  const seedVersionPath = path.join(__dirname, 'data_seed', '.seed_version');
+  const seedDir = path.join(__dirname, 'data_seed');
+  const seedVersionPath = path.join(seedDir, '.seed_version');
   const lastSeedVersionPath = path.join(DATA_DIR, '.last_seed_version');
 
   let copied = false;
@@ -26,8 +26,12 @@ function ensureSeededData() {
 
   const forceRefresh = currentVersion && lastVersion && currentVersion !== lastVersion;
 
+  if (!fs.existsSync(seedDir)) return;
+
+  const seedFiles = fs.readdirSync(seedDir).filter(f => f.endsWith('.json'));
+
   for (const file of seedFiles) {
-    const seedPath = path.join(__dirname, 'data_seed', file);
+    const seedPath = path.join(seedDir, file);
     const targetPath = path.join(DATA_DIR, file);
     if (!fs.existsSync(seedPath)) continue;
 
@@ -46,6 +50,7 @@ function ensureSeededData() {
   }
 }
 ensureSeededData();
+loadAllPeopleStats();
 
 process.on('uncaughtException', (err) => {
   console.error('[CRITICAL] Uncaught Exception:', err);
