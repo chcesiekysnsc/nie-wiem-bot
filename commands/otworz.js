@@ -1,4 +1,4 @@
-const { formatCurrency, randomInt, addItem, removeItem, hasItem, ensureInventoryRecord, getItemQuantity, getActiveEventMultiplier } = require('../utils/economy');
+const { formatCurrency, randomInt, addItem, removeItem, hasItem, ensureInventoryRecord, getItemQuantity, getActiveEventMultiplier, refreshBadges } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { getEffectiveLuck } = require('../utils/chances');
 const config = require('../config/config');
@@ -315,6 +315,7 @@ module.exports = {
       }
 
       user.balance = (user.balance || 0) + totalCash;
+      refreshBadges(user, inventory);
 
       return { count, totalCash, balance: user.balance, itemsSummary, fallbackCount, openedPackagesToday: user.openedPackagesToday, limit };
     });

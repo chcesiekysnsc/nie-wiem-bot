@@ -1,5 +1,6 @@
 const { formatCurrency, refreshBadges, ensureInventoryRecord, hasItem } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
+const config = require('../config/config');
 
 module.exports = {
   name: 'bal',
