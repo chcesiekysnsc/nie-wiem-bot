@@ -13,6 +13,7 @@ const { createMessageContext, createMessengerClient } = require('./utils/messeng
 const { checkAndResetBalance, checkPendingBalanceBlock } = require('./utils/balanceMonitor');
 const { resolveArtefaktyCategory, resolveGangArtefaktyCategory, buildArtefaktyCategoryList, buildGangArtefaktyCategoryList } = require('./utils/artefactHelpSystem');
 const { loadGameSessions, restoreGameSessions } = require('./utils/gameStatePersistence');
+const { formatCurrency, HOUSE_TIERS, UPGRADES_COSTS, hasItem, ensureInventoryRecord } = require('./utils/economy');
 
 const client = createMessengerClient(config);
 client.config = config;
@@ -161,6 +162,72 @@ async function executeCommand(event, pageId) {
       if (replyText) {
         client.sendText(senderId, replyText, 'RESPONSE');
       }
+      return;
+    }
+  }
+
+  if (!client.pendingHouseUpgrades) client.pendingHouseUpgrades = new Map();
+  const pendingHouseUpgrades = client.pendingHouseUpgrades.get(senderId);
+  if (pendingHouseUpgrades && pendingHouseUpgrades.threadId === (event.threadID || pageId)) {
+    const cleanText = text.trim().toLowerCase();
+    if (cleanText === 'tak') {
+      clearTimeout(pendingHouseUpgrades.timeout);
+      client.pendingHouseUpgrades.delete(senderId);
+
+      const upgradeResult = await withData(store => {
+        const user = createUser(senderId, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, senderId);
+        if (!user.house || !user.house.upgrades) {
+          return { error: '❌ Nie posiadasz żadnego domu!' };
+        }
+
+        const currentLvl = (user.house.upgrades && user.house.upgrades[pendingHouseUpgrades.upgradeName]) || 0;
+        if (currentLvl >= 5) {
+          return { error: '❌ To ulepszenie osiągnęło już maksymalny poziom!' };
+        }
+
+        const tierInfo = HOUSE_TIERS[user.house.tier];
+        if (currentLvl >= tierInfo.maxUpgradeLvl) {
+          return { error: `❌ Osiągnąłeś limit ulepszeń dla klasy **${tierInfo.name}**!` };
+        }
+
+        let totalCost = 0;
+        let newLvl = currentLvl;
+        const levelsToUpgrade = Math.min(pendingHouseUpgrades.levelsToUpgrade, 5 - currentLvl, tierInfo.maxUpgradeLvl - currentLvl);
+        for (let i = 0; i < levelsToUpgrade; i++) {
+          let cost = UPGRADES_COSTS[pendingHouseUpgrades.upgradeName][newLvl];
+          if (hasItem(inventory, 'deweloper')) {
+            cost = Math.round(cost * 0.85);
+          }
+          totalCost += cost;
+          newLvl += 1;
+        }
+
+        if (user.balance < totalCost) {
+          return { error: `❌ Brak środków! Potrzebujesz **${formatCurrency(totalCost)}**, posiadasz **${formatCurrency(user.balance)}**.` };
+        }
+
+        user.balance -= totalCost;
+        user.house.upgrades = user.house.upgrades || { warsztat: 0, zbrojownia: 0, silownia: 0 };
+        user.house.upgrades[pendingHouseUpgrades.upgradeName] = newLvl;
+
+        return { success: true, newLvl, totalCost };
+      });
+
+      if (upgradeResult.error) {
+        await message.reply(upgradeResult.error);
+        return;
+      }
+
+      const slotEmoji = pendingHouseUpgrades.upgradeName === 'warsztat' ? '🔧' : (pendingHouseUpgrades.upgradeName === 'zbrojownia' ? '⚔️' : '🏋️');
+      await message.reply(`🔨 Pomyślnie ulepszyłeś ${slotEmoji} **${pendingHouseUpgrades.upgradeName.toUpperCase()}** na poziom **${upgradeResult.newLvl}/5** za **${formatCurrency(upgradeResult.totalCost)}**!`);
+      return;
+    }
+
+    if (cleanText === 'nie') {
+      clearTimeout(pendingHouseUpgrades.timeout);
+      client.pendingHouseUpgrades.delete(senderId);
+      await message.reply('❌ Anulowano ulepszenie domu.');
       return;
     }
   }

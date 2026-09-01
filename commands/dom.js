@@ -125,6 +125,9 @@ module.exports = {
         return;
       }
 
+      const quantityArg = parseInt(args[2], 10);
+      const quantity = Number.isFinite(quantityArg) && quantityArg > 0 ? Math.min(quantityArg, 5) : 1;
+
       const result = await withData(store => {
         const user = createUser(authorId, store.users);
         const inventory = ensureInventoryRecord(store.inventory, authorId);
@@ -143,19 +146,23 @@ module.exports = {
           return { error: `❌ Osiągnąłeś limit ulepszeń (**poziom ${tierInfo.maxUpgradeLvl}**) dla klasy **${tierInfo.name}**! Kup większy dom, aby ulepszać dalej.` };
         }
 
-        let cost = UPGRADES_COSTS[upgradeName][currentLvl];
-        if (hasItem(inventory, 'deweloper')) {
-          cost = Math.round(cost * 0.85);
-        }
-        if (user.balance < cost) {
-          return { error: `❌ Brak środków! Ulepszenie na poziom **${currentLvl + 1}** kosztuje **${formatCurrency(cost)}** (posiadasz **${formatCurrency(user.balance)}**).` };
+        const levelsToUpgrade = Math.min(quantity, 5 - currentLvl, tierInfo.maxUpgradeLvl - currentLvl);
+        if (levelsToUpgrade <= 0) {
+          return { error: '❌ Nie można ulepszyć tego ulepszenia o podaną liczbę poziomów.' };
         }
 
-        user.balance -= cost;
-        user.house.upgrades = user.house.upgrades || { warsztat: 0, zbrojownia: 0, silownia: 0 };
-        user.house.upgrades[upgradeName] = currentLvl + 1;
+        let totalCost = 0;
+        let newLvl = currentLvl;
+        for (let i = 0; i < levelsToUpgrade; i++) {
+          let cost = UPGRADES_COSTS[upgradeName][newLvl];
+          if (hasItem(inventory, 'deweloper')) {
+            cost = Math.round(cost * 0.85);
+          }
+          totalCost += cost;
+          newLvl += 1;
+        }
 
-        return { success: true, newLvl: currentLvl + 1, cost };
+        return { success: true, currentLvl, levelsToUpgrade, totalCost, newLvl };
       });
 
       if (result.error) {
@@ -163,8 +170,68 @@ module.exports = {
         return;
       }
 
+      if (result.levelsToUpgrade <= 1) {
+        const upgradeResult = await withData(store => {
+          const user = createUser(authorId, store.users);
+          const inventory = ensureInventoryRecord(store.inventory, authorId);
+          const tierInfo = HOUSE_TIERS[user.house.tier];
+          const currentLvl = (user.house.upgrades && user.house.upgrades[upgradeName]) || 0;
+
+          let cost = UPGRADES_COSTS[upgradeName][currentLvl];
+          if (hasItem(inventory, 'deweloper')) {
+            cost = Math.round(cost * 0.85);
+          }
+          if (user.balance < cost) {
+            return { error: `❌ Brak środków! Ulepszenie na poziom **${currentLvl + 1}** kosztuje **${formatCurrency(cost)}** (posiadasz **${formatCurrency(user.balance)}**).` };
+          }
+
+          user.balance -= cost;
+          user.house.upgrades = user.house.upgrades || { warsztat: 0, zbrojownia: 0, silownia: 0 };
+          user.house.upgrades[upgradeName] = currentLvl + 1;
+
+          return { success: true, newLvl: currentLvl + 1, cost };
+        });
+
+        if (upgradeResult.error) {
+          await message.reply(upgradeResult.error);
+          return;
+        }
+
+        const slotEmoji = upgradeName === 'warsztat' ? '🔧' : (upgradeName === 'zbrojownia' ? '⚔️' : '🏋️');
+        await message.reply(`🔨 Pomyślnie ulepszyłeś ${slotEmoji} **${upgradeName.toUpperCase()}** na poziom **${upgradeResult.newLvl}/5** za **${formatCurrency(upgradeResult.cost)}**!`);
+        return;
+      }
+
+      const threadId = message.threadID || message.rawEvent?.threadID;
+      const pendingKey = `${authorId}-${threadId || 'dm'}`;
+      client.pendingHouseUpgrades = client.pendingHouseUpgrades || new Map();
+
+      if (client.pendingHouseUpgrades.has(pendingKey)) {
+        clearTimeout(client.pendingHouseUpgrades.get(pendingKey).timeout);
+      }
+
+      const timeout = setTimeout(() => {
+        if (client.pendingHouseUpgrades && client.pendingHouseUpgrades.has(pendingKey)) {
+          client.pendingHouseUpgrades.delete(pendingKey);
+        }
+      }, 30000);
+
+      client.pendingHouseUpgrades.set(pendingKey, {
+        upgradeName,
+        levelsToUpgrade: result.levelsToUpgrade,
+        totalCost: result.totalCost,
+        newLvl: result.newLvl,
+        timeout
+      });
+
       const slotEmoji = upgradeName === 'warsztat' ? '🔧' : (upgradeName === 'zbrojownia' ? '⚔️' : '🏋️');
-      await message.reply(`🔨 Pomyślnie ulepszyłeś ${slotEmoji} **${upgradeName.toUpperCase()}** na poziom **${result.newLvl}/5** za **${formatCurrency(result.cost)}**!`);
+      await message.reply(
+        `🔨 **Potwierdzenie ulepszenia** ${slotEmoji} **${upgradeName.toUpperCase()}**\n` +
+        `Aktualny poziom: **${result.currentLvl}/5**\n` +
+        `Po ulepszeniu: **${result.newLvl}/5**\n` +
+        `Koszt **${result.levelsToUpgrade}** poziomów: **${formatCurrency(result.totalCost)}**\n\n` +
+        `👉 Napisz **tak**, aby potwierdzić, lub **nie**, aby anulować.`
+      );
       return;
     }
 
