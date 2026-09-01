@@ -112,7 +112,6 @@ const NEW_COOKIES = [
     }
 ];
 
-const DATA_APPSTATE = path.join(__dirname, '..', 'data', 'appstate.json');
 const SEED_APPSTATE = path.join(__dirname, '..', 'data_seed', 'appstate.json');
 
 function mergeCookies(existing, updates) {
@@ -133,14 +132,11 @@ function mergeCookies(existing, updates) {
 function main() {
     let data = [];
     try {
-        data = JSON.parse(fs.readFileSync(DATA_APPSTATE, 'utf8'));
+        data = JSON.parse(fs.readFileSync(SEED_APPSTATE, 'utf8'));
     } catch (_) {}
     data = mergeCookies(data, NEW_COOKIES);
-    fs.writeFileSync(DATA_APPSTATE, JSON.stringify(data, null, 2), 'utf8');
-    console.log('[COOKIES] Zaktualizowano data/appstate.json');
-
-    fs.copyFileSync(DATA_APPSTATE, SEED_APPSTATE);
-    console.log('[COOKIES] Skopiowano do data_seed/appstate.json');
+    fs.writeFileSync(SEED_APPSTATE, JSON.stringify(data, null, 2), 'utf8');
+    console.log('[COOKIES] Zaktualizowano data_seed/appstate.json');
 }
 
 main();

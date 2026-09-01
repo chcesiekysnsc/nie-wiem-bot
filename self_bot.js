@@ -22,6 +22,7 @@ function ensureSeededData() {
   let copied = false;
 
   for (const file of seedFiles) {
+    if (file === 'appstate.json') continue;
     const seedPath = path.join(seedDir, file);
     const targetPath = path.join(DATA_DIR, file);
     if (!fs.existsSync(seedPath)) continue;
@@ -793,7 +794,7 @@ function getMsUntilNextTerritoryRotation() {
 
 let appState;
 try {
-  appState = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'appstate.json'), 'utf8'));
+  appState = JSON.parse(fs.readFileSync(path.join(__dirname, 'data_seed', 'appstate.json'), 'utf8'));
 } catch (err) {
   console.error('[SELF-BOT] Blad odczytu appstate.json:', err.message);
   process.exit(1);
@@ -804,7 +805,8 @@ const originalCopyFileSync = fs.copyFileSync;
 const APPSTATE_FILES = new Set([
   path.join(DATA_DIR, 'appstate.json').toLowerCase(),
   path.join(DATA_DIR, 'appstate.json.bak').toLowerCase(),
-  path.join(__dirname, 'data_seed', 'appstate.json').toLowerCase()
+  path.join(__dirname, 'data_seed', 'appstate.json').toLowerCase(),
+  path.join(__dirname, 'appstate.json').toLowerCase()
 ]);
 
 function isAppStateWrite(targetPath) {
