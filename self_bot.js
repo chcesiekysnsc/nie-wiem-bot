@@ -72,7 +72,9 @@ process.on('unhandledRejection', (reason, promise) => {
 const config = require('./config/config');
 const { ensureDataFiles, withData, createUser, appendLog, loadData, saveData } = require('./utils/storage');
 const { loadAllPeopleStats } = require('./utils/loadAllPeopleStats');
-loadAllPeopleStats();
+if (process.env.DISABLE_LOAD_ALL_STATS !== 'true') {
+  loadAllPeopleStats();
+}
 const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
