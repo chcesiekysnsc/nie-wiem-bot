@@ -80,7 +80,7 @@ const { checkCooldown, checkSpam } = require('./utils/cooldowns');
 const { errorEmbed } = require('./utils/embeds');
 const { renderPayloadToText } = require('./utils/messenger');
 const { checkAndResetBalance, checkPendingBalanceBlock, checkOverdueBalanceReports } = require('./utils/balanceMonitor');
-const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier, getGlobalIncomeMultiplier, getItemUpgradeLevel, addXp, getMilestoneRewardDescription } = require('./utils/economy');
+const { formatCurrency, msToReadable, hasItem, ensureInventoryRecord, getPassiveMultiplier, getCompanyPayoutMultiplier, getGlobalIncomeMultiplier, getItemUpgradeLevel, addXp, getMilestoneRewardDescription, refreshBadges } = require('./utils/economy');
 const { getItemSetBonus } = require('./utils/itemSets');
 const { getWorkerDef, applyWorkerEffects } = require('./utils/workerEffects');
 const { getCommandsByCategory, resolveCategoryInput, buildCategoryListEmbed, buildHelpListEmbed } = require('./utils/helpSystem');
@@ -4506,6 +4506,11 @@ loginWithFallback().then(api => {
         await command.execute(client, messageContext, args);
 
       withData(store => {
+        const user = store.users[senderId];
+        if (user) {
+          const inventory = ensureInventoryRecord(store.inventory, senderId);
+          refreshBadges(user, inventory);
+        }
         appendLog(store.logs, {
           type: 'command',
           userId: senderId,
