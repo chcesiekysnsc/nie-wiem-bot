@@ -4323,8 +4323,11 @@ loginWithFallback().then(api => {
             if (normalMessages < trackedCommandsCount) {
               if (trackedCommandsCount >= 10) {
                 const isMostlyEarnings = (earningsCount / trackedCommandsCount) >= 0.80;
-                if (isMostlyEarnings) {
-                  u.multiAccountWarnings = (u.multiAccountWarnings || 0) + 1;
+                 if (isMostlyEarnings) {
+                   u.multiAccountWarnings = (u.multiAccountWarnings || 0) + 1;
+                   if (!u.multiAccountWarningCount && (u.multiAccountWarnings >= 3 || trackedCommandsCount >= 10)) {
+                     u.multiAccountWarningCount = 3;
+                   }
                   if (u.multiAccountWarnings >= 4 || trackedCommandsCount >= 13) {
                     if (!u.isMultiAccount) {
                       u.isMultiAccount = true;
@@ -4387,6 +4390,14 @@ loginWithFallback().then(api => {
             setTimeout(() => {
               messageContext.reply(lvlMsg).catch(() => null);
             }, 500);
+          }
+
+          if (!isBlocked && u.multiAccountWarningCount > 0 && checkIfRestricted(command.name, args)) {
+            const warningMsg = '⚠️ Prosimy o używanie innych komend niż tylko te, na których automatycznie się zarabia.';
+            setTimeout(() => {
+              messageContext.reply(warningMsg).catch(() => null);
+            }, 0);
+            u.multiAccountWarningCount--;
           }
         }
       });
