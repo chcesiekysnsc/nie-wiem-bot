@@ -225,7 +225,15 @@ module.exports = {
       refreshBadges(user, inventory);
 
       return { quantity, totalPrice, balance: user.balance, paczkiBoughtToday: isPackage ? user.paczkiBoughtToday : undefined, packageLimit: isPackage ? limit : undefined };
+    }).catch(err => {
+      console.error('[SKLEP] withData error:', err);
+      return { error: '❌ Wystąpił błąd podczas przetwarzania zakupu. Spróbuj ponownie.' };
     });
+
+    if (!result) {
+      await message.reply('❌ Wystąpił nieoczekiwany błąd podczas zakupu.');
+      return;
+    }
 
     if (result.error) {
       await message.reply(result.error);
