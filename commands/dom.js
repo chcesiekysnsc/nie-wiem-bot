@@ -203,20 +203,20 @@ module.exports = {
       }
 
       const threadId = message.threadID || message.rawEvent?.threadID;
-      const pendingKey = `${authorId}-${threadId || 'dm'}`;
       client.pendingHouseUpgrades = client.pendingHouseUpgrades || new Map();
 
-      if (client.pendingHouseUpgrades.has(pendingKey)) {
-        clearTimeout(client.pendingHouseUpgrades.get(pendingKey).timeout);
+      if (client.pendingHouseUpgrades.has(authorId)) {
+        clearTimeout(client.pendingHouseUpgrades.get(authorId).timeout);
       }
 
       const timeout = setTimeout(() => {
-        if (client.pendingHouseUpgrades && client.pendingHouseUpgrades.has(pendingKey)) {
-          client.pendingHouseUpgrades.delete(pendingKey);
+        if (client.pendingHouseUpgrades && client.pendingHouseUpgrades.has(authorId)) {
+          client.pendingHouseUpgrades.delete(authorId);
         }
       }, 30000);
 
-      client.pendingHouseUpgrades.set(pendingKey, {
+      client.pendingHouseUpgrades.set(authorId, {
+        threadId,
         upgradeName,
         levelsToUpgrade: result.levelsToUpgrade,
         totalCost: result.totalCost,
