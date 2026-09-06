@@ -1368,12 +1368,13 @@ const helpCommands = [
     description: "📊 Generuje podsumowanie i analizę historii czatu grupowego lub odpowiada na zadane pytania.",
     usage: "!analiza <pytanie> | !analiza <liczba_wiadomości> <pytanie>",
     examples: ["!analiza jaka jest stolica Francji?", "!analiza 500 kto ma rację w sporze?"],
-    cooldown: "10 minut (grupowy) / 1 na dobę per gracz",
+    cooldown: "10 minut (grupowy) / 3 na dobę per gracz",
     requirements: "Brak.",
     aliases: ["pytanie", "zapytaj"],
     additionalInfo: [
       "Maksymalnie analizuje do 5000 wiadomości.",
-      "Liczba analizowanych wiadomości musi być podana jako pierwszy parametr."
+      "Liczba analizowanych wiadomości musi być podana jako pierwszy parametr.",
+      "Pytania ogólne (do Google) wyświetlają ostrzeżenie z wyborem 'dalej' lub 'stop' (anulowanie nie zużywa limitu)."
     ]
   },
   {
@@ -1394,16 +1395,31 @@ const helpCommands = [
   {
     name: "zgloszenie",
     category: "UTILITY_ADMIN",
-    shortDescription: "📋 wysyłanie zgłoszenia do administracji",
-    description: "📋 Wysyła zgłoszenie do administracji. Każdy użytkownik może wysłać tylko 1 zgłoszenie na całą historię konta.",
+    shortDescription: "📋 rekrutacja / dołączenie do grupy",
+    description: "📋 Zgłoszenie chęci dołączenia do grupy od pomysłów na usprawnienia i nowe komendy. Posiada filtr AI (propozycje komend i błędy należy zgłaszać przez !propozycja).",
     usage: "!zgloszenie <treść>",
     examples: ["!zgloszenie Chciałbym dołączyć do grupy"],
     cooldown: "Brak.",
-    requirements: "Maksymalnie 1 zgłoszenie na konto.",
+    requirements: "Maksymalnie 2 zgłoszenia na całą historię konta.",
     aliases: ["zgloszenia", "zglos", "zglsozenie"],
     additionalInfo: [
       "Zgłoszenia są rozpatrywane przez dedykowanego administratora.",
       "W przypadku akceptacji zgłoszenia, bot dodaje użytkownika do grupy."
+    ]
+  },
+  {
+    name: "bonus",
+    category: "UTILITY_ADMIN",
+    shortDescription: "⭐ nadawanie limitu 5 analiz na dobę",
+    description: "⭐ Ekskluzywna komenda dla wyznaczonych administratorów. Nadaje oznaczonej osobie limit 5 użyć komendy !analiza na dobę (maksymalnie 10 osób jednocześnie).",
+    usage: "!bonus <@osoba | ID> | !bonus odbierz <@osoba | ID> | !bonus lista",
+    examples: ["!bonus @Jan", "!bonus odbierz @Jan", "!bonus lista"],
+    cooldown: "Brak.",
+    requirements: "Tylko dla wyznaczonych administratorów.",
+    aliases: ["bonusai", "aiconfig"],
+    additionalInfo: [
+      "Maksymalnie 10 użytkowników może jednocześnie posiadać bonus 5 użyć.",
+      "Odebranie bonusu przywraca użytkownikowi standardowy limit 3 użyć na dobę."
     ]
   },
   {
@@ -1536,7 +1552,7 @@ function getCreatorHelpCommands() {
   // Pokaż tylko komendy dostępne dla twórcy i adminów
   filtered = filtered.filter(command => {
     const creatorOnlyCommands = ['thx', 'zezwol', 'wersja', 'uadm', 'adm', 'guardnick', 'danegrpinfo', 'danegrp', 'dane', 'checkspam', 'backup', 'eventitemadd', 'eventitemdel', 'itemadd', 'gangreset', 'wymus', 'odtworz', 'stopdanegrpinfo', 'kubl', 'truebl'];
-    const adminCommands = ['afkdel', 'aktualizuj', 'bl', 'blgrp', 'flaga', 'group', 'kick', 'loop', 'prefix', 'reakcja', 'ubl', 'ublgrp', 'wiadomosci', 'zakaz'];
+    const adminCommands = ['afkdel', 'aktualizuj', 'bl', 'blgrp', 'bonus', 'flaga', 'group', 'kick', 'loop', 'prefix', 'reakcja', 'ubl', 'ublgrp', 'wiadomosci', 'zakaz'];
     return creatorOnlyCommands.includes(command.name) || adminCommands.includes(command.name);
   });
   

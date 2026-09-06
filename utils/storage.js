@@ -3,7 +3,24 @@ const path = require('path');
 
 const config = require('../config/config');
 
-const DATA_DIR = fs.existsSync('/app/data') ? '/app/data' : path.join(__dirname, '..', 'data');
+function resolveDataDir() {
+  if (process.env.DATA_DIR && fs.existsSync(process.env.DATA_DIR)) {
+    return process.env.DATA_DIR;
+  }
+  if (process.env.RAILWAY_VOLUME_MOUNT_PATH && fs.existsSync(process.env.RAILWAY_VOLUME_MOUNT_PATH)) {
+    return process.env.RAILWAY_VOLUME_MOUNT_PATH;
+  }
+  if (fs.existsSync('/app/data')) {
+    return '/app/data';
+  }
+  if (fs.existsSync('/data')) {
+    return '/data';
+  }
+  return path.join(__dirname, '..', 'data');
+}
+
+const DATA_DIR = resolveDataDir();
+console.log(`[STORAGE] Ścieżka magazynu danych (DATA_DIR): ${DATA_DIR}`);
 const DATA_FILES = {
   users: path.join(DATA_DIR, 'users.json'),
   profiles: path.join(DATA_DIR, 'profiles.json'),
@@ -68,17 +85,22 @@ function ensureDataFiles() {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
 
-  // JEDNORAZOWE AUTOMATYCZNE PRZYWRACANIE Z BACKUPU (BEZ COOKIES)
+  // JEDNORAZOWE AUTOMATYCZNE PRZYWRACANIE Z BACKUPU (BEZPIECZNE - BEZ NADPISYWANIA ISTNIEJĄCYCH PLIKÓW)
   const backupFilePath = path.join(__dirname, '..', 'backup_database.json');
   const importMarkerPath = path.join(DATA_DIR, '.backup_imported');
+  const isDataDirEmpty = !fs.existsSync(path.join(DATA_DIR, 'users.json'));
 
-  if (process.env.DISABLE_AUTO_RESTORE !== 'true' && fs.existsSync(backupFilePath) && !fs.existsSync(importMarkerPath)) {
-    console.log('[AUTO-RESTORE] Wykryto plik backup_database.json. Rozpoczynam automatyczne przywracanie...');
+  const shouldAutoRestore = process.env.ENABLE_AUTO_RESTORE === 'true' || 
+    (process.env.DISABLE_AUTO_RESTORE !== 'true' && isDataDirEmpty && fs.existsSync(backupFilePath) && !fs.existsSync(importMarkerPath));
+
+  if (shouldAutoRestore && fs.existsSync(backupFilePath)) {
+    console.log('[AUTO-RESTORE] Wykryto plik backup_database.json i brak bazy danych. Bezpieczne przywracanie...');
     try {
       const rawBackup = fs.readFileSync(backupFilePath, 'utf8');
       const backupData = JSON.parse(rawBackup);
       
       let restoredCount = 0;
+      let skippedCount = 0;
       for (const fileName of Object.keys(backupData)) {
         if (!fileName.endsWith('.json') || fileName.includes('..') || fileName.includes('/') || fileName.includes('\\')) {
           continue;
@@ -86,9 +108,9 @@ function ensureDataFiles() {
         
         const targetPath = path.join(DATA_DIR, fileName);
         
-        // Zabezpieczenie przed nadpisaniem istniejących, działających cookies
-        if (fileName === 'appstate.json' && fs.existsSync(targetPath)) {
-          console.log('[AUTO-RESTORE] Pomijam plik appstate.json (istnieją już nowsze cookies)');
+        // Zabezpieczenie: NIGDY nie nadpisuj istniejących plików bazy danych ani cookies
+        if (fs.existsSync(targetPath)) {
+          skippedCount++;
           continue;
         }
         
@@ -100,7 +122,7 @@ function ensureDataFiles() {
       
       // Zapisujemy marker w wolumenie chmurowym, by zapobiec nadpisaniu przy kolejnych restartach
       fs.writeFileSync(importMarkerPath, new Date().toISOString(), 'utf8');
-      console.log(`[AUTO-RESTORE] Pomyślnie automatycznie zaimportowano ${restoredCount} plików bazy danych!`);
+      console.log(`[AUTO-RESTORE] Zaimportowano ${restoredCount} plików (pominięto ${skippedCount} istniejących).`);
     } catch (restoreErr) {
       console.error('[AUTO-RESTORE] Błąd automatycznego przywracania:', restoreErr);
     }

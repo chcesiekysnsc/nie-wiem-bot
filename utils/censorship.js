@@ -1,4 +1,7 @@
-const { askGeminiWithFallback } = require('../commands/ai');
+function getAskGemini() {
+  const ai = require('../commands/ai');
+  return ai.askGeminiWithFallback;
+}
 
 /**
  * Intelligently censors offensive words while maintaining readability
@@ -37,6 +40,7 @@ async function intelligentCensor(text, context = 'tekst użytkownika') {
       `- Zachowaj wszystkie nieobraźliwe słowa, interpunkcję i formatowanie bez zmian.\n\n` +
       `Tekst do ocenzurowania: ${text}`;
 
+    const askGeminiWithFallback = getAskGemini();
     const aiResponse = await askGeminiWithFallback(promptText);
     if (aiResponse && aiResponse.trim()) {
       return aiResponse.trim();

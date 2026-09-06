@@ -1,4 +1,5 @@
 const { withData } = require('../utils/storage');
+const { askGeminiWithFallback } = require('./ai');
 
 const ADMIN_GROUP_ID = '5277347745703557';
 const TARGET_GROUP_ID = '28509642448632503';
@@ -7,6 +8,77 @@ const INVITE_PROFILE_URL = 'https://www.facebook.com/profile.php?id=615548943530
 
 const ACCEPT_KEYWORDS = ['akceptuj', 'akcept', 'accept', 'tak'];
 const REJECT_KEYWORDS = ['odrzuc', 'odrzuć', 'reject', 'nie'];
+
+const BLOCKED_REASON_TEXT =
+  'to jest komenda do zglaszania sie na grupe od pomyslow na usprawnienia i nowe komendy jesli jestes zainteresowany, napisz ze chcesz dolaczyc do tej grp jesli chcesz dac pomysl badz zglosic blad uzyj !propzycja';
+
+/**
+ * Filtr AI sprawdzający, czy treść zgłoszenia to propozycja komendy lub zgłoszenie błędu.
+ * Jeśli tak -> blokujemy i odsyłamy do !propozycja.
+ * Jeśli to chęć dołączenia do grupy -> przepuszczamy.
+ */
+async function checkWithAiFilter(content) {
+  const lower = String(content || '').toLowerCase();
+
+  // Słowa kluczowe wskazujące na błąd
+  const bugKeywords = [
+    'błąd', 'blad', 'bug', 'zbugowan', 'nie dziala', 'nie działa',
+    'crash', 'crashuje', 'wywala bota', 'blad w komendzie', 'błąd w komendzie'
+  ];
+  const hasBug = bugKeywords.some(w => lower.includes(w));
+
+  // Słowa kluczowe wskazujące na propozycję nowej komendy lub mechaniki
+  const proposalKeywords = [
+    'proponuje', 'proponuję', 'propozycja', 'nowa komenda', 'nową komendę',
+    'nowe komendy', 'dodajcie komende', 'dodaj komende', 'dodaj komendę',
+    'nowy przedmiot', 'nowa funkcja', 'pomysl na', 'pomysł na'
+  ];
+  const hasProposal = proposalKeywords.some(w => lower.includes(w));
+
+  // Słowa wskazujące na intencję dołączenia do grupy
+  const groupIntentKeywords = [
+    'do grupy', 'na grupę', 'na grupe', 'dołaczyć', 'dołączyć', 'dolaczyc',
+    'dodaj mnie', 'chcę dołączyć', 'chce dolaczyc', 'zapisz mnie', 'kandydat',
+    'chce byc na grupie', 'chcę być na grupie', 'chcialbym dolaczyc', 'chciałbym dołączyć',
+    'dolaczenie', 'dołączenie', 'chce dojsc', 'chcę dojść', 'moge do grupy', 'mogę do grupy'
+  ];
+  const hasGroupIntent = groupIntentKeywords.some(w => lower.includes(w));
+
+  // Oczywiste propozycje/błędy bez wzmianki o grupie blokujemy natychmiast
+  if ((hasBug || hasProposal) && !hasGroupIntent) {
+    return { shouldBlock: true, reason: 'heuristic' };
+  }
+
+  // Weryfikacja za pomocą AI
+  const promptText =
+    `Jesteś precyzyjnym filtrem zgłoszeń w bocie na Messengerze.\n` +
+    `Komenda "!zgloszenie" służy do rekrutacji / zgłaszania chęci dołączenia do grupy od pomysłów na usprawnienia i nowe komendy.\n` +
+    `Zabronione w komendzie "!zgloszenie" są:\n` +
+    `1. Składanie propozycji nowych komend, gier, przedmiotów, mechanik lub usprawnień (do tego gracze muszą użyć komendy !propozycja).\n` +
+    `2. Zgłaszanie błędów, problemów technicznych, bugów (do tego gracze muszą użyć komendy !propozycja).\n\n` +
+    `Dozwolone w komendzie "!zgloszenie" są:\n` +
+    `- Zgłoszenie chęci dołączenia do grupy / prośba o dodanie na grupę / deklaracja pomocy na grupie / kandydatura do grupy.\n\n` +
+    `Treść wiadomości użytkownika:\n"${content}"\n\n` +
+    `Decyzja:\n` +
+    `- Jeśli ta wiadomość to propozycja komendy/funkcji/gry ALBO zgłoszenie błędu/buga -> odpowiedz: BLOKUJ\n` +
+    `- Jeśli ta wiadomość to zgłoszenie chęci dołączenia do grupy / prośba o dodanie -> odpowiedz: PRZEPUSC\n\n` +
+    `Odpowiedz DOKŁADNIE jednym słowem w pierwszej linii: BLOKUJ lub PRZEPUSC.`;
+
+  try {
+    const aiRes = await askGeminiWithFallback(promptText);
+    const firstWord = String(aiRes || '').trim().split(/\s+/)[0].toUpperCase();
+    if (firstWord.includes('BLOKUJ')) {
+      return { shouldBlock: true, reason: 'ai' };
+    }
+    return { shouldBlock: false };
+  } catch (err) {
+    console.error('[ZGLOSZENIE-AI] Błąd zapytania do Gemini:', err.message);
+    if (hasBug || hasProposal) {
+      return { shouldBlock: true, reason: 'heuristic_fallback' };
+    }
+    return { shouldBlock: false };
+  }
+}
 
 module.exports = {
   name: 'zgloszenie',
@@ -28,8 +100,9 @@ module.exports = {
       } else {
         await message.reply(
           '❌ Użycie: !zgloszenie <treść>\n\n' +
-          'Opisz swoje zgłoszenie. Zostanie ono przesłane do administratora.\n' +
-          '⚠️ Pamiętaj: każdy użytkownik może wysłać tylko 1 zgłoszenie na całą historię konta!'
+          'Napisz, że chcesz dołączyć do grupy od pomysłów na usprawnienia i nowe komendy.\n' +
+          '⚠️ Pamiętaj: każdy użytkownik może wysłać maksymalnie 2 zgłoszenia na całą historię konta!\n' +
+          '💡 Jeśli chcesz zgłosić błąd lub zaproponować komendę, użyj: **!propozycja**'
         );
       }
       return;
@@ -117,14 +190,12 @@ module.exports = {
       if (actionType === 'accept') {
         // Dodanie użytkownika do grupy docelowej
         let addedSuccessfully = false;
-        let addErrorMsg = null;
 
         if (client.api && typeof client.api.addUserToGroup === 'function') {
           await new Promise(resolve => {
             client.api.addUserToGroup(report.userId, TARGET_GROUP_ID, (err) => {
               if (err) {
                 console.error('[ZGLOSZENIE] Błąd podczas dodawania do grupy docelowej:', err);
-                addErrorMsg = err.error || err.message || 'Błąd API FB';
                 resolve();
               } else {
                 addedSuccessfully = true;
@@ -134,7 +205,7 @@ module.exports = {
           });
         }
 
-        // Powiadomienie zgłaszającego na wątku zgłoszenia (z informacją o dodaniu i linkiem w razie blokady prywatności)
+        // Powiadomienie zgłaszającego na wątku zgłoszenia
         if (client.api && typeof client.api.sendMessage === 'function') {
           const userMsg =
             `🎉 **Twoje zgłoszenie (#${report.num}) zostało ZAAKCEPTOWANE!**\n` +
@@ -188,22 +259,32 @@ module.exports = {
     if (!content) {
       await message.reply(
         '❌ Użycie: !zgloszenie <treść>\n\n' +
-        'Opisz swoje zgłoszenie. Pamiętaj: każdy użytkownik może wysłać tylko 1 zgłoszenie na całą historię konta!'
+        'Napisz, że chcesz dołączyć do grupy od pomysłów na usprawnienia i nowe komendy.\n' +
+        '⚠️ Pamiętaj: każdy użytkownik może wysłać maksymalnie 2 zgłoszenia na całą historię konta!\n' +
+        '💡 Jeśli chcesz zgłosić błąd lub zaproponować komendę, użyj: **!propozycja**'
       );
       return;
     }
 
-    // Sprawdzenie czy użytkownik wysłał już zgłoszenie w historii konta
+    // Sprawdzenie czy użytkownik nie przekroczył limitu 2 zgłoszeń na konto
     const limitCheck = await withData(store => {
       store.profiles.reports = store.profiles.reports || [];
-      const existing = store.profiles.reports.find(r => String(r.userId) === userId);
-      return { alreadySubmitted: !!existing, existingReport: existing };
+      const userReports = store.profiles.reports.filter(r => String(r.userId) === userId);
+      return { count: userReports.length, reports: userReports };
     });
 
-    if (limitCheck.alreadySubmitted) {
-      const st = limitCheck.existingReport?.status;
-      const statusDesc = st === 'accepted' ? 'zaakceptowane' : st === 'rejected' ? 'odrzucone' : 'oczekujące na decyzję';
-      await message.reply(`❌ Wysłałeś już zgłoszenie w przeszłości (numer #${limitCheck.existingReport.num}, status: ${statusDesc})! Każdy użytkownik może mieć tylko 1 zgłoszenie na całą historię konta.`);
+    if (limitCheck.count >= 2) {
+      const numbers = limitCheck.reports.map(r => '#' + r.num).join(', ');
+      await message.reply(
+        `❌ Wykorzystałeś już limit 2 zgłoszeń na całą historię konta! (Twoje zgłoszenia: ${numbers})`
+      );
+      return;
+    }
+
+    // Filtr AI: sprawdzenie czy treść to propozycja komendy lub zgłoszenie błędu
+    const filterResult = await checkWithAiFilter(content);
+    if (filterResult.shouldBlock) {
+      await message.reply(BLOCKED_REASON_TEXT);
       return;
     }
 
@@ -220,7 +301,7 @@ module.exports = {
       authorName = client.userNames.get(userId);
     }
 
-    // Zapisanie zgłoszenia (BEZ FILTROWANIA)
+    // Zapisanie zgłoszenia
     const reportNum = await withData(store => {
       store.profiles.reports = store.profiles.reports || [];
       const num = store.profiles.reports.length + 1;
@@ -242,7 +323,7 @@ module.exports = {
       return num;
     });
 
-    // Wysłanie zgłoszenia na grupę administracyjną (w stylu !propozycja)
+    // Wysłanie zgłoszenia na grupę administracyjną
     if (client.api && typeof client.api.sendMessage === 'function') {
       const adminMsg =
         `📋 **ZGŁOSZENIE #${reportNum}**\n` +
@@ -259,6 +340,8 @@ module.exports = {
       });
     }
 
-    await message.reply(`✅ Dziękujemy za zgłoszenie! Twoje zgłoszenie (numer #${reportNum}) zostało pomyślnie przesłane do administracji.`);
+    await message.reply(
+      `✅ Dziękujemy za zgłoszenie! Twoje zgłoszenie (numer #${reportNum}, wykorzystano: ${limitCheck.count + 1}/2) zostało pomyślnie przesłane do administracji.`
+    );
   }
 };

@@ -3862,6 +3862,65 @@ loginWithFallback().then(api => {
       }
     }
 
+    if (!client.pendingAiQueries) client.pendingAiQueries = new Map();
+    const pendingAi = client.pendingAiQueries.get(senderId);
+    if (pendingAi && pendingAi.threadId === threadId) {
+      const cleanText = text.trim().toLowerCase().replace(/^!/, '').split(/\s+/)[0];
+      if (cleanText === 'stop' || cleanText === 'nie' || cleanText === 'anuluj') {
+        clearTimeout(pendingAi.timeout);
+        client.pendingAiQueries.delete(senderId);
+        api.sendMessage('❌ Anulowano zapytanie do Google. Twój limit nie został zużyty.', threadId, () => {}, messageId);
+        return;
+      }
+      if (cleanText === 'dalej' || cleanText === 'tak' || cleanText === 'kontynuuj') {
+        clearTimeout(pendingAi.timeout);
+        client.pendingAiQueries.delete(senderId);
+
+        const aiCmd = client.commands.get('analiza');
+        const handleFn = (aiCmd && typeof aiCmd.handleConfirmedGoogleQuery === 'function')
+          ? aiCmd.handleConfirmedGoogleQuery
+          : require('./commands/analiza').handleConfirmedGoogleQuery;
+
+        const senderName = await client.resolveUserName(api, senderId);
+        const senderUser = {
+          id: senderId,
+          username: senderName,
+          profile: { name: senderName }
+        };
+
+        const aiMessage = {
+          client,
+          prefix: currentPrefix,
+          author: senderUser,
+          content: text,
+          threadID: threadId,
+          isGroup: isGroup,
+          guild: { id: threadId },
+          rawEvent: event,
+          reply: async (payload) => {
+            return new Promise((resolve, reject) => {
+              const replyText = renderPayloadToText(payload);
+              if (!replyText) return resolve(null);
+              api.sendMessage(replyText, threadId, (sendErr, msgInfo) => {
+                if (sendErr) {
+                  console.error('[AI] Błąd wysyłania odpowiedzi:', sendErr);
+                  return reject(sendErr);
+                }
+                resolve(msgInfo);
+              }, messageId);
+            });
+          }
+        };
+
+        try {
+          await handleFn(client, aiMessage, pendingAi);
+        } catch (err) {
+          console.error('[AI] Błąd wykonania potwierdzonego pytania:', err);
+        }
+        return;
+      }
+    }
+
     if (!client.pendingBails) client.pendingBails = new Map();
     const pendingBail = client.pendingBails.get(senderId);
     if (pendingBail) {

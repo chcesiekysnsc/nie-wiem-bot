@@ -273,144 +273,237 @@ function splitTranscriptIntoChunks(transcriptLines, maxCharsPerChunk = CHARS_PER
   return chunks;
 }
 
+async function checkAiLimits(userId, threadId) {
+  const creatorId = '100060812419294';
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  const groupCooldownMs = 10 * 60 * 1000;
+  const now = Date.now();
+
+  // 1. Twórca
+  if (userId === creatorId) {
+    return {
+      allowed: true,
+      unlimited: true,
+      skipGroupCooldown: true,
+      maxLimit: 100000
+    };
+  }
+
+  // 2. Whitelist w profiles.json (allowedAI) oraz bonus (aiBonusUsers)
+  let allowedEntry = null;
+  let hasBonus = false;
+  try {
+    const profiles = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'profiles.json'), 'utf8'));
+    if (Array.isArray(profiles.allowedAI)) {
+      allowedEntry = profiles.allowedAI.find(entry => {
+        if (typeof entry === 'string') return entry === userId;
+        if (typeof entry === 'object' && entry && entry.id) return entry.id === userId;
+        return false;
+      });
+    }
+    if (Array.isArray(profiles.aiBonusUsers)) {
+      hasBonus = profiles.aiBonusUsers.some(entry => {
+        if (typeof entry === 'string') return entry === userId;
+        if (typeof entry === 'object' && entry && entry.id) return entry.id === userId;
+        return false;
+      });
+    }
+  } catch (_) {}
+
+  // Sprawdź również w store.profiles w pamięci
+  await withData(store => {
+    store.profiles = store.profiles || {};
+    if (!hasBonus && Array.isArray(store.profiles.aiBonusUsers)) {
+      hasBonus = store.profiles.aiBonusUsers.some(entry => {
+        if (typeof entry === 'string') return entry === userId;
+        if (typeof entry === 'object' && entry && entry.id) return entry.id === userId;
+        return false;
+      });
+    }
+  });
+
+  const isWhitelisted = !!allowedEntry;
+  const skipGroupCooldown = isWhitelisted || (config.admins && config.admins.includes(userId));
+  const maxLimit = (isWhitelisted || (config.admins && config.admins.includes(userId))) ? 100000 : 5000;
+
+  // Osoby na whitelist bez zdefiniowanego dailyLimit mają brak limitu
+  if (isWhitelisted && (typeof allowedEntry === 'string' || !allowedEntry.dailyLimit)) {
+    return {
+      allowed: true,
+      unlimited: true,
+      skipGroupCooldown: true,
+      maxLimit: 100000
+    };
+  }
+
+  // Limit dzienny: standardowo 3, z bonusem 5, lub wartość z allowedAI
+  let dailyLimit = 3;
+  if (allowedEntry && typeof allowedEntry === 'object' && allowedEntry.dailyLimit) {
+    dailyLimit = Number(allowedEntry.dailyLimit);
+  }
+  if (hasBonus) {
+    dailyLimit = Math.max(dailyLimit, 5);
+  }
+
+  // Sprawdzenie dziennego limitu użytkownika
+  const dailyCheck = await withData(store => {
+    store.cooldowns = store.cooldowns || {};
+    store.cooldowns.commands = store.cooldowns.commands || {};
+    if (!store.cooldowns.commands[userId]) {
+      store.cooldowns.commands[userId] = {};
+    }
+    const userCooldowns = store.cooldowns.commands[userId];
+    if (!Array.isArray(userCooldowns['ai_usages'])) {
+      userCooldowns['ai_usages'] = [];
+    }
+    userCooldowns['ai_usages'] = userCooldowns['ai_usages'].filter(ts => now - ts < oneDayMs);
+
+    if (userCooldowns['ai_usages'].length >= dailyLimit) {
+      const oldestUsage = userCooldowns['ai_usages'][0];
+      const remaining = oneDayMs - (now - oldestUsage);
+      return { exceeded: true, remaining, limit: dailyLimit };
+    }
+    return { exceeded: false, limit: dailyLimit };
+  });
+
+  if (dailyCheck.exceeded) {
+    const remainingStr = msToReadable(dailyCheck.remaining);
+    return {
+      allowed: false,
+      error: `❌ Wykorzystałeś już limit **${dailyCheck.limit} użyć** komendy !analiza na dobę. Kolejne użycie będzie dostępne za **${remainingStr}**.`
+    };
+  }
+
+  // Cooldown grupowy (10 minut) dla zwykłych użytkowników
+  if (threadId && !skipGroupCooldown) {
+    const groupCheck = await withData(store => {
+      store.profiles = store.profiles || {};
+      store.profiles.aiGroupCooldowns = store.profiles.aiGroupCooldowns || {};
+      const lastUsed = store.profiles.aiGroupCooldowns[threadId] || 0;
+      const remaining = groupCooldownMs - (now - lastUsed);
+      if (remaining > 0) {
+        return { blocked: true, remaining };
+      }
+      return { blocked: false };
+    });
+
+    if (groupCheck.blocked) {
+      const remainingStr = msToReadable(groupCheck.remaining);
+      return {
+        allowed: false,
+        error: `❌ Ktoś inny użył już !analiza na tej grupie w ciągu ostatnich 10 minut. Spróbuj ponownie za **${remainingStr}**.`
+      };
+    }
+  }
+
+  return {
+    allowed: true,
+    unlimited: false,
+    dailyLimit,
+    skipGroupCooldown,
+    maxLimit
+  };
+}
+
+async function consumeAiQuota(userId, threadId, skipGroupCooldown, unlimited = false) {
+  const now = Date.now();
+  const oneDayMs = 24 * 60 * 60 * 1000;
+
+  await withData(store => {
+    store.cooldowns = store.cooldowns || {};
+    store.cooldowns.commands = store.cooldowns.commands || {};
+
+    if (!unlimited) {
+      if (!store.cooldowns.commands[userId]) {
+        store.cooldowns.commands[userId] = {};
+      }
+      const userCooldowns = store.cooldowns.commands[userId];
+      if (!Array.isArray(userCooldowns['ai_usages'])) {
+        userCooldowns['ai_usages'] = [];
+      }
+      userCooldowns['ai_usages'] = userCooldowns['ai_usages'].filter(ts => now - ts < oneDayMs);
+      userCooldowns['ai_usages'].push(now);
+    }
+
+    if (threadId && !skipGroupCooldown) {
+      store.profiles = store.profiles || {};
+      store.profiles.aiGroupCooldowns = store.profiles.aiGroupCooldowns || {};
+      store.profiles.aiGroupCooldowns[threadId] = now;
+    }
+  });
+}
+
+const MAX_CONCURRENT_ANALYSES = 5;
+
+function getActiveAnalysesCount(client) {
+  if (!client.activeAnalyses) client.activeAnalyses = new Map();
+  const now = Date.now();
+  const MAX_ANALYSIS_DURATION = 10 * 60 * 1000;
+  for (const [id, startedAt] of client.activeAnalyses.entries()) {
+    if (now - startedAt > MAX_ANALYSIS_DURATION) {
+      client.activeAnalyses.delete(id);
+    }
+  }
+  return client.activeAnalyses.size;
+}
+
+async function handleConfirmedGoogleQuery(client, message, pendingAi) {
+  const limitCheck = await checkAiLimits(pendingAi.userId, pendingAi.threadId);
+  if (!limitCheck.allowed) {
+    await safeReply(message, limitCheck.error);
+    return;
+  }
+
+  if (getActiveAnalysesCount(client) >= MAX_CONCURRENT_ANALYSES) {
+    await safeReply(message, 'poczekaj chwile w kolejce jest za duzo analiz na raz sprobuj za minute');
+    return;
+  }
+
+  const apiKeys = getApiKeys();
+  if (apiKeys.length === 0) {
+    await safeReply(message, '❌ Brak skonfigurowanego klucza Gemini API!');
+    return;
+  }
+
+  const analysisId = `${pendingAi.userId}_${Date.now()}_${Math.random()}`;
+  client.activeAnalyses = client.activeAnalyses || new Map();
+  client.activeAnalyses.set(analysisId, Date.now());
+
+  await safeReply(message, '📊 Analizuję pytanie...');
+
+  try {
+    const promptText =
+      AI_SYSTEM_RULES +
+      `Jesteś pomocnym asystentem. Odpowiadaj po polsku, jasno i konkretnie.\n\n` +
+      `PYTANIE: ${pendingAi.question}`;
+
+    const replyText = await askGeminiWithFallback(promptText);
+
+    // Zużyj limit dopiero po pomyślnej odpowiedzi, aby nie tracić limitu przy błędzie API
+    await consumeAiQuota(pendingAi.userId, pendingAi.threadId, pendingAi.skipGroupCooldown, pendingAi.unlimited);
+
+    await safeReply(message, `📊 **Odpowiedź:**\n\n${replyText}`);
+  } catch (err) {
+    console.error('[AI] Błąd:', err);
+    let errorMsg = '❌ Wystąpił błąd podczas generowania odpowiedzi.';
+    if (err.response?.data?.error) {
+      errorMsg += ` Szczegóły: ${err.response.data.error.message}`;
+    } else {
+      errorMsg += ` Szczegóły: ${err.message}`;
+    }
+    await safeReply(message, errorMsg);
+  } finally {
+    client.activeAnalyses.delete(analysisId);
+  }
+}
+
 module.exports = {
   name: 'analiza',
   aliases: ['pytanie', 'zapytaj'],
   async execute(client, message, args) {
-    const creatorId = '100060812419294';
     const threadId = message.guild?.id || message.rawEvent?.threadID;
-    let isAllowed = message.author.id === creatorId;
-    let maxLimit = 10000;
-    let skipGroupCooldown = false;
 
-    if (!isAllowed) {
-      try {
-        const profiles = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'profiles.json'), 'utf8'));
-        if (profiles.allowedAI) {
-          const allowedEntry = profiles.allowedAI.find(entry => {
-            if (typeof entry === 'string') return entry === message.author.id;
-            if (typeof entry === 'object' && entry.id) return entry.id === message.author.id;
-            return false;
-          });
-
-          if (allowedEntry) {
-            isAllowed = true;
-            skipGroupCooldown = true;
-
-            if (typeof allowedEntry === 'object' && allowedEntry.dailyLimit && message.author.id !== creatorId) {
-              const now = Date.now();
-              const oneDayMs = 24 * 60 * 60 * 1000;
-              const limitCheck = await withData(store => {
-                if (!store.cooldowns.commands[message.author.id]) {
-                  store.cooldowns.commands[message.author.id] = {};
-                }
-                const userCooldowns = store.cooldowns.commands[message.author.id];
-
-                if (!Array.isArray(userCooldowns['ai_usages'])) {
-                  userCooldowns['ai_usages'] = [];
-                }
-
-                userCooldowns['ai_usages'] = userCooldowns['ai_usages'].filter(ts => now - ts < oneDayMs);
-
-                if (userCooldowns['ai_usages'].length >= allowedEntry.dailyLimit) {
-                  const oldestUsage = userCooldowns['ai_usages'][0];
-                  const remaining = oneDayMs - (now - oldestUsage);
-                  return { exceeded: true, remaining, limit: allowedEntry.dailyLimit };
-                }
-
-                userCooldowns['ai_usages'].push(now);
-                return { exceeded: false };
-              });
-
-              if (limitCheck.exceeded) {
-                const remainingStr = msToReadable(limitCheck.remaining);
-                await safeReply(message, `❌ Wykorzystałeś już limit **${limitCheck.limit} użyć** komendy !analiza na dobę. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
-                return;
-              }
-            }
-          }
-        }
-      } catch (_) {}
-    }
-
-    // Zwykli użytkownicy: 1 użycie/dobę + 10 min cooldown grupowy + limit 5000 wiadomości
-    if (!isAllowed) {
-      const now = Date.now();
-      const oneDayMs = 24 * 60 * 60 * 1000;
-      const groupCooldownMs = 10 * 60 * 1000;
-
-      const dailyCheck = await withData(store => {
-        if (!store.cooldowns.commands[message.author.id]) {
-          store.cooldowns.commands[message.author.id] = {};
-        }
-        const userCooldowns = store.cooldowns.commands[message.author.id];
-
-        if (!Array.isArray(userCooldowns['ai_usages'])) {
-          userCooldowns['ai_usages'] = [];
-        }
-
-        userCooldowns['ai_usages'] = userCooldowns['ai_usages'].filter(ts => now - ts < oneDayMs);
-
-        if (userCooldowns['ai_usages'].length >= 1) {
-          const oldestUsage = userCooldowns['ai_usages'][0];
-          const remaining = oneDayMs - (now - oldestUsage);
-          return { exceeded: true, remaining };
-        }
-
-        return { exceeded: false };
-      });
-
-      if (dailyCheck.exceeded) {
-        const remainingStr = msToReadable(dailyCheck.remaining);
-        await safeReply(message, `❌ Możesz użyć komendy !analiza tylko **raz na dobę**. Kolejne użycie będzie dostępne za **${remainingStr}**.`);
-        return;
-      }
-
-      if (threadId) {
-        const groupCheck = await withData(store => {
-          store.profiles.aiGroupCooldowns = store.profiles.aiGroupCooldowns || {};
-          const lastUsed = store.profiles.aiGroupCooldowns[threadId] || 0;
-          const remaining = groupCooldownMs - (now - lastUsed);
-          if (remaining > 0) {
-            return { blocked: true, remaining };
-          }
-          return { blocked: false };
-        });
-
-        if (groupCheck.blocked) {
-          const remainingStr = msToReadable(groupCheck.remaining);
-          await safeReply(message, `❌ Ktoś inny użył już !analiza na tej grupie w ciągu ostatnich 10 minut. Spróbuj ponownie za **${remainingStr}**.`);
-          return;
-        }
-      }
-
-      // Oba limity przeszły — zużyj je i pozwól na wykonanie
-      await withData(store => {
-        if (!store.cooldowns.commands[message.author.id]) {
-          store.cooldowns.commands[message.author.id] = {};
-        }
-        const userCooldowns = store.cooldowns.commands[message.author.id];
-        if (!Array.isArray(userCooldowns['ai_usages'])) {
-          userCooldowns['ai_usages'] = [];
-        }
-        userCooldowns['ai_usages'].push(now);
-
-        if (threadId) {
-          store.profiles.aiGroupCooldowns = store.profiles.aiGroupCooldowns || {};
-          store.profiles.aiGroupCooldowns[threadId] = now;
-        }
-      });
-
-      isAllowed = true;
-      maxLimit = 5000;
-    }
-
-    if (!isAllowed) {
-      await safeReply(message, '❌ Ta komenda jest dostępna tylko dla twórcy bota oraz uprawnionych osób.');
-      return;
-    }
-
-    if (args.length === 0) {
+    if (!args || args.length === 0) {
       await safeReply(message,
         '❌ Użycie: !analiza [liczba wiadomości] <pytanie>\n\n' +
         'Przykłady:\n' +
@@ -422,17 +515,12 @@ module.exports = {
       return;
     }
 
-    const isAdmin = config.admins.includes(message.author.id);
-    if (isAdmin || message.author.id === creatorId || skipGroupCooldown) {
-      maxLimit = 100000;
-    }
+    const isPureNumber = /^\d+$/.test(args[0]);
+    const firstArgNum = isPureNumber ? parseInt(args[0], 10) : NaN;
+    const isGroupQuery = isPureNumber && firstArgNum > 0 && args.length > 1;
 
-    let msgCount = null;
     let question = '';
-
-    const firstArgNum = parseInt(args[0], 10);
-    if (!isNaN(firstArgNum) && firstArgNum > 0) {
-      msgCount = Math.min(firstArgNum, maxLimit);
+    if (isGroupQuery) {
       question = args.slice(1).join(' ').trim();
     } else {
       question = args.join(' ').trim();
@@ -443,51 +531,46 @@ module.exports = {
       return;
     }
 
-
-    // Tryb bez liczby wiadomości (zwykłe pytanie do AI) jest zarezerwowany dla
-    // twórcy bota oraz użytkowników z jawnym pozwoleniem (profiles.allowedAI).
-    // Zwykli użytkownicy oraz ci korzystający z limitu 1/dobę mogą używać
-    // wyłącznie trybu z analizą historii czatu (!analiza <liczba> <pytanie>).
-    const isCreatorOrWhitelisted = message.author.id === creatorId || skipGroupCooldown;
-    if (msgCount === null && !isCreatorOrWhitelisted) {
-      await safeReply(message,
-        '❌ Zwykłe pytania (bez podania liczby wiadomości) są dostępne tylko dla twórcy bota oraz osób z nadanym dostępem.\n\n' +
-        'Możesz użyć: **!analiza <liczba wiadomości> <pytanie>**, np. **!analiza 500 przeanalizuj kto ma rację w sporze**.'
-      );
+    const limitCheck = await checkAiLimits(message.author.id, threadId);
+    if (!limitCheck.allowed) {
+      await safeReply(message, limitCheck.error);
       return;
     }
 
-    const apiKeys = getApiKeys();
-    if (apiKeys.length === 0) {
-      await safeReply(message, '❌ Brak skonfigurowanego klucza Gemini API!');
+    if (getActiveAnalysesCount(client) >= MAX_CONCURRENT_ANALYSES) {
+      await safeReply(message, 'poczekaj chwile w kolejce jest za duzo analiz na raz sprobuj za minute');
       return;
     }
 
-    const useChatContext = msgCount !== null;
-
-    if (!useChatContext) {
-      await safeReply(message, '📊 Analizuję pytanie...');
-
-      try {
-        const promptText =
-          AI_SYSTEM_RULES +
-          `Jesteś pomocnym asystentem. Odpowiadaj po polsku, jasno i konkretnie.\n\n` +
-          `PYTANIE: ${question}`;
-
-        const replyText = await askGeminiWithFallback(promptText);
-        await safeReply(message, `📊 **Odpowiedź:**\n\n${replyText}`);
-      } catch (err) {
-        console.error('[AI] Błąd:', err);
-        let errorMsg = '❌ Wystąpił błąd podczas generowania odpowiedzi.';
-        if (err.response?.data?.error) {
-          errorMsg += ` Szczegóły: ${err.response.data.error.message}`;
-        } else {
-          errorMsg += ` Szczegóły: ${err.message}`;
-        }
-        await safeReply(message, errorMsg);
+    // Pytanie ogólne do Google (bez podania liczby wiadomości)
+    if (!isGroupQuery) {
+      if (!client.pendingAiQueries) client.pendingAiQueries = new Map();
+      const prev = client.pendingAiQueries.get(message.author.id);
+      if (prev && prev.timeout) {
+        clearTimeout(prev.timeout);
       }
+
+      const pendingObj = {
+        userId: message.author.id,
+        threadId: threadId,
+        question: question,
+        unlimited: limitCheck.unlimited,
+        skipGroupCooldown: limitCheck.skipGroupCooldown,
+        dailyLimit: limitCheck.dailyLimit,
+        timeout: setTimeout(() => {
+          if (client.pendingAiQueries) {
+            client.pendingAiQueries.delete(message.author.id);
+          }
+        }, 120000)
+      };
+
+      client.pendingAiQueries.set(message.author.id, pendingObj);
+
+      await safeReply(message, 'to jest pytanie do google, jesli chcesz sie zapytac o grp wpisz "!analiza <ilosc wiadomosci> <pytanie>" jesli chcesz zadac pytanie do google napisz dalej jesli nie stop');
       return;
     }
+
+    // Od tego momentu zapytanie dotyczy historii grupy (isGroupQuery === true)
 
     if (!threadId) {
       await safeReply(message, '❌ Nie można określić ID konwersacji.');
@@ -498,6 +581,10 @@ module.exports = {
       await safeReply(message, '❌ Brak połączenia z API Messengera.');
       return;
     }
+
+    const analysisId = `${message.author.id}_${Date.now()}_${Math.random()}`;
+    client.activeAnalyses = client.activeAnalyses || new Map();
+    client.activeAnalyses.set(analysisId, Date.now());
 
     const fetchCount = msgCount || 200;
     const analysisStartTime = Date.now();
@@ -728,6 +815,7 @@ module.exports = {
         }
       }
 
+      await consumeAiQuota(message.author.id, threadId, limitCheck.skipGroupCooldown, limitCheck.unlimited);
       await safeReply(message, `📊 **Odpowiedź** (na podstawie ${transcriptLines.length} wiadomości, ${chunks.length} ${chunks.length === 1 ? 'zapytanie' : 'części'}):\n\n${finalReplyText}`);
     } catch (err) {
       console.error('[AI] Błąd:', err);
@@ -743,6 +831,9 @@ module.exports = {
         console.error('[AI] Nie udało się wysłać wiadomości o błędzie:', sendErr.message);
       }
     } finally {
+      if (typeof analysisId !== 'undefined' && client.activeAnalyses) {
+        client.activeAnalyses.delete(analysisId);
+      }
       fetchHeartbeat.stop();
       if (typeof chunkHeartbeat !== 'undefined') {
         chunkHeartbeat.stop();
@@ -755,3 +846,10 @@ module.exports = {
 };
 
 module.exports.askGeminiWithFallback = askGeminiWithFallback;
+module.exports.handleConfirmedGoogleQuery = handleConfirmedGoogleQuery;
+module.exports.checkAiLimits = checkAiLimits;
+module.exports.consumeAiQuota = consumeAiQuota;
+module.exports.getActiveAnalysesCount = getActiveAnalysesCount;
+module.exports.MAX_CONCURRENT_ANALYSES = MAX_CONCURRENT_ANALYSES;
+
+
