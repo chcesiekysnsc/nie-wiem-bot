@@ -479,6 +479,88 @@ const helpCommands = [
       "🏗️ **Deweloper:** Zmniejsza czynsz o 50%, ulepszenia są tańsze o 15%, a domy kupujesz z 15% zniżką."
     ]
   },
+  {
+    name: "garaz",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "🏎️ garaż i salon pojazdów",
+    description: "🏎️ Kupuj pojazdy (Skuter, Sedan, Sportowiec, Van, Ciężarówka) dające pasywne bonusy do pracy, skoków i firm! (Max 1 pojazd w garażu).",
+    usage: "!garaz | !garaz kup <numer/nazwa> | !garaz sprzedaj",
+    examples: ["!garaz", "!garaz kup 1", "!garaz kup sedan", "!garaz sprzedaj"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["garaż", "garage", "pojazd"],
+    additionalInfo: [
+      "🛵 Skuter (100k): -4% CD work",
+      "🚗 Sedan (350k): -6% CD work, +4% zysk work",
+      "🏎️ Sportowiec (800k): -8% CD work/crime, +5% zysk work/crime",
+      "🚐 Van (500k): +10% łup z !rob, -6% CD work, +5% zysk work, +3% zysk firm",
+      "🚛 Ciężarówka (1.2M): +8% zysk firm, -6% CD work/crime, +6% zysk work/crime"
+    ]
+  },
+  {
+    name: "spolka",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "🏢 spółki akcyjne i dywidendy",
+    description: "🏢 Załóż spółkę akcyjną lub dołącz do istniejącej! Prezes wypłaca dywidendy udziałowcom w proporcji do wniesionego wkładu.",
+    usage: "!spolka | !spolka stworz <nazwa> <wkład> | !spolka dolacz <nazwa/ID> <wkład> | !spolka inwestuj <kwota> | !spolka dywidenda | !spolka opusc | !spolka rozwiaz",
+    examples: ["!spolka", "!spolka stworz CyberCorp 1000000", "!spolka dolacz CyberCorp 200000", "!spolka dywidenda"],
+    cooldown: "5 sekund",
+    requirements: "Tworzenie spółki min. 500,000💰, dołączenie min. 100,000💰 (max 5 udziałowców).",
+    aliases: ["spółka", "spolki", "spółki", "akcje"],
+    additionalInfo: [
+      "📈 Dywidendę wypłaca Prezes co 12h (pula 8-12% całego kapitału spółki).",
+      "🚪 Odejście ze spółki oddaje 70% wkładu, rozwiązanie przez Prezesa zwraca 80% wkładu wszystkim."
+    ]
+  },
+  {
+    name: "narkotyki",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "🌿 tajny biznes i produkcja",
+    description: "🌿 Uprawiaj Marihuanę, Amfetaminę i Kokainę, a następnie sprzedawaj towar na czarnym rynku! Uważaj na naloty policji.",
+    usage: "!narkotyki | !narkotyki sadz <marihuana/amfetamina/kokaina> | !narkotyki zbierz | !narkotyki sprzedaj <typ> <ilość>",
+    examples: ["!narkotyki", "!narkotyki sadz kokaina", "!narkotyki zbierz", "!narkotyki sprzedaj kokaina 2"],
+    cooldown: "5 sekund",
+    requirements: "Brak.",
+    aliases: ["narkotyk", "zielsko", "plantacja"],
+    additionalInfo: [
+      "🌿 Marihuana (30k, 1.5h, 1-3 paczki): Cena 40k-55k, Stałe ryzyko 10%",
+      "🧪 Amfetamina (60k, 2h, 1-2 paczki): Cena 80k-120k, Stałe ryzyko 18%",
+      "❄️ Kokaina (120k, 3h, 1-2 paczki): Cena 150k-220k, Stałe ryzyko 28%",
+      "🚨 Nalot: Konfiskata towaru, grzywna 50% wartości próbowanej sprzedaży, 1h30m więzienia (kaucja max 220k). Przedmioty ochronne NIE działają!"
+    ]
+  },
+  {
+    name: "zwierzak",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "🐾 chowańce i pasywne buffy",
+    description: "🐾 Posiadaj chowańca (Pies, Kot, Smok). Dbaj o niego (karm, baw się, trenuj), aby podnosić jego poziom i zwiększać unikalne buffy!",
+    usage: "!zwierzak | !zwierzak kup <pies/kot/smok> | !zwierzak karm | !zwierzak baw | !zwierzak trening | !zwierzak oddaj",
+    examples: ["!zwierzak", "!zwierzak kup smok", "!zwierzak karm", "!zwierzak trening"],
+    cooldown: "3 sekundy",
+    requirements: "Brak.",
+    aliases: ["zwierze", "pupil", "pet"],
+    additionalInfo: [
+      "🐕 Pies (350k): +2%/+4%/+6% zysku z !crime",
+      "🐈 Kot (350k): +4%/+6%/+8% zysku z !work",
+      "🐉 Smok (850k): +4%/+6%/+8% zysku z !work i !crime, -5% ochrona w !rob, -5% CD work/crime",
+      "⚠️ Głód i humor spadają o -5 co 4h. Jeśli głód = 0 przez 36h, zwierzak ucieka!"
+    ]
+  },
+  {
+    name: "odszkodowanie",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "🛡️ ubezpieczenie od kradzieży !rob",
+    description: "🛡️ Ubezpiecz swój portfel! W przypadku zostania okradzionym komendą !rob ubezpieczyciel zwraca 35% poniesionych strat.",
+    usage: "!odszkodowanie | !odszkodowanie kup | !odszkodowanie roszczenie",
+    examples: ["!odszkodowanie", "!odszkodowanie kup", "!odszkodowanie roszczenie"],
+    cooldown: "5 sekund",
+    requirements: "Zakup polisy ubezpieczeniowej (400,000💰).",
+    aliases: ["ubezpieczenie", "polisa", "roszczenie"],
+    additionalInfo: [
+      "💳 Polisa kosztuje 400,000💰 i jest ważna przez 7 dni.",
+      "💰 Po okradzeniu wpisz !odszkodowanie roszczenie, aby otrzymać 35% skradzionej kwoty (max 1 roszczenie na 24h)."
+    ]
+  },
 
   // --- KATEGORIA 2: SOCJALNE I GANGI ---
   {

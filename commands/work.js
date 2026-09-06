@@ -213,6 +213,34 @@ module.exports = {
         actualCd = Math.floor(actualCd * 0.95);
       }
 
+      if (hasItem(inventory, 'sportowe_auto')) {
+        actualCd *= 0.92; // -8% cooldown
+      }
+
+      // Garage Vehicle Cooldown Reduction
+      const garazData = store.profiles && store.profiles.garaz ? store.profiles.garaz[authorId] : null;
+      if (garazData && garazData.pojazdId) {
+        const garazVehicles = {
+          skuter: 0.04,
+          sedan: 0.06,
+          sportowiec: 0.08,
+          van: 0.06,
+          ciezarowka: 0.06
+        };
+        const red = garazVehicles[garazData.pojazdId];
+        if (red) {
+          actualCd *= (1 - red);
+        }
+      }
+
+      // Zwierzak (Chowaniec) Cooldown Reduction (Smok -5%)
+      if (store.profiles && store.profiles.zwierzaki && store.profiles.zwierzaki[authorId]) {
+        const petObj = store.profiles.zwierzaki[authorId];
+        if (petObj.type === 'smok') {
+          actualCd *= 0.95;
+        }
+      }
+
       const cdMs = actualCd * 1000;
       const last = user.lastWorkTime || 0;
       const diff = now - last;
@@ -246,6 +274,10 @@ module.exports = {
         reward = Math.floor(reward * (1 + walizkaBonus));
       }
 
+      if (hasItem(inventory, 'karta_vip')) {
+        reward = Math.floor(reward * 1.15);
+      }
+
       const energetykBonus = getPassiveMultiplier(inventory, 'energetyk', 0.05);
       if (energetykBonus > 0) {
         reward = Math.floor(reward * (1 + energetykBonus));
@@ -274,6 +306,33 @@ module.exports = {
       const workIncomeBonus = getItemSetBonus(inventory, 'work_income');
       if (workIncomeBonus > 0) {
         reward = Math.floor(reward * (1 + workIncomeBonus));
+      }
+
+      // Garage Vehicle Earnings Bonus
+      if (garazData && garazData.pojazdId) {
+        const vehicleWorkBonus = {
+          sedan: 0.04,
+          sportowiec: 0.05,
+          van: 0.05,
+          ciezarowka: 0.06
+        };
+        const bonus = vehicleWorkBonus[garazData.pojazdId];
+        if (bonus) {
+          reward = Math.floor(reward * (1 + bonus));
+        }
+      }
+
+      // Zwierzak (Chowaniec) Work Earnings Bonus (Kot: +4/6/8%, Smok: +4/6/8%)
+      if (store.profiles && store.profiles.zwierzaki && store.profiles.zwierzaki[authorId]) {
+        const petObj = store.profiles.zwierzaki[authorId];
+        const { pets } = require('./zwierzak');
+        const petDef = pets[petObj.type];
+        if (petDef && petDef.getWorkBonus) {
+          const petWorkBonus = petDef.getWorkBonus(petObj.level || 1);
+          if (petWorkBonus > 0) {
+            reward = Math.floor(reward * (1 + petWorkBonus));
+          }
+        }
       }
 
       const tripleChance = getItemSetBonus(inventory, 'work_triple_chance');
@@ -434,6 +493,11 @@ module.exports = {
       }
 
       user.lastWorkTime = now;
+
+      if (hasItem(inventory, 'zaparzacz_espresso') && Math.random() < 0.15) {
+        user.lastWorkTime = 0;
+        triggerMessages.push('☕ **Zaparzacz Espresso!** Świeża kawa daje natychmiastowy zastrzyk energii — brak cooldownu na następną pracę!');
+      }
 
       if (hasAutomat) {
         user.automatDoKawyUses = (user.automatDoKawyUses || 0) + 1;

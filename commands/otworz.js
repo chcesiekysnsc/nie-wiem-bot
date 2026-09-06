@@ -59,10 +59,10 @@ const PACZKI = {
       { chance: 20, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] },
       { chance: 20, items: [{ id: 'zlota_karta', qty: 1, label: '💳 Złota Karta' }] },
       { chance: 10, items: [{ id: 'kamera', qty: 1, label: '📷 Kamera' }] },
-      { chance: 10, items: [{ id: 'talizman_fortuny', qty: 1, label: '📿 Talizman Fortuny', permanent: true }] },
       { chance: 15, items: [{ id: 'zestaw_wlamywacza', qty: 1, label: '🛠️ Zestaw Włamywacza', permanent: true }] }, // 1.5%
       { chance: 15, items: [{ id: 'latarka', qty: 1, label: '🔦 Latarka', permanent: true }] }, // 1.5%
       { chance: 10, items: [{ id: 'ksiega_inwestora', qty: 1, label: '📖 Księga Inwestora', permanent: true }] }, // 1.0%
+      { chance: 10, items: [{ id: 'radar_policyjny', qty: 1, label: '📻 Radar Policyjny', permanent: true }] }, // 1.0%
       { chance: 10, items: [{ id: 'material_upgrade_2', qty: 1, label: '🔧 Miedź' }] },
       { chance: 10, items: [{ id: 'material_upgrade_3', qty: 1, label: '⚙️ Tytan' }] },
       { chance: 10, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] }
@@ -86,9 +86,10 @@ const PACZKI = {
       { chance: 15, items: [{ id: 'kaczka_biznesu', qty: 1, label: '🦆 Kaczka Biznesu', permanent: true }] }, // 1.5%
       { chance: 15, items: [{ id: 'patrol_policji', qty: 1, label: '🚔 Patrol Policji', permanent: true }] }, // 1.5%
       { chance: 10, items: [{ id: 'mocna_kawa', qty: 1, label: '☕ Mocna Kawa', permanent: true }] }, // 1.0%
+      { chance: 10, items: [{ id: 'zaparzacz_espresso', qty: 1, label: '☕ Zaparzacz Espresso', permanent: true }] }, // 1.0%
+      { chance: 5,  items: [{ id: 'kapelusz_magika', qty: 1, label: '🎩 Kapelusz Magika', permanent: true }] }, // 0.5%
       { chance: 10, items: [{ id: 'material_upgrade_3', qty: 1, label: '⚙️ Tytan' }] },
-      { chance: 10, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] },
-      { chance: 10, items: [{ id: 'material_upgrade_5', qty: 1, label: '⚛️ Inżelit' }] }
+      { chance: 10, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] }
     ]
   },
   tytanowa: {
@@ -107,6 +108,7 @@ const PACZKI = {
       { chance: 30, items: [{ id: 'insygnia_gang', qty: 1, label: '🏴‍☠️ Insygnia Gangu', permanent: true }] },
       { chance: 7.5, items: [{ id: 'dobra_ksiegowa', qty: 1, label: '👩‍💼 Dobra Księgowa', permanent: true }] },
       { chance: 15, items: [{ id: 'odznaka_komendanta', qty: 1, label: '🎖️ Odznaka Komendanta', permanent: true }] },
+      { chance: 10, items: [{ id: 'sportowe_auto', qty: 1, label: '🏎️ Sportowe Auto', permanent: true }] }, // 1.0%
       { chance: 5, items: [{ id: 'klucz_wiezienny', qty: 1, label: '🔑 Klucz Więzienny' }] },
       { chance: 10, items: [{ id: 'rekawice_robotnika', qty: 1, label: '🧤 Rękawice Robotnika', permanent: true }] },
       { chance: 10, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] },
@@ -126,6 +128,7 @@ const PACZKI = {
       { chance: 20, items: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }] },
       { chance: 10, items: [{ id: 'sakiewka_kolekcjonera', qty: 1, label: '💰 Sakiewka Kolekcjonera', permanent: true }] },
       { chance: 10, items: [{ id: 'z_drive', qty: 1, label: '⏳ Z-drive', permanent: true }] },
+      { chance: 10, items: [{ id: 'platynowa_karta_kredytowa', qty: 1, label: '💳 Platynowa Karta Kredytowa', permanent: true }] }, // 1.0%
       { chance: 20, items: [{ id: 'dynamit', qty: 1, label: '💥 Dynamit' }] },
       { chance: 10, items: [{ id: 'material_upgrade_4', qty: 1, label: '💎 Karbid' }] },
       { chance: 10, items: [{ id: 'material_upgrade_5', qty: 1, label: '⚛️ Inżelit' }] }
@@ -168,7 +171,12 @@ const FALLBACKS = {
   certyfikat_inwestora: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }],
   nowe_abibasy: [{ id: 'piwo', qty: 1, label: '🍺 Piwo' }],
   falszer: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }],
-  karty_tarota: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }]
+  karty_tarota: [{ id: 'ticket', qty: 1, label: '🎟️ Bilet Loterii' }],
+  sportowe_auto: [{ id: 'klodka', qty: 2, label: '🔒 Kłódka x2' }],
+  zaparzacz_espresso: [{ id: 'bomba', qty: 1, label: '💣 Bomba' }],
+  radar_policyjny: [{ id: 'klodka', qty: 1, label: '🔒 Kłódka' }],
+  platynowa_karta_kredytowa: [{ id: 'bomba', qty: 2, label: '💣 Bomba x2' }],
+  kapelusz_magika: [{ id: 'piwo', qty: 2, label: '🍺 Piwo x2' }]
 };
 
 // Losuje drop na podstawie tabeli szans (1-1000)

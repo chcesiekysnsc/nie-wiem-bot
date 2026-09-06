@@ -303,7 +303,7 @@ Współpraca i propozycje również na Facebooku.`
     ]
   },
    6: {
-     name: 'Firmy oraz okradanie',
+     name: 'Firmy, biznesy i chowańce',
      emoji: '💼',
     poradniki: [
       {
@@ -323,6 +323,86 @@ Wypłata co: 3 godziny`
       },
       {
         id: 2,
+        title: 'Spółki Akcyjne i Dywidendy',
+        content: `📝 OPIS:
+!spolka pozwala na zakłady i prowadzenie wspólnych spółek akcyjnych z innymi graczami (max 5 udziałowców). Prezes wypłaca dywidendy.
+
+💡 PORADA:
+Zatrudniaj współinwestorów z dużym kapitałem. Wpłacaj wkład (!spolka inwestuj) aby zwiększać swój procent udziału. Prezes wypłaca pulę 8-12% całego kapitału spółki co 12h (!spolka dywidenda).
+
+⚠️ UWAGA:
+Odejście ze spółki oddaje 70% wkładu. Prezes rozwiązujący spółkę oddaje 80% wkładu każdemu.
+
+📊 INFO:
+Zakładanie: od 500k 💰 | Dołączanie: od 100k 💰 | Dywidenda: co 12h`
+      },
+      {
+        id: 3,
+        title: 'Tajny biznes narkotykowy',
+        content: `📝 OPIS:
+!narkotyki to tajna uprawa 3 rodzajów roślin (Marihuana, Amfetamina, Kokaina) i sprzedaż ich paczek na czarnym rynku.
+
+💡 PORADA:
+Uprawiaj Marihuanę dla bezpiecznego zysku (10% ryzyko nalotu). Kokaina daje ogromny zysk, ale ma 28% ryzyko nalotu policji. Sadź max 4 plantacje naraz.
+
+⚠️ UWAGA:
+🚨 Nalot policji konfiskuje towar, nakłada 50% grzywny wartości sprzedaży i wsadza do więzienia na 1h 30m. Przedmioty ochronne NIE działają na nalot!
+
+📊 INFO:
+Sadzonki: 30k - 120k 💰 | Czas wzrostu: 1.5h - 3h | Ryzyko: 10% - 28%`
+      },
+      {
+        id: 4,
+        title: 'Garaż i Pojazdy',
+        content: `📝 OPIS:
+!garaz pozwala posiadać 1 pojazd dający silne pasywne bonusy do pracy, napadów, skoków i firm.
+
+💡 PORADA:
+Wybierz pojazd pasujący do Twojego stylu gry:
+• 🛵 Skuter (100k): -4% CD work
+• 🚗 Sedan (350k): -6% CD work, +4% zysk work
+• 🏎️ Sportowiec (800k): -8% CD work/crime, +5% zysk work/crime
+• 🚐 Van (500k): +10% łup z !rob, -6% CD work, +5% zysk work, +3% zysk firm
+• 🚛 Ciężarówka (1.2M): +8% zysk firm, -6% CD work/crime, +6% zysk work/crime
+
+⚠️ UWAGA:
+Możesz posiadać maksymalnie 1 pojazd w garażu naraz. Sprzedaż oddaje 50% ceny.
+
+📊 INFO:
+Limit: 1 pojazd | Podkomendy: !garaz kup / !garaz sprzedaj`
+      },
+      {
+        id: 5,
+        title: 'Chowańce (Zwierzaki)',
+        content: `📝 OPIS:
+!zwierzak to system opieki nad pupilami (Pies, Kot, Smok), które rozwijają swoje pasywne buffy wraz z poziomem (od 1 do 10 lvl).
+
+💡 PORADA:
+Pies (350k) daje +2%/+4%/+6% zysku z !crime. Kot (350k) daje +4%/+6%/+8% zysku z !work. Smok (850k) daje +4%/+6%/+8% do work i crime, -5% ochronę przed !rob oraz -5% cooldown work/crime!
+
+⚠️ UWAGA:
+Głód i humor spadają o -5 co 4h. Karmienie kosztuje 6k (!zwierzak karm). Jeśli głód = 0 przez 36h, zwierzak ucieka!
+
+📊 INFO:
+Opieka: !zwierzak karm / !zwierzak baw / !zwierzak trening (co 2h)`
+      },
+      {
+        id: 6,
+        title: 'Ubezpieczenia od kradzieży',
+        content: `📝 OPIS:
+!odszkodowanie pozwala wykupić 7-dniową polisę ubezpieczeniową chroniącą Twój portfel przed kradzieżami w !rob.
+
+💡 PORADA:
+Kup polisę (!odszkodowanie kup) za 400,000💰. Jeśli gracz Cię okradnie w !rob, zgłoś roszczenie (!odszkodowanie roszczenie), a ubezpieczyciel zwróci Ci 35% skradzionej kwoty!
+
+⚠️ UWAGA:
+Ważność polisy wynosi 7 dni. Limit: max 1 roszczenie na 24 godziny.
+
+📊 INFO:
+Cena polisy: 400,000💰 | Wypłata: 35% strat | Odnowienie: 7 dni`
+      },
+      {
+        id: 7,
         title: 'Okradanie graczy',
         content: `📝 OPIS:
 !rob pozwala okraść innych graczy. Komendy !rob można używać tak: !rob <id> — okradasz osobę o danym ID. ID można pozyskać np. z linku do konta na Facebooku. Wymaga 100k w portfelu i 50 użytych komend. Cel musi mieć min. 50k.

@@ -23,7 +23,7 @@ const getNonEventItems = () => {
     const isStackable = def.type === 'stackable';
     const isPackage = id.startsWith('paczka_');
     const isEvent = eventItemIds.includes(id);
-    if ((!isPermanent && !isStackable) || isPackage || isEvent) continue;
+    if ((!isPermanent && !isStackable) || isPackage || isEvent || id === 'karta_vip') continue;
     list.push({
       num,
       id,

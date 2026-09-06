@@ -154,6 +154,28 @@ async function checkCooldown(commandName, userId) {
       }
     }
 
+    // Sportowe Auto item (-8% cooldown dla crime)
+    if (commandName === 'crime') {
+      const inventory = store.inventory[userId];
+      if (inventory && (inventory['sportowe_auto'] || 0) > 0) {
+        duration = Math.floor(duration * 0.92);
+      }
+    }
+
+    // Garaż Vehicle cooldown reduction dla !crime
+    if (commandName === 'crime' && store.profiles && store.profiles.garaz && store.profiles.garaz[userId]) {
+      const pId = store.profiles.garaz[userId].pojazdId;
+      if (pId === 'sportowiec') duration = Math.floor(duration * 0.92); // -8%
+      if (pId === 'ciezarowka') duration = Math.floor(duration * 0.94); // -6%
+    }
+
+    // Zwierzak (Smok) cooldown reduction dla !crime (-5%)
+    if (commandName === 'crime' && store.profiles && store.profiles.zwierzaki && store.profiles.zwierzaki[userId]) {
+      if (store.profiles.zwierzaki[userId].type === 'smok') {
+        duration = Math.floor(duration * 0.95);
+      }
+    }
+
     // Szwajcarski Zegarek cooldown reduction
     if (['crime', 'work', 'rob'].includes(commandName)) {
       const inventory = store.inventory[userId];

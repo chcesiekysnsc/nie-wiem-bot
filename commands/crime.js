@@ -161,9 +161,32 @@ module.exports = {
       if (politykCatchReduction > 0) {
         baseSuccessChance += politykCatchReduction;
       }
+      if (hasItem(inventory, 'radar_policyjny')) {
+        baseSuccessChance += 0.02; // Radar Policyjny: -2 pkt % szansy na więzienie (+2% szansy na sukces)
+      }
       const roll = Math.random();
       let success = roll < Math.min(baseSuccessChance, 1);
       let amount = randomInt(15000, 70000);
+
+      // Garage Vehicle Crime Earnings Bonus
+      const garazData = store.profiles && store.profiles.garaz ? store.profiles.garaz[authorId] : null;
+      if (garazData && garazData.pojazdId) {
+        if (garazData.pojazdId === 'sportowiec') amount = Math.floor(amount * 1.05); // +5%
+        if (garazData.pojazdId === 'ciezarowka') amount = Math.floor(amount * 1.06); // +6%
+      }
+
+      // Zwierzak (Chowaniec) Crime Earnings Bonus (Pies: +2/4/6%, Smok: +4/6/8%)
+      if (store.profiles && store.profiles.zwierzaki && store.profiles.zwierzaki[authorId]) {
+        const petObj = store.profiles.zwierzaki[authorId];
+        const { pets } = require('./zwierzak');
+        const petDef = pets[petObj.type];
+        if (petDef && petDef.getCrimeBonus) {
+          const petCrimeBonus = petDef.getCrimeBonus(petObj.level || 1);
+          if (petCrimeBonus > 0) {
+            amount = Math.floor(amount * (1 + petCrimeBonus));
+          }
+        }
+      }
       if (hasItem(inventory, 'krolewskie_insygnia')) {
         amount = Math.floor(amount * 1.10);
       }

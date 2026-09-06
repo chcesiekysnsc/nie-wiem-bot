@@ -140,6 +140,12 @@ module.exports = {
         payout += talizmanBonus;
       }
 
+      let kapeluszMagikaTriggered = false;
+      if (won && !kosciRefunded && hasItem(inventory, 'kapelusz_magika') && Math.random() < 0.01) {
+        payout += (payout - bet); // Podwojenie wygranej zysku
+        kapeluszMagikaTriggered = true;
+      }
+
       user.balance += payout;
 
       const net = payout - bet;
@@ -148,7 +154,7 @@ module.exports = {
 
       const challengeUpdate = won ? advanceChallenge(message.author.id, store, 'coinflip_streak', 1, { betAmount: bet, won }) : advanceChallenge(message.author.id, store, 'coinflip_streak', 0, { betAmount: bet, won: false });
 
-      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, ananasSaved, kosciRefunded, badgeUsed, dealerCheated, talizmanBonus, streak: user.gambleStreak || 0, challengeUpdate };
+      return { won, bet, payout, net, flip, xpResult, secondChanceSaved: badgeSaved, szkarlatneOkoSaved, ananasSaved, kosciRefunded, badgeUsed, dealerCheated, talizmanBonus, kapeluszMagikaTriggered, streak: user.gambleStreak || 0, challengeUpdate };
     });
 
     if (result.error) {
@@ -159,6 +165,10 @@ module.exports = {
     const outcome = displayChoice(result.flip);
     const winText = result.won ? `Wygrana! +${formatCurrency(result.net)}` : `Przegrana. -${formatCurrency(result.bet)}`;
     let replyText = `🪙 Coinflip: Wypadło **${outcome}**. ${winText}`;
+
+    if (result.won && result.kapeluszMagikaTriggered) {
+      replyText += `\n🎩 **Kapelusz Magika!** Magiczna sztuczka podwoiła Twoją wygraną!`;
+    }
 
     if (result.won && result.talizmanBonus > 0) {
       replyText += `\n📿 **Talizman Fortuny:** Otrzymujesz bonus **+${formatCurrency(result.talizmanBonus)}** (seria: ${result.streak} wygranych pod rząd)`;

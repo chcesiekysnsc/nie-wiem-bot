@@ -126,10 +126,17 @@ function calculateSuccessChance(robberInv, victimInv, robber, overrideChance, vi
     chance -= 0.25;
   }
 
+  // Ochrona Smoka z komendy !zwierzak (-5% szansy na bycie okradzionym)
+  if (store.profiles && store.profiles.zwierzaki && store.profiles.zwierzaki[victim.id]) {
+    if (store.profiles.zwierzaki[victim.id].type === 'smok') {
+      chance -= 0.05;
+    }
+  }
+
   return Math.min(chance, 1);
 }
 
-function calculateStolenAmount(baseStolen, robberInv, gangFachLevel) {
+function calculateStolenAmount(baseStolen, robberInv, gangFachLevel, store, robber) {
   let stolen = baseStolen;
   const gangMultipliers = [0.0, 0.04, 0.08, 0.12];
   const gangBonus = [0, 4, 8, 12][gangFachLevel] || 0;
@@ -149,6 +156,13 @@ function calculateStolenAmount(baseStolen, robberInv, gangFachLevel) {
   const robLootBonus = getItemSetBonus(robberInv, 'rob_loot');
   if (robLootBonus > 0) {
     stolen += Math.floor(stolen * robLootBonus);
+  }
+
+  // Bonus Vana z garażu (+10% łup z !rob)
+  if (store.profiles && store.profiles.garaz && store.profiles.garaz[robber.id]) {
+    if (store.profiles.garaz[robber.id].pojazdId === 'van') {
+      stolen += Math.floor(stolen * 0.10);
+    }
   }
   
   // Dodaj bonus wcześniejszego przygotowania (50% większy łup)
@@ -464,7 +478,7 @@ module.exports = {
 
           if (success) {
             const gangFachLevel = getFachLevel(store, robber.gangId);
-            const { stolen, gangBonus, sztyletBonus, latarkaBonusPct, wczesniejszePrzygotowanieTriggered } = calculateStolenAmount(baseStolen, robberInv, gangFachLevel);
+            const { stolen, gangBonus, sztyletBonus, latarkaBonusPct, wczesniejszePrzygotowanieTriggered } = calculateStolenAmount(baseStolen, robberInv, gangFachLevel, store, robber);
 
             const tribute = calculateTribute(stolen, store, robber);
 
@@ -473,8 +487,16 @@ module.exports = {
             insygniaBonus = calculateInsygniaBonus(robberInv, netBeforeInsygnia);
             const netStolen = netBeforeInsygnia + insygniaBonus;
 
-            victim.balance = Math.max(0, victim.balance - (stolen + sztyletBonus));
+            const totalVictimLoss = stolen + sztyletBonus;
+            victim.balance = Math.max(0, victim.balance - totalVictimLoss);
             robber.balance += netStolen;
+
+            // Zapisz stratę dla celów ubezpieczenia (!odszkodowanie)
+            if (!store.profiles) store.profiles = {};
+            if (!store.profiles.ubezpieczenia) store.profiles.ubezpieczenia = {};
+            if (store.profiles.ubezpieczenia[victim.id]) {
+              store.profiles.ubezpieczenia[victim.id].lastRobLoss = totalVictimLoss;
+            }
 
             if (tribute > 0) {
               const bossId = getBossId(store, robber.gangId);

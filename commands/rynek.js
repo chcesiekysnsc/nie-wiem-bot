@@ -2,16 +2,18 @@ const config = require('../config/config');
 const { formatCurrency, ensureInventoryRecord, hasItem, addItem, removeItem } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
+const { eventItems } = require('./eventitemy');
 const eventItemIds = [
   'szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia',
-  'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta', 'kosci_oszusta', 'czterolistna_moneta'
+  'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta', 'kosci_oszusta', 'czterolistna_moneta',
+  ...Object.values(eventItems).map(e => e.id)
 ];
 
 const getArtefaktyMap = () => {
   const map = {};
   let num = 1;
   for (const [id, item] of Object.entries(config.shopItems)) {
-    if (eventItemIds.includes(id)) continue;
+    if (eventItemIds.includes(id) || id === 'karta_vip') continue;
     if (item.buyable !== false) continue;
     map[num++] = {
       id: id,
@@ -60,6 +62,16 @@ module.exports = {
 
       if (!priceRaw) {
         await message.reply('❌ Użyj: **!rynek sprzedaj <nr_artefaktu> <cena>** (np. *!rynek sprzedaj 1 300000*)');
+        return;
+      }
+
+      const eventItemIdsAll = [
+        'szkarlatne_oko', 'cien_nocy', 'wampirzy_sztylet', 'szwajcarski_klucz', 'krysztal_doswiadczenia',
+        'ananas_na_pizzy', 'czarna_bandera', 'czarna_karta', 'kosci_oszusta', 'czterolistna_moneta',
+        'krolewskie_insygnia', 'szwajcarski_zegarek', 'licencja_monopolisty', 'ksiega_monopolisty'
+      ];
+      if (eventItemIdsAll.includes(art.id) || art.id === 'karta_vip') {
+        await message.reply(`❌ Przedmioty eventowe oraz unikalne nie mogą być wystawiane na rynku!`);
         return;
       }
 

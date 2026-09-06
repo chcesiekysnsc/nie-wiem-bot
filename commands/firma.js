@@ -262,6 +262,13 @@ module.exports = {
             payout = Math.floor(payout * (1 + deweloperBonus));
           }
 
+          // Garage Vehicle Company Income Bonus
+          if (store.profiles && store.profiles.garaz && store.profiles.garaz[authorId]) {
+            const pId = store.profiles.garaz[authorId].pojazdId;
+            if (pId === 'van') payout = Math.floor(payout * 1.03); // +3%
+            if (pId === 'ciezarowka') payout = Math.floor(payout * 1.08); // +8%
+          }
+
           companyObj.lastPayout = now;
 
           // Apply worker effects only if worker exists

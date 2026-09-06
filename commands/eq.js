@@ -12,6 +12,13 @@ const { eventItems } = require('./eventitemy');
 function getOrderedItems() {
   let count = 0;
   return Object.entries(config.shopItems).map(([id, item]) => {
+    if (id === 'karta_vip') {
+      return {
+        num: 100,
+        id,
+        ...item
+      };
+    }
     return {
       num: ++count,
       id,
@@ -53,7 +60,7 @@ module.exports = {
       const allItems = getAllItemsForHelp();
       const entry = allItems.find(i => String(i.num) === targetNum) || allItems.find(i => i.id === targetNum);
 
-      if (!entry) {
+      if (!entry || (entry.id === 'karta_vip' && message.author.id !== '61554695318900')) {
         await message.reply(`❌ Nie znaleziono przedmiotu o numerze/nazwie **${args[1]}**. Wpisz **!eq** aby zobaczyć swój ekwipunek.`);
         return;
       }

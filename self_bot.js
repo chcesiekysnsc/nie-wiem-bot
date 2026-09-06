@@ -4627,7 +4627,36 @@ loginWithFallback().then(api => {
           await messageContext.reply(houseNotificationMsg.trim()).catch(() => null);
         }
 
+        const todayKey = new Date().toISOString().slice(0, 10);
+        let startBalance = 0;
+        let startBank = 0;
+
+        await withData(store => {
+          const u = createUser(senderId, store.users);
+          startBalance = u.balance || 0;
+          startBank = u.bank || 0;
+        });
+
         await command.execute(client, messageContext, args);
+
+        await withData(store => {
+          const u = createUser(senderId, store.users);
+          const endBalance = u.balance || 0;
+          const endBank = u.bank || 0;
+          const diff = (endBalance + endBank) - (startBalance + startBank);
+
+          if (diff !== 0) {
+            u.dailyStats = u.dailyStats || {};
+            if (u.dailyStats.date !== todayKey) {
+              u.dailyStats = { date: todayKey, earned: 0, lost: 0 };
+            }
+            if (diff > 0) {
+              u.dailyStats.earned = (u.dailyStats.earned || 0) + diff;
+            } else {
+              u.dailyStats.lost = (u.dailyStats.lost || 0) + Math.abs(diff);
+            }
+          }
+        });
 
       withData(store => {
         const user = store.users[senderId];

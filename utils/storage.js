@@ -684,6 +684,31 @@ function runHeavyLoops(store) {
     timePassedCzarna = now - store.profiles.lastCzarnaKartaPayout;
   }
 
+  // --- Odsetki z Platynowej Karty Kredytowej co 4h ---
+  store.profiles.lastPlatynowaKartaPayout = store.profiles.lastPlatynowaKartaPayout || now;
+  const platynowaIntervalMs = 4 * 60 * 60 * 1000;
+  if (now - store.profiles.lastPlatynowaKartaPayout > 5 * platynowaIntervalMs) {
+    store.profiles.lastPlatynowaKartaPayout = now - 5 * platynowaIntervalMs;
+  }
+  let timePassedPlatynowa = now - store.profiles.lastPlatynowaKartaPayout;
+  while (timePassedPlatynowa >= platynowaIntervalMs) {
+    for (const [userId, user] of Object.entries(store.users)) {
+      if (user && user.bank > 0) {
+        const userInv = store.inventory[userId] || {};
+        if ((userInv['platynowa_karta_kredytowa'] || 0) > 0) {
+          const hasCzterolistna = (userInv['czterolistna_moneta'] || 0) > 0;
+          const rate = hasCzterolistna ? 0.06 : 0.05; // 5% bazowo co 4h (lub 6% z Czterolistną Monetą)
+          const interest = Math.floor(user.bank * rate);
+          if (interest > 0) {
+            user.balance = (user.balance || 0) + interest;
+          }
+        }
+      }
+    }
+    store.profiles.lastPlatynowaKartaPayout += platynowaIntervalMs;
+    timePassedPlatynowa = now - store.profiles.lastPlatynowaKartaPayout;
+  }
+
   // --- Odsetki i auto-spłata pożyczek ---
   for (const [userId, user] of Object.entries(store.users)) {
     if (user && user.activeLoan) {

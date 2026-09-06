@@ -77,7 +77,12 @@ module.exports = {
     kameleon: 0,
     jaszczurka: 0,
     waz: 0,
-    afk: 3
+    afk: 3,
+    garaz: 3,
+    spolka: 5,
+    narkotyki: 5,
+    zwierzak: 3,
+    odszkodowanie: 5
   },
   adminDailyLimits: {
     unlimited: ['admadd', 'admgiv', 'admgivglobal', 'reset', 'del', 'global', 'say', 'loteriastart'],
@@ -1459,6 +1464,66 @@ module.exports = {
       type: 'permanent',
       buyable: false,
       shopNote: 'Dostępne tylko z 🟨 Złotej Paczki (1.4%).'
+    },
+    karta_vip: {
+      name: 'Karta VIP',
+      emoji: '💳',
+      price: 0,
+      shortDesc: '+15% monet z !work.',
+      description: 'Ekskluzywna Karta VIP. Zwiększa zarobki z komendy !work o 15%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Ekskluzywny przedmiot osobisty.'
+    },
+    sportowe_auto: {
+      name: 'Sportowe Auto',
+      emoji: '🏎️',
+      price: 0,
+      shortDesc: '-8% cooldownu !work i !crime.',
+      description: 'Pasywny przedmiot motorowy. Skraca cooldowny komend !work oraz !crime o 8%. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępne tylko z 🩶 Tytanowej Paczki (1.0%).'
+    },
+    zaparzacz_espresso: {
+      name: 'Zaparzacz Espresso',
+      emoji: '☕',
+      price: 0,
+      shortDesc: '15% szans na reset cooldownu !work.',
+      description: 'Pasywny przedmiot AGD. Daje 15% szans na natychmiastowy reset cooldownu komendy !work zaraz po jej użyciu. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🟦 Diamentowej Paczki (1.0%).'
+    },
+    radar_policyjny: {
+      name: 'Radar Policyjny',
+      emoji: '📻',
+      price: 0,
+      shortDesc: '-2 pkt % szansy na więzienie w !crime.',
+      description: 'Defensywny przedmiot pasywny. Ostrzega przed przyłapaniem w !crime, zmniejszając szansę na trafienie do więzienia o 2 punkty procentowe. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🟨 Złotej Paczki (1.0%).'
+    },
+    platynowa_karta_kredytowa: {
+      name: 'Platynowa Karta Kredytowa',
+      emoji: '💳',
+      price: 0,
+      shortDesc: 'Odsetki w banku naliczają się co 4h (5%).',
+      description: 'Pasywny przedmiot bankowy. Automatycznie dopisuje 5% odsetek zdeponowanych w banku co 4 godziny. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępna tylko z 🚀 Kosmicznej Paczki (1.0%).'
+    },
+    kapelusz_magika: {
+      name: 'Kapelusz Magika',
+      emoji: '🎩',
+      price: 0,
+      shortDesc: '1% szans na podwojenie wygranej w !coinflip.',
+      description: 'Pasywny przedmiot hazardowy. Daje 1% szans na podwojenie wygranej w komendzie !coinflip. Efekty się nie stackują.',
+      type: 'permanent',
+      buyable: false,
+      shopNote: 'Dostępny tylko z 🟦 Diamentowej Paczki (0.5%).'
     }
   },
   badges: {
