@@ -2961,7 +2961,8 @@ loginWithFallback().then(api => {
       return;
     }
 
-    // Interceptor dla dodania do grupy (log:subscribe') || (event.type === 'log:subscribe');
+    // Interceptor dla dodania do grupy (log:subscribe)
+    const isSubscribeEvent = (event.type === 'event' && event.logMessageType === 'log:subscribe') || (event.type === 'log:subscribe');
     if (isSubscribeEvent) {
       const threadId = event.threadID;
       const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
