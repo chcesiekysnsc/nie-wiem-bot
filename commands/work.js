@@ -233,11 +233,14 @@ module.exports = {
         }
       }
 
-      // Zwierzak (Chowaniec) Cooldown Reduction (Smok -5%)
+      // Zwierzak (Chowaniec) Cooldown Reduction (Smok -5%, Królik -99%)
       if (store.profiles && store.profiles.zwierzaki && store.profiles.zwierzaki[authorId]) {
         const petObj = store.profiles.zwierzaki[authorId];
         if (petObj.type === 'smok') {
           actualCd *= 0.95;
+        }
+        if (petObj.type === 'krolik') {
+          actualCd *= 0.01; // -99%
         }
       }
 

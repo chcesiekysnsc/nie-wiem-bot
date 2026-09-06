@@ -47,6 +47,16 @@ const PETS = {
     },
     getRobProtection: () => 0.05,
     getCooldownRed: () => 0.05
+  },
+  krolik: {
+    id: 'krolik',
+    name: '🐰 Królik',
+    price: 999000000,
+    desc: 'Najsłodszy zwierzak na świecie! -99% cd work, -99% cd crime, +1000% zarobku z work i crime, -100% szansy na udany crime (100% szans na przyłapanie)',
+    getCrimeBonus: () => 10.0, // +1000%
+    getWorkBonus: () => 10.0, // +1000%
+    getRobProtection: () => 0,
+    getCooldownRed: () => 0.99 // -99%
   }
 };
 
@@ -57,6 +67,7 @@ const findPetType = (query) => {
   if (q.includes('dog') || q.includes('pies')) return PETS.pies;
   if (q.includes('cat') || q.includes('kot')) return PETS.kot;
   if (q.includes('dragon') || q.includes('smok')) return PETS.smok;
+  if (q.includes('rabbit') || q.includes('krolik') || q.includes('królik')) return PETS.krolik;
   return null;
 };
 

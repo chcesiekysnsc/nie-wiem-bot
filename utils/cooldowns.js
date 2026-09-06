@@ -169,10 +169,14 @@ async function checkCooldown(commandName, userId) {
       if (pId === 'ciezarowka') duration = Math.floor(duration * 0.94); // -6%
     }
 
-    // Zwierzak (Smok) cooldown reduction dla !crime (-5%)
+    // Zwierzak (Smok / Królik) cooldown reduction dla !crime
     if (commandName === 'crime' && store.profiles && store.profiles.zwierzaki && store.profiles.zwierzaki[userId]) {
-      if (store.profiles.zwierzaki[userId].type === 'smok') {
+      const pType = store.profiles.zwierzaki[userId].type;
+      if (pType === 'smok') {
         duration = Math.floor(duration * 0.95);
+      }
+      if (pType === 'krolik') {
+        duration = Math.floor(duration * 0.01); // -99%
       }
     }
 

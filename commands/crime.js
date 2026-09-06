@@ -164,6 +164,14 @@ module.exports = {
       if (hasItem(inventory, 'radar_policyjny')) {
         baseSuccessChance += 0.02; // Radar Policyjny: -2 pkt % szansy na więzienie (+2% szansy na sukces)
       }
+
+      // Zwierzak Królik (100% szansy na przyłapanie przez policję / 0% sukcesu)
+      if (store.profiles && store.profiles.zwierzaki && store.profiles.zwierzaki[authorId]) {
+        if (store.profiles.zwierzaki[authorId].type === 'krolik') {
+          baseSuccessChance = 0;
+        }
+      }
+
       const roll = Math.random();
       let success = roll < Math.min(baseSuccessChance, 1);
       let amount = randomInt(15000, 70000);
