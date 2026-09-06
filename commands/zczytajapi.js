@@ -7,30 +7,44 @@ const { DATA_DIR } = require('../utils/storage');
 const PROGRESS_FILE = path.join(DATA_DIR, 'zczytajapi_progress.json');
 const RAW_FILE = path.join(DATA_DIR, 'zczytajapi_raw.json');
 
+const STRICT_SCAN_FROM = 1788386400000; // 03.09.2026, 00:00:00
+const STRICT_SCAN_TO = 1788723600000;   // 06.09.2026, 21:40:00
+
+function isWithinScanWindow(ts) {
+  const n = Number(ts);
+  return Number.isFinite(n) && n >= STRICT_SCAN_FROM && n <= STRICT_SCAN_TO;
+}
+
 function loadProgress() {
+  let p = null;
   try {
     if (fs.existsSync(PROGRESS_FILE)) {
-      return JSON.parse(fs.readFileSync(PROGRESS_FILE, 'utf8'));
+      p = JSON.parse(fs.readFileSync(PROGRESS_FILE, 'utf8'));
     }
   } catch (err) {
     console.error('[ZCZYTAJAPI] Błąd wczytywania progress:', err);
   }
-  return {
-    scannedThreadIds: [],
-    skippedThreads: [],
-    scanFromTimestamp: 1788472800000,
-    scanToTimestamp: 1788724800000,
-    stats: { bal: {}, eq: {}, gang: {}, top: {}, daily: {}, topdaily: {}, pfp: {} },
-    totalMessagesScanned: 0,
-    totalGroupsScanned: 0,
-    totalCommandsFound: 0,
-    runs: 0,
-    lastRunAt: null
-  };
+  if (!p || p.scanFromTimestamp !== STRICT_SCAN_FROM || p.scanToTimestamp !== STRICT_SCAN_TO) {
+    p = {
+      scannedThreadIds: [],
+      skippedThreads: [],
+      scanFromTimestamp: STRICT_SCAN_FROM,
+      scanToTimestamp: STRICT_SCAN_TO,
+      stats: { bal: {}, eq: {}, gang: {}, top: {}, daily: {}, topdaily: {}, pfp: {} },
+      totalMessagesScanned: 0,
+      totalGroupsScanned: 0,
+      totalCommandsFound: 0,
+      runs: 0,
+      lastRunAt: null
+    };
+  }
+  return p;
 }
 
 function saveProgress(progress) {
   try {
+    progress.scanFromTimestamp = STRICT_SCAN_FROM;
+    progress.scanToTimestamp = STRICT_SCAN_TO;
     fs.writeFileSync(PROGRESS_FILE, JSON.stringify(progress, null, 2), 'utf8');
   } catch (err) {
     console.error('[ZCZYTAJAPI] Błąd zapisu progress:', err);
@@ -40,14 +54,18 @@ function saveProgress(progress) {
 function loadRawEntries() {
   try {
     if (fs.existsSync(RAW_FILE)) {
-      return JSON.parse(fs.readFileSync(RAW_FILE, 'utf8'));
+      const arr = JSON.parse(fs.readFileSync(RAW_FILE, 'utf8'));
+      if (Array.isArray(arr)) {
+        return arr.filter(e => isWithinScanWindow(e.ts));
+      }
     }
   } catch {}
   return [];
 }
 
 function saveRawEntries(entries) {
-  fs.writeFileSync(RAW_FILE, JSON.stringify(entries, null, 2), 'utf8');
+  const filtered = Array.isArray(entries) ? entries.filter(e => isWithinScanWindow(e.ts)) : [];
+  fs.writeFileSync(RAW_FILE, JSON.stringify(filtered, null, 2), 'utf8');
 }
 
 function getThreadHistoryPage(api, threadID, amount, timestamp) {
@@ -439,7 +457,7 @@ module.exports = {
         groupsThisRun++;
         console.log(`[ZCZYTAJAPI] [${groupsThisRun}/${Math.min(remainingThreads.length, MAX_GROUPS_PER_RUN)}] Skanuję grupę ${threadId}...`);
 
-        let oldestTimestamp = scanTo;
+        let oldestTimestamp = (scanTo && scanTo <= Date.now()) ? scanTo : null;
         let pagesScanned = 0;
         let groupMsgsScanned = 0;
         let emptyPages = 0;
@@ -528,8 +546,9 @@ module.exports = {
         // Sortuj chronologicznie
         groupMessages.sort((a, b) => a.ts - b.ts);
 
-        // Dodaj WSZYSTKIE surowe wpisy (komendy + odpowiedzi bota)
+        // Dodaj WSZYSTKIE surowe wpisy (komendy + odpowiedzi bota) w obrębie zadanego okna
         for (const msg of groupMessages) {
+          if (!isWithinScanWindow(msg.ts)) continue;
           rawEntries.push({
             ts: msg.ts,
             date: new Date(msg.ts).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' }),
