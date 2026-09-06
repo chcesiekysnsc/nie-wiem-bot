@@ -36,10 +36,10 @@
         "61552139740185",
         "61579179344634"
       ],
-      "vault": 0,
+      "vault": 689804,
       "levelDziupla": 10,
-      "levelBiznesy": 0,
-      "levelFach": 0,
+      "levelBiznesy": 3,
+      "levelFach": 3,
       "lastHeistTime": 1786213828274,
       "deposits": {
         "100060812419294": 1285250222,
@@ -137,9 +137,9 @@
         "100055028388595",
         "61572761931589"
       ],
-      "vault": 0,
+      "vault": 500000,
       "levelDziupla": 10,
-      "levelBiznesy": 0,
+      "levelBiznesy": 2,
       "levelFach": 0,
       "tributePercent": 0,
       "lastHeistTime": 1786291014371,
@@ -221,8 +221,8 @@
       ],
       "vault": 0,
       "levelDziupla": 10,
-      "levelBiznesy": 0,
-      "levelFach": 0,
+      "levelBiznesy": 3,
+      "levelFach": 3,
       "tributePercent": 0,
       "lastHeistTime": 0,
       "lastAttackTime": 1785520433459,
@@ -1194,10 +1194,10 @@
         "ai_militech_m1784662699058_657",
         "ai_militech_m1784665411144_202"
       ],
-      "vault": 0,
+      "vault": 9973824,
       "levelDziupla": 10,
-      "levelBiznesy": 0,
-      "levelFach": 0,
+      "levelBiznesy": 3,
+      "levelFach": 3,
       "tributePercent": 0,
       "lastHeistTime": 0,
       "lastAttackTime": 1785479072053,
@@ -2161,8 +2161,8 @@
       ],
       "vault": 0,
       "levelDziupla": 10,
-      "levelBiznesy": 0,
-      "levelFach": 0,
+      "levelBiznesy": 3,
+      "levelFach": 3,
       "tributePercent": 0,
       "lastHeistTime": 0,
       "lastAttackTime": 1785506933442,
@@ -4113,7 +4113,7 @@
         "ai_chembarons_m1784647867625_496",
         "ai_chembarons_m1784650586643_337"
       ],
-      "vault": 0,
+      "vault": 8642545,
       "levelDziupla": 10,
       "levelBiznesy": 0,
       "levelFach": 0,
@@ -5066,10 +5066,10 @@
         "100024847097993",
         "100086926324184"
       ],
-      "vault": 0,
+      "vault": 678562,
       "levelDziupla": 3,
-      "levelBiznesy": 0,
-      "levelFach": 0,
+      "levelBiznesy": 2,
+      "levelFach": 1,
       "tributePercent": 15,
       "lastHeistTime": 0,
       "lastAttackTime": 0,
@@ -5114,10 +5114,10 @@
         "ai_izraelici_m1784727799504_499",
         "ai_izraelici_m1784730715553_890"
       ],
-      "vault": 0,
+      "vault": 8448844,
       "levelDziupla": 10,
-      "levelBiznesy": 0,
-      "levelFach": 0,
+      "levelBiznesy": 3,
+      "levelFach": 3,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "mercenaryContract": null,
@@ -6087,9 +6087,9 @@
         "61561312000443",
         "100090787007856"
       ],
-      "vault": 0,
+      "vault": 1481508,
       "levelDziupla": 8,
-      "levelBiznesy": 0,
+      "levelBiznesy": 3,
       "levelFach": 0,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
@@ -6131,9 +6131,9 @@
         "100087006129079",
         "61556744893353"
       ],
-      "vault": 0,
+      "vault": 28526,
       "levelDziupla": 1,
-      "levelBiznesy": 0,
+      "levelBiznesy": 3,
       "levelFach": 0,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
@@ -6175,7 +6175,7 @@
         "61592337244802",
         "61585910902543"
       ],
-      "vault": 0,
+      "vault": 100322,
       "levelDziupla": 10,
       "levelBiznesy": 0,
       "levelFach": 0,
@@ -6217,8 +6217,8 @@
       ],
       "vault": 0,
       "levelDziupla": 5,
-      "levelBiznesy": 0,
-      "levelFach": 0,
+      "levelBiznesy": 3,
+      "levelFach": 1,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "mercenaryContract": null,
@@ -6250,9 +6250,9 @@
         "61576757225542",
         "61569336041523"
       ],
-      "vault": 0,
+      "vault": 733575,
       "levelDziupla": 0,
-      "levelBiznesy": 0,
+      "levelBiznesy": 2,
       "levelFach": 0,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
@@ -6289,10 +6289,10 @@
         "61576450150229",
         "61591347282124"
       ],
-      "vault": 0,
+      "vault": 1426637,
       "levelDziupla": 4,
-      "levelBiznesy": 0,
-      "levelFach": 0,
+      "levelBiznesy": 3,
+      "levelFach": 3,
       "levelUzbrojenie": 0,
       "levelObrona": 0,
       "mercenaryContract": null,
@@ -6347,7 +6347,7 @@
       "seasonRewards": []
     }
   },
-  "lastInterestPayout": 1788216726954,
+  "lastInterestPayout": 1788731422788,
   "marriageBanks": {
     "100012709246650-100028592110425": {
       "balance": 0,
@@ -6800,7 +6800,7 @@
       "threadId": "7596572000383742"
     }
   },
-  "lastCzarnaKartaPayout": 1788216726954,
+  "lastCzarnaKartaPayout": 1788731422788,
   "allowedAI": [
     "61573228601016",
     {
@@ -6894,8 +6894,8 @@
   "botStatus": {
     "loggedIn": true,
     "botId": "61560227271099",
-    "activeThreads": 108,
-    "lastHeartbeat": 1788218193995
+    "activeThreads": 110,
+    "lastHeartbeat": 1788731441987
   },
   "pendingAdminBroadcasts": [],
   "pendingAdminRestart": false,
@@ -7159,7 +7159,7 @@
     "bet"
   ],
   "pendingLoanNotifications": [],
-  "nextTaxCollectionAt": 1788238327216,
+  "nextTaxCollectionAt": 1788753022973,
   "proposalModeration": {
     "100060812419294": {
       "warnings": 3,
@@ -7275,11 +7275,6 @@
     }
   },
   "gangAILogs": [
-    {
-      "gangId": "system",
-      "message": "Tick zakończony. Aktywne gangi AI: 6",
-      "timestamp": 1786183457047
-    },
     {
       "gangId": "system",
       "message": "Tick zakończony. Aktywne gangi AI: 6",
@@ -9774,6 +9769,11 @@
       "gangId": "system",
       "message": "Zainicjalizowano stałe gangi AI.",
       "timestamp": 1788218188997
+    },
+    {
+      "gangId": "system",
+      "message": "Zainicjalizowano stałe gangi AI.",
+      "timestamp": 1788731426990
     }
   ],
   "podziekowania": {
@@ -10686,333 +10686,358 @@
     ]
   },
   "forcedWorkEvent": {},
-  "lastMagicznaSakiewkaPayout": 1788216726954,
-  "61552933083709": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
+  "lastMagicznaSakiewkaPayout": 1788731422788,
   "61554695318900": {
-    "lastDailyAmount": 71020,
-    "lastDailyDay": 48
+    "lastDailyAmount": 97020,
+    "lastDailyDay": 58
   },
-  "61576757225542": {
-    "lastDailyAmount": 61000,
-    "lastDailyDay": 42
+  "61583310272500": {
+    "lastDailyAmount": 111350,
+    "lastDailyDay": 66
   },
-  "100078075921094": {
-    "lastDailyAmount": 27540,
-    "lastDailyDay": 8
+  "100075795036952": {
+    "lastDailyAmount": 25500,
+    "lastDailyDay": 6
   },
-  "100040445598284": {
-    "lastDailyAmount": 32640,
-    "lastDailyDay": 13
+  "100087548303432": {
+    "lastDailyAmount": 95046,
+    "lastDailyDay": 54
   },
-  "100092661122778": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 2
-  },
-  "100024847097993": {
-    "lastDailyAmount": 36720,
-    "lastDailyDay": 17
-  },
-  "61577638014885": {
-    "lastDailyAmount": 20400,
-    "lastDailyDay": 1
-  },
-  "100046236224568": {
-    "lastDailyAmount": 36040,
-    "lastDailyDay": 15
-  },
-  "61591888654472": {
+  "100013003511537": {
     "lastDailyAmount": 21000,
     "lastDailyDay": 2
   },
-  "100056936956080": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 2
-  },
-  "61580658901797": {
-    "lastDailyAmount": 20400,
-    "lastDailyDay": 1
-  },
-  "61592026233189": {
+  "100014564886819": {
     "lastDailyAmount": 20000,
     "lastDailyDay": 1
   },
-  "100082487135997": {
-    "lastDailyAmount": 29000,
-    "lastDailyDay": 10
-  },
-  "61584317820776": {
-    "lastDailyAmount": 29000,
-    "lastDailyDay": 10
-  },
-  "61585965914039": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "61592274921225": {
-    "lastDailyAmount": 21000,
-    "lastDailyDay": 2
-  },
-  "61569336041523": {
-    "lastDailyAmount": 21000,
-    "lastDailyDay": 2
-  },
-  "61585910902543": {
-    "lastDailyAmount": 57240,
-    "lastDailyDay": 35
-  },
-  "100081146470738": {
-    "lastDailyAmount": 20400,
-    "lastDailyDay": 1
-  },
-  "61573024537463": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 1
-  },
-  "61570208824679": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "100075159095216": {
-    "lastDailyAmount": 22000,
-    "lastDailyDay": 3
-  },
-  "61576450150229": {
+  "100063577760118": {
     "lastDailyAmount": 24000,
     "lastDailyDay": 5
   },
-  "100020573437843": {
+  "100055664791764": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 2
+  },
+  "100089617171766": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 2
+  },
+  "100038146508702": {
+    "lastDailyAmount": 24000,
+    "lastDailyDay": 5
+  },
+  "61551419289635": {
+    "lastDailyAmount": 22000,
+    "lastDailyDay": 3
+  },
+  "100027508699182": {
     "lastDailyAmount": 20000,
     "lastDailyDay": 1
   },
-  "61591347282124": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
+  "61584521319730": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 2
   },
-  "100056878188995": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "61583310272500": {
-    "lastDailyAmount": 102025,
-    "lastDailyDay": 58
+  "100082531608158": {
+    "lastDailyAmount": 25500,
+    "lastDailyDay": 6
   },
   "61579412930068": {
     "lastDailyAmount": 26775,
-    "lastDailyDay": 2
-  },
-  "61556744893353": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "100014940990338": {
-    "lastDailyAmount": 32500,
-    "lastDailyDay": 7
-  },
-  "61551419289635": {
-    "lastDailyAmount": 28750,
-    "lastDailyDay": 4
-  },
-  "100087548303432": {
-    "lastDailyAmount": 26500,
     "lastDailyDay": 6
   },
-  "100041564054576": {
-    "lastDailyAmount": 23000,
-    "lastDailyDay": 4
-  },
-  "100055664791764": {
-    "lastDailyAmount": 23460,
-    "lastDailyDay": 4
-  },
-  "100038146508702": {
-    "lastDailyAmount": 23000,
-    "lastDailyDay": 4
-  },
-  "61552550549856": {
-    "lastDailyAmount": 26000,
-    "lastDailyDay": 6
-  },
-  "100063577760118": {
-    "lastDailyAmount": 48000,
-    "lastDailyDay": 29
-  },
-  "100021648892076": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "61586147507661": {
-    "lastDailyAmount": 23000,
-    "lastDailyDay": 4
-  },
-  "100006142208329": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "100075795036952": {
-    "lastDailyAmount": 60180,
-    "lastDailyDay": 40
-  },
-  "100012709246650": {
-    "lastDailyAmount": 28938,
-    "lastDailyDay": 7
-  },
-  "100060812419294": {
-    "lastDailyAmount": 33904,
-    "lastDailyDay": 1
-  },
-  "100012858159027": {
-    "lastDailyAmount": 21000,
-    "lastDailyDay": 1
-  },
-  "61575967251549": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "100011378042556": {
-    "lastDailyAmount": 38425,
-    "lastDailyDay": 10
-  },
-  "100077705194998": {
+  "100067654993414": {
     "lastDailyAmount": 25000,
     "lastDailyDay": 6
   },
   "100075776027634": {
-    "lastDailyAmount": 32640,
-    "lastDailyDay": 13
+    "lastDailyAmount": 25500,
+    "lastDailyDay": 6
   },
-  "100067654993414": {
-    "lastDailyAmount": 23000,
-    "lastDailyDay": 4
+  "61583720194384": {
+    "lastDailyAmount": 22000,
+    "lastDailyDay": 3
   },
-  "100069665760730": {
-    "lastDailyAmount": 36720,
-    "lastDailyDay": 17
+  "100072253134958": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
   },
-  "100086926324184": {
-    "lastDailyAmount": 31620,
-    "lastDailyDay": 12
+  "61569336041523": {
+    "lastDailyAmount": 22000,
+    "lastDailyDay": 3
   },
-  "61586183807953": {
-    "lastDailyAmount": 23000,
-    "lastDailyDay": 4
-  },
-  "100014929176652": {
-    "lastDailyAmount": 22050,
+  "61591347282124": {
+    "lastDailyAmount": 21000,
     "lastDailyDay": 2
   },
-  "100073518563408": {
+  "61573024537463": {
     "lastDailyAmount": 20400,
     "lastDailyDay": 1
   },
-  "100046279354282": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 1
-  },
-  "100013003511537": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 2
-  },
-  "100012870817390": {
-    "lastDailyAmount": 76561,
-    "lastDailyDay": 32
-  },
-  "61552139740185": {
-    "lastDailyAmount": 49980,
-    "lastDailyDay": 30
-  },
-  "100013257883334": {
-    "lastDailyAmount": 22440,
+  "61576450150229": {
+    "lastDailyAmount": 22000,
     "lastDailyDay": 3
   },
-  "61575201874929": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
-  },
-  "100027508699182": {
+  "61560302049677": {
     "lastDailyAmount": 23000,
     "lastDailyDay": 4
   },
-  "100079066642395": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 2
-  },
-  "100082531608158": {
-    "lastDailyAmount": 33660,
-    "lastDailyDay": 14
-  },
-  "61566119337076": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 2
-  },
-  "100013853205785": {
+  "61575828606069": {
     "lastDailyAmount": 20000,
     "lastDailyDay": 1
-  },
-  "61583720194384": {
-    "lastDailyAmount": 23000,
-    "lastDailyDay": 4
   },
   "61578358133365": {
     "lastDailyAmount": 22440,
     "lastDailyDay": 3
   },
+  "61591515125791": {
+    "lastDailyAmount": 23000,
+    "lastDailyDay": 4
+  },
+  "100048274091870": {
+    "lastDailyAmount": 22000,
+    "lastDailyDay": 3
+  },
+  "61585910902543": {
+    "lastDailyAmount": 26250,
+    "lastDailyDay": 6
+  },
+  "61588292658003": {
+    "lastDailyAmount": 20400,
+    "lastDailyDay": 1
+  },
+  "100046236224568": {
+    "lastDailyAmount": 23460,
+    "lastDailyDay": 4
+  },
+  "100014929176652": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 2
+  },
+  "61552212855285": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 2
+  },
+  "100012709246650": {
+    "lastDailyAmount": 23320,
+    "lastDailyDay": 3
+  },
+  "61592026233189": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "61580658901797": {
+    "lastDailyAmount": 20400,
+    "lastDailyDay": 1
+  },
+  "61594028189766": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 2
+  },
+  "100069809532307": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 2
+  },
+  "100085299561012": {
+    "lastDailyAmount": 22000,
+    "lastDailyDay": 3
+  },
+  "61575310766041": {
+    "lastDailyAmount": 20400,
+    "lastDailyDay": 1
+  },
+  "100014940990338": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 2
+  },
+  "61591888654472": {
+    "lastDailyAmount": 22000,
+    "lastDailyDay": 3
+  },
+  "100014651985540": {
+    "lastDailyAmount": 22440,
+    "lastDailyDay": 3
+  },
+  "61589962859070": {
+    "lastDailyAmount": 27300,
+    "lastDailyDay": 2
+  },
+  "61593628319891": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "100024847097993": {
+    "lastDailyAmount": 23460,
+    "lastDailyDay": 4
+  },
+  "61590385926058": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 2
+  },
   "100044922213525": {
     "lastDailyAmount": 21420,
     "lastDailyDay": 2
   },
-  "100068520651976": {
-    "lastDailyAmount": 20000,
-    "lastDailyDay": 1
+  "61581901590549": {
+    "lastDailyAmount": 25000,
+    "lastDailyDay": 6
+  },
+  "100073041262636": {
+    "lastDailyAmount": 23000,
+    "lastDailyDay": 4
+  },
+  "61566892803933": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 2
   },
   "61593932245211": {
     "lastDailyAmount": 20000,
     "lastDailyDay": 1
   },
-  "100014564886819": {
-    "lastDailyAmount": 28560,
-    "lastDailyDay": 9
-  },
-  "61586231743843": {
-    "lastDailyAmount": 22000,
-    "lastDailyDay": 3
-  },
-  "100074295042028": {
-    "lastDailyAmount": 24480,
-    "lastDailyDay": 5
-  },
-  "100007283677547": {
-    "lastDailyAmount": 23000,
-    "lastDailyDay": 4
-  },
-  "61588292658003": {
-    "lastDailyAmount": 21420,
-    "lastDailyDay": 2
-  },
-  "61590385926058": {
-    "lastDailyAmount": 22000,
-    "lastDailyDay": 3
-  },
-  "61593704857823": {
-    "lastDailyAmount": 20000,
+  "61592723825196": {
+    "lastDailyAmount": 21000,
     "lastDailyDay": 1
   },
-  "100055028388595": {
+  "100078075921094": {
     "lastDailyAmount": 20400,
     "lastDailyDay": 1
   },
-  "61575310766041": {
-    "lastDailyAmount": 23460,
-    "lastDailyDay": 4
+  "61592478223605": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 1
   },
-  "61577793435056": {
+  "61584232101619": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 1
+  },
+  "100056936956080": {
+    "lastDailyAmount": 20400,
+    "lastDailyDay": 1
+  },
+  "100083839521308": {
+    "lastDailyAmount": 22050,
+    "lastDailyDay": 2
+  },
+  "61592821258717": {
     "lastDailyAmount": 20000,
     "lastDailyDay": 1
   },
-  "100086921112716": {
+  "61591776878823": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 1
+  },
+  "61594088701484": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "100069665760730": {
+    "lastDailyAmount": 21420,
+    "lastDailyDay": 2
+  },
+  "100051320260598": {
+    "lastDailyAmount": 20400,
+    "lastDailyDay": 1
+  },
+  "61552933083709": {
+    "lastDailyAmount": 21000,
+    "lastDailyDay": 1
+  },
+  "100060812419294": {
+    "lastDailyAmount": 2039440788,
+    "lastDailyDay": 1000001
+  },
+  "100011378042556": {
+    "lastDailyAmount": 33125,
+    "lastDailyDay": 6
+  },
+  "100086926324184": {
+    "lastDailyAmount": 24480,
+    "lastDailyDay": 5
+  },
+  "100092661122778": {
+    "lastDailyAmount": 26500,
+    "lastDailyDay": 6
+  },
+  "61576757225542": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "100089805784535": {
+    "lastDailyAmount": 24000,
+    "lastDailyDay": 5
+  },
+  "61557996676050": {
+    "lastDailyAmount": 25000,
+    "lastDailyDay": 6
+  },
+  "61591262415110": {
+    "lastDailyAmount": 32812,
+    "lastDailyDay": 6
+  },
+  "100082487135997": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "61584317820776": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "61585965914039": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "61584149693657": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "100016685764834": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "61552139740185": {
     "lastDailyAmount": 22000,
-    "lastDailyDay": 3
-  }
+    "lastDailyDay": 1
+  },
+  "61593974346363": {
+    "lastDailyAmount": 33600,
+    "lastDailyDay": 11
+  },
+  "61589175946328": {
+    "lastDailyAmount": 25200,
+    "lastDailyDay": 5
+  },
+  "61576144913501": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "100022714232742": {
+    "lastDailyAmount": 23000,
+    "lastDailyDay": 4
+  },
+  "100092452907872": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "61566880084984": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "61590860361295": {
+    "lastDailyAmount": 20400,
+    "lastDailyDay": 1
+  },
+  "100075575230196": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "61582078421081": {
+    "lastDailyAmount": 20000,
+    "lastDailyDay": 1
+  },
+  "100081146470738": {
+    "lastDailyAmount": 20400,
+    "lastDailyDay": 1
+  },
+  "lastPlatynowaKartaPayout": 1788731422788
 }
