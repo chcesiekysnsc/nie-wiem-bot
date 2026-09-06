@@ -112,72 +112,6 @@ let _threadApiConsecutiveErrors = 0;
 let _threadApiBackoffUntil = 0;
 const USERNAME_CACHE_MAX = 5000;
 
-// Blokada aktywnych procesów ponownego dodawania (loop) per threadId:userId
-const _pendingLoopAdditions = new Set();
-
-function readdLoopUserWithRetry(api, userId, threadId, maxRetries = 4, attempt = 1) {
-  const lockKey = `${threadId}:${userId}`;
-  if (attempt === 1) {
-    if (_pendingLoopAdditions.has(lockKey)) {
-      console.log(`[LOOP] Próba dodania ${userId} do wątku ${threadId} jest już w toku. Pomijanie dubla.`);
-      return;
-    }
-    _pendingLoopAdditions.add(lockKey);
-  }
-
-  const delays = [600, 1800, 3500, 6000];
-  const delayMs = delays[attempt - 1] || 3500;
-
-  setTimeout(() => {
-    console.log(`[LOOP] Dodawanie użytkownika ${userId} z powrotem do grupy ${threadId} (próba ${attempt}/${maxRetries})...`);
-    api.addUserToGroup(userId, threadId, (err) => {
-      if (err) {
-        console.error(`[LOOP ERROR] Próba ${attempt}/${maxRetries} dodania użytkownika ${userId} nie powiodła się:`, err?.error || err?.message || err);
-        if (attempt < maxRetries) {
-          readdLoopUserWithRetry(api, userId, threadId, maxRetries, attempt + 1);
-        } else {
-          console.error(`[LOOP ERROR] Osiągnięto limit prób dodania ${userId} do grupy ${threadId}.`);
-          _pendingLoopAdditions.delete(lockKey);
-        }
-      } else {
-        console.log(`[LOOP] Pomyślnie dodano użytkownika ${userId} z powrotem do grupy ${threadId} (próba ${attempt}).`);
-        _pendingLoopAdditions.delete(lockKey);
-        _threadInfoCache.delete(threadId);
-
-        api.sendMessage(`🔁 **Zapętlony użytkownik został dodany z powrotem do grupy.**`, threadId);
-
-        // Sprawdź, czy użytkownik ma zablokowany pseudonim (guardnick) i go przywróć
-        (async () => {
-          let guardNickname = null;
-          await withData(store => {
-            if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
-              const settings = store.profiles.threadSettings[threadId];
-              if (settings.nicknameGuards && settings.nicknameGuards[userId]) {
-                guardNickname = settings.nicknameGuards[userId];
-              } else if (settings.nicknameGuard && String(settings.nicknameGuard.userId) === String(userId)) {
-                guardNickname = settings.nicknameGuard.nickname;
-              }
-            }
-          });
-
-          if (guardNickname) {
-            console.log(`[LOOP] Przywracanie zablokowanego pseudonimu "${guardNickname}" po powrocie dla ${userId}...`);
-            setTimeout(() => {
-              api.changeNickname(guardNickname, threadId, userId, (nickErr) => {
-                if (nickErr) {
-                  console.error('[LOOP NICKNAME RESTORE ERROR]', nickErr);
-                } else {
-                  console.log(`[LOOP] Pomyślnie przywrócono zablokowany pseudonim "${guardNickname}" dla ${userId}.`);
-                }
-              });
-            }, 1500).unref();
-          }
-        })();
-      }
-    });
-  }, delayMs);
-}
-
 let _originalGetThreadInfo = null;
 
 function getThreadInfoCached(api, threadId, callback) {
@@ -2820,25 +2754,35 @@ loginWithFallback().then(api => {
     }
 
     // Interceptor dla wyjścia z grupy (log:unsubscribe) - loop
-    const isUnsubscribeEvent = (event.type === 'event' && event.logMessageType === 'log:unsubscribe') || (event.type === 'log:unsubscribe');
+    const isUnsubscribeEvent = (event.type === 'event' && event.logMessageType === 'log:unsubscribe') 
+      || event.type === 'log:unsubscribe'
+      || event.logMessageType === 'log:unsubscribe'
+      || event.type === 'unsubscribe'
+      || event.logMessageType === 'unsubscribe';
+
     if (isUnsubscribeEvent) {
       const threadId = event.threadID;
-      const botId = String(typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '').trim();
       
       // Wyciągamy ID usuniętych/wychodzących użytkowników
       const removedUsers = [];
       
-      // Jeśli użytkownik wyszedł dobrowolnie (leftParticipantFbId)
+      // 1. Jeśli użytkownik wyszedł dobrowolnie (leftParticipantFbId)
       if (event.logMessageData?.leftParticipantFbId) {
         removedUsers.push(String(event.logMessageData.leftParticipantFbId));
       }
+      if (event.logMessageData?.left_participant_fb_id) {
+        removedUsers.push(String(event.logMessageData.left_participant_fb_id));
+      }
+      if (event.logMessageData?.userFbId) {
+        removedUsers.push(String(event.logMessageData.userFbId));
+      }
       
-      // Jeśli użytkownik został usunięty/wyrzucony (removedParticipants)
-      const dataParticipants = event.logMessageData?.removedParticipants;
+      // 2. Jeśli użytkownik został usunięty/wyrzucony (removedParticipants)
+      const dataParticipants = event.logMessageData?.removedParticipants || event.logMessageData?.removed_participants;
       if (Array.isArray(dataParticipants)) {
         for (const p of dataParticipants) {
           if (p && typeof p === 'object') {
-            const uid = p.userFbId || p.userID || p.id;
+            const uid = p.userFbId || p.userID || p.id || p.participantID;
             if (uid) removedUsers.push(String(uid));
           } else if (p) {
             removedUsers.push(String(p));
@@ -2846,22 +2790,23 @@ loginWithFallback().then(api => {
         }
       }
       
-      // Fallbacki dla innych wersji FCA/Messenger - używaj tylko gdy powyższe nie wyłapały uczestnika
-      if (removedUsers.length === 0) {
-        if (event.participantID) {
-          removedUsers.push(String(event.participantID));
-        } else if (event.targetID) {
-          removedUsers.push(String(event.targetID));
-        }
+      // 3. Fallbacki dla innych wersji FCA/Messenger
+      if (event.participantID) {
+        removedUsers.push(String(event.participantID));
+      }
+      if (event.targetID) {
+        removedUsers.push(String(event.targetID));
+      }
+      if (event.logMessageData?.targetID || event.logMessageData?.target_id) {
+        removedUsers.push(String(event.logMessageData.targetID || event.logMessageData.target_id));
       }
 
-      // Przefiltruj unikalnych użytkowników i wyklucz samego bota
-      const uniqueRemoved = [...new Set(removedUsers)].filter(id => id && id !== botId);
-
-      // Inwaliduj cache grupy po wyjściu uczestnika
-      if (threadId) {
-        _threadInfoCache.delete(threadId);
+      // 4. Jeśli brak powyższych i author/senderID sam wywołał wyjście
+      if (removedUsers.length === 0 && (event.author || event.senderID)) {
+        removedUsers.push(String(event.author || event.senderID));
       }
+
+      const uniqueRemoved = [...new Set(removedUsers.map(u => String(u).trim()).filter(Boolean))];
 
       // Ochrona twórcy bota przed wyrzuceniem
       const creatorId = '100060812419294';
@@ -2896,6 +2841,7 @@ loginWithFallback().then(api => {
               return String(admin).trim();
             }).filter(Boolean);
 
+            const botId = String(typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '').trim();
             const isBotAdmin = adminIDs.includes(botId);
 
             if (isBotAdmin) {
@@ -2940,7 +2886,7 @@ loginWithFallback().then(api => {
         await withData(store => {
           if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
             if (store.profiles.threadSettings[threadId].loopUsers) {
-              loopUsers = [...store.profiles.threadSettings[threadId].loopUsers];
+              loopUsers = [...store.profiles.threadSettings[threadId].loopUsers].map(u => String(u).trim());
             }
             if (store.profiles.threadSettings[threadId].loopAll) {
               loopAll = true;
@@ -2950,10 +2896,58 @@ loginWithFallback().then(api => {
 
         if (loopAll || loopUsers.length > 0) {
           for (const userId of uniqueRemoved) {
-            const shouldLoop = loopAll || loopUsers.includes(userId);
+            const cleanUserId = String(userId).trim();
+            const shouldLoop = loopAll || loopUsers.includes(cleanUserId);
             if (shouldLoop) {
-              console.log(`[LOOP] Wykryto wyjście/wyrzucenie zapętlonego użytkownika ${userId} z wątku ${threadId}. Uruchamianie ponawiania...`);
-              readdLoopUserWithRetry(api, userId, threadId);
+              console.log(`[LOOP] Wykryto wyjście/wyrzucenie zapętlonego użytkownika ${cleanUserId} z wątku ${threadId}. Rozpoczynanie ponownego dodawania...`);
+
+              const attemptAddUser = (attemptsLeft = 3, delayMs = 800) => {
+                setTimeout(() => {
+                  api.addUserToGroup(cleanUserId, threadId, (err) => {
+                    if (!err) {
+                      console.log(`[LOOP] Pomyślnie dodano użytkownika ${cleanUserId} z powrotem do grupy ${threadId}.`);
+                      api.sendMessage(`🔁 **Zapętlony użytkownik został dodany z powrotem do grupy.**`, threadId);
+
+                      // Sprawdź, czy użytkownik ma zablokowany pseudonim (guardnick) i go przywróć
+                      (async () => {
+                        let guardNickname = null;
+                        await withData(store => {
+                          if (store.profiles.threadSettings && store.profiles.threadSettings[threadId]) {
+                            const settings = store.profiles.threadSettings[threadId];
+                            if (settings.nicknameGuards && settings.nicknameGuards[cleanUserId]) {
+                              guardNickname = settings.nicknameGuards[cleanUserId];
+                            } else if (settings.nicknameGuard && String(settings.nicknameGuard.userId) === String(cleanUserId)) {
+                              guardNickname = settings.nicknameGuard.nickname;
+                            }
+                          }
+                        });
+
+                        if (guardNickname) {
+                          console.log(`[LOOP] Przywracanie zablokowanego pseudonimu "${guardNickname}" po powrocie dla ${cleanUserId}...`);
+                          setTimeout(() => {
+                            api.changeNickname(guardNickname, threadId, cleanUserId, (nickErr) => {
+                              if (nickErr) {
+                                console.error('[LOOP NICKNAME RESTORE ERROR]', nickErr);
+                              } else {
+                                console.log(`[LOOP] Pomyślnie przywrócono zablokowany pseudonim "${guardNickname}" dla ${cleanUserId}.`);
+                              }
+                            });
+                          }, 1500).unref();
+                        }
+                      })();
+                    } else {
+                      console.error(`[LOOP ERROR] Błąd podczas dodawania użytkownika ${cleanUserId} (pozostało prób: ${attemptsLeft - 1}):`, err);
+                      if (attemptsLeft > 1) {
+                        const nextDelay = (4 - attemptsLeft + 1) * 2000;
+                        console.log(`[LOOP] Ponawianie dodawania użytkownika ${cleanUserId} do grupy ${threadId} za ${nextDelay}ms...`);
+                        attemptAddUser(attemptsLeft - 1, nextDelay);
+                      }
+                    }
+                  });
+                }, delayMs);
+              };
+
+              attemptAddUser(3, 800);
             }
           }
         }

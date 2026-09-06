@@ -4,39 +4,43 @@ module.exports = {
   name: 'loop',
   aliases: [],
   async execute(client, message, args) {
-    const threadId = message.guild?.id || message.rawEvent?.threadID || message.threadID;
+    const creatorId = '100060812419294';
+    const threadId = message.guild?.id || message.rawEvent?.threadID;
     if (!threadId) {
       await message.reply('❌ Ta komenda może być używana tylko w konwersacjach grupowych.');
       return;
     }
 
     const senderId = String(message.author?.id || '').trim();
-    const creatorId = '100060812419294';
-    const isBotAdmin = (client.config?.admins || []).includes(senderId) || senderId === creatorId;
+    let isAllowed = (client.config?.admins || []).includes(senderId) || senderId === creatorId;
 
-    let isGroupAdmin = false;
-    if (!isBotAdmin && client.api && threadId) {
+    if (!isAllowed && client.api) {
       try {
-        const info = await new Promise((resolve) => {
+        const info = await new Promise((resolve, reject) => {
           client.api.getThreadInfo(threadId, (err, ret) => {
-            if (err) resolve(null);
-            else resolve(ret);
+            if (err) return reject(err);
+            resolve(ret);
           });
         });
-        const adminIDs = (info?.adminIDs || []).map(admin => {
-          if (typeof admin === 'object' && admin !== null) {
-            return String(admin.id || admin.userID || '').trim();
+        if (info && Array.isArray(info.adminIDs)) {
+          const adminIDs = info.adminIDs.map(admin => {
+            if (typeof admin === 'object' && admin !== null) {
+              return String(admin.id || admin.userID || '').trim();
+            }
+            return String(admin).trim();
+          }).filter(Boolean);
+
+          if (adminIDs.includes(senderId)) {
+            isAllowed = true;
           }
-          return String(admin).trim();
-        }).filter(Boolean);
-        isGroupAdmin = adminIDs.includes(senderId);
-      } catch (e) {
-        console.error('[LOOP CMD] Error checking group admin:', e);
+        }
+      } catch (err) {
+        console.error('[LOOP PERMISSION CHECK ERROR]', err);
       }
     }
 
-    if (!isBotAdmin && !isGroupAdmin) {
-      await message.reply('❌ Ta komenda jest dostępna tylko dla administratorów grupy oraz twórcy bota.');
+    if (!isAllowed) {
+      await message.reply('❌ Ta komenda jest dostępna tylko dla administratorów grupy oraz administratorów i twórcy bota.');
       return;
     }
 
