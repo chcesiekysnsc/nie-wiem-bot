@@ -1392,6 +1392,21 @@ const helpCommands = [
     ]
   },
   {
+    name: "zgloszenie",
+    category: "UTILITY_ADMIN",
+    shortDescription: "📋 wysyłanie zgłoszenia do administracji",
+    description: "📋 Wysyła zgłoszenie do administracji. Każdy użytkownik może wysłać tylko 1 zgłoszenie na całą historię konta.",
+    usage: "!zgloszenie <treść>",
+    examples: ["!zgloszenie Chciałbym dołączyć do grupy"],
+    cooldown: "Brak.",
+    requirements: "Maksymalnie 1 zgłoszenie na konto.",
+    aliases: ["zgloszenia", "zglos", "zglsozenie"],
+    additionalInfo: [
+      "Zgłoszenia są rozpatrywane przez dedykowanego administratora.",
+      "W przypadku akceptacji zgłoszenia, bot dodaje użytkownika do grupy."
+    ]
+  },
+  {
     name: "dlug",
     category: "ECONOMY_GAMBLING",
     shortDescription: "📝 przegląd długów i wierzytelności",
