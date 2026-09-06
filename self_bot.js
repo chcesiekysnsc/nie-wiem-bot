@@ -2952,20 +2952,8 @@ loginWithFallback().then(api => {
           for (const userId of uniqueRemoved) {
             const shouldLoop = loopAll || loopUsers.includes(userId);
             if (shouldLoop) {
-                      console.log(`[LOOP] Przywracanie zablokowanego pseudonimu "${guardNickname}" po powrocie dla ${userId}...`);
-                      setTimeout(() => {
-                        api.changeNickname(guardNickname, threadId, userId, (nickErr) => {
-                          if (nickErr) {
-                            console.error('[LOOP NICKNAME RESTORE ERROR]', nickErr);
-                          } else {
-                            console.log(`[LOOP] Pomyślnie przywrócono zablokowany pseudonim "${guardNickname}" dla ${userId}.`);
-                          }
-                        });
-                      }, 1500).unref();
-                    }
-                  })();
-                }
-              });
+              console.log(`[LOOP] Wykryto wyjście/wyrzucenie zapętlonego użytkownika ${userId} z wątku ${threadId}. Uruchamianie ponawiania...`);
+              readdLoopUserWithRetry(api, userId, threadId);
             }
           }
         }
@@ -2973,8 +2961,7 @@ loginWithFallback().then(api => {
       return;
     }
 
-    // Interceptor dla dodania do grupy (log:subscribe)
-    const isSubscribeEvent = (event.type === 'event' && event.logMessageType === 'log:subscribe') || (event.type === 'log:subscribe');
+    // Interceptor dla dodania do grupy (log:subscribe') || (event.type === 'log:subscribe');
     if (isSubscribeEvent) {
       const threadId = event.threadID;
       const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
