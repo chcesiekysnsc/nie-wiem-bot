@@ -1,183 +1,74 @@
-const config = require('../config/config');
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
 const { withData } = require('../utils/storage');
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const LASTFM_API_KEY = process.env.LASTFM_API_KEY || '1859208d097179d09958235ef6bcea23';
 
-function decodeHTML(str) {
-  if (!str) return '';
-  return str
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#039;/g, "'")
-    .trim();
-}
+const PERIOD_MAPPING = {
+  '7d': '7day',
+  '1m': '1month',
+  '3m': '3month',
+  '6m': '6month',
+  '12m': '12month',
+  'all': 'overall',
+  'overall': 'overall'
+};
 
-function fetchLastFMPage(url, maxRedirects = 3) {
+const PERIOD_LABELS = {
+  '7day': 'ostatnie 7 dni',
+  '1month': 'ostatni miesiąc',
+  '3month': 'ostatnie 3 miesiące',
+  '6month': 'ostatnie 6 miesięcy',
+  '12month': 'ostatni rok',
+  'overall': 'cały czas'
+};
+
+function fetchLastFMAPI(method, params = {}) {
   return new Promise((resolve, reject) => {
-    const options = {
+    const queryParams = new URLSearchParams({
+      method,
+      api_key: LASTFM_API_KEY,
+      format: 'json',
+      ...params
+    });
+
+    const url = `https://ws.audioscrobbler.com/2.0/?${queryParams.toString()}`;
+
+    const req = https.get(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) MessengerBot/1.0'
       }
-    };
-
-    function makeRequest(targetUrl, redirectsLeft) {
-      const req = https.get(targetUrl, options, (res) => {
-        const status = res.statusCode;
-
-        if ([301, 302, 303, 307, 308].includes(status) && redirectsLeft > 0) {
-          const location = res.headers.location;
-          if (!location) {
-            res.resume();
-            return reject(new Error(`Przekierowanie (HTTP ${status}) bez nagłówka Location.`));
+    }, (res) => {
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode !== 200) {
+          return reject(new Error(`Błąd HTTP ${res.statusCode}`));
+        }
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.error) {
+            return reject(new Error(parsed.message || `Kod błędu Last.fm: ${parsed.error}`));
           }
-          res.resume();
-          return makeRequest(location, redirectsLeft - 1);
+          resolve(parsed);
+        } catch (e) {
+          reject(new Error('Niepoprawna odpowiedź JSON z Last.fm API.'));
         }
-
-        if (status === 403) {
-          res.resume();
-          return reject(new Error(`Last.fm zablokowało zapytanie (HTTP 403). Spróbuj ponownie za kilka minut.`));
-        }
-
-        if (status === 406 || status === 429) {
-          res.resume();
-          return reject(new Error(`Last.fm zablokowało zapytanie (HTTP ${status}). Spróbuj ponownie za kilka minut (częste odpytywanie).`));
-        }
-
-        if (status !== 200) {
-          res.resume();
-          return reject(new Error(`HTTP ${status}`));
-        }
-
-        let data = '';
-        res.setEncoding('utf8');
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => resolve(data));
       });
+    });
 
-      req.setTimeout(10000, () => {
-        req.destroy(new Error('Przekroczono limit czasu żądania do Last.fm.'));
-      });
+    req.setTimeout(10000, () => {
+      req.destroy(new Error('Przekroczono limit czasu żądania do Last.fm API.'));
+    });
 
-      req.on('error', reject);
-    }
-
-    makeRequest(url, maxRedirects);
+    req.on('error', reject);
   });
 }
 
-function parseProfile(html) {
-  const displayMatch = html.match(/<h1 class="header-title">([\s\S]*?)<\/h1>/i);
-  let displayName = displayMatch ? displayMatch[1].replace(/<[^>]+>/g, '').trim() : 'Unknown';
-
-  const scrobblesRegex = /<a[^>]*href="\/user\/[^"]*\/library"[^>]*>([\d,\s.]+)(?:\s*scrobbles)?<\/a>/i;
-  const scrobblesMatch = html.match(scrobblesRegex);
-  let scrobbles = scrobblesMatch ? scrobblesMatch[1].trim() : '0';
-
-  const avatarMatch = html.match(/<img[^*]*class="[^"]*avatar[^"]*"[^>]*src="([^"]+)"/i) ||
-                      html.match(/<div class="header-avatar">[\s\S]*?<img[^>]*src="([^"]+)"/i) ||
-                      html.match(/class="header-avatar-inner"[\s\S]*?<img[^>]*src="([^"]+)"/i) ||
-                      html.match(/<img[^>]*src="([^"]+)"[^>]*class="[^"]*avatar/i);
-  let avatarUrl = avatarMatch ? avatarMatch[1].trim() : '';
-
-  const registeredMatch = html.match(/scrobbling since([\s\S]*?)<\/span>/i) ||
-                          html.match(/class="header-scrobble-since"[^>]*>([\s\S]*?)<\/span>/i);
-  let registered = registeredMatch ? registeredMatch[1].replace(/<[^>]+>/g, '').trim() : 'Unknown';
-
-  return {
-    displayName,
-    scrobbles,
-    avatarUrl,
-    registered
-  };
-}
-
-function parseLastFMHTML(data) {
-  const items = [];
-
-  if (data.includes('chartlist-row')) {
-    const rows = data.split(/<tr[^>]*class="[^"]*chartlist-row/i);
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      const nameMatch = row.match(/class="chartlist-name"[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i) ||
-                        row.match(/class="chartlist-artist"[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i);
-      const countMatch = row.match(/class="chartlist-count-bar-value"[^>]*>([\s\S]*?)<\/span>/i) ||
-                         row.match(/class="chartlist-count-bar-link"[^>]*>([\s\S]*?)<\/a>/i) ||
-                         row.match(/class="chartlist-count-bar-value"[\s\S]*?>([\s\S]*?)<\/span>/i);
-      const artistMatch = row.match(/class="chartlist-artist"[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i);
-      const youtubeMatch = row.match(/data-youtube-url="([^"]+)"/i) ||
-                           row.match(/href="(https:\/\/www\.youtube\.com\/watch\?[^"]+)"/i);
-      const youtubeUrl = youtubeMatch ? youtubeMatch[1] : null;
-      const isNowPlaying = row.includes('chartlist-row--now-scrobbling') ||
-                           row.includes('js-now-playing-text') ||
-                           row.includes('now-scrobbling');
-
-      if (nameMatch) {
-        let name = nameMatch[1].trim().replace(/<[^>]+>/g, '');
-        let count = countMatch ? countMatch[1].trim().replace(/<[^>]+>/g, '') : '';
-        let artist = artistMatch ? artistMatch[1].trim().replace(/<[^>]+>/g, '') : '';
-
-        name = decodeHTML(name);
-        artist = decodeHTML(artist);
-        count = decodeHTML(count);
-
-        items.push({ name, artist, count, youtubeUrl, nowPlaying: isNowPlaying });
-      }
-    }
-  } else {
-    const gridRegex = /<li[^>]*class="[^"]*grid-items-item[\s\S]*?<\/li>/gi;
-    let m;
-    while ((m = gridRegex.exec(data)) !== null) {
-      const block = m[0];
-      const nameMatch = block.match(/class="grid-items-item-main-text"[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i);
-      const auxSectionMatch = block.match(/class="grid-items-item-aux-text"([\s\S]*?)<\/p>/i) ||
-                              block.match(/class="grid-items-item-aux-text"([\s\S]*?)<\/div>/i);
-      let artist = '';
-      let count = '';
-
-      if (auxSectionMatch) {
-        const auxContent = auxSectionMatch[1];
-        const anchors = [];
-        const anchorRegex = /<a[^>]*>([\s\S]*?)<\/a>/gi;
-        let am;
-        while ((am = anchorRegex.exec(auxContent)) !== null) {
-          anchors.push(am[1].trim().replace(/<[^>]+>/g, ''));
-        }
-
-        if (anchors.length >= 2) {
-          artist = anchors[0];
-          count = anchors[1];
-        } else if (anchors.length === 1) {
-          if (anchors[0].includes('play') || anchors[0].includes('scrobble')) {
-            count = anchors[0];
-          } else {
-            artist = anchors[0];
-          }
-        }
-      }
-
-      if (nameMatch) {
-        let name = nameMatch[1].trim().replace(/<[^>]+>/g, '');
-        name = decodeHTML(name);
-        artist = decodeHTML(artist);
-        count = decodeHTML(count);
-
-        items.push({ name, artist, count });
-      }
-    }
-  }
-
-  return items;
-}
-
 function parseArgs(message, args) {
-  let range = 'all';
+  let range = 'overall';
   let targetId = message.author.id;
   let targetName = message.author.username || `Użytkownik_${targetId.slice(-6)}`;
   let searchQuery = '';
@@ -191,7 +82,7 @@ function parseArgs(message, args) {
     cleanArgs.splice(rangeIndex, 1);
   }
 
-  const mentioned = message.mentions.users.first();
+  const mentioned = message.mentions?.users?.first();
   if (mentioned) {
     targetId = mentioned.id;
     targetName = mentioned.username || `Użytkownik_${targetId.slice(-6)}`;
@@ -216,25 +107,6 @@ function parseArgs(message, args) {
 
   return { range, targetId, targetName, searchQuery };
 }
-
-const PRESET_MAPPING = {
-  '7d': 'LAST_7_DAYS',
-  '1m': 'LAST_30_DAYS',
-  '3m': 'LAST_90_DAYS',
-  '6m': 'LAST_180_DAYS',
-  '12m': 'LAST_365_DAYS',
-  'all': 'ALL',
-  'overall': 'ALL'
-};
-
-const RANGE_LABELS = {
-  'LAST_7_DAYS': 'ostatnie 7 dni',
-  'LAST_30_DAYS': 'ostatni miesiąc',
-  'LAST_90_DAYS': 'ostatnie 3 miesiące',
-  'LAST_180_DAYS': 'ostatnie 6 miesięcy',
-  'LAST_365_DAYS': 'ostatni rok',
-  'ALL': 'cały czas'
-};
 
 module.exports = {
   name: 'fm',
@@ -270,28 +142,31 @@ module.exports = {
         return;
       }
 
-      const statusMsg = await message.reply(`🔍 Wyszukiwanie profilu Last.fm "${username}"...`);
       try {
-        const html = await fetchLastFMPage(`https://www.last.fm/user/${username}`);
-        const parsed = parseProfile(html);
+        const data = await fetchLastFMAPI('user.getinfo', { user: username });
+        const user = data.user;
+        const playcount = Number(user.playcount || 0).toLocaleString('pl-PL');
+        const regDate = user.registered?.unixtime 
+          ? new Date(user.registered.unixtime * 1000).toLocaleDateString('pl-PL')
+          : 'Nieznana';
 
         await withData(store => {
           store.profiles.lastfmConnections = store.profiles.lastfmConnections || {};
           store.profiles.lastfmConnections[message.author.id] = {
-            username: username,
+            username: user.name,
             incognito: false
           };
         });
 
         await message.reply(
           `🔌 **Konto połączone pomyślnie!**\n` +
-          `Nazwa: **${parsed.displayName}**\n` +
-          `Odtworzenia: **${parsed.scrobbles}**\n` +
-          `Dołączono: **${parsed.registered}**`
+          `Nazwa: **${user.name}**\n` +
+          `Odtworzenia: **${playcount}**\n` +
+          `Dołączono: **${regDate}**`
         );
       } catch (err) {
         console.error('[LASTFM CONNECT]', err);
-        await message.reply(`❌ Nie udało się znaleźć profilu Last.fm o nazwie "${username}". Upewnij się, że nazwa jest poprawna. Szczegóły: ${err.message}`);
+        await message.reply(`❌ Nie udało się połączyć konta Last.fm "${username}". Upewnij się, że nazwa jest poprawna.`);
       }
       return;
     }
@@ -314,7 +189,7 @@ module.exports = {
       return;
     }
 
-    // 2.5 TOP
+    // 2.5 TOP (RANKING)
     if (['top', 'ranking', 'liderzy'].includes(sub)) {
       async function getName(id) {
         if (client.userNames && client.userNames.has(id)) {
@@ -362,8 +237,6 @@ module.exports = {
           return;
         }
 
-        const statusMsg = await message.reply(`📊 Pobieranie scrobbli dla ${activeProfiles.length} członków grupy...`);
-
         const results = [];
         for (const [pid, conn] of activeProfiles) {
           if (conn.incognito === true && pid !== message.author.id) {
@@ -372,15 +245,14 @@ module.exports = {
 
           const name = await getName(pid);
           try {
-            const html = await fetchLastFMPage(`https://www.last.fm/user/${conn.username}`);
-            const parsed = parseProfile(html);
-            const scrobblesNum = parseInt(parsed.scrobbles.replace(/[^\d]/g, ''), 10) || 0;
+            const data = await fetchLastFMAPI('user.getinfo', { user: conn.username });
+            const scrobbles = parseInt(data.user.playcount, 10) || 0;
             results.push({
               pid,
               name,
               username: conn.username,
-              scrobbles: scrobblesNum,
-              scrobblesStr: parsed.scrobbles
+              scrobbles,
+              scrobblesStr: scrobbles.toLocaleString('pl-PL')
             });
           } catch (e) {
             results.push({
@@ -391,7 +263,6 @@ module.exports = {
               scrobblesStr: '0'
             });
           }
-          await sleep(350);
         }
 
         results.sort((a, b) => b.scrobbles - a.scrobbles);
@@ -423,7 +294,7 @@ module.exports = {
       return;
     }
 
-    // Pozostałe komendy wymagają analizy argumentów
+    // Parsowanie argumentów dla reszty komend
     const parsedParams = parseArgs(message, args.slice(1));
     const targetId = parsedParams.targetId;
     const targetName = parsedParams.targetName;
@@ -478,16 +349,21 @@ module.exports = {
     // 4. PROFIL
     if (['profil', 'profile', 'pfp'].includes(sub)) {
       try {
-        const html = await fetchLastFMPage(`https://www.last.fm/user/${lastfmUser}`);
-        const parsed = parseProfile(html);
+        const data = await fetchLastFMAPI('user.getinfo', { user: lastfmUser });
+        const user = data.user;
+        const playcount = Number(user.playcount || 0).toLocaleString('pl-PL');
+        const regDate = user.registered?.unixtime 
+          ? new Date(user.registered.unixtime * 1000).toLocaleDateString('pl-PL')
+          : 'Nieznana';
+        const avatar = user.image?.find(img => img.size === 'large' || img.size === 'extralarge')?.['#text'] || '';
 
-        let msg = `🤠 **Profil Last.fm — ${targetName}** (${lastfmUser})\n` +
-                  `👤 Nazwa wyświetlana: **${parsed.displayName}**\n` +
-                  `🎵 Wszystkie odtworzenia (scrobbles): **${parsed.scrobbles}**\n` +
-                  `📅 Scrobbluje od: **${parsed.registered}**`;
-        
-        if (parsed.avatarUrl) {
-          msg += `\n🖼️ Awatar: ${parsed.avatarUrl}`;
+        let msg = `🤠 **Profil Last.fm — ${targetName}** (${user.name})\n` +
+                  `👤 Nazwa wyświetlana: **${user.name}**\n` +
+                  `🎵 Wszystkie odtworzenia (scrobbles): **${playcount}**\n` +
+                  `📅 Scrobbluje od: **${regDate}**`;
+
+        if (avatar) {
+          msg += `\n🖼️ Awatar: ${avatar}`;
         }
         await message.reply(msg);
       } catch (err) {
@@ -500,24 +376,30 @@ module.exports = {
     // 5. AKTUALNIE
     if (['aktualnie', 'current', 'now'].includes(sub)) {
       try {
-        const html = await fetchLastFMPage(`https://www.last.fm/user/${lastfmUser}`);
-        const tracks = parseLastFMHTML(html);
+        const data = await fetchLastFMAPI('user.getrecenttracks', { user: lastfmUser, limit: 1 });
+        const tracks = data.recenttracks?.track || [];
+        const currentTrack = Array.isArray(tracks) ? tracks[0] : tracks;
 
-        if (tracks.length > 0 && tracks[0].nowPlaying) {
-          const track = tracks[0];
-          let reply = `🎧 **Aktualnie słucha — ${targetName}**\n` +
-                      `🎶 Utwór: **${track.name}**\n` +
-                      `👤 Wykonawca: **${track.artist}**`;
-          if (track.youtubeUrl) {
-            reply += `\n📺 Odtwórz: ${track.youtubeUrl}`;
+        if (currentTrack) {
+          const isNowPlaying = currentTrack['@attr']?.nowplaying === 'true';
+          const trackName = currentTrack.name;
+          const artistName = currentTrack.artist?.['#text'] || currentTrack.artist?.name || 'Nieznany';
+
+          if (isNowPlaying) {
+            const query = encodeURIComponent(`${artistName} ${trackName}`);
+            const youtubeUrl = `https://www.youtube.com/results?search_query=${query}`;
+            await message.reply(
+              `🎧 **Aktualnie słucha — ${targetName}**\n` +
+              `🎶 Utwór: **${trackName}**\n` +
+              `👤 Wykonawca: **${artistName}**\n` +
+              `📺 Odtwórz: ${youtubeUrl}`
+            );
+          } else {
+            await message.reply(
+              `💤 **${targetName}** obecnie niczego nie słucha.\n` +
+              `🕰 Ostatnio odtwarzane: **${artistName} - ${trackName}**`
+            );
           }
-          await message.reply(reply);
-        } else if (tracks.length > 0) {
-          const track = tracks[0];
-          await message.reply(
-            `💤 **${targetName}** obecnie niczego nie słucha.\n` +
-            `🕰 Ostatnio odtwarzane: **${track.artist} - ${track.name}**`
-          );
         } else {
           await message.reply(`💤 **${targetName}** obecnie niczego nie słucha.`);
         }
@@ -531,17 +413,20 @@ module.exports = {
     // 6. OSTATNIE
     if (['ostatnie', 'recent', 'last'].includes(sub)) {
       try {
-        const html = await fetchLastFMPage(`https://www.last.fm/user/${lastfmUser}`);
-        const tracks = parseLastFMHTML(html);
+        const data = await fetchLastFMAPI('user.getrecenttracks', { user: lastfmUser, limit: 5 });
+        const tracks = data.recenttracks?.track || [];
+        const trackList = Array.isArray(tracks) ? tracks : [tracks];
 
-        if (tracks.length === 0) {
+        if (trackList.length === 0) {
           await message.reply(`🕰 Brak ostatnio odtwarzanych utworów dla użytkownika **${targetName}**.`);
           return;
         }
 
-        const lines = tracks.slice(0, 5).map((t, i) => {
-          const status = t.nowPlaying ? '▶️ *słucha teraz*' : '•';
-          return `${i + 1}. ${status} **${t.artist}** — **${t.name}**`;
+        const lines = trackList.map((t, i) => {
+          const isNowPlaying = t['@attr']?.nowplaying === 'true';
+          const status = isNowPlaying ? '▶️ *słucha teraz*' : '•';
+          const artist = t.artist?.['#text'] || t.artist?.name || 'Nieznany';
+          return `${i + 1}. ${status} **${artist}** — **${t.name}**`;
         }).join('\n');
 
         await message.reply(`🕰 **Ostatnio słuchane przez ${targetName}**:\n\n${lines}`);
@@ -556,28 +441,35 @@ module.exports = {
     if (['toputwory', 'topartyści', 'topartysci', 'topalbumy', 'toptracks', 'topartists', 'topalbums', 'tracks', 'artists', 'albums'].includes(sub)) {
       const type = ['topartyści', 'topartysci', 'topartists', 'artists'].includes(sub) ? 'artists'
                  : (['topalbumy', 'topalbums', 'albums'].includes(sub) ? 'albums' : 'tracks');
-      
-      const presetName = PRESET_MAPPING[parsedParams.range] || 'LAST_30_DAYS';
-      const label = RANGE_LABELS[presetName];
+
+      const period = PERIOD_MAPPING[parsedParams.range] || 'overall';
+      const label = PERIOD_LABELS[period];
 
       const typeLabel = type === 'artists' ? 'artystów' : (type === 'albums' ? 'albumów' : 'utworów');
       const categoryEmoji = type === 'artists' ? '🤩' : (type === 'albums' ? '💿' : '⭐');
 
-      const statusMsg = await message.reply(`📊 Pobieranie najpopularniejszych ${typeLabel} dla ${targetName} (${label})...`);
-
       try {
-        const partialUrl = `https://www.last.fm/user/${lastfmUser}/library/${type}?date_preset=${presetName}`;
-        const html = await fetchLastFMPage(partialUrl);
-        const parsedItems = parseLastFMHTML(html);
+        const method = type === 'artists' ? 'user.gettopartists'
+                     : (type === 'albums' ? 'user.gettopalbums' : 'user.gettoptracks');
 
-        if (parsedItems.length === 0) {
+        const data = await fetchLastFMAPI(method, { user: lastfmUser, period, limit: 10 });
+        
+        let items = [];
+        if (type === 'artists') items = data.topartists?.artist || [];
+        else if (type === 'albums') items = data.topalbums?.album || [];
+        else items = data.toptracks?.track || [];
+
+        const itemList = Array.isArray(items) ? items : [items];
+
+        if (itemList.length === 0) {
           await message.reply(`📊 Brak statystyk ${typeLabel} dla użytkownika **${targetName}** w wybranym przedziale czasowym.`);
           return;
         }
 
-        const lines = parsedItems.slice(0, 10).map((item, i) => {
-          let detail = item.artist ? `**${item.artist}** — ` : '';
-          return `${i + 1}. ${detail}**${item.name}** (${item.count || '0 odtworzeń'})`;
+        const lines = itemList.map((item, i) => {
+          const playcount = Number(item.playcount || 0).toLocaleString('pl-PL');
+          const artist = item.artist?.name ? `**${item.artist.name}** — ` : '';
+          return `${i + 1}. ${artist}**${item.name}** (${playcount} odtworzeń)`;
         }).join('\n');
 
         await message.reply(`${categoryEmoji} **Top 10 ${typeLabel} u ${targetName} (${label})**:\n\n${lines}`);
@@ -591,19 +483,20 @@ module.exports = {
     // 8. YOUTUBE
     if (['youtube', 'yt'].includes(sub)) {
       try {
-        const html = await fetchLastFMPage(`https://www.last.fm/user/${lastfmUser}`);
-        const tracks = parseLastFMHTML(html);
+        const data = await fetchLastFMAPI('user.getrecenttracks', { user: lastfmUser, limit: 1 });
+        const tracks = data.recenttracks?.track || [];
+        const currentTrack = Array.isArray(tracks) ? tracks[0] : tracks;
 
-        if (tracks.length > 0) {
-          const track = tracks[0];
-          const query = encodeURIComponent(`${track.artist} ${track.name}`);
+        if (currentTrack) {
+          const trackName = currentTrack.name;
+          const artistName = currentTrack.artist?.['#text'] || currentTrack.artist?.name || 'Nieznany';
+          const query = encodeURIComponent(`${artistName} ${trackName}`);
           const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${query}`;
-          const directUrl = track.youtubeUrl || youtubeSearchUrl;
 
           await message.reply(
             `🎶 **YouTube — ${targetName}**\n` +
-            `Utwór: **${track.artist} - ${track.name}**\n` +
-            `🔗 Odtwórz: ${directUrl}`
+            `Utwór: **${artistName} - ${trackName}**\n` +
+            `🔗 Odtwórz: ${youtubeSearchUrl}`
           );
         } else {
           await message.reply(`💤 **${targetName}** obecnie niczego nie słucha.`);
@@ -619,7 +512,6 @@ module.exports = {
     if (sub === 'play') {
       let query = parsedParams.searchQuery;
       let finalTrackName = '';
-      let finalUrl = '';
 
       if (!query && args.length > 1) {
         query = args.slice(1).join(' ').trim();
@@ -627,16 +519,16 @@ module.exports = {
 
       if (query) {
         finalTrackName = query;
-        finalUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
       } else {
         try {
-          const html = await fetchLastFMPage(`https://www.last.fm/user/${lastfmUser}`);
-          const tracks = parseLastFMHTML(html);
+          const data = await fetchLastFMAPI('user.getrecenttracks', { user: lastfmUser, limit: 1 });
+          const tracks = data.recenttracks?.track || [];
+          const currentTrack = Array.isArray(tracks) ? tracks[0] : tracks;
 
-          if (tracks.length > 0) {
-            const track = tracks[0];
-            finalTrackName = `${track.artist} - ${track.name}`;
-            finalUrl = track.youtubeUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(finalTrackName)}`;
+          if (currentTrack) {
+            const trackName = currentTrack.name;
+            const artistName = currentTrack.artist?.['#text'] || currentTrack.artist?.name || 'Nieznany';
+            finalTrackName = `${artistName} - ${trackName}`;
           } else {
             await message.reply(`❌ Użytkownik **${targetName}** obecnie niczego nie słucha, a nie podałeś nazwy utworu.`);
             return;
@@ -647,6 +539,8 @@ module.exports = {
           return;
         }
       }
+
+      const finalUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(finalTrackName)}`;
 
       await message.reply(
         `💿 **Odtwarzanie/Wyszukiwanie utworu**\n` +
@@ -686,7 +580,6 @@ module.exports = {
           return;
         }
 
-        const statusMsg = await message.reply(`🧐 Sprawdzanie statusów Last.fm dla ${activeProfiles.length} członków grupy...`);
         const statusLines = [];
 
         for (const [pid, conn] of activeProfiles) {
@@ -695,24 +588,27 @@ module.exports = {
           }
 
           let name = `Użytkownik_${pid.slice(-6)}`;
-          if (client.userNames.has(pid)) {
+          if (client.userNames?.has(pid)) {
             name = client.userNames.get(pid);
-          } else {
+          } else if (client.resolveUserName) {
             try {
               name = await client.resolveUserName(client.api, pid);
             } catch (_) {}
           }
 
           try {
-            const html = await fetchLastFMPage(`https://www.last.fm/user/${conn.username}`);
-            const tracks = parseLastFMHTML(html);
-            if (tracks.length > 0 && tracks[0].nowPlaying) {
-              statusLines.push(`👤 **${name}** słucha teraz:\n   ▶️ **${tracks[0].artist}** — **${tracks[0].name}**`);
+            const data = await fetchLastFMAPI('user.getrecenttracks', { user: conn.username, limit: 1 });
+            const tracks = data.recenttracks?.track || [];
+            const currentTrack = Array.isArray(tracks) ? tracks[0] : tracks;
+
+            if (currentTrack && currentTrack['@attr']?.nowplaying === 'true') {
+              const trackName = currentTrack.name;
+              const artistName = currentTrack.artist?.['#text'] || currentTrack.artist?.name || 'Nieznany';
+              statusLines.push(`👤 **${name}** słucha teraz:\n   ▶️ **${artistName}** — **${trackName}**`);
             }
           } catch (e) {
             // Ignorujemy błędy pobierania dla pojedynczych osób z listy
           }
-          await sleep(350);
         }
 
         if (statusLines.length === 0) {
