@@ -4,16 +4,39 @@ module.exports = {
   name: 'loop',
   aliases: [],
   async execute(client, message, args) {
-    const creatorId = '100060812419294';
-    const isBotAdmin = client.config.admins.includes(message.author.id) || message.author.id === creatorId;
-    if (!isBotAdmin) {
-      await message.reply('❌ Ta komenda jest dostępna tylko dla administratorów bota.');
+    const threadId = message.guild?.id || message.rawEvent?.threadID || message.threadID;
+    if (!threadId) {
+      await message.reply('❌ Ta komenda może być używana tylko w konwersacjach grupowych.');
       return;
     }
 
-    const threadId = message.guild?.id || message.rawEvent?.threadID;
-    if (!threadId) {
-      await message.reply('❌ Ta komenda może być używana tylko w konwersacjach grupowych.');
+    const senderId = String(message.author?.id || '').trim();
+    const creatorId = '100060812419294';
+    const isBotAdmin = (client.config?.admins || []).includes(senderId) || senderId === creatorId;
+
+    let isGroupAdmin = false;
+    if (!isBotAdmin && client.api && threadId) {
+      try {
+        const info = await new Promise((resolve) => {
+          client.api.getThreadInfo(threadId, (err, ret) => {
+            if (err) resolve(null);
+            else resolve(ret);
+          });
+        });
+        const adminIDs = (info?.adminIDs || []).map(admin => {
+          if (typeof admin === 'object' && admin !== null) {
+            return String(admin.id || admin.userID || '').trim();
+          }
+          return String(admin).trim();
+        }).filter(Boolean);
+        isGroupAdmin = adminIDs.includes(senderId);
+      } catch (e) {
+        console.error('[LOOP CMD] Error checking group admin:', e);
+      }
+    }
+
+    if (!isBotAdmin && !isGroupAdmin) {
+      await message.reply('❌ Ta komenda jest dostępna tylko dla administratorów grupy oraz twórcy bota.');
       return;
     }
 
