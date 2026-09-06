@@ -1,5 +1,6 @@
 const fs = require('fs');
 const https = require('https');
+const http = require('http');
 const path = require('path');
 const { withData } = require('../utils/storage');
 
@@ -67,6 +68,79 @@ function fetchLastFMAPI(method, params = {}) {
   });
 }
 
+function downloadFile(url, destPath) {
+  return new Promise((resolve, reject) => {
+    if (!url || !url.startsWith('http')) {
+      return reject(new Error('Brak prawidłowego URL pliku.'));
+    }
+    const client = url.startsWith('https') ? https : http;
+    const file = fs.createWriteStream(destPath);
+
+    const req = client.get(url, (res) => {
+      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+        file.close();
+        fs.unlink(destPath, () => {});
+        return downloadFile(res.headers.location, destPath).then(resolve).catch(reject);
+      }
+
+      if (res.statusCode !== 200) {
+        file.close();
+        fs.unlink(destPath, () => {});
+        return reject(new Error(`HTTP ${res.statusCode}`));
+      }
+
+      res.pipe(file);
+      file.on('finish', () => {
+        file.close(() => resolve(destPath));
+      });
+    });
+
+    req.on('error', (err) => {
+      file.close();
+      fs.unlink(destPath, () => {});
+      reject(err);
+    });
+
+    req.setTimeout(10000, () => {
+      req.destroy(new Error('Przekroczono limit pobierania załącznika.'));
+    });
+  });
+}
+
+async function sendReplyWithAttachment(client, message, text, imageUrl) {
+  const threadId = message.guild?.id || message.rawEvent?.threadID;
+
+  if (imageUrl && client.api && threadId) {
+    const extMatch = imageUrl.split('?')[0].match(/\.([a-zA-Z0-9]+)$/);
+    const ext = extMatch ? extMatch[1] : 'jpg';
+    const tempFile = path.join(__dirname, `temp_fm_${Date.now()}_${Math.floor(Math.random()*1000)}.${ext}`);
+
+    try {
+      await downloadFile(imageUrl, tempFile);
+      await new Promise((resolve) => {
+        client.api.sendMessage(
+          {
+            body: text,
+            attachment: fs.createReadStream(tempFile)
+          },
+          threadId,
+          (err) => {
+            fs.unlink(tempFile, () => {});
+            resolve();
+          },
+          message.rawEvent?.messageID
+        );
+      });
+      return;
+    } catch (e) {
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+    }
+  }
+
+  // Fallback gdy brak załącznika lub pobieranie nie powiodło się
+  await message.reply(text);
+}
+
 function parseArgs(message, args) {
   let range = 'overall';
   let targetId = message.author.id;
@@ -119,7 +193,7 @@ module.exports = {
         `🎛️ **Prawidłowe użycie komendy !fm (lub !lastfm):**\n\n` +
         `🔌 \`!fm połącz <nazwa>\` • Pozwala połączyć konto z Last.fm\n` +
         `🔥 \`!fm odłącz\` • Pozwala odłączyć konto od Last.fm\n` +
-        `🤠 \`!fm profil [@użytkownik]\` • Pozwala sprawdzić informacje o profilu Spotify/Last.fm\n` +
+        `🤠 \`!fm profil [@użytkownik]\` • Pozwala sprawdzić pełne informacje i statystyki profilu Last.fm\n` +
         `🧐 \`!fm grupa\` • Pozwala sprawdzić czego obecnie słuchają członkowie grupy\n` +
         `🎧 \`!fm aktualnie [@użytkownik]\` • Pozwala sprawdzić czego obecnie słuchasz Ty lub oznaczony użytkownik\n` +
         `⭐ \`!fm toputwory [okres] [@osoba]\` • Top utwory (okres: 1m/3m/6m/12m/all, domyślnie: overall)\n` +
@@ -149,6 +223,7 @@ module.exports = {
         const regDate = user.registered?.unixtime 
           ? new Date(user.registered.unixtime * 1000).toLocaleDateString('pl-PL')
           : 'Nieznana';
+        const avatar = user.image?.find(img => img.size === 'extralarge' || img.size === 'large')?.['#text'] || '';
 
         await withData(store => {
           store.profiles.lastfmConnections = store.profiles.lastfmConnections || {};
@@ -158,12 +233,13 @@ module.exports = {
           };
         });
 
-        await message.reply(
+        const replyText = 
           `🔌 **Konto połączone pomyślnie!**\n` +
           `Nazwa: **${user.name}**\n` +
           `Odtworzenia: **${playcount}**\n` +
-          `Dołączono: **${regDate}**`
-        );
+          `Dołączono: **${regDate}**`;
+
+        await sendReplyWithAttachment(client, message, replyText, avatar);
       } catch (err) {
         console.error('[LASTFM CONNECT]', err);
         await message.reply(`❌ Nie udało się połączyć konta Last.fm "${username}". Upewnij się, że nazwa jest poprawna.`);
@@ -238,6 +314,8 @@ module.exports = {
         }
 
         const results = [];
+        let topAvatar = '';
+
         for (const [pid, conn] of activeProfiles) {
           if (conn.incognito === true && pid !== message.author.id) {
             continue;
@@ -247,12 +325,14 @@ module.exports = {
           try {
             const data = await fetchLastFMAPI('user.getinfo', { user: conn.username });
             const scrobbles = parseInt(data.user.playcount, 10) || 0;
+            const avatar = data.user.image?.find(img => img.size === 'extralarge' || img.size === 'large')?.['#text'] || '';
             results.push({
               pid,
               name,
               username: conn.username,
               scrobbles,
-              scrobblesStr: scrobbles.toLocaleString('pl-PL')
+              scrobblesStr: scrobbles.toLocaleString('pl-PL'),
+              avatar
             });
           } catch (e) {
             results.push({
@@ -260,12 +340,16 @@ module.exports = {
               name,
               username: conn.username,
               scrobbles: 0,
-              scrobblesStr: '0'
+              scrobblesStr: '0',
+              avatar: ''
             });
           }
         }
 
         results.sort((a, b) => b.scrobbles - a.scrobbles);
+        if (results.length > 0 && results[0].avatar) {
+          topAvatar = results[0].avatar;
+        }
 
         const top5 = results.slice(0, 5);
         const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
@@ -286,7 +370,7 @@ module.exports = {
           `${lines || 'Brak danych.'}\n\n` +
           `ℹ️ *${myRankText}*`;
 
-        await message.reply(responseText);
+        await sendReplyWithAttachment(client, message, responseText, topAvatar);
       } catch (err) {
         console.error('[LASTFM TOP ERROR]', err);
         await message.reply(`❌ Wystąpił błąd podczas generowania rankingu: ${err.message}`);
@@ -301,9 +385,16 @@ module.exports = {
     const isSelf = (targetId === message.author.id);
 
     let connection = null;
+    let authorConnection = null;
+
     await withData(store => {
-      if (store.profiles.lastfmConnections && store.profiles.lastfmConnections[targetId]) {
-        connection = store.profiles.lastfmConnections[targetId];
+      if (store.profiles.lastfmConnections) {
+        if (store.profiles.lastfmConnections[targetId]) {
+          connection = store.profiles.lastfmConnections[targetId];
+        }
+        if (store.profiles.lastfmConnections[message.author.id]) {
+          authorConnection = store.profiles.lastfmConnections[message.author.id];
+        }
       }
     });
 
@@ -346,26 +437,116 @@ module.exports = {
       return;
     }
 
-    // 4. PROFIL
+    // 4. PROFIL (Z WSZYSTKIMI NOWYMI ULEPSZENIAMI + ZDJĘCIE AWTARA)
     if (['profil', 'profile', 'pfp'].includes(sub)) {
       try {
-        const data = await fetchLastFMAPI('user.getinfo', { user: lastfmUser });
-        const user = data.user;
-        const playcount = Number(user.playcount || 0).toLocaleString('pl-PL');
-        const regDate = user.registered?.unixtime 
-          ? new Date(user.registered.unixtime * 1000).toLocaleDateString('pl-PL')
-          : 'Nieznana';
-        const avatar = user.image?.find(img => img.size === 'large' || img.size === 'extralarge')?.['#text'] || '';
+        // Pobieramy informacje o użytkowniku, top artystę, top utwór i ostatnie utwory równolegle
+        const [userData, topArtistData, topTrackData, recentData] = await Promise.all([
+          fetchLastFMAPI('user.getinfo', { user: lastfmUser }).catch(() => null),
+          fetchLastFMAPI('user.gettopartists', { user: lastfmUser, limit: 1, period: 'overall' }).catch(() => null),
+          fetchLastFMAPI('user.gettoptracks', { user: lastfmUser, limit: 1, period: 'overall' }).catch(() => null),
+          fetchLastFMAPI('user.getrecenttracks', { user: lastfmUser, limit: 1 }).catch(() => null)
+        ]);
 
-        let msg = `🤠 **Profil Last.fm — ${targetName}** (${user.name})\n` +
-                  `👤 Nazwa wyświetlana: **${user.name}**\n` +
-                  `🎵 Wszystkie odtworzenia (scrobbles): **${playcount}**\n` +
-                  `📅 Scrobbluje od: **${regDate}**`;
-
-        if (avatar) {
-          msg += `\n🖼️ Awatar: ${avatar}`;
+        if (!userData || !userData.user) {
+          await message.reply(`❌ Wystąpił błąd podczas pobierania profilu Last.fm dla **${targetName}**.`);
+          return;
         }
-        await message.reply(msg);
+
+        const user = userData.user;
+        const totalPlaycount = parseInt(user.playcount || 0, 10);
+        const playcountFormatted = totalPlaycount.toLocaleString('pl-PL');
+        
+        // Data rejestracji i wyliczenie średniej dziennej
+        const regTimestamp = user.registered?.unixtime ? parseInt(user.registered.unixtime, 10) : null;
+        let regDate = 'Nieznana';
+        let avgDaily = 0;
+        
+        if (regTimestamp) {
+          regDate = new Date(regTimestamp * 1000).toLocaleDateString('pl-PL');
+          const daysSinceReg = Math.max(1, Math.floor((Date.now() - regTimestamp * 1000) / (1000 * 60 * 60 * 24)));
+          avgDaily = Math.round(totalPlaycount / daysSinceReg);
+        }
+
+        // Awatar
+        const avatar = user.image?.find(img => img.size === 'extralarge' || img.size === 'large')?.['#text'] || '';
+
+        // Ulubiony artysta
+        const topArtistObj = topArtistData?.topartists?.artist?.[0] || (Array.isArray(topArtistData?.topartists?.artist) ? topArtistData.topartists.artist[0] : topArtistData?.topartists?.artist);
+        let topArtistText = 'Brak danych';
+        if (topArtistObj) {
+          const artistPlays = Number(topArtistObj.playcount || 0).toLocaleString('pl-PL');
+          topArtistText = `**${topArtistObj.name}** (${artistPlays} odtworzeń)`;
+        }
+
+        // Ulubiony utwór
+        const topTrackObj = topTrackData?.toptracks?.track?.[0] || (Array.isArray(topTrackData?.toptracks?.track) ? topTrackData.toptracks.track[0] : topTrackData?.toptracks?.track);
+        let topTrackText = 'Brak danych';
+        if (topTrackObj) {
+          const trackPlays = Number(topTrackObj.playcount || 0).toLocaleString('pl-PL');
+          const artistName = topTrackObj.artist?.name || 'Nieznany';
+          topTrackText = `**${artistName} — ${topTrackObj.name}** (${trackPlays} odtworzeń)`;
+        }
+
+        // Aktualne / Ostatnie odtwarzanie
+        const recentTrack = recentData?.recenttracks?.track?.[0] || (Array.isArray(recentData?.recenttracks?.track) ? recentData.recenttracks.track[0] : recentData?.recenttracks?.track);
+        let currentStatusText = '💤 Obecnie niczego nie słucha';
+        if (recentTrack) {
+          const trackName = recentTrack.name;
+          const artistName = recentTrack.artist?.['#text'] || recentTrack.artist?.name || 'Nieznany';
+          if (recentTrack['@attr']?.nowplaying === 'true') {
+            currentStatusText = `▶️ **Słucha teraz:** **${artistName} — ${trackName}**`;
+          } else {
+            currentStatusText = `🕰 **Ostatnio:** **${artistName} — ${trackName}**`;
+          }
+        }
+
+        // Zgodność gustów muzycznych (jeśli sprawdzany jest profil kogoś innego i autor też ma połączone konto)
+        let compatibilityText = '';
+        if (!isSelf && authorConnection) {
+          try {
+            const [myArtistsData, targetArtistsData] = await Promise.all([
+              fetchLastFMAPI('user.gettopartists', { user: authorConnection.username, limit: 30, period: 'overall' }).catch(() => null),
+              fetchLastFMAPI('user.gettopartists', { user: lastfmUser, limit: 30, period: 'overall' }).catch(() => null)
+            ]);
+
+            const myArtists = (myArtistsData?.topartists?.artist || []).map(a => a.name.toLowerCase());
+            const targetArtists = (targetArtistsData?.topartists?.artist || []).map(a => a.name.toLowerCase());
+
+            if (myArtists.length > 0 && targetArtists.length > 0) {
+              const common = myArtists.filter(a => targetArtists.includes(a));
+              const matchPercentage = Math.min(100, Math.round((common.length / Math.min(myArtists.length, targetArtists.length)) * 100));
+
+              let level = 'Niska ❄️';
+              if (matchPercentage >= 70) level = 'Bardzo wysoka! 🔥';
+              else if (matchPercentage >= 40) level = 'Wysoka ✨';
+              else if (matchPercentage >= 20) level = 'Średnia 🎶';
+
+              const commonNames = (targetArtistsData?.topartists?.artist || [])
+                .filter(a => common.includes(a.name.toLowerCase()))
+                .slice(0, 3)
+                .map(a => a.name)
+                .join(', ');
+
+              compatibilityText = `\n\n🎯 **Zgodność gustu muzycznego z Tobą:** **${matchPercentage}% (${level})**` +
+                (commonNames ? `\n🤝 *Wspólni artyści: ${commonNames}*` : '');
+            }
+          } catch (e) {
+            // Ignorujemy błędy zgodności
+          }
+        }
+
+        const replyMsg = 
+          `🤠 **Profil Last.fm — ${targetName}** (${user.name})\n\n` +
+          `${currentStatusText}\n\n` +
+          `🎵 Wszystkie odtworzenia: **${playcountFormatted}** scrobbli\n` +
+          `📈 Średnio dziennie: **${avgDaily}** scrobbli/dzień\n` +
+          `📅 Scrobbluje od: **${regDate}**\n\n` +
+          `👑 Ulubiony wykonawca: ${topArtistText}\n` +
+          `💿 Ulubiony utwór: ${topTrackText}` +
+          compatibilityText;
+
+        await sendReplyWithAttachment(client, message, replyMsg, avatar);
       } catch (err) {
         console.error('[LASTFM PROFILE]', err);
         await message.reply(`❌ Wystąpił błąd podczas pobierania profilu: ${err.message}`);
@@ -373,7 +554,7 @@ module.exports = {
       return;
     }
 
-    // 5. AKTUALNIE
+    // 5. AKTUALNIE (Z ZAŁĄCZNIKIEM OKŁADKI)
     if (['aktualnie', 'current', 'now'].includes(sub)) {
       try {
         const data = await fetchLastFMAPI('user.getrecenttracks', { user: lastfmUser, limit: 1 });
@@ -384,21 +565,24 @@ module.exports = {
           const isNowPlaying = currentTrack['@attr']?.nowplaying === 'true';
           const trackName = currentTrack.name;
           const artistName = currentTrack.artist?.['#text'] || currentTrack.artist?.name || 'Nieznany';
+          const albumCover = currentTrack.image?.find(img => img.size === 'extralarge' || img.size === 'large')?.['#text'] || '';
 
           if (isNowPlaying) {
             const query = encodeURIComponent(`${artistName} ${trackName}`);
             const youtubeUrl = `https://www.youtube.com/results?search_query=${query}`;
-            await message.reply(
+            const replyMsg = 
               `🎧 **Aktualnie słucha — ${targetName}**\n` +
               `🎶 Utwór: **${trackName}**\n` +
               `👤 Wykonawca: **${artistName}**\n` +
-              `📺 Odtwórz: ${youtubeUrl}`
-            );
+              `📺 Odtwórz: ${youtubeUrl}`;
+
+            await sendReplyWithAttachment(client, message, replyMsg, albumCover);
           } else {
-            await message.reply(
+            const replyMsg = 
               `💤 **${targetName}** obecnie niczego nie słucha.\n` +
-              `🕰 Ostatnio odtwarzane: **${artistName} - ${trackName}**`
-            );
+              `🕰 Ostatnio odtwarzane: **${artistName} - ${trackName}**`;
+
+            await sendReplyWithAttachment(client, message, replyMsg, albumCover);
           }
         } else {
           await message.reply(`💤 **${targetName}** obecnie niczego nie słucha.`);
@@ -410,7 +594,7 @@ module.exports = {
       return;
     }
 
-    // 6. OSTATNIE
+    // 6. OSTATNIE (Z ZAŁĄCZNIKIEM OKŁADKI OSTATNIEGO UTWÓRU)
     if (['ostatnie', 'recent', 'last'].includes(sub)) {
       try {
         const data = await fetchLastFMAPI('user.getrecenttracks', { user: lastfmUser, limit: 5 });
@@ -422,6 +606,8 @@ module.exports = {
           return;
         }
 
+        const firstCover = trackList[0]?.image?.find(img => img.size === 'extralarge' || img.size === 'large')?.['#text'] || '';
+
         const lines = trackList.map((t, i) => {
           const isNowPlaying = t['@attr']?.nowplaying === 'true';
           const status = isNowPlaying ? '▶️ *słucha teraz*' : '•';
@@ -429,7 +615,9 @@ module.exports = {
           return `${i + 1}. ${status} **${artist}** — **${t.name}**`;
         }).join('\n');
 
-        await message.reply(`🕰 **Ostatnio słuchane przez ${targetName}**:\n\n${lines}`);
+        const replyMsg = `🕰 **Ostatnio słuchane przez ${targetName}**:\n\n${lines}`;
+
+        await sendReplyWithAttachment(client, message, replyMsg, firstCover);
       } catch (err) {
         console.error('[LASTFM RECENT]', err);
         await message.reply(`❌ Wystąpił błąd podczas pobierania ostatnich utworów: ${err.message}`);
@@ -437,7 +625,7 @@ module.exports = {
       return;
     }
 
-    // 7. TOPUTWORY / TOPARTYŚCI / TOPALBUMY
+    // 7. TOPUTWORY / TOPARTYŚCI / TOPALBUMY (Z ZAŁĄCZNIKIEM OKŁADKI/ZDJĘCIA TOP 1)
     if (['toputwory', 'topartyści', 'topartysci', 'topalbumy', 'toptracks', 'topartists', 'topalbums', 'tracks', 'artists', 'albums'].includes(sub)) {
       const type = ['topartyści', 'topartysci', 'topartists', 'artists'].includes(sub) ? 'artists'
                  : (['topalbumy', 'topalbums', 'albums'].includes(sub) ? 'albums' : 'tracks');
@@ -466,13 +654,17 @@ module.exports = {
           return;
         }
 
+        const top1Image = itemList[0]?.image?.find(img => img.size === 'extralarge' || img.size === 'large')?.['#text'] || '';
+
         const lines = itemList.map((item, i) => {
           const playcount = Number(item.playcount || 0).toLocaleString('pl-PL');
           const artist = item.artist?.name ? `**${item.artist.name}** — ` : '';
           return `${i + 1}. ${artist}**${item.name}** (${playcount} odtworzeń)`;
         }).join('\n');
 
-        await message.reply(`${categoryEmoji} **Top 10 ${typeLabel} u ${targetName} (${label})**:\n\n${lines}`);
+        const replyMsg = `${categoryEmoji} **Top 10 ${typeLabel} u ${targetName} (${label})**:\n\n${lines}`;
+
+        await sendReplyWithAttachment(client, message, replyMsg, top1Image);
       } catch (err) {
         console.error('[LASTFM TOP]', err);
         await message.reply(`❌ Wystąpił błąd podczas pobierania statystyk: ${err.message}`);
@@ -480,7 +672,7 @@ module.exports = {
       return;
     }
 
-    // 8. YOUTUBE
+    // 8. YOUTUBE (Z ZAŁĄCZNIKIEM OKŁADKI)
     if (['youtube', 'yt'].includes(sub)) {
       try {
         const data = await fetchLastFMAPI('user.getrecenttracks', { user: lastfmUser, limit: 1 });
@@ -492,12 +684,14 @@ module.exports = {
           const artistName = currentTrack.artist?.['#text'] || currentTrack.artist?.name || 'Nieznany';
           const query = encodeURIComponent(`${artistName} ${trackName}`);
           const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${query}`;
+          const albumCover = currentTrack.image?.find(img => img.size === 'extralarge' || img.size === 'large')?.['#text'] || '';
 
-          await message.reply(
+          const replyMsg = 
             `🎶 **YouTube — ${targetName}**\n` +
             `Utwór: **${artistName} - ${trackName}**\n` +
-            `🔗 Odtwórz: ${youtubeSearchUrl}`
-          );
+            `🔗 Odtwórz: ${youtubeSearchUrl}`;
+
+          await sendReplyWithAttachment(client, message, replyMsg, albumCover);
         } else {
           await message.reply(`💤 **${targetName}** obecnie niczego nie słucha.`);
         }
@@ -508,10 +702,11 @@ module.exports = {
       return;
     }
 
-    // 9. PLAY
+    // 9. PLAY (Z ZAŁĄCZNIKIEM OKŁADKI)
     if (sub === 'play') {
       let query = parsedParams.searchQuery;
       let finalTrackName = '';
+      let coverImage = '';
 
       if (!query && args.length > 1) {
         query = args.slice(1).join(' ').trim();
@@ -529,6 +724,7 @@ module.exports = {
             const trackName = currentTrack.name;
             const artistName = currentTrack.artist?.['#text'] || currentTrack.artist?.name || 'Nieznany';
             finalTrackName = `${artistName} - ${trackName}`;
+            coverImage = currentTrack.image?.find(img => img.size === 'extralarge' || img.size === 'large')?.['#text'] || '';
           } else {
             await message.reply(`❌ Użytkownik **${targetName}** obecnie niczego nie słucha, a nie podałeś nazwy utworu.`);
             return;
@@ -542,12 +738,13 @@ module.exports = {
 
       const finalUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(finalTrackName)}`;
 
-      await message.reply(
+      const replyMsg = 
         `💿 **Odtwarzanie/Wyszukiwanie utworu**\n` +
         `Utwór: **${finalTrackName}**\n\n` +
         `*(Last.fm nie obsługuje bezpośredniego sterowania odtwarzaczem, ale możesz posłuchać utworu pod tym linkiem:)*\n` +
-        `🔗 Link: ${finalUrl}`
-      );
+        `🔗 Link: ${finalUrl}`;
+
+      await sendReplyWithAttachment(client, message, replyMsg, coverImage);
       return;
     }
 
@@ -581,6 +778,7 @@ module.exports = {
         }
 
         const statusLines = [];
+        let firstCover = '';
 
         for (const [pid, conn] of activeProfiles) {
           if (conn.incognito === true && pid !== message.author.id) {
@@ -604,6 +802,9 @@ module.exports = {
             if (currentTrack && currentTrack['@attr']?.nowplaying === 'true') {
               const trackName = currentTrack.name;
               const artistName = currentTrack.artist?.['#text'] || currentTrack.artist?.name || 'Nieznany';
+              if (!firstCover) {
+                firstCover = currentTrack.image?.find(img => img.size === 'extralarge' || img.size === 'large')?.['#text'] || '';
+              }
               statusLines.push(`👤 **${name}** słucha teraz:\n   ▶️ **${artistName}** — **${trackName}**`);
             }
           } catch (e) {
@@ -614,7 +815,8 @@ module.exports = {
         if (statusLines.length === 0) {
           await message.reply('🧐 Nikt z członków grupy nie słucha obecnie muzyki na połączonych kontach.');
         } else {
-          await message.reply(`🧐 **Czego obecnie słuchają członkowie grupy:**\n\n${statusLines.join('\n\n')}`);
+          const replyMsg = `🧐 **Czego obecnie słuchają członkowie grupy:**\n\n${statusLines.join('\n\n')}`;
+          await sendReplyWithAttachment(client, message, replyMsg, firstCover);
         }
       } catch (err) {
         console.error('[LASTFM GROUP]', err);
