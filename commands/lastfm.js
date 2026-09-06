@@ -191,9 +191,9 @@ module.exports = {
     if (!sub) {
       await message.reply(
         `🎛️ **Prawidłowe użycie komendy !fm (lub !lastfm):**\n\n` +
-        `🔌 \`!fm połącz <nazwa>\` • Pozwala połączyć konto z Last.fm\n` +
-        `🔥 \`!fm odłącz\` • Pozwala odłączyć konto od Last.fm\n` +
-        `🤠 \`!fm profil [@użytkownik]\` • Pozwala sprawdzić pełne informacje i statystyki profilu Last.fm\n` +
+        `🔌 \`!fm połącz <nazwa>\` • Pozwala połączyć konto z Last,fm\n` +
+        `🔥 \`!fm odłącz\` • Pozwala odłączyć konto od Last,fm\n` +
+        `🤠 \`!fm profil [@użytkownik]\` • Pozwala sprawdzić pełne informacje i statystyki profilu Last,fm\n` +
         `🧐 \`!fm grupa\` • Pozwala sprawdzić czego obecnie słuchają członkowie grupy\n` +
         `🎧 \`!fm aktualnie [@użytkownik]\` • Pozwala sprawdzić czego obecnie słuchasz Ty lub oznaczony użytkownik\n` +
         `⭐ \`!fm toputwory [okres] [@osoba]\` • Top utwory (okres: 1m/3m/6m/12m/all, domyślnie: overall)\n` +
@@ -212,7 +212,7 @@ module.exports = {
     if (['połącz', 'polacz', 'connect'].includes(sub)) {
       const username = String(args[1] || '').trim();
       if (!username) {
-        await message.reply('❌ Podaj swoją nazwę użytkownika Last.fm: **!fm połącz <nazwa>**');
+        await message.reply('❌ Podaj swoją nazwę użytkownika Last,fm: **!fm połącz <nazwa>**');
         return;
       }
 
@@ -242,7 +242,7 @@ module.exports = {
         await sendReplyWithAttachment(client, message, replyText, avatar);
       } catch (err) {
         console.error('[LASTFM CONNECT]', err);
-        await message.reply(`❌ Nie udało się połączyć konta Last.fm "${username}". Upewnij się, że nazwa jest poprawna.`);
+        await message.reply(`❌ Nie udało się połączyć konta Last,fm "${username}". Upewnij się, że nazwa jest poprawna.`);
       }
       return;
     }
@@ -258,9 +258,9 @@ module.exports = {
       });
 
       if (disconnected) {
-        await message.reply('🔥 **Konto Last.fm zostało pomyślnie odłączone.**');
+        await message.reply('🔥 **Konto Last,fm zostało pomyślnie odłączone.**');
       } else {
-        await message.reply('ℹ️ Twoje konto nie jest połączone z Last.fm.');
+        await message.reply('ℹ️ Twoje konto nie jest połączone z Last,fm.');
       }
       return;
     }
@@ -309,7 +309,7 @@ module.exports = {
 
         const activeProfiles = Object.entries(connections);
         if (activeProfiles.length === 0) {
-          await message.reply('🧐 Nikt z tej grupy nie połączył swojego konta z Last.fm.');
+          await message.reply('🧐 Nikt z tej grupy nie połączył swojego konta z Last,fm.');
           return;
         }
 
@@ -360,13 +360,13 @@ module.exports = {
         const myIndex = results.findIndex(r => r.pid === message.author.id);
         let myRankText = '';
         if (myIndex !== -1) {
-          myRankText = `Twoje miejsce w grupie: **${myIndex + 1} z ${results.length}** użytkowników z połączonym Last.fm`;
+          myRankText = `Twoje miejsce w grupie: **${myIndex + 1} z ${results.length}** użytkowników z połączonym Last,fm`;
         } else {
-          myRankText = `Nie ma Cię w rankingu (brak połączonego konta Last.fm lub jesteś incognito)`;
+          myRankText = `Nie ma Cię w rankingu (brak połączonego konta Last,fm lub jesteś incognito)`;
         }
 
         const responseText = 
-          `🏆 **Ranking Last.fm w Grupie (Top 5)**\n\n` +
+          `🏆 **Ranking Last,fm w Grupie (Top 5)**\n\n` +
           `${lines || 'Brak danych.'}\n\n` +
           `ℹ️ *${myRankText}*`;
 
@@ -400,9 +400,9 @@ module.exports = {
 
     if (!connection) {
       if (isSelf) {
-        await message.reply('❌ Nie połączyłeś swojego konta z Last.fm. Zrób to za pomocą: **!fm połącz <nazwa_konta>**');
+        await message.reply('❌ Nie połączyłeś swojego konta z Last,fm. Zrób to za pomocą: **!fm połącz <nazwa_konta>**');
       } else {
-        await message.reply(`❌ Użytkownik **${targetName}** nie połączył swojego konta z Last.fm.`);
+        await message.reply(`❌ Użytkownik **${targetName}** nie połączył swojego konta z Last,fm.`);
       }
       return;
     }
@@ -449,7 +449,7 @@ module.exports = {
         ]);
 
         if (!userData || !userData.user) {
-          await message.reply(`❌ Wystąpił błąd podczas pobierania profilu Last.fm dla **${targetName}**.`);
+          await message.reply(`❌ Wystąpił błąd podczas pobierania profilu Last,fm dla **${targetName}**.`);
           return;
         }
 
@@ -537,7 +537,7 @@ module.exports = {
         }
 
         const replyMsg = 
-          `🤠 **Profil Last.fm — ${targetName}** (${user.name})\n\n` +
+          `🤠 **Profil Last,fm — ${targetName}** (${user.name})\n\n` +
           `${currentStatusText}\n\n` +
           `🎵 Wszystkie odtworzenia: **${playcountFormatted}** scrobbli\n` +
           `📈 Średnio dziennie: **${avgDaily}** scrobbli/dzień\n` +
@@ -741,7 +741,7 @@ module.exports = {
       const replyMsg = 
         `💿 **Odtwarzanie/Wyszukiwanie utworu**\n` +
         `Utwór: **${finalTrackName}**\n\n` +
-        `*(Last.fm nie obsługuje bezpośredniego sterowania odtwarzaczem, ale możesz posłuchać utworu pod tym linkiem:)*\n` +
+        `*(Last,fm nie obsługuje bezpośredniego sterowania odtwarzaczem, ale możesz posłuchać utworu pod tym linkiem:)*\n` +
         `🔗 Link: ${finalUrl}`;
 
       await sendReplyWithAttachment(client, message, replyMsg, coverImage);
@@ -773,7 +773,7 @@ module.exports = {
 
         const activeProfiles = Object.entries(connections);
         if (activeProfiles.length === 0) {
-          await message.reply('🧐 Nikt z tej grupy nie połączył swojego konta z Last.fm.');
+          await message.reply('🧐 Nikt z tej grupy nie połączył swojego konta z Last,fm.');
           return;
         }
 
