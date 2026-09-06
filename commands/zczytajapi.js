@@ -19,7 +19,7 @@ function loadProgress() {
     scannedThreadIds: [],
     skippedThreads: [],
     scanFromTimestamp: 1786262400000,
-    scanToTimestamp: 1787859000000,
+    scanToTimestamp: 1788724800000,
     stats: { bal: {}, eq: {}, gang: {}, top: {}, daily: {}, topdaily: {}, pfp: {} },
     totalMessagesScanned: 0,
     totalGroupsScanned: 0,
