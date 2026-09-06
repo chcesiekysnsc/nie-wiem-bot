@@ -8,8 +8,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/login/device-based/",
         "hostOnly": false,
-        "creation": "2026-09-04T19:09:38.493Z",
-        "lastAccessed": "2026-09-04T19:09:38.493Z"
+        "creation": "2026-09-06T20:52:33.945Z",
+        "lastAccessed": "2026-09-06T20:52:33.945Z"
     },
     {
         "key": "sb",
@@ -17,17 +17,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-04T19:09:38.493Z",
-        "lastAccessed": "2026-09-04T19:09:38.493Z"
-    },
-    {
-        "key": "oo",
-        "value": "v1",
-        "domain": "facebook.com",
-        "path": "/",
-        "hostOnly": false,
-        "creation": "2026-09-04T19:09:38.493Z",
-        "lastAccessed": "2026-09-04T19:09:38.493Z"
+        "creation": "2026-09-06T20:52:33.945Z",
+        "lastAccessed": "2026-09-06T20:52:33.945Z"
     },
     {
         "key": "datr",
@@ -35,8 +26,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-04T19:09:38.493Z",
-        "lastAccessed": "2026-09-04T19:09:38.493Z"
+        "creation": "2026-09-06T20:52:33.945Z",
+        "lastAccessed": "2026-09-06T20:52:33.945Z"
     },
     {
         "key": "ps_l",
@@ -44,8 +35,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-04T19:09:38.493Z",
-        "lastAccessed": "2026-09-04T19:09:38.493Z"
+        "creation": "2026-09-06T20:52:33.945Z",
+        "lastAccessed": "2026-09-06T20:52:33.945Z"
     },
     {
         "key": "ps_n",
@@ -53,8 +44,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-04T19:09:38.493Z",
-        "lastAccessed": "2026-09-04T19:09:38.493Z"
+        "creation": "2026-09-06T20:52:33.945Z",
+        "lastAccessed": "2026-09-06T20:52:33.945Z"
     },
     {
         "key": "dpr",
@@ -62,8 +53,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-04T19:09:38.493Z",
-        "lastAccessed": "2026-09-04T19:09:38.493Z"
+        "creation": "2026-09-06T20:52:33.945Z",
+        "lastAccessed": "2026-09-06T20:52:33.945Z"
     },
     {
         "key": "wd",
@@ -71,8 +62,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-04T19:09:38.493Z",
-        "lastAccessed": "2026-09-04T19:09:38.493Z"
+        "creation": "2026-09-06T20:52:33.945Z",
+        "lastAccessed": "2026-09-06T20:52:33.945Z"
     },
     {
         "key": "c_user",
@@ -80,30 +71,41 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-04T19:09:38.493Z",
-        "lastAccessed": "2026-09-04T19:09:38.493Z"
+        "creation": "2026-09-06T20:52:33.945Z",
+        "lastAccessed": "2026-09-06T20:52:33.945Z"
     },
     {
         "key": "fr",
-        "value": "0s8iXhdIj4op32yH5.AWcLBG17lLrco50403Mcm6NsFJf8jHXhHDoo9bO-Bbj2K52lD7A.Bqmxdu..AAA.0.0.Bqmxdu.AWc5sP7ZF0XMdREsjNSIj6BT7vU",
+        "value": "0wv6qlWD9yUJxQ30m.AWd3HsA3wiIRH521mlCQ8HJATB7_HLhMwn1tfYnqU3W2icqRfgs.BqndKN..AAA.0.0.BqndKN.AWcDyvBlVcOFmUBUaLQTdu7qW4U",
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-04T19:09:38.493Z",
-        "lastAccessed": "2026-09-04T19:09:38.493Z"
+        "creation": "2026-09-06T20:52:33.945Z",
+        "lastAccessed": "2026-09-06T20:52:33.945Z"
     },
     {
         "key": "xs",
-        "value": "24%3AcfW7whFrDIji5Q%3A2%3A1788548972%3A-1%3A-1%3A%3AAcw_juwD8PsrwgBHihDLuzGPNgF5grYJGGwXAo7VVA",
+        "value": "36%3A75cjlvvwdZEJoA%3A2%3A1788727948%3A-1%3A-1%3A%3AAczx94P4QxKOMzhjcQcKXcrabKsNwibpoOiW8ttyLw",
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-04T19:09:38.493Z",
-        "lastAccessed": "2026-09-04T19:09:38.493Z"
+        "creation": "2026-09-06T20:52:33.945Z",
+        "lastAccessed": "2026-09-06T20:52:33.945Z"
+    },
+    {
+        "key": "presence",
+        "value": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1788727953401%2C%22v%22%3A1%7D",
+        "domain": "facebook.com",
+        "path": "/",
+        "hostOnly": false,
+        "creation": "2026-09-06T20:52:33.945Z",
+        "lastAccessed": "2026-09-06T20:52:33.945Z"
     }
 ];
 
 const SEED_APPSTATE = path.join(__dirname, '..', 'data_seed', 'appstate.json');
+const DATA_APPSTATE = path.join(__dirname, '..', 'data', 'appstate.json');
+const BACKUP_DIR = 'C:\\Users\\dupek\\.gemini\\antigravity\\db_backups';
 
 function mergeCookies(existing, updates) {
     const map = new Map(existing.map(c => [c.key, { ...c }]));
@@ -126,8 +128,29 @@ function main() {
         data = JSON.parse(fs.readFileSync(SEED_APPSTATE, 'utf8'));
     } catch (_) {}
     data = mergeCookies(data, NEW_COOKIES);
-    fs.writeFileSync(SEED_APPSTATE, JSON.stringify(data, null, 2), 'utf8');
+
+    const jsonStr = JSON.stringify(data, null, 2);
+
+    fs.writeFileSync(SEED_APPSTATE, jsonStr, 'utf8');
     console.log('[COOKIES] Zaktualizowano data_seed/appstate.json');
+
+    try {
+        const dataDir = path.dirname(DATA_APPSTATE);
+        if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+        fs.writeFileSync(DATA_APPSTATE, jsonStr, 'utf8');
+        console.log('[COOKIES] Zaktualizowano data/appstate.json');
+    } catch (e) {
+        console.error('Błąd zapisu data/appstate.json:', e.message);
+    }
+
+    if (fs.existsSync(BACKUP_DIR)) {
+        try {
+            fs.writeFileSync(path.join(BACKUP_DIR, 'appstate.json'), jsonStr, 'utf8');
+            console.log('[COOKIES] Zaktualizowano db_backups/appstate.json');
+        } catch (e) {
+            console.error('Błąd zapisu db_backups/appstate.json:', e.message);
+        }
+    }
 }
 
 main();
