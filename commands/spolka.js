@@ -1,6 +1,45 @@
 const { formatCurrency, msToReadable } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
+async function resolveUserName(client, uid) {
+  if (!uid) return 'Nieznany';
+  if (typeof client.resolveUserName === 'function') {
+    try {
+      const name = await client.resolveUserName(uid);
+      if (name) return name;
+    } catch (_) {}
+  }
+  if (client.userNames && client.userNames.get(uid)) {
+    return client.userNames.get(uid);
+  }
+  try {
+    const { loadData } = require('../utils/storage');
+    const usersData = loadData('users');
+    if (usersData && usersData[uid] && usersData[uid].name) {
+      if (client.userNames) client.userNames.set(uid, usersData[uid].name);
+      return usersData[uid].name;
+    }
+  } catch (_) {}
+  if (client.api && typeof client.api.getUserInfo === 'function') {
+    try {
+      const info = await new Promise((resolve) => {
+        client.api.getUserInfo(uid, (err, ret) => {
+          if (!err && ret && ret[uid] && ret[uid].name) {
+            resolve(ret[uid].name);
+          } else {
+            resolve(null);
+          }
+        });
+      });
+      if (info) {
+        if (client.userNames) client.userNames.set(uid, info);
+        return info;
+      }
+    } catch (_) {}
+  }
+  return client.userNames?.get(uid) || `Użytkownik_${String(uid).slice(-6)}`;
+}
+
 module.exports = {
   name: 'spolka',
   aliases: ['spółka', 'spolki', 'spółki', 'akcje'],
@@ -224,9 +263,10 @@ module.exports = {
       let msg = `💰 **WYPŁATA DYWIDENDY — ${result.name}**\n`;
       msg += `Wygenerowano łączną pulę: **${formatCurrency(result.totalPula)}**!\n\n`;
       msg += `📋 **Podział środków:**\n`;
-      result.memberPayouts.forEach(p => {
-        msg += `   ↳ <@${p.id}> (${p.pct}%): **+${formatCurrency(p.amount)}**\n`;
-      });
+      for (const p of result.memberPayouts) {
+        const pName = await resolveUserName(client, p.id);
+        msg += `   ↳ **${pName}** (${p.pct}%): **+${formatCurrency(p.amount)}**\n`;
+      }
 
       await message.reply(msg);
       return;
@@ -294,6 +334,116 @@ module.exports = {
       return;
     }
 
+    // Helper functions for rendering
+    const renderCompanyDetails = async (s, isMyCompany) => {
+      const prezesName = await resolveUserName(client, s.prezesId);
+      let text = `🏢 **${isMyCompany ? 'TWOJA SPÓŁKA' : 'SPÓŁKA'}: ${s.name}**\n`;
+      text += `👑 Prezes: **${prezesName}**\n`;
+      text += `💰 Całkowity Kapitał: **${formatCurrency(s.totalCapital)}**\n`;
+      text += `👥 Udziałowcy (${Object.keys(s.members || {}).length}/5):\n`;
+      for (const [mId, mData] of Object.entries(s.members || {})) {
+        const memberName = await resolveUserName(client, mId);
+        const pct = ((mData.wklad / s.totalCapital) * 100).toFixed(1);
+        text += `   ↳ **${memberName}**: **${formatCurrency(mData.wklad)}** (${pct}%)\n`;
+      }
+      text += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      if (isMyCompany) {
+        text += `💡 **!spolka inwestuj <kwota>** — Zwiększ swój wkład\n`;
+        if (s.prezesId === userId) {
+          text += `💡 **!spolka dywidenda** — Wypłać dywidendę udziałowcom\n`;
+          text += `💡 **!spolka rozwiaz** — Rozwiąż spółkę\n`;
+        } else {
+          text += `💡 **!spolka opusc** — Opuść spółkę (70% zwrotu)\n`;
+        }
+      } else {
+        text += `💡 Dołącz do spółki: **!spolka dolacz ${s.name} <wkład>** (min. 100k)\n`;
+      }
+      return text;
+    };
+
+    const renderPublicList = async (allCompanies) => {
+      let list = `🏢 **SYSTEM SPÓŁEK AKCYJNYCH**\n`;
+      list += `Dołącz do spółki lub załóż własną, aby generować dywidendy!\n\n`;
+      if (allCompanies.length === 0) {
+        list += `📑 Brak aktywnych spółek na serwerze. Bądź pierwszym założycielem!\n`;
+      } else {
+        list += `📋 **Dostępne spółki:**\n`;
+        for (let idx = 0; idx < Math.min(allCompanies.length, 10); idx++) {
+          const s = allCompanies[idx];
+          const count = Object.keys(s.members || {}).length;
+          const prezesName = await resolveUserName(client, s.prezesId);
+          list += `**${idx + 1}. ${s.name}** (ID: \`${s.id}\`)\n`;
+          list += `   ↳ Prezes: **${prezesName}** | Kapitał: **${formatCurrency(s.totalCapital)}** | Członkowie: **${count}/5**\n`;
+        }
+      }
+      list += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      list += `💡 Stwórz spółkę: **!spolka stworz <nazwa> <wkład>** (min. 500k)\n`;
+      list += `💡 Dołącz do spółki: **!spolka dolacz <nazwa/ID> <wkład>** (min. 100k)\n`;
+      list += `💡 Sprawdź spółkę: **!spolka info <nazwa/ID>**`;
+      return list;
+    };
+
+    // --- SUBCOMMAND: LISTA ---
+    if (['lista', 'list', 'ranking', 'all', 'wszystkie'].includes(action)) {
+      const allCompanies = await withData(store => {
+        if (!store.profiles || !store.profiles.spolki) return [];
+        return Object.values(store.profiles.spolki);
+      });
+      const listText = await renderPublicList(allCompanies);
+      await message.reply(listText);
+      return;
+    }
+
+    // --- SUBCOMMAND: INFO <nazwa/ID> ---
+    if (action === 'info' || action === 'sprawdz' || action === 'view') {
+      const targetQuery = args.slice(1).join(' ').trim();
+      if (!targetQuery) {
+        await message.reply('❌ Podaj nazwę lub ID spółki! Przykład: **!spolka info CyberCorp**');
+        return;
+      }
+
+      const targetSpolka = await withData(store => {
+        if (!store.profiles || !store.profiles.spolki) return null;
+        for (const s of Object.values(store.profiles.spolki)) {
+          if (s.id === targetQuery || s.name.toLowerCase() === targetQuery.toLowerCase()) {
+            return s;
+          }
+        }
+        return null;
+      });
+
+      if (!targetSpolka) {
+        await message.reply('❌ Nie znaleziono spółki o podanej nazwie lub ID!');
+        return;
+      }
+
+      const isMy = targetSpolka.members && !!targetSpolka.members[userId];
+      const details = await renderCompanyDetails(targetSpolka, isMy);
+      await message.reply(details);
+      return;
+    }
+
+    // If argument given that is not recognized, check if it's a company name directly
+    if (action && !['pomoc', 'help'].includes(action)) {
+      const targetQuery = args.join(' ').trim();
+      const matchedSpolka = await withData(store => {
+        if (!store.profiles || !store.profiles.spolki) return null;
+        for (const s of Object.values(store.profiles.spolki)) {
+          if (s.id === targetQuery || s.name.toLowerCase() === targetQuery.toLowerCase()) {
+            return s;
+          }
+        }
+        return null;
+      });
+
+      if (matchedSpolka) {
+        const isMy = matchedSpolka.members && !!matchedSpolka.members[userId];
+        const details = await renderCompanyDetails(matchedSpolka, isMy);
+        await message.reply(details);
+        return;
+      }
+    }
+
     // DEFAULT: SHOW USER COMPANY OR GLOBAL LIST
     const spolkaInfo = await withData(store => {
       if (!store.profiles || !store.profiles.spolki) return { mySpolka: null, all: [] };
@@ -303,43 +453,12 @@ module.exports = {
     });
 
     if (spolkaInfo.mySpolka) {
-      const s = spolkaInfo.mySpolka;
-      let text = `🏢 **TWOJA SPÓŁKA: ${s.name}**\n`;
-      text += `👑 Prezes: <@${s.prezesId}>\n`;
-      text += `💰 Całkowity Kapitał: **${formatCurrency(s.totalCapital)}**\n`;
-      text += `👥 Udziałowcy (${Object.keys(s.members).length}/5):\n`;
-      for (const [mId, mData] of Object.entries(s.members)) {
-        const pct = ((mData.wklad / s.totalCapital) * 100).toFixed(1);
-        text += `   ↳ <@${mId}>: **${formatCurrency(mData.wklad)}** (${pct}%)\n`;
-      }
-      text += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      text += `💡 **!spolka inwestuj <kwota>** — Zwiększ swój wkład\n`;
-      if (s.prezesId === userId) {
-        text += `💡 **!spolka dywidenda** — Wypłać dywidendę udziałowcom\n`;
-        text += `💡 **!spolka rozwiaz** — Rozwiąż spółkę\n`;
-      } else {
-        text += `💡 **!spolka opusc** — Opuść spółkę (70% zwrotu)\n`;
-      }
-      await message.reply(text);
+      const details = await renderCompanyDetails(spolkaInfo.mySpolka, true);
+      await message.reply(details);
       return;
     }
 
-    // List of public companies
-    let list = `🏢 **SYSTEM SPÓŁEK AKCYJNYCH**\n`;
-    list += `Dołącz do spółki lub załóż własną, aby generować dywidendy!\n\n`;
-    if (spolkaInfo.all.length === 0) {
-      list += `📑 Brak aktywnych spółek na serwerze. Bądź pierwszym założycielem!\n`;
-    } else {
-      list += `📋 **Dostępne spółki:**\n`;
-      spolkaInfo.all.slice(0, 10).forEach((s, idx) => {
-        const count = Object.keys(s.members).length;
-        list += `**${idx + 1}. ${s.name}** (ID: \`${s.id}\`)\n`;
-        list += `   ↳ Kapitał: **${formatCurrency(s.totalCapital)}** | Członkowie: **${count}/5**\n`;
-      });
-    }
-    list += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-    list += `💡 Stwórz spółkę: **!spolka stworz <nazwa> <wkład>** (min. 500k)\n`;
-    list += `💡 Dołącz do spółki: **!spolka dolacz <nazwa/ID> <wkład>** (min. 100k)`;
-    await message.reply(list);
+    const listText = await renderPublicList(spolkaInfo.all);
+    await message.reply(listText);
   }
 };

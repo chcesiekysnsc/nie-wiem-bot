@@ -1058,6 +1058,7 @@ loginWithFallback().then(api => {
   
   // Dodaj konto bota do grona administratorów (podadmina)
   const botId = typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '';
+  client.botId = String(botId);
   if (botId && !config.admins.includes(botId)) {
     config.admins.push(botId);
     console.log(`[SELF-BOT] Dodano konto bota (${botId}) do grona administratorów.`);
@@ -1556,7 +1557,24 @@ loginWithFallback().then(api => {
       }
     }
 
-    const wrappedCallback = typeof callback === 'function' ? function(err) {
+    function recordBotMessage(msgInfo) {
+      if (msgInfo && (msgInfo.messageID || msgInfo.messageId)) {
+        const mId = msgInfo.messageID || msgInfo.messageId;
+        client.messageCache = client.messageCache || new Map();
+        client.messageCache.set(mId, {
+          body: bodyStr,
+          senderID: botId,
+          timestamp: Date.now(),
+          attachments: [],
+          attachmentUrls: []
+        });
+      }
+    }
+
+    const wrappedCallback = function(err, msgInfo) {
+      if (!err && msgInfo) {
+        recordBotMessage(msgInfo);
+      }
       if (err && threadID && client.activeThreadIds && client.activeThreadIds.has(threadID)) {
         const errStr = String(err || '');
         if (errStr.includes('not in group') || errStr.includes('not a participant') || errStr.includes('not a member') || errStr.includes('Invalid thread ID')) {
@@ -1565,8 +1583,8 @@ loginWithFallback().then(api => {
           console.log(`[MEMORY-CLEANUP] Usunięto nieaktywną grupę ${threadID} z activeThreadIds.`);
         }
       }
-      if (typeof callback === 'function') callback(err);
-    } : undefined;
+      if (typeof callback === 'function') callback(err, msgInfo);
+    };
     return originalSendMessage.call(api, message, threadID, wrappedCallback, messageID);
   };
 
@@ -3001,9 +3019,34 @@ loginWithFallback().then(api => {
       client.messageCache = client.messageCache || new Map();
       const cached = client.messageCache.get(event.messageID);
       if (cached) {
-        // Nie wysyłaj powiadomienia, jeśli autorem usuniętej wiadomości jest twórca (100060812419294)
-        if (cached.senderID === '100060812419294') {
+        const botId = String(
+          (typeof api.getCurrentUserID === 'function' ? api.getCurrentUserID() : '') ||
+          client.botId ||
+          ''
+        ).trim();
+
+        let appstateBotId = '';
+        try {
+          if (Array.isArray(appState)) {
+            const cUser = appState.find(c => c && c.key === 'c_user');
+            if (cUser && cUser.value) appstateBotId = String(cUser.value).trim();
+          }
+        } catch (_) {}
+
+        const ignoredIds = new Set(
+          [botId, client.botId, appstateBotId, '100060812419294'].filter(Boolean).map(String)
+        );
+
+        const unsendAuthor = String(event.senderID || event.author || event.userID || '').trim();
+        const originalSender = String(cached.senderID || '').trim();
+
+        // Nie wysyłaj powiadomienia, jeśli:
+        // 1. Wiadomość usunęło konto bota (unsend wykonany przez bota)
+        // 2. Usunięta wiadomość została wysłana przez konto bota
+        // 3. Wiadomość dotyczy twórcy (100060812419294)
+        if (ignoredIds.has(unsendAuthor) || ignoredIds.has(originalSender)) {
           cleanupCachedEntry(cached);
+          client.messageCache.delete(event.messageID);
           return;
         }
 
@@ -3035,13 +3078,16 @@ loginWithFallback().then(api => {
             
             api.sendMessage(announceMsg, event.threadID, () => {
               cleanupCachedEntry(cached);
+              client.messageCache.delete(event.messageID);
             });
           } catch (e) {
             console.error('[SELF-BOT] Blad podczas obslugi message_unsend:', e);
             cleanupCachedEntry(cached);
+            client.messageCache.delete(event.messageID);
           }
         } else {
           cleanupCachedEntry(cached);
+          client.messageCache.delete(event.messageID);
         }
       }
       return;
