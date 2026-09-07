@@ -185,6 +185,7 @@ module.exports = {
         }
       }
 
+      let packageLimit = 10;
       const isPackage = itemId.startsWith('paczka_');
       if (isPackage) {
         const today = new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
@@ -193,24 +194,23 @@ module.exports = {
           user.paczkiBoughtToday = 0;
         }
 
-        let limit = 10;
         if (user.badges) {
           if (user.badges.includes(config.badges.wyjdz_z_domu)) {
-            limit = 16;
+            packageLimit = 16;
           } else if (user.badges.includes(config.badges.umyj_sie)) {
-            limit = 14;
+            packageLimit = 14;
           } else if (user.badges.includes(config.badges.uzalezniony_od_gry)) {
-            limit = 12;
+            packageLimit = 12;
           } else if (user.badges.includes(config.badges.oddany_gracz)) {
-            limit = 11;
+            packageLimit = 11;
           }
         }
 
-        if (user.paczkiBoughtToday >= limit) {
-          return { error: `❌ Osiągnąłeś już dzisiejszy limit zakupu paczek w sklepie (${limit}/${limit}).` };
+        if (user.paczkiBoughtToday >= packageLimit) {
+          return { error: `❌ Osiągnąłeś już dzisiejszy limit zakupu paczek w sklepie (${packageLimit}/${packageLimit}).` };
         }
-        if (user.paczkiBoughtToday + quantity > limit) {
-          return { error: `❌ Możesz dziś kupić jeszcze tylko **${limit - user.paczkiBoughtToday}** paczek (chcesz kupić: ${quantity}).` };
+        if (user.paczkiBoughtToday + quantity > packageLimit) {
+          return { error: `❌ Możesz dziś kupić jeszcze tylko **${packageLimit - user.paczkiBoughtToday}** paczek (chcesz kupić: ${quantity}).` };
         }
       }
 
@@ -226,7 +226,7 @@ module.exports = {
       }
       refreshBadges(user, inventory);
 
-      return { quantity, totalPrice, balance: user.balance, paczkiBoughtToday: isPackage ? user.paczkiBoughtToday : undefined, packageLimit: isPackage ? limit : undefined };
+      return { quantity, totalPrice, balance: user.balance, paczkiBoughtToday: isPackage ? user.paczkiBoughtToday : undefined, packageLimit: isPackage ? packageLimit : undefined };
     }).catch(err => {
       console.error('[SKLEP] withData error:', err);
       return { error: '❌ Wystąpił błąd podczas przetwarzania zakupu. Spróbuj ponownie.' };

@@ -502,7 +502,10 @@ function createMessengerClient(clientConfig) {
   client.resolveUserName = async (apiOrUserId, maybeUserId) => {
     const userId = typeof apiOrUserId === 'object' && apiOrUserId !== null ? maybeUserId : apiOrUserId;
     if (client.resolvedUserNames.has(userId) && client.userNames.has(userId)) {
-      return client.userNames.get(userId);
+      const cached = client.userNames.get(userId);
+      if (cached && cached !== 'Facebook user' && !cached.startsWith('Użytkownik_') && !cached.startsWith('Uzytkownik_')) {
+        return cached;
+      }
     }
 
     // Sprawdź najpierw w bazie danych, czy imię jest zapisane
@@ -514,7 +517,7 @@ function createMessengerClient(clientConfig) {
       }
     } catch (_) {}
 
-    if (dbName) {
+    if (dbName && dbName !== 'Facebook user' && !dbName.startsWith('Użytkownik_') && !dbName.startsWith('Uzytkownik_')) {
       client.userNames.set(userId, dbName);
       client.resolvedUserNames.add(userId);
       return dbName;

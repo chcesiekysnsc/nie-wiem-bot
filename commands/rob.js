@@ -75,7 +75,7 @@ function getRobCooldownDuration(inv, baseDuration) {
   return Math.max(0, duration);
 }
 
-function calculateSuccessChance(robberInv, victimInv, robber, overrideChance, victim) {
+function calculateSuccessChance(robberInv, victimInv, robber, overrideChance, victim, store) {
   const robberHasZeton = hasItem(robberInv, 'krwawy_zeton');
   let chance = robberHasZeton ? 0.66 : 0.60;
 
@@ -127,7 +127,7 @@ function calculateSuccessChance(robberInv, victimInv, robber, overrideChance, vi
   }
 
   // Ochrona Smoka z komendy !zwierzak (-5% szansy na bycie okradzionym)
-  if (store.profiles && store.profiles.zwierzaki && store.profiles.zwierzaki[victim.id]) {
+  if (store && store.profiles && store.profiles.zwierzaki && store.profiles.zwierzaki[victim.id]) {
     if (store.profiles.zwierzaki[victim.id].type === 'smok') {
       chance -= 0.05;
     }
@@ -470,7 +470,7 @@ module.exports = {
             robber.piwoActive = false;
           }
 
-          const chance = calculateSuccessChance(robberInv, victimInv, robber, robSuccessOverride, victim);
+          const chance = calculateSuccessChance(robberInv, victimInv, robber, robSuccessOverride, victim, store);
           const success = Math.random() < chance;
 
           const percent = hasBeer ? 0.25 : 0.20;
@@ -530,7 +530,7 @@ module.exports = {
                 secondStealable = Math.max(0, victim.balance - victim.activeLoan.originalAmount);
               }
               if (secondStealable >= 1000) {
-                const secondChance = calculateSuccessChance(robberInv, victimInv, robber, robSuccessOverride, victim);
+                const secondChance = calculateSuccessChance(robberInv, victimInv, robber, robSuccessOverride, victim, store);
                 const secondSuccess = Math.random() < secondChance;
                 if (secondSuccess) {
                   const secondBase = Math.max(1, Math.floor(secondStealable * percent));
@@ -584,6 +584,38 @@ module.exports = {
               }
             }
 
+            let netherBladeResult = null;
+            const netherBladeChance = getNetherBladeCounterRobChance(victimInv);
+            if (netherBladeChance > 0 && Math.random() < netherBladeChance) {
+              const counterRobAmount = Math.floor(netStolen * 0.10);
+              if (counterRobAmount > 0) {
+                victim.balance += counterRobAmount;
+                robber.balance = Math.max(0, robber.balance - counterRobAmount);
+              }
+              let stolenItemData = null;
+              if (Math.random() < 0.15) {
+                const { removeItem: removeItemInv, getItemQuantity, addItem } = require('../utils/economy');
+                const robberItems = Object.keys(robberInv).filter(k => !k.startsWith('_') && getItemQuantity(robberInv, k) > 0);
+                if (robberItems.length > 0) {
+                  const stolenItem = robberItems[Math.floor(Math.random() * robberItems.length)];
+                  const qty = getItemQuantity(robberInv, stolenItem);
+                  if (qty > 0) {
+                    removeItemInv(robberInv, stolenItem, 1);
+                    addItem(victimInv, stolenItem, 1);
+                    stolenItemData = {
+                      id: stolenItem,
+                      name: config.shopItems[stolenItem]?.name || stolenItem,
+                      emoji: config.shopItems[stolenItem]?.emoji || ''
+                    };
+                  }
+                }
+              }
+              netherBladeResult = {
+                counterRobAmount,
+                stolenItem: stolenItemData
+              };
+            }
+
             robber.gamesPlayed += 1;
             robber.robAttempts = (robber.robAttempts || 0) + 1;
             refreshBadges(robber, robberInv);
@@ -603,7 +635,8 @@ module.exports = {
               latarkaBonusPct,
               insygniaBonus,
               wczesniejszePrzygotowanieTriggered,
-              secondRob
+              secondRob,
+              netherBladeResult
             };
           } else {
             const failResult = calculateFailFine(robber.balance, robberInv, victimInv, hasBeer, victim);
@@ -720,30 +753,15 @@ module.exports = {
             }
           }
 
-          const netherBladeChance = getNetherBladeCounterRobChance(victimInv);
-          if (netherBladeChance > 0 && Math.random() < netherBladeChance) {
-            const counterRobAmount = Math.floor(result.stolen * 0.10);
+          if (result.netherBladeResult) {
+            const { counterRobAmount, stolenItem } = result.netherBladeResult;
             if (counterRobAmount > 0) {
-              victim.balance += counterRobAmount;
-              robber.balance = Math.max(0, robber.balance - counterRobAmount);
               replyMsg += `\n⚔️ **Nether Blade: KONTRA-NAPAD!** Odwróciłeś sytuację i okradłeś **${robberName}** z **${formatCurrency(counterRobAmount)}**!`;
               notifyMsg += `\n⚔️ **Nether Blade:** **${targetName}** odwrócił napad i okradł Cię z **${formatCurrency(counterRobAmount)}**!`;
             }
-            if (Math.random() < 0.15) {
-              const { removeItem: removeItemInv, getItemQuantity, addItem } = require('../utils/economy');
-              const robberItems = Object.keys(robberInv).filter(k => !k.startsWith('_') && getItemQuantity(robberInv, k) > 0 && !['balance', 'bank', 'xp', 'level', 'prestige', 'gamesPlayed', 'wins', 'losses', 'gambleStreak', 'totalWon', 'totalLost', 'lastGambleWin', 'workLevel', 'workBoostUntil', 'workBoostPercent', 'lastWorkTime', 'robAttempts', 'lastSztyletResetTime', 'activeLoan', 'negativeSince', 'blacklistedForNegativeBalance', 'company', 'company2', 'house', 'house2', 'worker', 'bodyguard', 'workerUseCount', 'workerTotalPayout', 'bodyguardUseCount', 'bodyguardTotalPayout', 'gangId', 'gangRole', 'lastActiveThreadId', 'jailUntil', 'bombaActive', 'klodkaActive', 'piwoActive', 'activeLoan', 'id', 'name', 'badges', 'commandCounts', 'claimedMilestones', 'lastRobTime', 'robCooldown', 'taxesPaid', 'dailyStreak', 'lastDailyTime', 'marry', 'marriedTo', 'lastActiveThreadId'].includes(k));
-              if (robberItems.length > 0) {
-                const stolenItem = robberItems[Math.floor(Math.random() * robberItems.length)];
-                const qty = getItemQuantity(robberInv, stolenItem);
-                if (qty > 0) {
-                  removeItemInv(robberInv, stolenItem, 1);
-                  addItem(victimInv, stolenItem, 1);
-                  const stolenItemName = config.shopItems[stolenItem]?.name || stolenItem;
-                  const stolenItemEmoji = config.shopItems[stolenItem]?.emoji || '';
-                  replyMsg += `\n🎒 **Ukradłeś przedmiot:** ${stolenItemEmoji} **${stolenItemName}**!`;
-                  notifyMsg += `\n🎒 **Stracisz przedmiot:** ${stolenItemEmoji} **${stolenItemName}**!`;
-                }
-              }
+            if (stolenItem) {
+              replyMsg += `\n🎒 **Ukradłeś przedmiot:** ${stolenItem.emoji} **${stolenItem.name}**!`;
+              notifyMsg += `\n🎒 **Straciłeś przedmiot:** ${stolenItem.emoji} **${stolenItem.name}**!`;
             }
           }
         } else {

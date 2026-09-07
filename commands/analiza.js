@@ -656,13 +656,16 @@ module.exports = {
     client.activeAnalyses = client.activeAnalyses || new Map();
     client.activeAnalyses.set(analysisId, Date.now());
 
-    const fetchCount = msgCount || 200;
+    const fetchCount = firstArgNum || 200;
     const analysisStartTime = Date.now();
     const fetchHeartbeat = createHeartbeat(message, () => {
       const elapsed = ((Date.now() - analysisStartTime) / 1000).toFixed(0);
       return `⏳ Analiza trwa już **${elapsed}s** — nadal pobieram historię wiadomości...`;
     });
     fetchHeartbeat.start();
+
+    let chunkHeartbeat = null;
+    let summaryHeartbeat = null;
 
     try {
       await safeReply(message, `📥 Pobieram ${fetchCount} wiadomości i analizuję...`);
@@ -809,7 +812,7 @@ module.exports = {
         console.log(`[AI] Startuję równoległe przetwarzanie ${chunks.length} chunków (thread ${threadId})`);
 
         const chunkStartTime = Date.now();
-        const chunkHeartbeat = createHeartbeat(message, () => {
+        chunkHeartbeat = createHeartbeat(message, () => {
           const elapsed = ((Date.now() - chunkStartTime) / 1000).toFixed(0);
           return `⏳ Analiza trwa już **${elapsed}s** — przetwarzam historię (części: ${chunks.length})...`;
         });
@@ -868,7 +871,7 @@ module.exports = {
 
         console.log(`[AI] Wysyłam finalne zapytanie scalające (${successfulSummaries.length}/${chunks.length} chunków, thread ${threadId})`);
         const summaryStartTime = Date.now();
-        const summaryHeartbeat = createHeartbeat(message, () => {
+        summaryHeartbeat = createHeartbeat(message, () => {
           const elapsed = ((Date.now() - summaryStartTime) / 1000).toFixed(0);
           return `⏳ Analiza trwa już **${elapsed}s** — składam końcową odpowiedź z ${successfulSummaries.length} części...`;
         });
@@ -905,13 +908,9 @@ module.exports = {
       if (typeof analysisId !== 'undefined' && client.activeAnalyses) {
         client.activeAnalyses.delete(analysisId);
       }
-      fetchHeartbeat.stop();
-      if (typeof chunkHeartbeat !== 'undefined') {
-        chunkHeartbeat.stop();
-      }
-      if (typeof summaryHeartbeat !== 'undefined') {
-        summaryHeartbeat.stop();
-      }
+      if (fetchHeartbeat) fetchHeartbeat.stop();
+      if (chunkHeartbeat) chunkHeartbeat.stop();
+      if (summaryHeartbeat) summaryHeartbeat.stop();
     }
   }
 };

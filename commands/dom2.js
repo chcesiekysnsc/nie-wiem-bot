@@ -1,6 +1,12 @@
 const { formatCurrency, HOUSE_TIERS, WORKSHOP_BONUSES, ARMORY_BONUSES, GYM_BONUSES, hasItem, ensureInventoryRecord } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
+const UPGRADES_COSTS = {
+  warsztat: [50000, 100000, 200000, 400000, 800000],
+  zbrojownia: [75000, 150000, 300000, 600000, 1200000],
+  silownia: [60000, 120000, 240000, 480000, 960000]
+};
+
 function buildBar(lvl, maxLvl) {
   let bar = '';
   for (let i = 1; i <= 5; i++) {

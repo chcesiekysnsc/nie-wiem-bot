@@ -199,7 +199,7 @@ module.exports = {
         reply += `🎁 **Nowy bonus:** ${bonusText}\n`;
       }
       reply += `💰 Portfel: **${formatCurrency(upgradeResult.balance)}**\n`;
-      reply += `🔧 Zużyto: 1x **${upgradeResult.materialUsed}** + **${formatCurrency(check.requirements.coins)}**\n`;
+      reply += `🔧 Zużyto: 1x **${upgradeResult.materialUsed}** + **${formatCurrency(checkResult.requirements.coins)}**\n`;
       if (maxed) {
         reply += `\n🏆 **MAKSYMALNY POZIOM OSIĄGNIĘTY!**`;
       }

@@ -64,6 +64,7 @@ module.exports = {
       return {
         balance: user.balance,
         bank: user.bank,
+        userName: (user.name && user.name !== 'Facebook user' && !user.name.startsWith('Użytkownik_') && !user.name.startsWith('Uzytkownik_')) ? user.name : null,
         nextInterestMs,
         interestPercent,
         activeLoan: user.activeLoan ? { 
@@ -96,8 +97,12 @@ module.exports = {
       loanInfo = `🛑 Do spłaty: **${formatCurrency(snapshot.activeLoan.amount)}** (za **${formatTimeLeft(remainingInterestMs)}** wzrośnie o **${ratePercent}%**)\n`;
     }
 
+    const displayName = (targetName && !targetName.startsWith('Uzytkownik_') && !targetName.startsWith('Użytkownik_') && targetName !== 'Facebook user')
+      ? targetName
+      : (snapshot.userName || targetName);
+
     await message.reply(
-      `💰 Saldo — *${targetName}*\n` +
+      `💰 Saldo — *${displayName}*\n` +
       `👛 Portfel: ${walletText}\n` +
       loanInfo +
       `🏦 Bank: ${formatCurrency(snapshot.bank)}\n` +

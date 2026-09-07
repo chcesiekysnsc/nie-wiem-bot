@@ -583,7 +583,7 @@ module.exports = {
     client.activeAnalyses = client.activeAnalyses || new Map();
     client.activeAnalyses.set(analysisId, Date.now());
 
-    const fetchCount = msgCount || 200;
+    const fetchCount = firstArgNum || 200;
     await message.reply(`📥 Pobieram ${fetchCount} wiadomości i analizuję...`);
 
     try {

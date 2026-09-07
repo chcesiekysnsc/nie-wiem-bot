@@ -22,7 +22,7 @@ module.exports = {
         }
       } catch (_) {}
 
-      if (dbName) {
+      if (dbName && dbName !== 'Facebook user' && !dbName.startsWith('Użytkownik_') && !dbName.startsWith('Uzytkownik_')) {
         if (client.userNames) client.userNames.set(id, dbName);
         if (client.resolvedUserNames) client.resolvedUserNames.add(id);
         return dbName;

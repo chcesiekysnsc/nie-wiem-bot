@@ -250,6 +250,7 @@ module.exports = {
           finalNet = finalPayout - bet;
         }
 
+        let markOfSacrificeSaved = false;
         const markSaveChance = getMarkOfSacrificeCasinoSaveChance(inventory);
         if (markSaveChance > 0 && finalNet < 0 && Math.random() < markSaveChance) {
           finalPayout = bet;

@@ -390,64 +390,120 @@ const client = {
   marriageRequests: new Map(),
   userNames: new Map(),
   resolvedUserNames: new Set(),
+  nameNextCheck: new Map(),
+  _getRandomNameCooldownMs() {
+    const minMs = 12 * 60 * 60 * 1000; // 12 godzin
+    const maxMs = 18 * 60 * 60 * 1000; // 18 godzin
+    return Math.floor(minMs + Math.random() * (maxMs - minMs));
+  },
   lastLotteryDraw: 0,
   lastTaxCollection: 0,
   activeThreadIds: new Set(),
   pvPrefixes: new Map(),
-  async resolveUserName(apiOrUserId, maybeUserId) {
+  async resolveUserName(apiOrUserId, maybeUserId, options = {}) {
     let api = null;
     let userId = null;
-    if (typeof apiOrUserId === 'object' && apiOrUserId !== null) {
+    if (typeof apiOrUserId === 'object' && apiOrUserId !== null && (apiOrUserId.getUserInfo || apiOrUserId.sendMessage)) {
       api = apiOrUserId;
       userId = maybeUserId;
     } else {
       userId = apiOrUserId;
       api = this.api;
-    }
-    if (this.resolvedUserNames.has(userId) && this.userNames.has(userId)) {
-      this._updateUserName(userId, this.userNames.get(userId));
-      return this.userNames.get(userId);
-    }
-
-    // Sprawdź najpierw w bazie danych, czy imię jest zapisane
-    let dbName = null;
-    try {
-      const usersData = loadData('users');
-      if (usersData && usersData[userId] && usersData[userId].name) {
-        dbName = usersData[userId].name;
+      if (typeof maybeUserId === 'object' && maybeUserId !== null) {
+        options = maybeUserId;
       }
-    } catch (_) {}
-
-    if (dbName) {
-      this._updateUserName(userId, dbName);
-      this.resolvedUserNames.add(userId);
-      return dbName;
     }
 
-    return new Promise((resolve) => {
-      if (!api) {
-        return resolve(this.userNames.get(userId) || `Użytkownik_${userId.slice(-6)}`);
-      }
-      api.getUserInfo(userId, (err, ret) => {
-        if (!err && ret && ret[userId]) {
-          const name = ret[userId].name || `Użytkownik_${String(userId).slice(-6)}`;
-          this._updateUserName(userId, name);
-          this.resolvedUserNames.add(userId);
-          
-          // Zapisz asynchronicznie do bazy danych
-          withData(store => {
-            if (store.users[userId]) {
-              store.users[userId].name = name;
+    if (!userId) return 'Użytkownik';
+
+    const force = Boolean(options && options.force);
+    const now = Date.now();
+    const isFirstTime = !this.nameNextCheck.has(userId);
+    const nextCheckTime = this.nameNextCheck.get(userId) || 0;
+    const isCooldownExpired = now >= nextCheckTime;
+
+    const fetchFromApi = (timeoutMs = 4000) => {
+      if (!api || typeof api.getUserInfo !== 'function') return Promise.resolve(null);
+      return new Promise((resolve) => {
+        let finished = false;
+        const timer = setTimeout(() => {
+          if (!finished) {
+            finished = true;
+            resolve(null);
+          }
+        }, timeoutMs);
+
+        api.getUserInfo(userId, (err, ret) => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(timer);
+
+          if (!err && ret && ret[userId]) {
+            const name = ret[userId].name;
+            if (name && name !== 'Facebook user' && !name.startsWith('Użytkownik_') && !name.startsWith('Uzytkownik_')) {
+              this._updateUserName(userId, name);
+              this.nameNextCheck.set(userId, Date.now() + this._getRandomNameCooldownMs());
+              withData(store => {
+                if (store.users[userId] && store.users[userId].name !== name) {
+                  store.users[userId].name = name;
+                }
+              }).catch(() => {});
+              return resolve(name);
             }
-          }).catch(console.error);
-
-          resolve(name);
-        } else {
-          const fallback = this.userNames.get(userId) || `Użytkownik_${userId.slice(-6)}`;
-          resolve(fallback);
-        }
+          }
+          resolve(null);
+        });
       });
-    });
+    };
+
+    // 1. Sprawdź pamięć podręczną (in-memory)
+    let currentName = null;
+    if (this.resolvedUserNames.has(userId) && this.userNames.has(userId)) {
+      const cached = this.userNames.get(userId);
+      if (cached && cached !== 'Facebook user' && !cached.startsWith('Użytkownik_') && !cached.startsWith('Uzytkownik_')) {
+        currentName = cached;
+      }
+    }
+
+    // 2. Sprawdź w bazie danych
+    if (!currentName) {
+      try {
+        const usersData = loadData('users');
+        if (usersData && usersData[userId] && usersData[userId].name) {
+          const dbName = usersData[userId].name;
+          if (dbName && dbName !== 'Facebook user' && !dbName.startsWith('Użytkownik_') && !dbName.startsWith('Uzytkownik_')) {
+            currentName = dbName;
+            this._updateUserName(userId, currentName);
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Pierwsze użycie komendy przez gracza (isFirstTime) lub wymuszenie (force):
+    // Sprawdzamy od razu na Facebooku czy gracz nie zmienił nazwy!
+    if ((isFirstTime || force) && api && typeof api.getUserInfo === 'function') {
+      this.nameNextCheck.set(userId, now + this._getRandomNameCooldownMs());
+      const fresh = await fetchFromApi(3500);
+      if (fresh) return fresh;
+      if (currentName) return currentName;
+    }
+
+    // Jeśli gracz jest już znany i minął losowy cooldown (12h - 18h):
+    // Zwracamy aktualną nazwę natychmiast (0 opóźnienia), a w tle sprawdzamy FB
+    if (currentName) {
+      if (isCooldownExpired && api && typeof api.getUserInfo === 'function') {
+        this.nameNextCheck.set(userId, now + this._getRandomNameCooldownMs());
+        fetchFromApi(6000).catch(() => {});
+      }
+      return currentName;
+    }
+
+    // Jeśli nie mamy nazwy w ogóle, zapytaj API i poczekaj
+    this.nameNextCheck.set(userId, now + this._getRandomNameCooldownMs());
+    const fresh = await fetchFromApi(4000);
+    if (fresh) return fresh;
+
+    return this.userNames.get(userId) || `Użytkownik_${String(userId).slice(-6)}`;
   },
   getUser(userId) {
     return null; // brak cache — komendy obsluguja fallback do UID
@@ -4375,11 +4431,11 @@ loginWithFallback().then(api => {
       }
     }
 
-    // Zapisz imiona z wzmianek do cache'a
+    // Zapisz imiona z wzmianek do cache'a tylko jako tymczasowy fallback
     if (event.mentions) {
       for (const [mid, mName] of Object.entries(event.mentions)) {
-        const cleanName = mName.replace(/^@/, '');
-        if (!client.resolvedUserNames.has(mid)) {
+        const cleanName = (mName || '').replace(/^@/, '').trim();
+        if (cleanName && !client.userNames.has(mid)) {
           client.userNames.set(mid, cleanName);
         }
       }

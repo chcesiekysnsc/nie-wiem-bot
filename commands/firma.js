@@ -161,9 +161,10 @@ module.exports = {
 
     // --- SUBCOMMAND: ZBIERZ / ODBIERZ / WYPLATA ---
     if (action === 'zbierz' || action === 'odbierz' || action === 'wyplata' || action === 'claim') {
+      const authorId = message.author.id;
       const result = await withData(store => {
-        const user = createUser(message.author.id, store.users);
-        const inventory = ensureInventoryRecord(store.inventory, message.author.id);
+        const user = createUser(authorId, store.users);
+        const inventory = ensureInventoryRecord(store.inventory, authorId);
         const companyMul = getCompanyPayoutMultiplier();
         const hasKsiega = hasItem(inventory, 'ksiega_monopolisty');
         const hasInsygnia = hasItem(inventory, 'krolewskie_insygnia');

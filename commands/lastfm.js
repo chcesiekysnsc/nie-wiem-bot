@@ -281,20 +281,36 @@ module.exports = {
       }
 
       try {
-        const threadId = message.guild?.id || message.rawEvent?.threadID;
+        const threadId = message.threadID || message.guild?.id || message.rawEvent?.threadID;
         if (!threadId) {
           await message.reply('❌ Nie można pobrać ID konwersacji.');
           return;
         }
 
-        const threadInfo = await new Promise((resolve, reject) => {
-          client.api.getThreadInfo(threadId, (err, ret) => {
-            if (err) return reject(err);
-            resolve(ret);
-          });
-        });
+        let participantIDs = [];
+        if (client.api && typeof client.api.getThreadInfo === 'function') {
+          try {
+            const threadInfo = await new Promise((resolve) => {
+              const timer = setTimeout(() => resolve(null), 5000);
+              client.api.getThreadInfo(threadId, (err, ret) => {
+                clearTimeout(timer);
+                if (err || !ret) resolve(null);
+                else resolve(ret);
+              });
+            });
+            if (threadInfo && Array.isArray(threadInfo.participantIDs)) {
+              participantIDs = threadInfo.participantIDs;
+            }
+          } catch (_) {}
+        }
 
-        const participantIDs = threadInfo.participantIDs || [];
+        if (!participantIDs || participantIDs.length === 0) {
+          await withData(store => {
+            participantIDs = Object.entries(store.users || {})
+              .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+              .map(([id]) => id);
+          });
+        }
         const connections = {};
 
         await withData(store => {
@@ -751,14 +767,36 @@ module.exports = {
     // 10. GRUPA
     if (['grupa', 'group'].includes(sub)) {
       try {
-        const threadInfo = await new Promise((resolve, reject) => {
-          client.api.getThreadInfo(message.guild?.id || message.rawEvent?.threadID, (err, ret) => {
-            if (err) return reject(err);
-            resolve(ret);
-          });
-        });
+        const threadId = message.threadID || message.guild?.id || message.rawEvent?.threadID;
+        if (!threadId) {
+          await message.reply('❌ Nie można pobrać ID konwersacji.');
+          return;
+        }
 
-        const participantIDs = threadInfo.participantIDs || [];
+        let participantIDs = [];
+        if (client.api && typeof client.api.getThreadInfo === 'function') {
+          try {
+            const threadInfo = await new Promise((resolve) => {
+              const timer = setTimeout(() => resolve(null), 5000);
+              client.api.getThreadInfo(threadId, (err, ret) => {
+                clearTimeout(timer);
+                if (err || !ret) resolve(null);
+                else resolve(ret);
+              });
+            });
+            if (threadInfo && Array.isArray(threadInfo.participantIDs)) {
+              participantIDs = threadInfo.participantIDs;
+            }
+          } catch (_) {}
+        }
+
+        if (!participantIDs || participantIDs.length === 0) {
+          await withData(store => {
+            participantIDs = Object.entries(store.users || {})
+              .filter(([id, u]) => u.groupMessages && u.groupMessages[threadId])
+              .map(([id]) => id);
+          });
+        }
         const connections = {};
 
         await withData(store => {
