@@ -561,6 +561,31 @@ const helpCommands = [
       "💰 Po okradzeniu wpisz !odszkodowanie roszczenie, aby otrzymać 35% skradzionej kwoty (max 1 roszczenie na 24h)."
     ]
   },
+  {
+    name: "fortuna",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "🎡 codzienne koło fortuny (reset o 08:00)",
+    description: "🎡 Koło Fortuny — zakręć kołem raz na 24h (reset codziennie o 08:00 rano) i wylosuj jedną z 10 nagród: gotówkę (do 1 000 000 VC!), dodatkowe zapytania do !analiza, darmowy ponowny spin, losowy przedmiot ze sklepu na 24h lub bonusy do !work.",
+    usage: "!fortuna | !fortuna dropy",
+    examples: ["!fortuna", "!fortuna dropy", "!fortuna info"],
+    cooldown: "Raz na 24h (reset o 08:00 rano)",
+    requirements: "Wymagane użycie co najmniej 25 komend bota.",
+    aliases: ["kolo", "kolofortuny", "wheel"],
+    additionalInfo: [
+      "🎡 **Tabela nagród i szanse na drop:**",
+      "• 💵 25 000 VC — 20%",
+      "• 💰 50 000 VC — 14%",
+      "• 💨 Nic (pudło) — 15%",
+      "• 💼 +25% do wypłaty z !work (jednorazowo) — 12%",
+      "• 📈 % salda gracza (6% <500k, 3% 500k-2M, 2% >2M) — 10%",
+      "• 🧠 +2 pytania do !analiza na 24h — 8%",
+      "• 🔄 Ponowny spin kołem + 20 000 VC — 7.5%",
+      "• 🎁 Losowy Item na 24h (nie-eventowy) — 7%",
+      "• 💎 100 000 VC — 6%",
+      "• 🏆 1 000 000 VC (JACKPOT) — dokładnie 0.5%",
+      "Wpisz `!fortuna dropy`, aby wyświetlić tabelę nagród na czacie."
+    ]
+  },
 
   // --- KATEGORIA 2: SOCJALNE I GANGI ---
   {
