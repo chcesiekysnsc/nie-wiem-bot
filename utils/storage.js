@@ -1137,5 +1137,6 @@ module.exports = {
   createUser,
   updateUser,
   appendLog,
-  withData
+  withData,
+  flushAllSync
 };

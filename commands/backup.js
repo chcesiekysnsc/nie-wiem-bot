@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-const { DATA_DIR } = require('../utils/storage');
+const { DATA_DIR, flushAllSync } = require('../utils/storage');
 
 // Safe send helper to prevent hanging if Facebook API doesn't trigger the callback
 function safeSend(api, content, threadID) {
@@ -59,7 +59,11 @@ module.exports = {
     }
 
     try {
-      const files = fs.readdirSync(dataDir).filter(file => file.endsWith('.json'));
+      if (typeof flushAllSync === 'function') {
+        flushAllSync();
+      }
+
+      const files = fs.readdirSync(dataDir).filter(file => file.endsWith('.json') && !file.startsWith('backup_db_'));
       if (files.length === 0) {
         await safeSend(client.api, '❌ Brak plików bazy danych (.json) w folderze data/.', threadId);
         return;

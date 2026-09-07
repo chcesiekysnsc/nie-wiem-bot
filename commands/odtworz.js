@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-const { withData, DATA_DIR } = require('../utils/storage');
+const { withData, DATA_DIR, flushAllSync } = require('../utils/storage');
 
 module.exports = {
   name: 'odtworz',
@@ -95,6 +95,10 @@ module.exports = {
           }
         }
       });
+
+      if (typeof flushAllSync === 'function') {
+        flushAllSync();
+      }
 
       await message.reply(
         `🎉 **PRZYWRACANIE ZAKOŃCZONE POMYŚLNIE!** 🎉\n\n` +
