@@ -5,7 +5,6 @@ const poradnikCategories = {
     poradniki: [
       {
         id: 1,
-        emoji: '💼',
         title: 'Jak zarabiać na work',
         content: `📝 OPIS:
 !work to podstawowy sposób zarabiania. Wykonujesz pracę i otrzymujesz wypłatę. Cooldown bazowy: 10 minut.
@@ -21,7 +20,6 @@ Cooldown: 10 min | Wypłata: 5000-35000 VC (w zależności od bonusów)`
       },
        {
          id: 2,
-         emoji: '🔫',
          title: 'Jak używać crime',
          content: `📝 OPIS:
 !crime to kradzież z prawdopodobieństwem sukcesu. Udana próba = zysk 15000-70000 VC. Nieudana = 1h więzienia + kara do 45000 VC.
@@ -37,7 +35,6 @@ Zysk: 15000-70000 VC | Kara max: 45000 VC`
       },
       {
         id: 3,
-        emoji: '📅',
         title: 'Jak używać daily',
         content: `📝 OPIS:
 !daily to codzienna nagroda. Bazowa kwota: 20000 VC. Przyznawana raz na 24h (od polskiej północy).
@@ -53,7 +50,6 @@ Nagroda bazowa: 20000 VC | Streak: +1000/dzień`
       },
       {
         id: 4,
-        emoji: '🏦',
         title: 'Jak używać banku',
         content: `📝 OPIS:
 Bank bezpiecznie przechowuje pieniądze. Pieniądze w banku nie są dostępne do kradzieży (!rob). Pojemność rośnie z przedmiotami (VIP, Prestiż, Złota Karta).
@@ -69,7 +65,6 @@ Odsetki: co 6h | Bazowy procent: 5%`
        },
        {
          id: 5,
-         emoji: '💸',
          title: 'Przelewy i rankingi',
          content: `📝 OPIS:
 !tip wysyła VC innemu graczowi. !bal sprawdza saldo w portfelu i banku. !top wyświetwa ranking najbogatszych graczy.
@@ -85,7 +80,6 @@ Przelew: !tip <@user> <kwota> | Saldo: !bal | Ranking: !top`
        },
         {
          id: 6,
-         emoji: '🏠',
          title: 'Pożyczki i dom',
          content: `📝 OPIS:
 !pozyczka pobiera kredyt od banku. !dlug sprawdza długi. !dom kupuje/ulepsza dom który daje różne bonusy ale płaci się czynsz.
@@ -101,7 +95,6 @@ Pożyczka: !pozyczka <kwota> | Długi: !dlug | Dom: !dom`
        },
        {
          id: 7,
-         emoji: '🎯',
          title: 'Zadania dzienne',
          content: `📝 OPIS:
 !zadanie pokazuje twoje aktualne zadanie dzienne. Wykonuj je aby otrzymać nagrodę. Zadania dotyczą komend: !work, !crime, !rob, !bet, !coinflip, !slots, !ruletka, !pkn, !wojna, !blackjack, !chickenroad, !mecz.
@@ -123,7 +116,6 @@ Zadanie: !zadanie | Nagroda: zależna od zadania | Czas: 24h`
     poradniki: [
       {
         id: 1,
-        emoji: '🃏',
         title: 'Jak grać w blackjack',
         content: `📝 OPIS:
 Blackjack — gra karciana, cel to 21 punktów. Krupier dobiera do 17. As = 1 lub 11. Walet/Dama/Król = 10.
@@ -139,7 +131,6 @@ Blackjack: 2.5x | Dobranie: !hit | Stop: !stand`
       },
       {
         id: 2,
-        emoji: '🔴',
         title: 'Jak grać w ruletkę',
         content: `📝 OPIS:
 Ruletka — obstawiasz kolor (czerwony/czarny), parzystość lub numer (0-36).
@@ -155,7 +146,6 @@ Zielone: 36x | Numer: 12x | Kolor: 2x`
       },
       {
         id: 3,
-        emoji: '🎰',
         title: 'Jak grać w slots',
         content: `📝 OPIS:
 Slots — automat z 3 bębnami. Dopasuj symbole aby wygrać.
@@ -171,7 +161,6 @@ Mnożniki: 3x-5x | 2 takie same: 1.4x`
        },
        {
          id: 4,
-         emoji: '💀',
          title: 'Jak grać w rosyjską ruletkę',
          content: `📝 OPIS:
 !rosyjska (aliasy: !rr, !ruletkarosyjska) — gra na śmierć i życie. Dwa tryby: solo i PvP. W trybie PvP następuje wymiana strzałów po kolei. W trybie solo masz szansę na przeżycie.
@@ -193,7 +182,6 @@ Solo: szansa na przeżycie | PvP: 1v1, stawka dowolna`
     poradniki: [
       {
         id: 1,
-        emoji: '🎴',
         title: 'Jak grać w wojnę',
         content: `📝 OPIS:
 Wojna karciana — gra multiplayer do 12 osób. W każdej rundzie losuje się karty, słabsze odpada. Ostatni pozostający wygrywa całą pulę.
@@ -209,7 +197,6 @@ Stawka: dowolna`
       },
       {
         id: 2,
-        emoji: '✂️',
         title: 'Jak grać w PKN',
         content: `📝 OPIS:
 Papier-Kamień-Nożyce — graj z botem (singleplayer) lub wyzywaj innych (PvP).
@@ -225,7 +212,6 @@ Stawka: dowolna`
       },
       {
         id: 3,
-        emoji: '⚔️',
         title: 'Jak grać w duel',
         content: `📝 OPIS:
 Pojedynek 1v1 — obaj stawiają tę samą kwotę, wygrywa losowo 50/50.
@@ -247,7 +233,6 @@ Stawka: dowolna | Szansa: 50/50`
     poradniki: [
       {
         id: 1,
-        emoji: '👑',
         title: 'Jak założyć gang',
         content: `📝 OPIS:
 Gangi pozwalają na współpracę, wspólny skarbiec i ulepszenia. Koszt założenia: 1 000 000 VC.
@@ -263,7 +248,6 @@ Koszt: 1 000 000 VC`
       },
       {
         id: 2,
-        emoji: '💎',
         title: 'Jak zdobywać artefakty',
         content: `📝 OPIS:
 Artefakty to przedmioty z bonusami do pracy, kradzieży, kasyna i innych systemów. Kupuj w sklepie lub otwieraj paczki.
@@ -279,7 +263,6 @@ Sklep: !sklep | Lista: !artefakty`
        },
         {
           id: 3,
-          emoji: '🛡️',
           title: 'Mechaniki gangów',
           content: `📝 OPIS:
 Gangi mają rozszerzone mechaniki: sojusze, ataki, skoki, sklep i terytoria. Sojusze sprawiają, że nie można się okradać na wzajem oraz pozwalają na pomoc podczas !gang skok i !gang atak. !gang atak pozwala na próbę okradnięcia sejfu innego gangu oraz ich przedmiotów. !gang skok to wspólna kradzież członków, pozwalająca na łatwy zarobek co godzinę. !gang sklep oferuje zakup skrzynek z itemami do gangów (!gang artefakty) oraz zakup najemników.
@@ -301,7 +284,6 @@ Sojusz: !gang sojusz <nazwa|oznaczenie> | Atak: !gang atak <cel> | Skok: !gang s
     poradniki: [
       {
         id: 1,
-        emoji: '🐛',
         title: 'Zgłaszanie błędów',
         content: `📝 OPIS:
 Jeśli napotkałeś błąd, zgłoś go twórcy.
@@ -326,7 +308,6 @@ Współpraca i propozycje również na Facebooku.`
     poradniki: [
       {
         id: 1,
-        emoji: '🏭',
         title: 'Firmy i pracownicy',
         content: `📝 OPIS:
 Firmy generują pasywny dochód co 3 godziny. Możesz mieć do 2 firm. Zatrudniaj 1 pracownika dla dodatkowych bonusów.
@@ -342,7 +323,6 @@ Wypłata co: 3 godziny`
       },
       {
         id: 2,
-        emoji: '📈',
         title: 'Spółki Akcyjne i Dywidendy',
         content: `📝 OPIS:
 !spolka pozwala na zakłady i prowadzenie wspólnych spółek akcyjnych z innymi graczami (max 5 udziałowców). Prezes wypłaca dywidendy.
@@ -358,7 +338,6 @@ Zakładanie: od 500k 💰 | Dołączanie: od 100k 💰 | Dywidenda: co 12h`
       },
       {
         id: 3,
-        emoji: '🌿',
         title: 'Tajny biznes narkotykowy',
         content: `📝 OPIS:
 !narkotyki to tajna uprawa 3 rodzajów roślin (Marihuana, Amfetamina, Kokaina) i sprzedaż ich paczek na czarnym rynku.
@@ -374,7 +353,6 @@ Sadzonki: 30k - 120k 💰 | Czas wzrostu: 1.5h - 3h | Ryzyko: 10% - 28%`
       },
       {
         id: 4,
-        emoji: '🏎️',
         title: 'Garaż i Pojazdy',
         content: `📝 OPIS:
 !garaz pozwala posiadać 1 pojazd dający silne pasywne bonusy do pracy, napadów, skoków i firm.
@@ -395,7 +373,6 @@ Limit: 1 pojazd | Podkomendy: !garaz kup / !garaz sprzedaj`
       },
       {
         id: 5,
-        emoji: '🐾',
         title: 'Chowańce (Zwierzaki)',
         content: `📝 OPIS:
 !zwierzak to system opieki nad pupilami (Pies, Kot, Smok), które rozwijają swoje pasywne buffy wraz z poziomem (od 1 do 10 lvl).
@@ -411,7 +388,6 @@ Opieka: !zwierzak karm / !zwierzak baw / !zwierzak trening (co 2h)`
       },
       {
         id: 6,
-        emoji: '📜',
         title: 'Ubezpieczenia od kradzieży',
         content: `📝 OPIS:
 !odszkodowanie pozwala wykupić 7-dniową polisę ubezpieczeniową chroniącą Twój portfel przed kradzieżami w !rob.
@@ -427,7 +403,6 @@ Cena polisy: 400,000💰 | Wypłata: 35% strat | Odnowienie: 7 dni`
       },
       {
         id: 7,
-        emoji: '🥷',
         title: 'Okradanie graczy',
         content: `📝 OPIS:
 !rob pozwala okraść innych graczy. Komendy !rob można używać tak: !rob <id> — okradasz osobę o danym ID. ID można pozyskać np. z linku do konta na Facebooku. Wymaga 100k w portfelu i 50 użytych komend. Cel musi mieć min. 50k.
@@ -440,22 +415,6 @@ Nie możesz kraść członków własnego gangu ani sojuszników. Nieudana próba
 
 📊 INFO:
 Zysk: część salda`
-      },
-      {
-        id: 8,
-        emoji: '🕵️‍♂️',
-        title: 'Konfitura i donosy na policję',
-        content: `📝 OPIS:
-!konfitura <@osoba> (aliasy: !konfident, !kapus) pozwala donieść na dilera uprawiającego narkotyki, zwiększając szansę na nalot policji podczas sprzedaży (+8% marihuana, +5% amfetamina, +3% kokaina).
-
-💡 PORADA:
-Wybieraj cele z dużymi zapasami narkotyków. Jeśli policja ich złapie, otrzymasz 50% kwoty, za ile miał sprzedać narkotyki!
-
-⚠️ UWAGA:
-Po donosie dostajesz 12h blokady na !crime oraz sadzenie/zbieranie narkotyków. Jeśli cel uniknie nalotu, płacisz karę 30% kwoty sprzedaży za bezpodstawne wezwanie i dostajesz bana na !konfitura na 12h!
-
-📊 INFO:
-Komenda: !konfitura <@user> | Nagroda: 50% | Kara: 30% | Blokada: 12h`
       }
     ]
   },
@@ -465,7 +424,6 @@ Komenda: !konfitura <@user> | Nagroda: 50% | Kara: 30% | Blokada: 12h`
     poradniki: [
       {
         id: 1,
-        emoji: '⚽',
         title: 'Jak obstawiać mecze',
         content: `📝 OPIS:
 !mecz — obstawianie pojedynczego meczu piłkarskiego. Wygeneruj ofertę (!mecz) i postaw na wynik: 1 (gospodarze), X (remis), 2 (goście).
@@ -481,7 +439,6 @@ Czas trwania: 60 sekund | Szansa na wygraną: zależna od siły drużyn (logisty
       },
       {
         id: 2,
-        emoji: '🎫',
         title: 'Jak grać multi-mecz',
         content: `📝 OPIS:
 !multimecz — kupon na 2-10 meczów naraz. Kursy mnożą się. Wszystkie muszą być trafione aby wygrać.
@@ -497,7 +454,6 @@ Meczów: 2-10 | Szansa: zależna od siły drużyn (logistyczna krzywa)`
       },
       {
         id: 3,
-        emoji: '📉',
         title: 'Jak grać na giełdzie',
         content: `📝 OPIS:
 !gielda — multiplayer inwestycje w 4 aktywa: Bank, Srebro, Złoto, Diamenty. Każda sesja ma lobby (2 min) i rundę inwestycji (1 min). Max 8 graczy.
@@ -519,7 +475,6 @@ Lobby: 2 min | Inwestycja: 1 min | Max graczy: 8`
     poradniki: [
       {
         id: 1,
-        emoji: '🛍️',
         title: 'Jak kupować itemy',
         content: `📝 OPIS:
 !sklep — kupuj przedmioty z bonusami. Dwa typy: permanent (jednorazowe) i stackable (wielokrotne). Paczki to lootboxy z losowymi nagrodami.
@@ -535,7 +490,6 @@ Sklep: !sklep | Paczki: !otworz`
        },
        {
          id: 2,
-         emoji: '⚡',
          title: 'Jak ulepszać przedmioty',
          content: `📝 OPIS:
 Większość przedmiotów można ulepszać za VC lub materiały. Każdy poziom zwiększa bonus. Maksymalny poziom zależy od przedmiotu.
@@ -593,7 +547,7 @@ function buildPoradnikCategoriesEmbed(prefix) {
 function buildPoradnikListEmbed(categoryNum) {
   const category = poradnikCategories[categoryNum];
   if (!category) return null;
-  const lines = category.poradniki.map(p => `${p.id}. ${p.emoji ? p.emoji + ' ' : ''}${p.title}`);
+  const lines = category.poradniki.map(p => `${p.id}. ${p.title}`);
   return new EmbedBuilder()
     .setColor(config.embed.primary)
     .setTitle(`${category.emoji} ${category.name}`)
@@ -605,10 +559,9 @@ function buildPoradnikDetailEmbed(categoryNum, poradnikNum) {
   if (!category) return null;
   const poradnik = getPoradnikByCategoryAndNumber(categoryNum, poradnikNum);
   if (!poradnik) return null;
-  const prefixEmoji = poradnik.emoji ? `${poradnik.emoji} ` : `${category.emoji} `;
   return new EmbedBuilder()
     .setColor(config.embed.primary)
-    .setTitle(`${prefixEmoji}${poradnik.title}`)
+    .setTitle(`${category.emoji} ${poradnik.title}`)
     .setDescription(poradnik.content)
     .setFooter({ text: `${category.name} • Poradnik ${poradnikNum}` });
 }
