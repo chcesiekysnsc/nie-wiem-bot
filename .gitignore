@@ -6,3 +6,4 @@ Fca_Database/
 temp_*.jpg
 fca-config.json
 scratch/
+data_backup_before_replace_*/

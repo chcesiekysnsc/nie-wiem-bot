@@ -1,5 +1,28 @@
 {
   "activeBlackjackGames": {},
   "activeChickenRoadGames": {},
-  "stockSessions": {}
+  "stockSessions": {},
+  "warSessions": {},
+  "rrRequests": {},
+  "pknRequests": {},
+  "duelRequests": {},
+  "activeMatches": {},
+  "meczInProgress": {
+    "__type": "Set",
+    "data": []
+  },
+  "activeMeczTimers": {},
+  "activeMultiMatches": {},
+  "gangHeists": {},
+  "activeGangWars": {},
+  "activeGieldaHosts": {},
+  "gieldaHostCooldowns": {
+    "__type": "Map",
+    "data": {
+      "1672043317382132:100012870817390": 1788787797652
+    }
+  },
+  "meczBets": {},
+  "activeFlags": {},
+  "activeFlagTournaments": {}
 }
