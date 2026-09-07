@@ -1,6 +1,13 @@
 const { formatCurrency, msToReadable, randomInt } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 
+async function resolveName(client, userId) {
+  if (typeof client.resolveUserName === 'function') {
+    return await client.resolveUserName(userId);
+  }
+  return (client.userNames && client.userNames.get(userId)) || `Użytkownik_${userId.slice(-6)}`;
+}
+
 const DRUGS = {
   marihuana: {
     id: 'marihuana',
@@ -59,17 +66,22 @@ module.exports = {
     const userId = message.author.id;
     const now = Date.now();
 
-    // Check jail status
-    const isJailed = await withData(store => {
+    // Check jail and konfident status
+    const userStatus = await withData(store => {
       const u = store.users[userId];
-      if (u && u.jailUntil && u.jailUntil > now) {
-        return u.jailUntil;
-      }
-      return null;
+      return {
+        jailUntil: u && u.jailUntil && u.jailUntil > now ? u.jailUntil : null,
+        konfidentUntil: u && u.konfidentUntil && u.konfidentUntil > now ? u.konfidentUntil : null
+      };
     });
 
-    if (isJailed) {
-      await message.reply(`❌ Jesteś w więzieniu! Nie możesz zarządzać nielegalnym biznesem przez **${msToReadable(isJailed - now)}**.`);
+    if (userStatus.jailUntil) {
+      await message.reply(`❌ Jesteś w więzieniu! Nie możesz zarządzać nielegalnym biznesem przez **${msToReadable(userStatus.jailUntil - now)}**.`);
+      return;
+    }
+
+    if (userStatus.konfidentUntil && (action === 'sadz' || action === 'sądź' || action === 'plant' || action === 'zbierz' || action === 'harvest')) {
+      await message.reply(`❌ Współpracujesz z policją jako konfident! Nie możesz hodować ani zbierać narkotyków przez jeszcze **${msToReadable(userStatus.konfidentUntil - now)}**.`);
       return;
     }
 
@@ -90,6 +102,9 @@ module.exports = {
 
       const result = await withData(store => {
         const user = createUser(userId, store.users);
+        if (user.konfidentUntil && user.konfidentUntil > now) {
+          return { error: `❌ Współpracujesz z policją jako konfident! Nie możesz sadzić narkotyków przez jeszcze **${msToReadable(user.konfidentUntil - now)}**.` };
+        }
         if (!store.profiles) store.profiles = {};
         if (!store.profiles.narkotyki) store.profiles.narkotyki = {};
         if (!store.profiles.narkotyki[userId]) {
@@ -128,6 +143,11 @@ module.exports = {
     // --- SUBCOMMAND: ZBIERZ ---
     if (action === 'zbierz' || action === 'harvest') {
       const result = await withData(store => {
+        const user = createUser(userId, store.users);
+        if (user.konfidentUntil && user.konfidentUntil > now) {
+          return { error: `❌ Współpracujesz z policją jako konfident! Nie możesz zbierać narkotyków przez jeszcze **${msToReadable(user.konfidentUntil - now)}**.` };
+        }
+
         if (!store.profiles || !store.profiles.narkotyki || !store.profiles.narkotyki[userId]) {
           return { error: '❌ Nie posiadasz żadnych aktywnych plantacji!' };
         }
@@ -216,8 +236,40 @@ module.exports = {
           totalVal += randomInt(drugDef.minSellPrice, drugDef.maxSellPrice);
         }
 
-        // Check Police Raid Risk (Fixed risk per drug type - items do NOT reduce it)
-        const isBusted = Math.random() < drugDef.raidRisk;
+        // Check if there is an active police report on this user from a snitch
+        let activeReport = null;
+        if (store.profiles && store.profiles.konfidentReports && store.profiles.konfidentReports[userId]) {
+          activeReport = store.profiles.konfidentReports[userId];
+        }
+
+        const extraRisk = activeReport ? Number(activeReport.extraRisk || 0) : 0;
+        const effectiveRisk = Math.min(1, drugDef.raidRisk + extraRisk);
+
+        // Check Police Raid Risk (Fixed risk per drug type + snitch report bonus)
+        const isBusted = Math.random() < effectiveRisk;
+
+        let snitchReward = 0;
+        let snitchPenalty = 0;
+        let snitchId = null;
+
+        if (activeReport) {
+          snitchId = activeReport.snitchId;
+          const snitchUser = createUser(snitchId, store.users);
+
+          if (isBusted) {
+            // Snitch gets 50% of the entire sale value
+            snitchReward = Math.floor(totalVal * 0.50);
+            snitchUser.balance += snitchReward;
+          } else {
+            // Snitch pays 30% fine for unfounded police report + gets 12h ban
+            snitchPenalty = Math.floor(totalVal * 0.30);
+            snitchUser.balance = Math.max(0, snitchUser.balance - snitchPenalty);
+            snitchUser.konfidentUntil = Math.max(snitchUser.konfidentUntil || 0, now + 12 * 3600 * 1000);
+          }
+
+          // Consume report
+          delete store.profiles.konfidentReports[userId];
+        }
 
         if (isBusted) {
           // BUSTED BY POLICE
@@ -233,18 +285,23 @@ module.exports = {
           user.jailUntil = now + jailTimeMs;
           user.bailFee = Math.min(fine, 220000);
 
-          return { busted: true, drugDef, count, fine, jailTimeMs, bailFee: user.bailFee };
+          return { busted: true, drugDef, count, fine, jailTimeMs, bailFee: user.bailFee, snitchReward, snitchId, extraRisk };
         }
 
         // SUCCESSFUL SALE
         data.magazyn[drugDef.id] -= count;
         user.balance += totalVal;
 
-        return { success: true, drugDef, count, totalVal, balance: user.balance };
+        return { success: true, drugDef, count, totalVal, balance: user.balance, snitchPenalty, snitchId, extraRisk };
       });
 
       if (result.busted) {
-        await message.reply(`🚨 **NALOT POLICJI!** 🚨\nPolicja nakryła Cię na sprzedaży **${result.count} paczek (${result.drugDef.name})**!\n\n💥 **Konfiskata:** Towar przepadł!\n💸 **Grzywna:** **-${formatCurrency(result.fine)}**\n🔒 **Więzienie:** Trafiasz do aresztu na **1 godz. 30 min.**\n💡 Kaucja wyjścia wynosi: **${formatCurrency(result.bailFee)}**.`);
+        let bustMsg = `🚨 **NALOT POLICJI!** 🚨\nPolicja nakryła Cię na sprzedaży **${result.count} paczek (${result.drugDef.name})**!\n\n💥 **Konfiskata:** Towar przepadł!\n💸 **Grzywna:** **-${formatCurrency(result.fine)}**\n🔒 **Więzienie:** Trafiasz do aresztu na **1 godz. 30 min.**\n💡 Kaucja wyjścia wynosi: **${formatCurrency(result.bailFee)}**.`;
+        if (result.snitchReward > 0 && result.snitchId) {
+          const snitchName = await resolveName(client, result.snitchId);
+          bustMsg += `\n\n🕵️‍♂️ **DONOS KONFIDENTA:** Nalot powiódł się dzięki donosowi gracza **${snitchName}** (+${Math.round(result.extraRisk * 100)}% do ryzyka)! Konfident zgarnia **${formatCurrency(result.snitchReward)}** nagrody (50% kwoty, za ile towar miał zostać sprzedany)!`;
+        }
+        await message.reply(bustMsg);
         return;
       }
 
@@ -253,8 +310,14 @@ module.exports = {
         return;
       }
 
-      await message.reply(`💰 **UDANA TRANSAKCJA!** Sprzedano **${result.count} paczek (${result.drugDef.name})** za **${formatCurrency(result.totalVal)}**!\n💳 Nowy stan portfela: **${formatCurrency(result.balance)}**.`);
+      let succMsg = `💰 **UDANA TRANSAKCJA!** Sprzedano **${result.count} paczek (${result.drugDef.name})** za **${formatCurrency(result.totalVal)}**!\n💳 Nowy stan portfela: **${formatCurrency(result.balance)}**.`;
+      if (result.snitchPenalty > 0 && result.snitchId) {
+        const snitchName = await resolveName(client, result.snitchId);
+        succMsg += `\n\n👮‍♂️ **BEZPODSTAWNE WEZWANIE POLICJI:** Konfident **${snitchName}** doniósł na Ciebie policji, ale nalot się nie udał! Konfident płaci karę **-${formatCurrency(result.snitchPenalty)}** (30% kwoty, za ile sprzedano narkotyki) oraz otrzymuje 12h bana na donosy!`;
+      }
+      await message.reply(succMsg);
       return;
+
     }
 
     // DEFAULT: SHOW STATUS AND CATALOG

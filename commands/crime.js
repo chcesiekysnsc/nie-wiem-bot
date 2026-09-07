@@ -101,19 +101,25 @@ module.exports = {
     }
 
     // ==========================================
-    // 2. CHECK JAIL STATUS
+    // 2. CHECK JAIL AND KONFIDENT STATUS
     // ==========================================
-    const isJailed = await withData(store => {
+    const userStatus = await withData(store => {
       const user = createUser(authorId, store.users);
-      if (user.jailUntil && user.jailUntil > now) {
-        return user.jailUntil;
-      }
-      return null;
+      return {
+        jailUntil: user.jailUntil && user.jailUntil > now ? user.jailUntil : null,
+        konfidentUntil: user.konfidentUntil && user.konfidentUntil > now ? user.konfidentUntil : null
+      };
     });
 
-    if (isJailed) {
-      const diffMs = isJailed - now;
+    if (userStatus.jailUntil) {
+      const diffMs = userStatus.jailUntil - now;
       await message.reply(`❌ Jesteś w więzieniu! Odzyskasz wolność za **${msToReadable(diffMs)}**.`);
+      return;
+    }
+
+    if (userStatus.konfidentUntil) {
+      const diffMs = userStatus.konfidentUntil - now;
+      await message.reply(`❌ Współpracujesz z policją jako konfident! Nie możesz popełniać przestępstw przez jeszcze **${msToReadable(diffMs)}**.`);
       return;
     }
 

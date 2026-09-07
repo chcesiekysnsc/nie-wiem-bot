@@ -83,34 +83,50 @@ module.exports = {
   async execute(client, message, args) {
     const action = String(args[0] || '').toLowerCase();
 
-    // Helper: render garage view / market catalog
-    const renderGarageView = (userGaraz) => {
-      let text = '🏎️ **GARAŻ I SALON POJAZDÓW**\n';
+    // Helper: render salon catalog
+    const renderSalonCatalog = () => {
+      let text = '🏎️ **SALON POJAZDÓW**\n';
       text += 'Posiadanie pojazdu daje unikalne pasywne bonusy! (Maksymalnie 1 pojazd w garażu)\n\n';
-
-      if (userGaraz && userGaraz.pojazdId) {
-        const owned = VEHICLES.find(v => v.id === userGaraz.pojazdId);
-        if (owned) {
-          text += `🚗 **Twój obecny pojazd:** ${owned.name}\n`;
-          text += `   ↳ Bonus: **${owned.desc}**\n`;
-          text += `   ↳ Aby sprzedać pojazd za 50% ceny: **!garaz sprzedaj**\n\n`;
-        }
-      } else {
-        text += `🚘 **Stan garażu:** Pusty (brak pojazdu)\n\n`;
-      }
-
       text += '📋 **Oferta salonu samochodowego:**\n';
       VEHICLES.forEach((v, index) => {
         text += `**${index + 1}. ${v.name}**\n`;
         text += `   ↳ Cena: **${formatCurrency(v.price)}**\n`;
         text += `   ↳ Bonus: **${v.desc}**\n\n`;
       });
-
       text += '━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
       text += '💡 Kup pojazd: **!garaz kup <numer/nazwa>**\n';
-      text += '💡 Sprzedaj obecny pojazd: **!garaz sprzedaj**';
+      text += '💡 Twój garaż: **!garaz**';
       return text;
     };
+
+    // Helper: render garage dashboard (similar to !firma)
+    const renderGarageDashboard = (userGaraz) => {
+      const owned = VEHICLES.find(v => v.id === userGaraz.pojazdId);
+      if (!owned) {
+        return renderSalonCatalog();
+      }
+      const sellValue = Math.floor(owned.price * 0.5);
+
+      let text = '🏎️ **TWÓJ GARAŻ**\n\n';
+      text += `🚗 **POJAZD:** ${owned.name} (ID: \`${owned.id}\`)\n`;
+      text += `   • Status: 🟢 Gotowy do jazdy\n`;
+      text += `   • Wartość rynkowa: **${formatCurrency(owned.price)}**\n`;
+      text += `   • Wartość sprzedaży: **${formatCurrency(sellValue)}** (zwrot 50%)\n`;
+      text += `   • Pasywne bonusy:\n`;
+      text += `     ↳ ${owned.desc}\n\n`;
+      text += '━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+      text += '💡 **Dostępne polecenia:**\n';
+      text += `• 💸 **!garaz sprzedaj** — sprzedaj pojazd za 50% wartości (**${formatCurrency(sellValue)}**)\n`;
+      text += '• 🏎️ **!garaz salon** — przeglądaj ofertę salonu pojazdów\n';
+      text += '• 🔧 **!tuning** — tuning i modyfikacje pojazdu';
+      return text;
+    };
+
+    // Subcommand: SALON / SKLEP / OFERTA
+    if (action === 'salon' || action === 'sklep' || action === 'oferta' || action === 'shop' || action === 'katalog') {
+      await message.reply(renderSalonCatalog());
+      return;
+    }
 
     // Subcommand: KUP
     if (action === 'kup' || action === 'buy') {
@@ -192,13 +208,17 @@ module.exports = {
       return;
     }
 
-    // Default action: Show Garage & Shop catalog
+    // Default action: Show Garage dashboard if user owns car, or salon catalog if empty
     const userGaraz = await withData(store => {
       if (!store.profiles) store.profiles = {};
       if (!store.profiles.garaz) store.profiles.garaz = {};
       return store.profiles.garaz[message.author.id] || null;
     });
 
-    await message.reply(renderGarageView(userGaraz));
+    if (userGaraz && userGaraz.pojazdId) {
+      await message.reply(renderGarageDashboard(userGaraz));
+    } else {
+      await message.reply(renderSalonCatalog());
+    }
   }
 };

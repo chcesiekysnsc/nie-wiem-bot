@@ -49,10 +49,15 @@ module.exports = {
       const user = createUser(userId, store.users);
       const now = Date.now();
 
-      // 0. Jail status
+      // 0. Jail and Konfident status
       let jailText = '';
       if (user.jailUntil && user.jailUntil > now) {
         jailText = `⛓️ **Jesteś w więzieniu!** Odzyskasz wolność za **${msToReadable(user.jailUntil - now)}**.\n\n`;
+      }
+
+      let konfidentText = '';
+      if (user.konfidentUntil && user.konfidentUntil > now) {
+        konfidentText = `🚨 **Współpraca z policją (konfitura):** Blokada !crime i narkotyków jeszcze przez **${msToReadable(user.konfidentUntil - now)}**.\n\n`;
       }
 
       // 1. Daily cooldown
@@ -165,6 +170,7 @@ module.exports = {
 
       return {
         jailText,
+        konfidentText,
         dailyText,
         workText,
         crimeText,
@@ -173,7 +179,7 @@ module.exports = {
       };
     });
 
-    let replyText = result.jailText;
+    let replyText = (result.jailText || '') + (result.konfidentText || '');
     replyText += `⏳ **Status Twoich czasów oczekiwania (cooldownów):**\n\n`;
     replyText += `📅 **!daily** — ${result.dailyText}\n`;
     replyText += `💼 **!work** — ${result.workText}\n`;
