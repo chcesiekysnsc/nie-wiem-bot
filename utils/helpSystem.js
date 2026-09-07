@@ -586,6 +586,23 @@ const helpCommands = [
       "Wpisz `!fortuna dropy`, aby wyświetlić tabelę nagród na czacie."
     ]
   },
+  {
+    name: "konfident",
+    category: "ECONOMY_GAMBLING",
+    shortDescription: "👮‍♂️ donos na policję za narkotyki",
+    description: "👮‍♂️ Złóż donos na gracza za uprawę narkotyków! Zwiększa ryzyko nalotu na cel. Przy sukcesie zgarniasz 50% wartości jego towaru, ale przy wpadce płacisz 30% kary za bezpodstawne wezwanie.",
+    usage: "!konfident <@osoba | ID>",
+    examples: ["!konfident @Jan", "!konfitura @Kowalski", "!donos 123456789"],
+    cooldown: "12 godzin (blokada konfidenta)",
+    requirements: "Cel musi posiadać aktywne uprawy lub towar w magazynie. Nie można być w więzieniu ani na blokadzie.",
+    aliases: ["konfitura", "kapus", "donos"],
+    additionalInfo: [
+      "Wykrywa dominujący towar u celu i zwiększa szansę nalotu: Marihuana (+8%), Amfetamina (+5%), Kokaina (+3%).",
+      "💰 Nagroda (50%): Jeśli policja złapie cel na sprzedaży, otrzymujesz 50% wartości jego towaru.",
+      "💸 Kara (30%): Jeśli cel uniknie nalotu, płacisz 30% kary za fałszywy donos oraz dostajesz 12h bana na donosy.",
+      "🔒 Blokada 12h: Po złożeniu donosu nie możesz używać !crime ani uprawiać narkotyków przez 12 godzin."
+    ]
+  },
 
   // --- KATEGORIA 2: SOCJALNE I GANGI ---
   {
