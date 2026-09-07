@@ -1,7 +1,7 @@
 const poradnikCategories = {
   1: {
     name: 'Ekonomia podstawowa',
-    emoji: '📊',
+    emoji: '💰',
     poradniki: [
       {
         id: 1,
@@ -229,7 +229,7 @@ Stawka: dowolna | Szansa: 50/50`
   },
    4: {
      name: 'Gangi i przedmioty',
-     emoji: '🏢',
+     emoji: '👑',
     poradniki: [
       {
         id: 1,
@@ -536,7 +536,7 @@ function getPoradnikByCategoryAndNumber(categoryNum, poradnikNum) {
 function buildPoradnikCategoriesEmbed(prefix) {
   const lines = [];
   for (const [key, cat] of Object.entries(poradnikCategories)) {
-    lines.push(`${cat.emoji} ${key}. ${cat.name}`);
+    lines.push(`${key}. ${cat.emoji} ${cat.name}`);
   }
   return new EmbedBuilder()
     .setColor(config.embed.primary)
