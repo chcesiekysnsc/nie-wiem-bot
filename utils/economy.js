@@ -763,6 +763,52 @@ function getPolishMidnight(date) {
   return Math.floor((todayMidnight.getTime() - offset) / 1000) * 1000;
 }
 
+function getPolish8AM(date = new Date()) {
+  const offset = getPolandOffsetMs(date);
+  const polandTime = date.getTime() + offset;
+  const today8AM = new Date(polandTime);
+  today8AM.setUTCHours(8, 0, 0, 0);
+  return Math.floor((today8AM.getTime() - offset) / 1000) * 1000;
+}
+
+function getPolishFortunaReset(now = Date.now()) {
+  const nowDate = new Date(now);
+  const today8AM = getPolish8AM(nowDate);
+
+  let lastReset;
+  let nextReset;
+
+  if (now >= today8AM) {
+    lastReset = today8AM;
+    nextReset = getPolish8AM(new Date(today8AM + 26 * 3600 * 1000));
+  } else {
+    lastReset = getPolish8AM(new Date(today8AM - 10 * 3600 * 1000));
+    nextReset = today8AM;
+  }
+
+  return { lastReset, nextReset };
+}
+
+function cleanupExpiredTempItems(store, now = Date.now()) {
+  if (!store || !store.profiles || !Array.isArray(store.profiles.tempItems)) {
+    return [];
+  }
+  const expiredEntries = [];
+  const remaining = [];
+  for (const entry of store.profiles.tempItems) {
+    if (entry && entry.expiresAt && entry.expiresAt <= now) {
+      expiredEntries.push(entry);
+      if (store.inventory && store.inventory[entry.userId]) {
+        removeItem(store.inventory[entry.userId], entry.itemId, 1);
+      }
+    } else if (entry) {
+      remaining.push(entry);
+    }
+  }
+  store.profiles.tempItems = remaining;
+  return expiredEntries;
+}
+
 function getDeweloperRentDiscount(inventoryRecord) {
   if (!inventoryRecord || !hasItem(inventoryRecord, 'deweloper')) return 1;
   return 0.5;
@@ -854,7 +900,11 @@ function getNetherBladeCounterRobChance(inventoryRecord) {
 }
 
 module.exports = {
+  getPolandOffsetMs,
   getPolishMidnight,
+  getPolish8AM,
+  getPolishFortunaReset,
+  cleanupExpiredTempItems,
   randomInt,
   formatNumber,
   formatCurrency,

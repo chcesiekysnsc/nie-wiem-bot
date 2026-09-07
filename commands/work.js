@@ -419,6 +419,12 @@ module.exports = {
         reward = Math.floor(reward * (1 + Number(user.workBoostPercent) / 100));
       }
 
+      if (user.fortunaWorkBonus && Number(user.fortunaWorkBonus) > 0) {
+        reward = Math.floor(reward * (1 + Number(user.fortunaWorkBonus)));
+        triggerMessages.push('🎡 **Bonus Koła Fortuny!** Wykorzystano jednorazowy bonus +25% do wypłaty!');
+        delete user.fortunaWorkBonus;
+      }
+
       let eventMessage;
       let doubleXp = false;
       const forcedEventObj = store.profiles.forcedWorkEvent && store.profiles.forcedWorkEvent[authorId];

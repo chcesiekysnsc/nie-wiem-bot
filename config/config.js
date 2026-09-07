@@ -82,7 +82,8 @@ module.exports = {
     spolka: 5,
     narkotyki: 5,
     zwierzak: 3,
-    odszkodowanie: 5
+    odszkodowanie: 5,
+    fortuna: 3
   },
   adminDailyLimits: {
     unlimited: ['admadd', 'admgiv', 'admgivglobal', 'reset', 'del', 'global', 'say', 'loteriastart'],

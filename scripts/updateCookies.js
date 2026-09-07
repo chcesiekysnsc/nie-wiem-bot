@@ -8,8 +8,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/login/device-based/",
         "hostOnly": false,
-        "creation": "2026-09-06T22:38:56.877Z",
-        "lastAccessed": "2026-09-06T22:38:56.878Z"
+        "creation": "2026-09-07T16:13:49.282Z",
+        "lastAccessed": "2026-09-07T16:13:49.282Z"
     },
     {
         "key": "sb",
@@ -17,8 +17,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-06T22:38:56.878Z",
-        "lastAccessed": "2026-09-06T22:38:56.878Z"
+        "creation": "2026-09-07T16:13:49.283Z",
+        "lastAccessed": "2026-09-07T16:13:49.283Z"
     },
     {
         "key": "datr",
@@ -26,8 +26,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-06T22:38:56.878Z",
-        "lastAccessed": "2026-09-06T22:38:56.878Z"
+        "creation": "2026-09-07T16:13:49.283Z",
+        "lastAccessed": "2026-09-07T16:13:49.283Z"
     },
     {
         "key": "ps_l",
@@ -35,8 +35,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-06T22:38:56.878Z",
-        "lastAccessed": "2026-09-06T22:38:56.878Z"
+        "creation": "2026-09-07T16:13:49.283Z",
+        "lastAccessed": "2026-09-07T16:13:49.283Z"
     },
     {
         "key": "ps_n",
@@ -44,8 +44,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-06T22:38:56.878Z",
-        "lastAccessed": "2026-09-06T22:38:56.878Z"
+        "creation": "2026-09-07T16:13:49.283Z",
+        "lastAccessed": "2026-09-07T16:13:49.283Z"
     },
     {
         "key": "dpr",
@@ -53,8 +53,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-06T22:38:56.878Z",
-        "lastAccessed": "2026-09-06T22:38:56.878Z"
+        "creation": "2026-09-07T16:13:49.283Z",
+        "lastAccessed": "2026-09-07T16:13:49.283Z"
     },
     {
         "key": "wd",
@@ -62,8 +62,8 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-06T22:38:56.878Z",
-        "lastAccessed": "2026-09-06T22:38:56.878Z"
+        "creation": "2026-09-07T16:13:49.283Z",
+        "lastAccessed": "2026-09-07T16:13:49.283Z"
     },
     {
         "key": "c_user",
@@ -71,38 +71,39 @@ const NEW_COOKIES = [
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-06T22:38:56.878Z",
-        "lastAccessed": "2026-09-06T22:38:56.878Z"
+        "creation": "2026-09-07T16:13:49.283Z",
+        "lastAccessed": "2026-09-07T16:13:49.283Z"
     },
     {
         "key": "fr",
-        "value": "0MKINIOzmh8YD9AD4.AWcJxhn_wL4DT0OPi5agcVlJSEv6vbyN-phKQtu-Nz9cx3US-D8.Bqnet8..AAA.0.0.Bqnet8.AWc4rqXscTv6VGwjdcZ0oVHTJFk",
+        "value": "0PzAO9cHq1aEDbFid.AWetU5hMQ6nBYg0QGG_xJyGfL1N0lqzwlyY56uWT6axf58XZrdo.BqnuK1..AAA.0.0.BqnuK1.AWe3IpEwRKRawVErlbAQQE0_M2U",
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-06T22:38:56.878Z",
-        "lastAccessed": "2026-09-06T22:38:56.878Z"
+        "creation": "2026-09-07T16:13:49.283Z",
+        "lastAccessed": "2026-09-07T16:13:49.283Z"
     },
     {
         "key": "xs",
-        "value": "46%3Ai4Z4algN1iMBGw%3A2%3A1788734331%3A-1%3A-1%3A%3AAcyrt_xK9njgKb8ZnuodmZ5Znob3A0UYzuPZEpcqkw",
+        "value": "10%3AC_MjhXsKtyAiqA%3A2%3A1788797619%3A-1%3A-1%3A%3AAcyw7XEb6ugNsRGcwkmrQqnqVqrsBrtKjGUY2ycyrw",
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-06T22:38:56.878Z",
-        "lastAccessed": "2026-09-06T22:38:56.878Z"
+        "creation": "2026-09-07T16:13:49.283Z",
+        "lastAccessed": "2026-09-07T16:13:49.283Z"
     },
     {
         "key": "presence",
-        "value": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1788734335973%2C%22v%22%3A1%7D",
+        "value": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1788797625565%2C%22v%22%3A1%7D",
         "domain": "facebook.com",
         "path": "/",
         "hostOnly": false,
-        "creation": "2026-09-06T22:38:56.878Z",
-        "lastAccessed": "2026-09-06T22:38:56.878Z"
+        "creation": "2026-09-07T16:13:49.283Z",
+        "lastAccessed": "2026-09-07T16:13:49.283Z"
     }
 ];
 
+const ROOT_APPSTATE = path.join(__dirname, '..', 'appstate.json');
 const SEED_APPSTATE = path.join(__dirname, '..', 'data_seed', 'appstate.json');
 const DATA_APPSTATE = path.join(__dirname, '..', 'data', 'appstate.json');
 const BACKUP_DIR = 'C:\\Users\\dupek\\.gemini\\antigravity\\db_backups';
@@ -131,9 +132,15 @@ function main() {
 
     const jsonStr = JSON.stringify(data, null, 2);
 
+    // 1. Root appstate.json
+    fs.writeFileSync(ROOT_APPSTATE, jsonStr, 'utf8');
+    console.log('[COOKIES] Zaktualizowano appstate.json');
+
+    // 2. data_seed/appstate.json
     fs.writeFileSync(SEED_APPSTATE, jsonStr, 'utf8');
     console.log('[COOKIES] Zaktualizowano data_seed/appstate.json');
 
+    // 3. data/appstate.json
     try {
         const dataDir = path.dirname(DATA_APPSTATE);
         if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
@@ -143,6 +150,7 @@ function main() {
         console.error('Błąd zapisu data/appstate.json:', e.message);
     }
 
+    // 4. db_backups/appstate.json
     if (fs.existsSync(BACKUP_DIR)) {
         try {
             fs.writeFileSync(path.join(BACKUP_DIR, 'appstate.json'), jsonStr, 'utf8');

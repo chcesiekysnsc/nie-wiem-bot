@@ -6,7 +6,8 @@ const {
   getActiveEventMultiplier,
   getItemUpgradeLevel,
   hasItem,
-  ensureInventoryRecord
+  ensureInventoryRecord,
+  getPolishFortunaReset
 } = require('../utils/economy');
 
 function getPolandOffsetMs(date) {
@@ -168,6 +169,26 @@ module.exports = {
         }
       }
 
+      // 6. Fortuna cooldown
+      const totalCmds = Math.max(
+        Number(user.commandsUsed) || 0,
+        Object.values(user.commandCounts || {}).reduce((sum, v) => sum + (Number(v) || 0), 0)
+      );
+
+      let fortunaText = '';
+      if (totalCmds < 25) {
+        fortunaText = `❌ (za mało używasz bota — min. 25 komend, masz ${totalCmds}/25)`;
+      } else if (user.fortunaFreeSpins && user.fortunaFreeSpins > 0) {
+        fortunaText = `🟢 **GOTOWE!** (posiadasz ${user.fortunaFreeSpins} darmowy spin!)`;
+      } else {
+        const { lastReset, nextReset } = getPolishFortunaReset(now);
+        if (!user.lastFortunaClaim || user.lastFortunaClaim < lastReset) {
+          fortunaText = '🟢 **GOTOWE!** (reset codziennie o 08:00)';
+        } else {
+          fortunaText = `⏱️ gotowe za **${msToReadable(nextReset - now)}** (jutro o 08:00)`;
+        }
+      }
+
       return {
         jailText,
         konfidentText,
@@ -175,7 +196,8 @@ module.exports = {
         workText,
         crimeText,
         robText,
-        companyText
+        companyText,
+        fortunaText
       };
     });
 
@@ -185,7 +207,8 @@ module.exports = {
     replyText += `💼 **!work** — ${result.workText}\n`;
     replyText += `🔫 **!crime** — ${result.crimeText}\n`;
     replyText += `👥 **!rob** — ${result.robText}\n`;
-    replyText += `🏢 **!firma zbierz** — ${result.companyText}`;
+    replyText += `🏢 **!firma zbierz** — ${result.companyText}\n`;
+    replyText += `🎡 **!fortuna** — ${result.fortunaText}`;
 
     await message.reply(replyText);
   }

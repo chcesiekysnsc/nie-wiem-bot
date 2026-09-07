@@ -107,6 +107,21 @@ Zadanie wygasa po 24h. Jeśli nie odebierzesz nagrody, tracisz je. Nie możesz m
 
 📊 INFO:
 Zadanie: !zadanie | Nagroda: zależna od zadania | Czas: 24h`
+       },
+       {
+         id: 8,
+         title: 'Koło Fortuny (!fortuna)',
+         content: `📝 OPIS:
+!fortuna to codzienne koło fortuny resetujące się codziennie o 08:00 rano. Możesz w nim wylosować cenne nagrody gotówkowe, bonusy do komend, darmowe spiny, a nawet 1 000 000 VC!
+
+💡 PORADA:
+Kręć kołem każdego dnia po 8:00 rano. Do użycia koła wymagane jest posiadanie min. 25 komend bota. Sprawdź szanse komendą !fortuna dropy.
+
+⚠️ UWAGA:
+Darmowy spin z koła pozwala zakręcić od razu ponownie. Nagrody czasowe (itemy na 24h, bonus do !analiza) trwają równo dobę.
+
+📊 INFO:
+Komenda: !fortuna | Reset: 08:00 rano | Min. komend: 25`
        }
      ]
    },

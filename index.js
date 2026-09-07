@@ -363,7 +363,7 @@ async function executeCommand(event, pageId) {
     'firma', 'firma2', 'gang', 'sklep', 'otworz', 'upgrade', 'rynek', 'sprzedaj',
     'mecz', 'gielda', 'slots', 'blackjack', 'coinflip', 'ruletka', 'bet', 'lotto',
     'kosc', 'dom', 'pożyczka', 'spłać', 'wymiana', 'kasa', 'bilans', 'top', 'ranking',
-    'podatki', 'dodatek', 'bonus', 'wyplata', 'wypłata', 'przelew', 'przel'
+    'podatki', 'dodatek', 'bonus', 'wyplata', 'wypłata', 'przelew', 'przel', 'fortuna'
   ];
 
   const isEconomicCommand = economicCommands.includes(command.name);

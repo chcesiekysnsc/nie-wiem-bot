@@ -4,7 +4,9 @@ const {
   formatCurrency,
   getItemQuantity,
   refreshBadges,
-  getItemUpgradeLevel
+  getItemUpgradeLevel,
+  cleanupExpiredTempItems,
+  msToReadable
 } = require('../utils/economy');
 const { createUser, withData } = require('../utils/storage');
 const { eventItems } = require('./eventitemy');
@@ -104,9 +106,18 @@ module.exports = {
     }
 
     const result = await withData(store => {
+      cleanupExpiredTempItems(store);
       const user = createUser(targetId, store.users);
       const inventory = ensureInventoryRecord(store.inventory, targetId);
       refreshBadges(user, inventory);
+
+      const userTempItems = (store.profiles && store.profiles.tempItems)
+        ? store.profiles.tempItems.filter(t => t.userId === targetId)
+        : [];
+      const tempMap = new Map();
+      for (const t of userTempItems) {
+        tempMap.set(t.itemId, t.expiresAt);
+      }
 
       const ordered = getOrderedItems();
       const items = ordered
@@ -118,7 +129,11 @@ module.exports = {
           const passiveSuffix = isActive ? '' : ' *(Pasywny)*';
           const level = getItemUpgradeLevel(inventory, entry.id);
           const upgradeSuffix = level > 0 ? ` +${level}` : '';
-          return `${prefix}${entry.emoji} **${entry.name}**${upgradeSuffix} x${qty}${passiveSuffix}`;
+          const tempExpiresAt = tempMap.get(entry.id);
+          const tempSuffix = tempExpiresAt && tempExpiresAt > Date.now()
+            ? ` ⏳ *(wygasa za: ${msToReadable(tempExpiresAt - Date.now())})*`
+            : '';
+          return `${prefix}${entry.emoji} **${entry.name}**${upgradeSuffix} x${qty}${passiveSuffix}${tempSuffix}`;
         })
         .filter(Boolean);
 

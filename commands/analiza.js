@@ -395,6 +395,18 @@ async function checkAiLimits(userId, threadId) {
     dailyLimit = Math.max(dailyLimit, 5);
   }
 
+  // Sprawdzenie bonusu z Koła Fortuny (+2 pytania na 24h)
+  let hasFortunaBonus = false;
+  await withData(store => {
+    const u = store.users && store.users[userId];
+    if (u && u.analizaBonusUntil && u.analizaBonusUntil > now) {
+      hasFortunaBonus = true;
+    }
+  });
+  if (hasFortunaBonus) {
+    dailyLimit += 2;
+  }
+
   // Sprawdzenie dziennego limitu użytkownika
   const dailyCheck = await withData(store => {
     store.cooldowns = store.cooldowns || {};

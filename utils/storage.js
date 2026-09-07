@@ -617,6 +617,10 @@ function runHeavyLoops(store) {
   if (now - lastHeavyLoopRun < HEAVY_LOOP_INTERVAL) return;
   lastHeavyLoopRun = now;
 
+  // --- Czyszczenie wygasłych przedmiotów tymczasowych ---
+  const { cleanupExpiredTempItems } = require('./economy');
+  cleanupExpiredTempItems(store, now);
+
   // --- Odsetki bankowe co 6h ---
   store.profiles.lastInterestPayout = store.profiles.lastInterestPayout || now;
   const intervalMs = 6 * 60 * 60 * 1000;
