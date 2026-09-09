@@ -243,7 +243,7 @@ async function handleBailResponse(client, message, pendingBail, action) {
     return;
   }
 
-  if (action === 'wykup') {
+  if (action === 'kaucja') {
     const mentioned = message.mentions && message.mentions.users && typeof message.mentions.users.first === 'function' ? message.mentions.users.first() : null;
     const mentionedId = mentioned ? String(mentioned.id) : null;
     if (mentionedId && mentionedId !== String(pendingBail.targetId)) {
@@ -3992,7 +3992,7 @@ loginWithFallback().then(api => {
     const pendingBail = client.pendingBails.get(senderId);
     if (pendingBail) {
       const cleanText = text.trim().toLowerCase().replace(/^!/, '').split(/\s+/)[0];
-      if (cleanText === 'wykup' || cleanText === 'stop') {
+      if (cleanText === 'kaucja' || cleanText === 'stop') {
         const senderName = await client.resolveUserName(api, senderId);
         const bailMessage = {
           author: { id: senderId },
@@ -4747,7 +4747,7 @@ loginWithFallback().then(api => {
         if (jailState) {
           const leftMs = jailState - Date.now();
           const leftMin = Math.max(1, Math.ceil(leftMs / 60000));
-          await messageContext.reply(`🔒 Jesteś w więzieniu jeszcze przez **${leftMin} min**, można cię wykupić komendą !wykup @`);
+          await messageContext.reply(`🔒 Jesteś w więzieniu jeszcze przez **${leftMin} min**, można cię wykupić komendą !kaucja @`);
           return;
          }
        }

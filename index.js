@@ -81,7 +81,7 @@ async function executeCommand(event, pageId) {
   const pendingBail = client.pendingBails.get(senderId);
   if (pendingBail) {
     const cleanText = text.trim().toLowerCase().replace(/^!/, '').split(/\s+/)[0];
-    if (cleanText === 'wykup' || cleanText === 'stop') {
+    if (cleanText === 'kaucja' || cleanText === 'stop') {
       const senderUser = await client.cacheUser(senderId);
       const message = createMessageContext(client, senderUser, text, [], event, pageId);
       await handleBailResponse(client, message, pendingBail, cleanText);
@@ -840,7 +840,7 @@ async function handleBailResponse(client, message, pendingBail, action) {
     return;
   }
 
-  if (action === 'wykup') {
+  if (action === 'kaucja') {
     const mentioned = message.mentions && message.mentions.users && message.mentions.users.first();
     const mentionedId = mentioned ? String(mentioned.id) : null;
     if (mentionedId && mentionedId !== String(pendingBail.targetId)) {
