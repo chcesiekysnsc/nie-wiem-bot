@@ -25,17 +25,25 @@ module.exports = {
     const snapshot = await withData(store => {
       const user = createUser(targetId, store.users);
       const inventory = ensureInventoryRecord(store.inventory, targetId);
+
+      if (targetId !== message.author.id) {
+        const targetTotalCmds = Object.values(user.commandCounts || {}).reduce((a, b) => a + b, 0);
+        if (targetTotalCmds < 1) {
+          return { error: '❌ Ten użytkownik nie ma użytej żadnej komendy.' };
+        }
+      }
+
       refreshBadges(user, inventory);
-      
+
       const lastPayout = store.profiles.lastInterestPayout || Date.now();
       const nextPayout = lastPayout + 6 * 60 * 60 * 1000;
       const nextInterestMs = Math.max(0, nextPayout - Date.now());
-      
+
       // Oblicz rzeczywisty procent odsetek dla użytkownika
       const { getBankInterestMultiplier } = require('../utils/economy');
       const eventInterestMul = getBankInterestMultiplier();
       const baseInterestRate = 0.05; // 5% bazowo
-      
+
       // Dodaj bonusy z itemów
       let itemBonus = 0;
       if (hasItem(inventory, 'ksiega_inwestora')) {
@@ -47,11 +55,11 @@ module.exports = {
       if (hasItem(inventory, 'certyfikat_inwestora')) {
         itemBonus += 0.02; // +2% z Certyfikatu Inwestora
       }
-      
+
       // Dodaj bonusy z setów
       const { getItemSetBonus } = require('../utils/itemSets');
       const setBonus = getItemSetBonus(inventory, 'bank_interest');
-      
+
       const totalInterestRate = baseInterestRate + itemBonus + setBonus;
 
       let badgeInterestBonus = 0;
@@ -67,7 +75,7 @@ module.exports = {
         userName: (user.name && user.name !== 'Facebook user' && !user.name.startsWith('Użytkownik_') && !user.name.startsWith('Uzytkownik_')) ? user.name : null,
         nextInterestMs,
         interestPercent,
-        activeLoan: user.activeLoan ? { 
+        activeLoan: user.activeLoan ? {
           originalAmount: user.activeLoan.originalAmount,
           amount: user.activeLoan.amount,
           rate: user.activeLoan.rate,
@@ -76,6 +84,11 @@ module.exports = {
         } : null
       };
     });
+
+    if (snapshot.error) {
+      await message.reply(snapshot.error);
+      return;
+    }
 
     const formatTimeLeft = (ms) => {
       if (ms <= 0) return '0m';
