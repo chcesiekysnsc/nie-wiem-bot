@@ -3016,7 +3016,16 @@ loginWithFallback().then(api => {
                         console.log(`[LOOP] Ponawianie dodawania użytkownika ${cleanUserId} do grupy ${threadId} za ${nextDelay}ms...`);
                         attemptAddUser(attemptsLeft - 1, nextDelay);
                       } else {
-                        api.sendMessage(`❌ Nie udało się dodać użytkownika o ID ${cleanUserId} z powrotem do grupy.`, threadId);
+                        (async () => {
+                          let displayName = `Użytkownik ${cleanUserId.slice(-6)}`;
+                          try {
+                            const resolved = await client.resolveUserName(api, cleanUserId);
+                            if (resolved && !resolved.startsWith('Użytkownik_') && !resolved.startsWith('Uzytkownik_')) {
+                              displayName = resolved;
+                            }
+                          } catch (_) {}
+                          api.sendMessage(`❌ Nie udało się dodać użytkownika **${displayName}** z powrotem do grupy.`, threadId);
+                        })();
                       }
                     }
                   });
