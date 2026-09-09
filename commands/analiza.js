@@ -910,7 +910,12 @@ module.exports = {
       await safeReply(message, `📊 **Odpowiedź** (na podstawie ${transcriptLines.length} wiadomości, ${chunks.length} ${chunks.length === 1 ? 'zapytanie' : 'części'}):\n\n${finalReplyText}`);
     } catch (err) {
       console.error('[AI] Błąd:', err);
-      const errorMsg = '❌ Wystąpił błąd podczas analizy. Obecnie używamy modelu **Gemini 4.1 Pro**, spróbuj ponownie za chwilę.';
+      let errorMsg = '❌ Wystąpił błąd podczas analizy.';
+      if (err.response?.data?.error) {
+        errorMsg += ` Szczegóły: ${err.response.data.error.message}`;
+      } else {
+        errorMsg += ` Szczegóły: ${err.message}`;
+      }
       try {
         await safeReply(message, errorMsg);
       } catch (sendErr) {
