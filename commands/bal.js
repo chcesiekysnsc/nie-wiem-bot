@@ -12,7 +12,7 @@ module.exports = {
     const mentioned = message.mentions.users.first();
     if (mentioned) {
       targetId = mentioned.id;
-      targetName = mentioned.username || `Uzytkownik_${targetId.slice(-6)}`;
+      targetName = await client.resolveUserName(client.api, targetId) || `Uzytkownik_${targetId.slice(-6)}`;
     } else if (args[0] && /^\d+$/.test(args[0])) {
       targetId = args[0];
       targetName = `Uzytkownik_${targetId.slice(-6)}`;
