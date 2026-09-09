@@ -374,7 +374,7 @@ async function checkAiLimits(userId, threadId) {
 
   const isWhitelisted = !!allowedEntry;
   const skipGroupCooldown = isWhitelisted || (config.admins && config.admins.includes(userId));
-  const maxLimit = (isWhitelisted || (config.admins && config.admins.includes(userId))) ? 100000 : 5000;
+  const maxLimit = (isWhitelisted || (config.admins && config.admins.includes(userId))) ? 100000 : 7500;
 
   // Osoby na whitelist bez zdefiniowanego dailyLimit mają brak limitu
   if (isWhitelisted && (typeof allowedEntry === 'string' || !allowedEntry.dailyLimit)) {
@@ -669,6 +669,11 @@ module.exports = {
     client.activeAnalyses.set(analysisId, Date.now());
 
     const fetchCount = firstArgNum || 200;
+
+    if (!limitCheck.unlimited && fetchCount > limitCheck.maxLimit) {
+      await safeReply(message, `❌ Limit wiadomości dla analizy wynosi **${limitCheck.maxLimit}**. Wybrałeś **${fetchCount}**.`);
+      return;
+    }
     const analysisStartTime = Date.now();
     const fetchHeartbeat = createHeartbeat(message, () => {
       const elapsed = ((Date.now() - analysisStartTime) / 1000).toFixed(0);
