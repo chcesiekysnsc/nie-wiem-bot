@@ -3015,6 +3015,8 @@ loginWithFallback().then(api => {
                         const nextDelay = (4 - attemptsLeft + 1) * 2000;
                         console.log(`[LOOP] Ponawianie dodawania użytkownika ${cleanUserId} do grupy ${threadId} za ${nextDelay}ms...`);
                         attemptAddUser(attemptsLeft - 1, nextDelay);
+                      } else {
+                        api.sendMessage(`❌ Nie udało się dodać użytkownika o ID ${cleanUserId} z powrotem do grupy.`, threadId);
                       }
                     }
                   });
