@@ -910,12 +910,7 @@ module.exports = {
       await safeReply(message, `📊 **Odpowiedź** (na podstawie ${transcriptLines.length} wiadomości, ${chunks.length} ${chunks.length === 1 ? 'zapytanie' : 'części'}):\n\n${finalReplyText}`);
     } catch (err) {
       console.error('[AI] Błąd:', err);
-      let errorMsg = '❌ Wystąpił błąd podczas analizy.';
-      if (err.response?.data?.error) {
-        errorMsg += ` Szczegóły: ${err.response.data.error.message}`;
-      } else {
-        errorMsg += ` Szczegóły: ${err.message}`;
-      }
+      const errorMsg = '❌ Wystąpił błąd podczas analizy. Obecnie używamy nowszych modeli AI, spróbuj ponownie za chwilę.';
       try {
         await safeReply(message, errorMsg);
       } catch (sendErr) {
