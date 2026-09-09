@@ -913,47 +913,58 @@ app.post('/api/permissions/:id', async (req, res) => {
 });
 
 // ===== PODECZANI / AI ANALIZA =====
-function getGeminiApiKeys() {
+function getGroqApiKeys() {
   const keys = [];
-  if (process.env.GEMINI_API_KEY) {
-    if (process.env.GEMINI_API_KEY.includes(',')) {
-      keys.push(...process.env.GEMINI_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
+  if (process.env.GROQ_API_KEY) {
+    if (process.env.GROQ_API_KEY.includes(',')) {
+      keys.push(...process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
     } else {
-      keys.push(process.env.GEMINI_API_KEY.trim());
+      keys.push(process.env.GROQ_API_KEY.trim());
     }
   }
   for (let i = 2; i <= 12; i++) {
-    const val = process.env[`GEMINI_API_KEY_${i}`];
+    const val = process.env[`GROQ_API_KEY_${i}`];
     if (val) keys.push(val.trim());
   }
   try {
     const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
-    if (Array.isArray(aiConfig.GEMINI_API_KEYS)) keys.push(...aiConfig.GEMINI_API_KEYS.map(k => k.trim()));
-    if (aiConfig.GEMINI_API_KEY) keys.push(aiConfig.GEMINI_API_KEY.trim());
+    if (Array.isArray(aiConfig.GROQ_API_KEYS)) keys.push(...aiConfig.GROQ_API_KEYS.map(k => k.trim()));
+    if (aiConfig.GROQ_API_KEY) keys.push(aiConfig.GROQ_API_KEY.trim());
   } catch (_) {}
   return [...new Set(keys)].filter(Boolean);
 }
 
-async function askGemini(apiKey, promptText) {
+async function askGroq(apiKey, promptText) {
   const response = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    { contents: [{ parts: [{ text: promptText }] }] },
-    { headers: { 'Content-Type': 'application/json' }, timeout: 240000 }
+    'https://api.groq.com/openai/v1/chat/completions',
+    {
+      model: 'qwen/qwen3.8-27b',
+      messages: [{ role: 'user', content: promptText }],
+      max_tokens: 8192,
+      temperature: 0.7
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 240000
+    }
   );
-  const replyText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!replyText) throw new Error('Pusta odpowiedź z API Gemini.');
+  const replyText = response.data?.choices?.[0]?.message?.content;
+  if (!replyText) throw new Error('Pusta odpowiedź z API Groq.');
   return replyText;
 }
 
 async function askGeminiWithFallback(promptText) {
-  const keys = getGeminiApiKeys();
-  if (keys.length === 0) throw new Error('Brak skonfigurowanych kluczy Gemini API!');
+  const keys = getGroqApiKeys();
+  if (keys.length === 0) throw new Error('Brak skonfigurowanych kluczy Groq API!');
   const startIndex = Math.floor(Math.random() * keys.length);
   let lastError = null;
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const idx = (startIndex + attempt) % keys.length;
     try {
-      return await askGemini(keys[idx], promptText);
+      return await askGroq(keys[idx], promptText);
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
