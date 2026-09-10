@@ -237,7 +237,7 @@
         <!-- ZAKŁADKI METOD LOGOWANIA -->
         <div style="display: flex; gap: 10px; margin-bottom: 18px;">
           <button type="button" id="tab-btn-totp" style="padding: 8px 12px; font-size: 13px; background: var(--blue);" onclick="switchTab('totp')">
-            🔑 Logowanie 2FA (Hasło)
+            ⚡ Logowanie API Facebooka (jak GoatBot)
           </button>
           <button type="button" id="tab-btn-cookies" style="padding: 8px 12px; font-size: 13px; background: #21262d; color: var(--text-muted);" onclick="switchTab('cookies')">
             🍪 Wklej Ciasteczka (Appstate JSON)
@@ -245,7 +245,7 @@
         </div>
 
         <form id="add-account-form">
-          <!-- TRYB 1: LOGOWANIE Z 2FA -->
+          <!-- TRYB 1: LOGOWANIE PRZEZ API -->
           <div id="section-totp">
             <div class="form-group">
               <label for="email">E-mail lub Telefon Facebook:</label>
@@ -258,8 +258,8 @@
             </div>
 
             <div class="form-group">
-              <label for="totp">Klucz konfiguracji 2FA (Secret Key):</label>
-              <input type="text" id="totp" placeholder="np. JBSWY3DPEHPK3PXP (z Authenticatora)">
+              <label for="totp">Klucz 2FA (Secret Key) lub kod 6 cyfr:</label>
+              <input type="text" id="totp" placeholder="np. JBSWY3DPEHPK3PXP lub 123456">
             </div>
           </div>
 
@@ -406,7 +406,7 @@
         payload.totpSecret = document.getElementById('totp').value.trim() || undefined;
 
         alertBox.className = 'alert-info';
-        alertBox.innerHTML = '⏳ Trwa automatyczne logowanie Puppeteerem i generowanie 2FA... Może to potrwać 10-25 sekund.';
+        alertBox.innerHTML = '⚡ Trwa logowanie przez Facebook Mobile API (metoda GoatBot)... To potrwa tylko 2-4 sekundy.';
       } else {
         const rawCookies = document.getElementById('appstate-json').value.trim();
         if (!rawCookies) {

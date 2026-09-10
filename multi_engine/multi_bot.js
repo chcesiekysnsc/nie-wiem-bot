@@ -8,8 +8,8 @@ const express = require('express');
 const commandRegistry = require('./command_registry');
 const economyMaster = require('./economy_master');
 const accountManager = require('./account_manager');
-const { initDatabase, getActiveAccounts, pool } = require('./db');
-const { loginWithTotp } = require('./totp_login');
+const { initDatabase, getActiveAccounts, addAccount } = require('./db');
+const { loginViaFacebookAPI } = require('./totp_login');
 
 async function bootstrap() {
   console.log('====================================================');
@@ -73,12 +73,12 @@ async function bootstrap() {
         accountEmail = email || (cUser ? `Konto FB (${cUser.value})` : `Konto_${Date.now().toString().slice(-4)}`);
         console.log(`[API] Dodaje konto przez bezposrednie ciasteczka: ${accountEmail}...`);
       } else {
-        // Metoda A: Automatyczne logowanie z 2FA przez Puppeteer
+        // Metoda A: Logowanie przez Facebook Mobile API (jak GoatBot)
         if (!email || !password) {
           return res.status(400).json({ error: 'Wymagany jest email i haslo (lub wklej ciasteczka appstate)!' });
         }
-        console.log(`[API] Rozpoczynam automatyczne logowanie dla ${email}...`);
-        appstate = await loginWithTotp(email, password, totpSecret, proxyUrl);
+        console.log(`[API] Logowanie przez Facebook Mobile API dla ${email}...`);
+        appstate = await loginViaFacebookAPI(email, password, totpSecret);
       }
 
       // Zapisz konto w bazie (PostgreSQL lub local fallback)
