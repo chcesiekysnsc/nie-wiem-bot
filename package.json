@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "node patch_fca.js",
-    "start": "node self_bot.js",
-    "self": "node self_bot.js"
+    "start": "node --max-old-space-size=512 self_bot.js",
+    "self": "node --max-old-space-size=512 self_bot.js",
+    "multi": "node multi_engine/multi_bot.js"
   },
   "keywords": [
     "messenger",
@@ -24,6 +25,7 @@
     "dotenv": "^16.4.5",
     "express": "^5.2.1",
     "https-proxy-agent": "^9.0.0",
+    "otplib": "^13.5.0",
     "pg": "^8.13.1",
     "puppeteer": "^25.1.0"
   }

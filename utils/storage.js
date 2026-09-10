@@ -209,7 +209,7 @@ function flushDirtyToDisk() {
     if (!filePath || !dataCache[key]) continue;
 
     try {
-      const content = JSON.stringify(dataCache[key], null, 2);
+      const content = JSON.stringify(dataCache[key]);
       fs.writeFile(filePath, content, 'utf8', (err) => {
         if (err) console.error(`[STORAGE] Błąd async zapisu ${key}.json:`, err);
       });
@@ -229,7 +229,7 @@ function flushAllSync() {
   for (const key of Object.keys(dataCache)) {
     if (!DATA_FILES[key]) continue;
     try {
-      const content = JSON.stringify(dataCache[key], null, 2);
+      const content = JSON.stringify(dataCache[key]);
       fs.writeFileSync(DATA_FILES[key], content, 'utf8');
       if (process.platform === 'win32') {
         const backupPath = path.join(BACKUP_DIR, `${key}.json`);
@@ -394,8 +394,8 @@ function appendLog(logsData, entry) {
   };
 
   logsData.unshift(record);
-  if (logsData.length > 80000) {
-    logsData.length = 80000;
+  if (logsData.length > 1000) {
+    logsData.length = 1000;
   }
 
   return record;

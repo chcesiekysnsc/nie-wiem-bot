@@ -110,7 +110,7 @@ const THREAD_API_MIN_INTERVAL = 3000; // minimum 3 sekundy między zapytaniami
 let _threadApiLastCall = 0;
 let _threadApiConsecutiveErrors = 0;
 let _threadApiBackoffUntil = 0;
-const USERNAME_CACHE_MAX = 5000;
+const USERNAME_CACHE_MAX = 1000;
 
 let _originalGetThreadInfo = null;
 
@@ -1507,7 +1507,7 @@ loginWithFallback().then(api => {
         }
       });
       if (threadIdsCleaned > 0) {
-        try { fs.writeFileSync(activeThreadsPath, JSON.stringify(Array.from(client.activeThreadIds), null, 2), 'utf8'); } catch (_) {}
+        try { fs.writeFileSync(activeThreadsPath, JSON.stringify(Array.from(client.activeThreadIds)), 'utf8'); } catch (_) {}
         console.log(`[MEMORY-CLEANUP] Usunięto ${threadIdsCleaned} nieaktywnych grup z activeThreadIds.`);
       }
     }, 24 * 60 * 60 * 1000);
@@ -1585,7 +1585,7 @@ loginWithFallback().then(api => {
   }
 
   const RECENT_MESSAGES_PATH = path.join(DATA_DIR, 'recent_messages.json');
-  const RECENT_MESSAGES_LIMIT = 60000;
+  const RECENT_MESSAGES_LIMIT = 5000;
 
   // Wrap api.sendMessage to send messages instantly without delay (cooldown removed)
   const originalSendMessage = api.sendMessage;
@@ -1635,7 +1635,7 @@ loginWithFallback().then(api => {
         const errStr = String(err || '');
         if (errStr.includes('not in group') || errStr.includes('not a participant') || errStr.includes('not a member') || errStr.includes('Invalid thread ID')) {
           client.activeThreadIds.delete(threadID);
-          try { fs.writeFileSync(activeThreadsPath, JSON.stringify(Array.from(client.activeThreadIds), null, 2), 'utf8'); } catch (_) {}
+          try { fs.writeFileSync(activeThreadsPath, JSON.stringify(Array.from(client.activeThreadIds)), 'utf8'); } catch (_) {}
           console.log(`[MEMORY-CLEANUP] Usunięto nieaktywną grupę ${threadID} z activeThreadIds.`);
         }
       }
@@ -1688,7 +1688,7 @@ loginWithFallback().then(api => {
     try {
       if (!client.recentMessages || client.recentMessages.length === 0) return;
       const toSave = client.recentMessages.slice(-RECENT_MESSAGES_LIMIT);
-      fs.writeFileSync(RECENT_MESSAGES_PATH, JSON.stringify(toSave, null, 2), 'utf8');
+      fs.writeFileSync(RECENT_MESSAGES_PATH, JSON.stringify(toSave), 'utf8');
     } catch (err) {
       console.error('[ZAPISZ] Błąd zapisu bufora:', err.message);
     }
@@ -2678,7 +2678,7 @@ loginWithFallback().then(api => {
     }
     client.processedNewGroups.add(threadId);
     try {
-      fs.writeFileSync(processedGroupsPath, JSON.stringify(Array.from(client.processedNewGroups), null, 2), 'utf8');
+      fs.writeFileSync(processedGroupsPath, JSON.stringify(Array.from(client.processedNewGroups)), 'utf8');
     } catch (err) {
       console.error('[SELF-BOT] Failed to save processed new groups:', err);
     }
@@ -3187,8 +3187,8 @@ loginWithFallback().then(api => {
 
       if (cacheBody || cacheEntry.attachmentUrls.length > 0) {
         client.messageCache.set(event.messageID, cacheEntry);
-        // Ogranicz rozmiar pamięci podręcznej do 2000 wpisów
-        if (client.messageCache.size > 2000) {
+        // Ogranicz rozmiar pamięci podręcznej do 500 wpisów
+        if (client.messageCache.size > 500) {
           const firstKey = client.messageCache.keys().next().value;
           const firstEntry = client.messageCache.get(firstKey);
           cleanupCachedEntry(firstEntry);
@@ -3224,8 +3224,8 @@ loginWithFallback().then(api => {
           threadId,
           isBot: String(senderId) === String(api.getCurrentUserID?.() || '')
         });
-        if (client.recentMessages.length > 60000) {
-          client.recentMessages = client.recentMessages.slice(-60000);
+        if (client.recentMessages.length > 5000) {
+          client.recentMessages = client.recentMessages.slice(-5000);
         }
       } catch (_) {}
     }
@@ -3410,7 +3410,7 @@ loginWithFallback().then(api => {
           stats.seenMessageIds = stats.seenMessageIds || [];
           if (messageId && !stats.seenMessageIds.includes(messageId)) {
             stats.seenMessageIds.push(messageId);
-            if (stats.seenMessageIds.length > 2000) {
+            if (stats.seenMessageIds.length > 500) {
               stats.seenMessageIds.shift();
             }
           }
@@ -3440,7 +3440,7 @@ loginWithFallback().then(api => {
           stats.seenMessageIds = stats.seenMessageIds || [];
           if (messageId && !stats.seenMessageIds.includes(messageId)) {
             stats.seenMessageIds.push(messageId);
-            if (stats.seenMessageIds.length > 2000) {
+            if (stats.seenMessageIds.length > 500) {
               stats.seenMessageIds.shift();
             }
           }
@@ -3454,7 +3454,7 @@ loginWithFallback().then(api => {
       if (!client.activeThreadIds.has(threadId)) {
         client.activeThreadIds.add(threadId);
         try {
-          fs.writeFileSync(activeThreadsPath, JSON.stringify(Array.from(client.activeThreadIds), null, 2), 'utf8');
+          fs.writeFileSync(activeThreadsPath, JSON.stringify(Array.from(client.activeThreadIds)), 'utf8');
         } catch (e) {
           console.error('[SELF-BOT] Failed to save active threads:', e);
         }
