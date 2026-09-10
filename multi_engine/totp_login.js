@@ -37,16 +37,42 @@ async function loginWithTotp(email, password, totpSecret = null, proxyUrl = null
     console.log(`[TOTP-LOGIN] Logowanie konta ${email}...`);
     await page.goto('https://www.facebook.com/login', { waitUntil: 'networkidle2', timeout: 30000 });
 
-    // Wypelnij login i haslo
-    await page.waitForSelector('#email', { timeout: 10000 });
-    await page.type('#email', email, { delay: 30 });
-    await page.type('#pass', password, { delay: 30 });
-    await page.click('#loginbutton, [name="login"]');
+    // 1. Obsluz ewentualny monit o pliki cookies
+    try {
+      const cookieButtons = await page.$$('button, div[role="button"]');
+      for (const btn of cookieButtons) {
+        const text = (await page.evaluate(el => el.innerText || '', btn)).toLowerCase();
+        if (text.includes('zezwól') || text.includes('zaakceptuj') || text.includes('allow') || text.includes('accept') || text.includes('izin ver')) {
+          await btn.click().catch(() => {});
+          await new Promise(r => setTimeout(r, 1000));
+          break;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Wypelnij login i haslo (odpornosc na dynamiczne ID _r_3_)
+    const emailSelector = 'input[name="email"], #email, input[type="text"]';
+    const passSelector = 'input[name="pass"], #pass, input[type="password"]';
+
+    await page.waitForSelector(emailSelector, { timeout: 15000 });
+    await page.type(emailSelector, email, { delay: 25 });
+    await page.type(passSelector, password, { delay: 25 });
+
+    // Zatwierdz Enterem (dziala uniwersalnie w kazdym jezyku FB)
+    await page.keyboard.press('Enter');
 
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
+    await new Promise(r => setTimeout(r, 2000));
 
-    // Sprawdz czy Facebook prosi o kod 2FA
-    const approvalsInput = await page.$('#approvals_code, input[name="approvals_code"]');
+    // 3. Sprawdz czy Facebook prosi o kod 2FA
+    const twoFaSelector = 'input[name="approvals_code"], input[autocomplete="one-time-code"], input[type="number"], #approvals_code';
+    let approvalsInput = await page.$(twoFaSelector);
+
+    // Jesli nie widac od razu, poczekaj do 5 sekund
+    if (!approvalsInput) {
+      approvalsInput = await page.waitForSelector(twoFaSelector, { timeout: 5000 }).catch(() => null);
+    }
+
     if (approvalsInput) {
       if (!totpSecret) {
         throw new Error('Konto wymaga weryfikacji dwuetapowej 2FA, ale nie podano klucza TOTP!');
@@ -57,16 +83,19 @@ async function loginWithTotp(email, password, totpSecret = null, proxyUrl = null
       console.log(`[TOTP-LOGIN] Wprowadzam wygenerowany kod 2FA: ${token}`);
 
       await approvalsInput.type(token, { delay: 30 });
-      await page.click('#checkpointSubmitButton, [type="submit"]');
+      await page.keyboard.press('Enter');
 
       await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
+      await new Promise(r => setTimeout(r, 2000));
 
       // Kliknij zatwierdzenie "Zapisz przegladarke" / "Kontynuuj"
-      const continueBtn = await page.$('#checkpointSubmitButton, [type="submit"]');
-      if (continueBtn) {
-        await continueBtn.click();
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {});
-      }
+      try {
+        const confirmBtn = await page.$('#checkpointSubmitButton, button[type="submit"], [role="button"]');
+        if (confirmBtn) {
+          await confirmBtn.click().catch(() => {});
+          await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {});
+        }
+      } catch (_) {}
     }
 
     // Wyciagnij ciasteczka sesyjne
