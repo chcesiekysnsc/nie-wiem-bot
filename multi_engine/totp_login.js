@@ -54,19 +54,23 @@ async function loginViaFacebookAPI(email, password, totpSecret = null, proxyUrl 
     console.log('[AUTH] Wchodze na facebook.com/login...');
     await page.goto('https://www.facebook.com/login', { waitUntil: 'networkidle2', timeout: 35000 });
 
-    // 1. Zignoruj / zaakceptuj cookies
+    // 1. Poczekaj na zaladowanie okna cookies i zamknij je
+    console.log('[AUTH] Czekam na okno cookies...');
+    await new Promise(r => setTimeout(r, 2500));
     try {
-      await page.evaluate(() => {
+      const dismissed = await page.evaluate(() => {
         const btns = Array.from(document.querySelectorAll('button, div[role="button"]'));
         for (const b of btns) {
-          const t = (b.innerText || '').toLowerCase();
-          if (t.includes('zezwól') || t.includes('zaakceptuj') || t.includes('allow') || t.includes('accept') || t.includes('izin ver') || t.includes('tüm')) {
+          const t = (b.innerText || '').trim().toLowerCase();
+          if (t.includes('tüm çerezlere izin ver') || t.includes('zezwól na wszystkie') || t.includes('allow all') || t.includes('reddet') || t.includes('decline') || t.includes('odrzuć') || t.includes('akceptuj') || t.includes('accept') || t.includes('izin ver') || t.includes('zezwól')) {
             b.click();
-            break;
+            return t;
           }
         }
+        return null;
       });
-      await new Promise(r => setTimeout(r, 1200));
+      if (dismissed) console.log(`[AUTH] Zamknieto okno cookies: ${dismissed}`);
+      await new Promise(r => setTimeout(r, 1500));
     } catch (_) {}
 
     // 2. Wpisz e-mail i haslo
@@ -106,16 +110,31 @@ async function loginViaFacebookAPI(email, password, totpSecret = null, proxyUrl 
 
     // Sprawdz czy Facebook wyrzucil blad hasla / konta
     const pageError = await page.evaluate(() => {
-      const errorDivs = document.querySelectorAll('div[role="alert"], #error_box, ._4rbf, ._9ay7');
+      // 1. Alert boxy i kontenery błędów
+      const errorDivs = document.querySelectorAll('div[role="alert"], #error_box, ._4rbf, ._9ay7, .uiContextualLayer');
       for (const ed of errorDivs) {
         const txt = (ed.innerText || '').trim();
         if (txt) return txt;
+      }
+      // 2. Tekst pod polami wejściowymi
+      const inputs = document.querySelectorAll('input[name="email"], input[name="pass"]');
+      for (const inp of inputs) {
+        const p = inp.closest('div')?.parentElement;
+        if (p) {
+          const errs = p.querySelectorAll('div[id*="error"], span, div');
+          for (const el of errs) {
+            const txt = (el.innerText || '').trim();
+            if (txt && (txt.includes('nieprawidłow') || txt.includes('błędn') || txt.includes('nie jest') || txt.includes('girdiğin') || txt.includes('şifre') || txt.includes('incorrect') || txt.includes('wrong') || txt.includes('not connected'))) {
+              return txt;
+            }
+          }
+        }
       }
       return null;
     });
 
     if (pageError) {
-      throw new Error(`Facebook odrzucil dane: ${pageError}`);
+      throw new Error(`Facebook odrzucil logowanie: ${pageError}`);
     }
 
     // 4. Obsluga 2FA / Weryfikacji dwuetapowej
