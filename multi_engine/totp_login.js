@@ -30,12 +30,20 @@ async function loginWithTotp(email, password, totpSecret = null, proxyUrl = null
 
   try {
     const page = await browser.newPage();
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-    );
+    
+    // Stealth: ukryj flagi automatyzacji przed Facebookiem
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      window.chrome = { runtime: {} };
+    });
 
-    console.log(`[TOTP-LOGIN] Logowanie konta ${email}...`);
-    await page.goto('https://www.facebook.com/login', { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+    );
+    await page.setViewport({ width: 1280, height: 800 });
+
+    console.log(`[TOTP-LOGIN] Wchodze na strone logowania dla ${email}...`);
+    await page.goto('https://www.facebook.com/login', { waitUntil: 'networkidle2', timeout: 35000 });
 
     // 1. Obsluz ewentualny monit o pliki cookies
     try {
@@ -44,56 +52,76 @@ async function loginWithTotp(email, password, totpSecret = null, proxyUrl = null
         const text = (await page.evaluate(el => el.innerText || '', btn)).toLowerCase();
         if (text.includes('zezwól') || text.includes('zaakceptuj') || text.includes('allow') || text.includes('accept') || text.includes('izin ver')) {
           await btn.click().catch(() => {});
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 1200));
           break;
         }
       }
     } catch (_) {}
 
-    // 2. Wypelnij login i haslo (odpornosc na dynamiczne ID _r_3_)
+    // 2. Wypelnij login i haslo
     const emailSelector = 'input[name="email"], #email, input[type="text"]';
     const passSelector = 'input[name="pass"], #pass, input[type="password"]';
 
     await page.waitForSelector(emailSelector, { timeout: 15000 });
-    await page.type(emailSelector, email, { delay: 25 });
-    await page.type(passSelector, password, { delay: 25 });
+    await page.type(emailSelector, email, { delay: 30 });
+    await page.type(passSelector, password, { delay: 30 });
 
-    // Zatwierdz Enterem (dziala uniwersalnie w kazdym jezyku FB)
-    await page.keyboard.press('Enter');
+    // Kliknij przycisk logowania lub wcisnij Enter
+    const loginBtn = await page.$('button[name="login"], button[type="submit"], input[type="submit"], #loginbutton, [data-testid="royal_login_button"]');
+    if (loginBtn) {
+      await loginBtn.click().catch(() => {});
+    } else {
+      await page.keyboard.press('Enter');
+    }
 
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 2000));
+    console.log('[TOTP-LOGIN] Wyslano formularz logowania, czekam na odpowiedz...');
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 35000 }).catch(() => {});
+    await new Promise(r => setTimeout(r, 3000));
+
+    console.log(`[TOTP-LOGIN] Aktualny URL: ${page.url()}`);
+    console.log(`[TOTP-LOGIN] Tytul strony: ${await page.title()}`);
+
+    // Sprawdz czy jest opcja "Wyprobuj inny sposob" (gdy FB chce powiadomienia na telefon zamiast kodu)
+    try {
+      const tryAnotherWays = await page.$$('a, div[role="button"], span');
+      for (const el of tryAnotherWays) {
+        const t = (await page.evaluate(e => e.innerText || '', el)).toLowerCase();
+        if (t.includes('inny sposób') || t.includes('another way') || t.includes('aplikacja uwierzytelniająca') || t.includes('authentication app')) {
+          await el.click().catch(() => {});
+          await new Promise(r => setTimeout(r, 2000));
+          break;
+        }
+      }
+    } catch (_) {}
 
     // 3. Sprawdz czy Facebook prosi o kod 2FA
     const twoFaSelector = 'input[name="approvals_code"], input[autocomplete="one-time-code"], input[type="number"], #approvals_code';
     let approvalsInput = await page.$(twoFaSelector);
-
-    // Jesli nie widac od razu, poczekaj do 5 sekund
     if (!approvalsInput) {
-      approvalsInput = await page.waitForSelector(twoFaSelector, { timeout: 5000 }).catch(() => null);
+      approvalsInput = await page.waitForSelector(twoFaSelector, { timeout: 6000 }).catch(() => null);
     }
 
     if (approvalsInput) {
       if (!totpSecret) {
-        throw new Error('Konto wymaga weryfikacji dwuetapowej 2FA, ale nie podano klucza TOTP!');
+        throw new Error('Konto wymaga weryfikacji 2FA, ale nie podano klucza TOTP Secret!');
       }
 
       console.log(`[TOTP-LOGIN] Wykryto monit 2FA! Generuje kod z klucza...`);
       const token = authenticator.generate(totpSecret.replace(/\s+/g, '').toUpperCase());
       console.log(`[TOTP-LOGIN] Wprowadzam wygenerowany kod 2FA: ${token}`);
 
-      await approvalsInput.type(token, { delay: 30 });
+      await approvalsInput.type(token, { delay: 40 });
       await page.keyboard.press('Enter');
 
-      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
-      await new Promise(r => setTimeout(r, 2000));
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 35000 }).catch(() => {});
+      await new Promise(r => setTimeout(r, 3000));
 
       // Kliknij zatwierdzenie "Zapisz przegladarke" / "Kontynuuj"
       try {
         const confirmBtn = await page.$('#checkpointSubmitButton, button[type="submit"], [role="button"]');
         if (confirmBtn) {
           await confirmBtn.click().catch(() => {});
-          await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {});
+          await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 25000 }).catch(() => {});
         }
       } catch (_) {}
     }
@@ -116,13 +144,16 @@ async function loginWithTotp(email, password, totpSecret = null, proxyUrl = null
     const hasXs = appstate.some(c => c.key === 'xs');
 
     if (!hasCUser || !hasXs) {
-      throw new Error('Logowanie nie powiodlo sie — brak kluczowych ciasteczek c_user lub xs (mozliwa blokada konta).');
+      // Zapisz screenshot bledu do diagnozy
+      const debugScreenshot = path.join(__dirname, '..', 'data', 'login_debug.png');
+      await page.screenshot({ path: debugScreenshot }).catch(() => {});
+      console.error(`[TOTP-LOGIN] 📸 Zapisano zrzut ekranu do ${debugScreenshot}`);
+      throw new Error(`Logowanie nie powiodlo sie — brak ciasteczek c_user lub xs. Aktualny adres: ${page.url()} (Sprawdz haslo lub zrzut ekranu w data/login_debug.png)`);
     }
 
     console.log(`[TOTP-LOGIN] ✅ Sukces! Pozyskano ${appstate.length} ciasteczek appstate dla ${email}.`);
     return appstate;
   } finally {
-    // Bezwzglednie zamknij przegladarke, by nie zostawiac procesow w RAM
     await browser.close().catch(() => {});
   }
 }

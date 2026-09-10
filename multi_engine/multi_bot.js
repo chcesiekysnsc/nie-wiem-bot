@@ -49,20 +49,41 @@ async function bootstrap() {
     });
   });
 
-  // Endpoint dodawania nowego konta z 2FA (tak jak w AmbientBot)
+  // Endpoint dodawania nowego konta (2FA lub bezposrednie ciasteczka)
   app.post('/api/accounts/add', async (req, res) => {
-    const { email, password, totpSecret, proxyUrl } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Wymagany jest email i haslo!' });
-    }
+    const { email, password, totpSecret, proxyUrl, appstate: directAppState } = req.body;
 
     try {
-      console.log(`[API] Rozpoczynam automatyczne logowanie dla ${email}...`);
-      const appstate = await loginWithTotp(email, password, totpSecret, proxyUrl);
+      let appstate = null;
+      let accountEmail = email;
+
+      if (directAppState) {
+        // Metoda B: Bezposrednie ciasteczka (Wklej Appstate JSON)
+        try {
+          appstate = typeof directAppState === 'string' ? JSON.parse(directAppState) : directAppState;
+        } catch (_) {
+          return res.status(400).json({ error: 'Nieprawidlowy format JSON wklejonych ciasteczek!' });
+        }
+
+        if (!Array.isArray(appstate) || appstate.length === 0) {
+          return res.status(400).json({ error: 'Ciasteczka musza byc tablica obiektow JSON!' });
+        }
+
+        const cUser = appstate.find(c => c.key === 'c_user');
+        accountEmail = email || (cUser ? `Konto FB (${cUser.value})` : `Konto_${Date.now().toString().slice(-4)}`);
+        console.log(`[API] Dodaje konto przez bezposrednie ciasteczka: ${accountEmail}...`);
+      } else {
+        // Metoda A: Automatyczne logowanie z 2FA przez Puppeteer
+        if (!email || !password) {
+          return res.status(400).json({ error: 'Wymagany jest email i haslo (lub wklej ciasteczka appstate)!' });
+        }
+        console.log(`[API] Rozpoczynam automatyczne logowanie dla ${email}...`);
+        appstate = await loginWithTotp(email, password, totpSecret, proxyUrl);
+      }
 
       // Zapisz konto w bazie (PostgreSQL lub local fallback)
       const newAccount = await addAccount({
-        email,
+        email: accountEmail,
         totp_secret: totpSecret,
         appstate,
         proxy_url: proxyUrl
@@ -73,11 +94,11 @@ async function bootstrap() {
 
       res.json({
         success: true,
-        message: `Konto #${newAccount.id} (${email}) zostalo pomyslnie zalogowane i uruchomione!`,
+        message: `Konto #${newAccount.id} (${accountEmail}) zostalo pomyslnie dodane i uruchomione!`,
         accountId: newAccount.id
       });
     } catch (err) {
-      console.error(`[API] Blad rejestracji konta ${email}:`, err.message);
+      console.error(`[API] Blad rejestracji konta:`, err.message);
       res.status(500).json({ error: err.message });
     }
   });

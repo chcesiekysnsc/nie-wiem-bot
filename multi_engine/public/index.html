@@ -233,29 +233,54 @@
       <!-- FORMULARZ DODAWANIA KONTA -->
       <div class="card">
         <h2>➕ Dodaj Nowe Konto Bota</h2>
+        
+        <!-- ZAKŁADKI METOD LOGOWANIA -->
+        <div style="display: flex; gap: 10px; margin-bottom: 18px;">
+          <button type="button" id="tab-btn-totp" style="padding: 8px 12px; font-size: 13px; background: var(--blue);" onclick="switchTab('totp')">
+            🔑 Logowanie 2FA (Hasło)
+          </button>
+          <button type="button" id="tab-btn-cookies" style="padding: 8px 12px; font-size: 13px; background: #21262d; color: var(--text-muted);" onclick="switchTab('cookies')">
+            🍪 Wklej Ciasteczka (Appstate JSON)
+          </button>
+        </div>
+
         <form id="add-account-form">
-          <div class="form-group">
-            <label for="email">E-mail lub Telefon Facebook:</label>
-            <input type="text" id="email" required placeholder="np. jan.kowalski@gmail.com">
+          <!-- TRYB 1: LOGOWANIE Z 2FA -->
+          <div id="section-totp">
+            <div class="form-group">
+              <label for="email">E-mail lub Telefon Facebook:</label>
+              <input type="text" id="email" placeholder="np. jan.kowalski@gmail.com">
+            </div>
+
+            <div class="form-group">
+              <label for="password">Hasło do Facebooka:</label>
+              <input type="password" id="password" placeholder="Hasło...">
+            </div>
+
+            <div class="form-group">
+              <label for="totp">Klucz konfiguracji 2FA (Secret Key):</label>
+              <input type="text" id="totp" placeholder="np. JBSWY3DPEHPK3PXP (z Authenticatora)">
+            </div>
           </div>
 
-          <div class="form-group">
-            <label for="password">Hasło do Facebooka:</label>
-            <input type="password" id="password" required placeholder="Hasło...">
+          <!-- TRYB 2: WKLEJENIE CIASTECZEK (APPSTATE) -->
+          <div id="section-cookies" style="display: none;">
+            <div class="form-group">
+              <label for="appstate-json">Wklej ciasteczka JSON (Appstate):</label>
+              <textarea id="appstate-json" rows="6" style="width: 100%; padding: 10px 14px; background: #0d1117; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-family: monospace; font-size: 12px;" placeholder='[{"key":"c_user","value":"..."},{"key":"xs","value":"..."}]'></textarea>
+              <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">
+                💡 Ciasteczka wyciągniesz z przeglądarki np. wtyczką C3C-FbState lub EditThisCookie.
+              </span>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label for="totp">Klucz konfiguracji 2FA (Secret Key):</label>
-            <input type="text" id="totp" placeholder="np. JBSWY3DPEHPK3PXP (z Authenticatora)">
-          </div>
-
-          <div class="form-group">
+          <div class="form-group" style="margin-top: 14px;">
             <label for="proxy">Proxy HTTP/SOCKS5 (Opcjonalnie):</label>
             <input type="text" id="proxy" placeholder="np. http://user:pass@1.2.3.4:8080">
           </div>
 
           <button type="submit" id="btn-submit">
-            <span>🚀 Zaloguj i Uruchom Bota</span>
+            <span>🚀 Dodaj i Uruchom Bota</span>
           </button>
 
           <div id="alert-box"></div>
@@ -335,6 +360,32 @@
     setInterval(fetchStatus, 4000);
     fetchStatus();
 
+    let currentTab = 'totp';
+
+    function switchTab(tab) {
+      currentTab = tab;
+      const btnTotp = document.getElementById('tab-btn-totp');
+      const btnCookies = document.getElementById('tab-btn-cookies');
+      const secTotp = document.getElementById('section-totp');
+      const secCookies = document.getElementById('section-cookies');
+
+      if (tab === 'totp') {
+        btnTotp.style.background = 'var(--blue)';
+        btnTotp.style.color = '#fff';
+        btnCookies.style.background = '#21262d';
+        btnCookies.style.color = 'var(--text-muted)';
+        secTotp.style.display = 'block';
+        secCookies.style.display = 'none';
+      } else {
+        btnCookies.style.background = 'var(--blue)';
+        btnCookies.style.color = '#fff';
+        btnTotp.style.background = '#21262d';
+        btnTotp.style.color = 'var(--text-muted)';
+        secTotp.style.display = 'none';
+        secCookies.style.display = 'block';
+      }
+    }
+
     // Obsluga formularza
     const form = document.getElementById('add-account-form');
     const alertBox = document.getElementById('alert-box');
@@ -343,16 +394,32 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       alertBox.style.display = 'block';
-      alertBox.className = 'alert-info';
-      alertBox.innerHTML = '⏳ Trwa automatyczne logowanie Puppeteerem i generowanie 2FA... Może to potrwać 10-25 sekund.';
       btnSubmit.disabled = true;
 
       const payload = {
-        email: document.getElementById('email').value.trim(),
-        password: document.getElementById('password').value,
-        totpSecret: document.getElementById('totp').value.trim() || undefined,
         proxyUrl: document.getElementById('proxy').value.trim() || undefined
       };
+
+      if (currentTab === 'totp') {
+        payload.email = document.getElementById('email').value.trim();
+        payload.password = document.getElementById('password').value;
+        payload.totpSecret = document.getElementById('totp').value.trim() || undefined;
+
+        alertBox.className = 'alert-info';
+        alertBox.innerHTML = '⏳ Trwa automatyczne logowanie Puppeteerem i generowanie 2FA... Może to potrwać 10-25 sekund.';
+      } else {
+        const rawCookies = document.getElementById('appstate-json').value.trim();
+        if (!rawCookies) {
+          alertBox.className = 'alert-error';
+          alertBox.innerHTML = '❌ Wklej najpierw treść ciasteczek JSON w pole tekstowe!';
+          btnSubmit.disabled = false;
+          return;
+        }
+        payload.appstate = rawCookies;
+
+        alertBox.className = 'alert-info';
+        alertBox.innerHTML = '⏳ Weryfikacja ciasteczek i uruchamianie sesji bota...';
+      }
 
       try {
         const res = await fetch('/api/accounts/add', {
