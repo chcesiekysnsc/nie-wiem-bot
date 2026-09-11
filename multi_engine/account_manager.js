@@ -31,6 +31,7 @@ const {
   getAccount
 } = require('./db');
 const { loginWithTotp } = require('./totp_login');
+const { renderPayloadToText } = require('../utils/messenger');
 
 // ============ Parametry logowania (mozna nadpisac env) ============
 const LOGIN_POLICY = {
@@ -432,20 +433,55 @@ class AccountInstance {
     const command = commandRegistry.get(commandName);
     if (!command) return;
 
-    // 4. Stworz lekki kontekst wiadomosci
-    const messageContext = {
-      body: event.body,
-      threadID: threadId,
-      messageID: event.messageID,
-      author: { id: senderId },
-      isGroup: !!event.isGroup,
-      reply: (content) => api.sendMessageQueued(content, threadId, event.messageID)
-    };
-
     const clientStub = {
       api,
       accountId: this.account.id,
-      botId
+      botId,
+      // Komendy okresowo korzystaja z cache nazw i kolejki — dajemy bezpieczne domysly
+      userNames: new Map(),
+      pendingBails: new Map(),
+      recentMessages: [],
+      activeThreadIds: new Set()
+    };
+
+    // Kontekst wiadomosci zgodny z shapem self_bot (komendy uzywaja:
+    // message.author, message.mentions.users.first(), message.guild.id,
+    // message.content, message.rawEvent, message.mentionedIds, message.reply(...))
+    const mentionedIds = Object.keys(event.mentions || {});
+    const messageContext = {
+      client: clientStub,
+      prefix,
+      author: {
+        id: senderId,
+        username: event.senderName || '',
+        profile: { name: event.senderName || '' }
+      },
+      content: body,
+      body: body, // alias — czesc komend moze czytac body
+      threadID: threadId,
+      threadId: threadId,
+      isGroup: !!event.isGroup,
+      guild: { id: threadId },
+      messageID: event.messageID,
+      rawEvent: event,
+      mentionedIds,
+      attachments: event.attachments || [],
+      messageReply: event.messageReply || null,
+      mentions: {
+        users: {
+          first: () => {
+            const mid = mentionedIds[0];
+            if (!mid) return null;
+            const mName = String((event.mentions && event.mentions[mid]) || '').replace(/^@/, '');
+            return { id: mid, username: mName, profile: { name: mName } };
+          }
+        }
+      },
+      reply: (payload) => {
+        const text = renderPayloadToText(payload);
+        if (!text) return Promise.resolve(null);
+        return api.sendMessageQueued(text, threadId, event.messageID);
+      }
     };
 
     try {

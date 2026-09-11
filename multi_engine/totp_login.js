@@ -12,9 +12,32 @@
  */
 
 const puppeteer = require('puppeteer');
-const { authenticator } = require('otplib');
 
 const WAIT_MS = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Generowanie kodu TOTP z klucza — kompatybilne z dwoma generacjami otplib:
+ * - stary (authenticator.generate(secret))
+ * - nowy  (await generate({ secret }) -> string)
+ */
+async function generateTotpCode(secret) {
+  const key = String(secret || '').replace(/\s+/g, '').toUpperCase();
+  if (!key) throw new Error('Brak klucza TOTP do wygenerowania kodu 2FA.');
+
+  const otp = require('otplib');
+  if (otp.authenticator && typeof otp.authenticator.generate === 'function') {
+    return otp.authenticator.generate(key);
+  }
+  if (typeof otp.generate === 'function') {
+    const code = await otp.generate({ secret: key });
+    const value = typeof code === 'string' ? code : (code && code.value);
+    if (!/^\d{6}$/.test(String(value || ''))) {
+      throw new Error('Generowanie kodu 2FA nie powiodło się (nieprawidłowy klucz TOTP?).');
+    }
+    return value;
+  }
+  throw new Error('Nieznany format API zainstalowanego pakietu otplib.');
+}
 
 /**
  * Przechodzi ekrany po logowaniu: 2FA (TOTP) oraz checkpoint lokalizacyjny.
@@ -35,7 +58,7 @@ async function handlePostLoginCheckpoint(page, totpSecret) {
     }
 
     console.log(`[TOTP-LOGIN] Wykryto monit 2FA! Generuje kod z klucza...`);
-    const token = authenticator.generate(totpSecret.replace(/\s+/g, '').toUpperCase());
+    const token = await generateTotpCode(totpSecret);
     console.log(`[TOTP-LOGIN] Wprowadzam wygenerowany kod 2FA: ${token}`);
 
     await approvalsInput.type(token, { delay: 30 });
@@ -166,4 +189,4 @@ async function loginWithTotp(email, password, totpSecret = null, proxyUrl = null
   }
 }
 
-module.exports = { loginWithTotp, handlePostLoginCheckpoint };
+module.exports = { loginWithTotp, handlePostLoginCheckpoint, generateTotpCode };
