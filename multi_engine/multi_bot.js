@@ -10,11 +10,12 @@ const economyMaster = require('./economy_master');
 const accountManager = require('./account_manager');
 const { initDatabase, getActiveAccounts, pool, addAccount, updateAccountLoginMeta } = require('./db');
 const { loginWithTotp } = require('./totp_login');
+const manualCodeInbox = require('./manual_codes');
 
 // ============ Zdarzenia klastra (log + historia + powiadomienie do grupy adminów) ============
 const recentEvents = [];
 const MAX_EVENTS = 100;
-const NOTIFY_EVENTS = new Set(['checkpoint', 'checkpoint_blocked', 'login_failed']);
+const NOTIFY_EVENTS = new Set(['checkpoint', 'checkpoint_blocked', 'login_failed', 'waiting_2fa_code']);
 
 function pushEvent(evt) {
   recentEvents.push(evt);
@@ -25,7 +26,8 @@ function pushEvent(evt) {
     checkpoint_blocked: '🛑 CHECKPOINT (limit dzienny)',
     login_failed: '❌ LOGIN FAILED',
     online: '✅ ONLINE',
-    onboarding: '🌐 ONBOARDING (Puppeteer)'
+    onboarding: '🌐 ONBOARDING (Puppeteer)',
+    waiting_2fa_code: '📲 CZEKAM NA KOD 2FA'
   }[evt.name] || evt.name.toUpperCase();
   console.log(`[EVENT] (${evt.email || 'konto #' + evt.accountId}) ${tag}: ${evt.message}`);
 
@@ -149,6 +151,17 @@ async function bootstrap() {
       const result = await accountManager.startAccountById(req.params.id, {
         forcePuppeteer: !!(req.body && req.body.forcePuppeteer)
       });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Podanie 6-cyfrowego kodu 2FA / kodu z emaila dla konta czekajacego w
+  // przegladarce (monit 2FA albo "kod wyslany na email/telefon").
+  app.post('/api/accounts/:id/2fa-code', async (req, res) => {
+    try {
+      const result = manualCodeInbox.submitManualCode(req.params.id, req.body && req.body.code);
       res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });

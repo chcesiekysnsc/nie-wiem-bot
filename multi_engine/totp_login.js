@@ -40,34 +40,80 @@ async function generateTotpCode(secret) {
 }
 
 /**
- * Przechodzi ekrany po logowaniu: 2FA (TOTP) oraz checkpoint lokalizacyjny.
- * @returns {Promise<boolean>} true gdy doszlo do normalnej strony po logowaniu
- * @throws {Error} err.code === 'CHECKPOINT_MANUAL' gdy wymagany jest kod z emaila/telefonu
+ * Wpisuje kod w polu i zatwierdza; zwraca true gdy monit zniknal z ekranu.
  */
-async function handlePostLoginCheckpoint(page, totpSecret) {
+async function typeCodeAndSubmit(page, selector, code) {
+  const input = await page.$(selector);
+  if (!input) return true; // ekran i tak sie zmienil
+  await input.click().catch(() => {});
+  await input.type(String(code).trim(), { delay: 30 });
+  const submit = await page.$('#checkpointSubmitButton, [type="submit"], [name="submit"]');
+  if (submit) {
+    await submit.click().catch(() => {});
+  }
+  await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
+  await WAIT_MS(2000);
+  return !(await page.$(selector));
+}
+
+/**
+ * Przechodzi ekrany po logowaniu: 2FA (kod TOTP z klucza LUB kod podany przez
+ * czlowieka), checkpoint lokalizacyjny ("That was me") i sciana "kod wyslany
+ * na email/telefon" (takze z podaniem kodu przez czlowieka).
+ *
+ * options:
+ *  - manualCodeProvider: async ({attempt, context}) => string
+ *      Dostawca kodu "z reki" — panel (POST /api/accounts/:id/2fa-code) albo
+ *      konsola (stdin). Wywoływany, gdy brakuje klucza TOTP albo gdy FB
+ *      wysyla kod na email (tu TOTP i tak nie pomaga).
+ *  - maxCodeAttempts: ile razy prosic o kod (domyślnie 2 — kod zyje ~30s)
+ *
+ * @returns {Promise<boolean>} true gdy doszlo do normalnej strony po logowaniu
+ * @throws {Error} err.code === 'CHECKPOINT_MANUAL' gdy kodu nie da sie uzyskac
+ */
+async function handlePostLoginCheckpoint(page, totpSecret, options = {}) {
+  const manualCodeProvider = typeof options.manualCodeProvider === 'function' ? options.manualCodeProvider : null;
+  const maxAttempts = options.maxCodeAttempts || 2;
+
   // Daj stronie FB chwile na dobicie przekierowan
   await WAIT_MS(2500);
 
-  // 1) Monit 2FA (TOTP)
-  const approvalsInput = await page.$('#approvals_code, input[name="approvals_code"]');
-  if (approvalsInput) {
-    if (!totpSecret) {
-      const err = new Error('Konto wymaga weryfikacji 2FA, a nie podano klucza TOTP — podaj totp_secret w panelu.');
+  // ============ 1) Monit 2FA: kod TOTP z klucza, inaczej kod od czlowieka ============
+  if (await page.$('#approvals_code, input[name="approvals_code"]')) {
+    let passed = false;
+    for (let attempt = 1; attempt <= maxAttempts && !passed; attempt++) {
+      let code = null;
+
+      if (totpSecret) {
+        try {
+          code = await generateTotpCode(totpSecret);
+          console.log(`[TOTP-LOGIN] Wykryto monit 2FA! Wprowadzam wygenerowany kod: ${code}`);
+        } catch (e) {
+          console.error('[TOTP-LOGIN] Błąd generowania kodu TOTP:', e.message);
+        }
+      }
+
+      if (!code && manualCodeProvider) {
+        console.log(`[TOTP-LOGIN] Czekam na kod 2FA od użytkownika (próba ${attempt}/${maxAttempts})...`);
+        try {
+          code = await manualCodeProvider({ attempt, context: '2fa' });
+        } catch (e) {
+          console.error('[TOTP-LOGIN] Brak kodu od użytkownika:', e.message);
+        }
+      }
+
+      if (!code) break;
+      passed = await typeCodeAndSubmit(page, '#approvals_code, input[name="approvals_code"]', code);
+      if (!passed) {
+        console.log('[TOTP-LOGIN] Kod 2FA nie zostal zaakceptowany (błędny/przeterminowany).');
+      }
+    }
+
+    if (!passed) {
+      const err = new Error('Kod 2FA nie przeszedl: brak klucza TOTP, brak kodu od użytkownika albo kod odrzucony.');
       err.code = 'CHECKPOINT_MANUAL';
       throw err;
     }
-
-    console.log(`[TOTP-LOGIN] Wykryto monit 2FA! Generuje kod z klucza...`);
-    const token = await generateTotpCode(totpSecret);
-    console.log(`[TOTP-LOGIN] Wprowadzam wygenerowany kod 2FA: ${token}`);
-
-    await approvalsInput.type(token, { delay: 30 });
-    const submit = await page.$('#checkpointSubmitButton, [type="submit"]');
-    if (submit) {
-      await submit.click().catch(() => {});
-    }
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
-    await WAIT_MS(2000);
   }
 
   // 2) Checkpoint lokalizacyjny: "This is an unusual browser location — That was me / To bylem ja"
@@ -102,18 +148,47 @@ async function handlePostLoginCheckpoint(page, totpSecret) {
   });
 
   if (state.codeSent || state.hasUnfilledCodeInput) {
-    const err = new Error(
-      'Facebook wyslal kod weryfikacyjny na email/telefon konta — checkpoint trzeba odblokowac recznie ' +
-      '(przegl\u0105darka z proxy tego konta), a potem wkleic swiezy appstate przez panel.'
-    );
-    err.code = 'CHECKPOINT_MANUAL';
-    throw err;
+    const codeSelector = 'input[name*="code" i]';
+    const codeInput = await page.$(codeSelector);
+
+    if (codeInput && manualCodeProvider) {
+      // Czlowiek odczyta kod z emaila/telefonu konta i poda go botowi
+      let passed = false;
+      for (let attempt = 1; attempt <= maxAttempts && !passed; attempt++) {
+        console.log(`[TOTP-LOGIN] FB wyslal kod na email/telefon — czekam na kod od użytkownika (próba ${attempt}/${maxAttempts})...`);
+        let code;
+        try {
+          code = await manualCodeProvider({ attempt, context: 'email_code' });
+        } catch (e) {
+          console.error('[TOTP-LOGIN] Brak kodu od użytkownika:', e.message);
+          break;
+        }
+        if (!code) break;
+        passed = await typeCodeAndSubmit(page, codeSelector, code);
+        if (!passed) {
+          console.log('[TOTP-LOGIN] Kod z emaila/telefonu nie przeszedl — prosze o aktualny kod.');
+        }
+      }
+
+      if (!passed) {
+        const err = new Error('Kod z emaila/telefonu nie przeszedl weryfikacji (brak kodu, przeterminowany lub błędny).');
+        err.code = 'CHECKPOINT_MANUAL';
+        throw err;
+      }
+    } else {
+      const err = new Error(
+        'Facebook wyslal kod weryfikacyjny na email/telefon konta i nie ma podlaczonego dostawcy kodów ręcznych — ' +
+        'checkpoint trzeba odblokowac recznie (przegl\u0105darka z proxy tego konta), a potem wkleic swiezy appstate przez panel.'
+      );
+      err.code = 'CHECKPOINT_MANUAL';
+      throw err;
+    }
   }
 
   return true;
 }
 
-async function loginWithTotp(email, password, totpSecret = null, proxyUrl = null) {
+async function loginWithTotp(email, password, totpSecret = null, proxyUrl = null, options = {}) {
   const args = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
@@ -152,7 +227,7 @@ async function loginWithTotp(email, password, totpSecret = null, proxyUrl = null
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
 
     // 2FA + checkpoint lokalizacyjny w jednym miejscu
-    await handlePostLoginCheckpoint(page, totpSecret);
+    await handlePostLoginCheckpoint(page, totpSecret, options);
 
     // Wyciagnij ciasteczka sesyjne
     const cookies = await page.cookies();

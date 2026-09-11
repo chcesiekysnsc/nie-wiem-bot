@@ -12,11 +12,14 @@
  *   node multi_engine/onboard_account.js
  *
  * Przeplyw:
- *   1. Logowanie przegladarkowe (Puppeteer) — obsluguje kod 2FA z klucza TOTP
- *      i checkpoint lokalizacyjny "To bylem ja / That was me".
- *      Jesli FB zyla kod na email/telefon → skrypt zatrzyma sie z instrukcja
- *      (przejdź checkpoint recznie w przegladarce z tym samym IP, a potem
- *      wklej swiezy appstate przez panel: POST /api/accounts/:id/appstate).
+ *   1. Logowanie przegladarkowe (Puppeteer) — obsluguje kod 2FA z klucza TOTP,
+ *      checkpoint lokalizacyjny "To bylem ja / That was me" i — co wazne —
+ *      sciane "kod wyslany na email/telefon": skrypt sam prosi w konsoli o
+ *      6-cyfrowy kod (wklejasz go z maila/telefonu, on wpisuje go do FB).
+ *      Bez klucza TOTP skrypt tez prosi o kod 2FA w konsoli.
+ *      Jezeli i to nie przejdzie — odblokuj checkpoint recznie w przegladarce
+ *      z tym samym IP i wklej swiezy appstate przez panel
+ *      (POST /api/accounts/:id/appstate) albo ponow skrypt.
  *   2. Zapis konta w bazie klastra (appstate + dane logowania do przyszlego onboarding).
  *   3. Logowanie FCA + start nasluchiwania (realny AccountManager).
  *   4. TEST: napisz do tego konta w Messengerze (PV) komende !wersja
@@ -28,9 +31,24 @@
 
 require('dotenv').config();
 
+const { createInterface } = require('readline');
 const { initDatabase, addAccount } = require('./db');
 const accountManager = require('./account_manager');
 const { loginWithTotp, generateTotpCode } = require('./totp_login');
+
+// Konsolowy dostawca kodu "z reki": gdy przegladarka stoi na monicie 2FA
+// albo na "kodzie z emaila", skrypt sam prosi operatora i wpisuje kod.
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+const stdinCodeProvider = async (meta = {}) => {
+  const hint = meta && meta.context === 'email_code'
+    ? 'kod z emaila/telefonu konta'
+    : 'kod 2FA z aplikacji (Google Authenticator)';
+  return new Promise((resolve) => {
+    rl.question(`📲 [2FA] Wklej 6-cyfrowy ${hint}: `, (answer) => {
+      resolve(String(answer || '').trim());
+    });
+  });
+};
 
 (async () => {
   const email = process.env.EMAIL;
@@ -68,7 +86,10 @@ const { loginWithTotp, generateTotpCode } = require('./totp_login');
   console.log(`[ONBOARD] Uruchamiam przegladarke i loguje ${email} (proxy: ${proxyUrl || 'bezproxy'})...`);
   let appstate;
   try {
-    appstate = await loginWithTotp(email, password, totpSecret, proxyUrl);
+    appstate = await loginWithTotp(email, password, totpSecret, proxyUrl, {
+      manualCodeProvider: stdinCodeProvider,
+      maxCodeAttempts: 2
+    });
   } catch (err) {
     if (err && err.code === 'CHECKPOINT_MANUAL') {
       console.error('[ONBOARD] ❌ ' + err.message);

@@ -32,6 +32,7 @@ const {
 } = require('./db');
 const { loginWithTotp } = require('./totp_login');
 const { renderPayloadToText } = require('../utils/messenger');
+const manualCodeInbox = require('./manual_codes');
 
 // ============ Parametry logowania (mozna nadpisac env) ============
 const LOGIN_POLICY = {
@@ -42,6 +43,7 @@ const LOGIN_POLICY = {
   LOGIN_STAGGER_MAX_MS: parseInt(process.env.LOGIN_STAGGER_MAX_MS || '180000', 10),
   SCHEDULER_INTERVAL_MS: parseInt(process.env.SCHEDULER_INTERVAL_MS || '900000', 10), // 15 min
   PUPPETEER_RETRY_DELAY_MS: parseInt(process.env.PUPPETEER_RETRY_DELAY_MS || '15000', 10),
+  MANUAL_CODE_TIMEOUT_MS: parseInt(process.env.MANUAL_CODE_TIMEOUT_MS || '180000', 10), // 3 min na kod od czlowieka
   CHECKPOINT_RETRY_MS: parseInt(process.env.CHECKPOINT_RETRY_MS || '3600000', 10),  // 1h
   CHECKPOINT_MAX_PER_DAY: parseInt(process.env.CHECKPOINT_MAX_PER_DAY || '3', 10),
   PUPPETEER_FAIL_PAUSE_MS: parseInt(process.env.PUPPETEER_FAIL_PAUSE_MS || '1800000', 10), // 30 min
@@ -244,6 +246,19 @@ class AccountInstance {
     this._emit('onboarding',
       `Konto ${this.account.email} (id ${this.account.id}): logowanie przez przegladarke (Puppeteer, proxy konta)...`);
 
+    // Dostawca kodu "z reki": gdy przegladarka stoi na monicie 2FA / kodzie
+    // z emaila, logowanie czeka, a operator podaje kod w panelu
+    // (POST /api/accounts/:id/2fa-code) albo w konsoli.
+    const manualCodeProvider = async ({ attempt, context } = {}) => {
+      const kind = context === 'email_code' ? 'kod z emaila/telefonu konta' : 'kod 2FA z aplikacji';
+      this._emit('waiting_2fa_code',
+        `Konto ${this.account.email} (id ${this.account.id}): czekam na 6-cyfrowy ${kind} (próba ${attempt || 1}). Podaj go w panelu: POST /api/accounts/${this.account.id}/2fa-code`);
+      return manualCodeInbox.awaitManualCode(this.account.id, {
+        timeoutMs: LOGIN_POLICY.MANUAL_CODE_TIMEOUT_MS,
+        label: this.account.email
+      });
+    };
+
     return (async () => {
       let appstate;
       try {
@@ -251,7 +266,8 @@ class AccountInstance {
           this.account.email,
           this.account.password,
           this.account.totp_secret || null,
-          this.account.proxy_url || null
+          this.account.proxy_url || null,
+          { manualCodeProvider, maxCodeAttempts: 2 }
         );
       } catch (pErr) {
         const manual = pErr && pErr.code === 'CHECKPOINT_MANUAL';
@@ -695,6 +711,7 @@ class AccountManager {
         hasCredentials: inst.hasCredentials(),
         login_slot: inst.account.login_slot || null,
         last_login_at: inst.account.last_login_at || null,
+        waiting_2fa_code: manualCodeInbox.hasPending(inst.account.id),
         checkpoint_attempts_today: dayKeyOf(inst.account.checkpoint_day) === today
           ? (inst.account.checkpoint_attempts || 0)
           : 0
