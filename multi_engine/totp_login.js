@@ -1,20 +1,26 @@
 /**
- * Niezalezne, bezpieczne logowanie do Facebooka (Lokalny Chromium)
- * Nie wysyla hasel na zadne zewnetrzne serwery (w przeciwienstwie do minhdong.site / HTTP 530).
- * Obsluguje:
- * - Automatyczne zamykanie banerow cookies
- * - Logowanie z obsluga dynamicznych formularzy FB
- * - Generowanie i wprowadzanie kodow 2FA (zarowno klucz Secret jak i gotowy kod 6 cyfr)
- * - Obsluge monitu "Wyprobuj inny sposob" (gdy FB chce powiadomienia na telefon)
- * - Wykrywanie bledow (zle haslo, bledny email) i czytelny komunikat
+ * Automatyczne logowanie do Facebooka z obsługą 2FA (TOTP)
+ * Przetestowane i działające na koncie testowym.
+ * 
+ * Przepływ:
+ * 1. Otwórz facebook.com/login
+ * 2. Zamknij modal cookies (turecki/polski/angielski)
+ * 3. Wpisz email + hasło, kliknij submit
+ * 4. Kliknij "Spróbuj innej metody" (bo FB domyślnie chce powiadomienie na telefon)
+ * 5. Wybierz "Aplikacja uwierzytelniająca" (radio button)
+ * 6. Kliknij "Kontynuuj"
+ * 7. Wygeneruj kod TOTP z klucza Secret i wpisz go
+ * 8. Kliknij "Kontynuuj" żeby zatwierdzić kod
+ * 9. Kliknij "Kontynuuj" na stronie "Zapisz przeglądarkę"
+ * 10. Pobierz ciasteczka c_user, xs, datr, sb
  */
 
 const path = require('path');
 const puppeteer = require('puppeteer');
-const { authenticator } = require('otplib');
+const otplib = require('otplib');
 
 async function loginViaFacebookAPI(email, password, totpSecret = null, proxyUrl = null) {
-  console.log(`[AUTH] Bezpieczne logowanie dla ${email}...`);
+  console.log(`[AUTH] Logowanie dla ${email}...`);
 
   const args = [
     '--no-sandbox',
@@ -27,191 +33,223 @@ async function loginViaFacebookAPI(email, password, totpSecret = null, proxyUrl 
     '--disable-gpu',
     '--lang=pl-PL,pl,en-US,en'
   ];
+  if (proxyUrl) args.push(`--proxy-server=${proxyUrl}`);
 
-  if (proxyUrl) {
-    args.push(`--proxy-server=${proxyUrl}`);
-  }
-
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args
-  });
+  const browser = await puppeteer.launch({ headless: 'new', args });
 
   try {
     const page = await browser.newPage();
-
-    // Maskowanie automatyzacji przed Facebookiem
-    await page.evaluateOnNewDocument(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-      window.chrome = { runtime: {} };
-    });
-
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-    );
     await page.setViewport({ width: 1280, height: 800 });
 
-    console.log('[AUTH] Wchodze na facebook.com/login...');
+    // === KROK 1: Otwórz stronę logowania ===
+    console.log('[AUTH] Otwieram facebook.com/login...');
     await page.goto('https://www.facebook.com/login', { waitUntil: 'networkidle2', timeout: 35000 });
 
-    // 1. Poczekaj na zaladowanie okna cookies i zamknij je
-    console.log('[AUTH] Czekam na okno cookies...');
+    // === KROK 2: Zamknij modal cookies ===
+    console.log('[AUTH] Zamykam modal cookies...');
     await new Promise(r => setTimeout(r, 2500));
     try {
-      const dismissed = await page.evaluate(() => {
+      await page.evaluate(() => {
         const btns = Array.from(document.querySelectorAll('button, div[role="button"]'));
-        for (const b of btns) {
-          const t = (b.innerText || '').trim().toLowerCase();
-          if (t.includes('tüm çerezlere izin ver') || t.includes('zezwól na wszystkie') || t.includes('allow all') || t.includes('reddet') || t.includes('decline') || t.includes('odrzuć') || t.includes('akceptuj') || t.includes('accept') || t.includes('izin ver') || t.includes('zezwól')) {
-            b.click();
-            return t;
+        for (let i = btns.length - 1; i >= 0; i--) {
+          const t = (btns[i].innerText || '').trim().toLowerCase();
+          if (
+            t === 'tüm çerezlere izin ver' ||
+            t === 'isteğe bağlı çerezleri reddet' ||
+            t.includes('zezwól na wszystkie') ||
+            t.includes('odrzuć opcjonalne') ||
+            t.includes('allow all') ||
+            t.includes('decline optional') ||
+            t.includes('accept all') ||
+            t.includes('accept cookies')
+          ) {
+            btns[i].click();
+            return;
           }
         }
-        return null;
       });
-      if (dismissed) console.log(`[AUTH] Zamknieto okno cookies: ${dismissed}`);
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 2000));
     } catch (_) {}
 
-    // 2. Wpisz e-mail i haslo
-    const emailSelector = 'input[name="email"], #email, input[type="text"]';
-    const passSelector = 'input[name="pass"], #pass, input[type="password"]';
+    // === KROK 3: Wpisz dane i wyślij formularz ===
+    console.log('[AUTH] Wpisuję dane logowania...');
+    await page.waitForSelector('input[name="email"]', { timeout: 15000 });
+    await page.type('input[name="email"]', email, { delay: 25 });
+    await page.type('input[name="pass"]', password, { delay: 25 });
 
-    await page.waitForSelector(emailSelector, { timeout: 15000 });
-    await page.type(emailSelector, email, { delay: 25 });
-    await page.type(passSelector, password, { delay: 25 });
-
-    // 3. Kliknij przycisk zatwierdzenia
-    console.log('[AUTH] Wysylam formularz logowania...');
+    console.log('[AUTH] Wysyłam formularz logowania...');
     await page.evaluate(() => {
-      const btn = document.querySelector('input[type="submit"], button[name="login"], button[type="submit"], #loginbutton, [data-testid="royal_login_button"]');
-      if (btn) {
-        btn.click();
-        return;
-      }
-      const allBtns = Array.from(document.querySelectorAll('[role="button"]'));
-      for (const b of allBtns) {
-        const t = (b.innerText || '').toLowerCase();
-        if (t.includes('zaloguj') || t.includes('log in') || t.includes('giriş')) {
-          b.click();
-          return;
-        }
-      }
-      // Fallback: submit formularza
-      const form = document.querySelector('form');
-      if (form) form.submit();
+      const btn = document.querySelector('input[type="submit"], button[name="login"], button[type="submit"], #loginbutton');
+      if (btn) btn.click();
     });
 
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 35000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 4000));
 
-    const currentUrl = page.url();
-    console.log(`[AUTH] URL po wyslaniu: ${currentUrl}`);
+    const urlAfterLogin = page.url();
+    console.log(`[AUTH] URL po logowaniu: ${urlAfterLogin}`);
 
-    // Sprawdz czy Facebook wyrzucil blad hasla / konta
-    const pageError = await page.evaluate(() => {
-      // 1. Alert boxy i kontenery błędów
-      const errorDivs = document.querySelectorAll('div[role="alert"], #error_box, ._4rbf, ._9ay7, .uiContextualLayer');
+    // Sprawdź czy Facebook pokazał błąd (złe hasło / nieznany email)
+    const loginError = await page.evaluate(() => {
+      const errorDivs = document.querySelectorAll('div[role="alert"], #error_box, ._4rbf, ._9ay7');
       for (const ed of errorDivs) {
         const txt = (ed.innerText || '').trim();
         if (txt) return txt;
       }
-      // 2. Tekst pod polami wejściowymi
-      const inputs = document.querySelectorAll('input[name="email"], input[name="pass"]');
-      for (const inp of inputs) {
-        const p = inp.closest('div')?.parentElement;
-        if (p) {
-          const errs = p.querySelectorAll('div[id*="error"], span, div');
-          for (const el of errs) {
-            const txt = (el.innerText || '').trim();
-            if (txt && (txt.includes('nieprawidłow') || txt.includes('błędn') || txt.includes('nie jest') || txt.includes('girdiğin') || txt.includes('şifre') || txt.includes('incorrect') || txt.includes('wrong') || txt.includes('not connected'))) {
-              return txt;
-            }
-          }
-        }
+      // Sprawdź też tekst pod polami
+      const bodyText = document.body.innerText.toLowerCase();
+      if (bodyText.includes('girdiğin e-posta') || bodyText.includes('nieprawidłow') || bodyText.includes('incorrect password') || bodyText.includes('wrong credentials')) {
+        return document.body.innerText.slice(0, 300);
       }
       return null;
     });
 
-    if (pageError) {
-      throw new Error(`Facebook odrzucil logowanie: ${pageError}`);
+    if (loginError && !urlAfterLogin.includes('two_step_verification') && !urlAfterLogin.includes('two_factor') && !urlAfterLogin.includes('checkpoint')) {
+      throw new Error(`Facebook odrzucił logowanie: ${loginError.slice(0, 200)}`);
     }
 
-    // 4. Obsluga 2FA / Weryfikacji dwuetapowej
-    // Jesli FB pokazuje "Powiadomienie na telefon", kliknij "Wyprobuj inny sposob"
-    try {
-      await page.evaluate(() => {
-        const links = Array.from(document.querySelectorAll('a, [role="button"], span'));
-        for (const l of links) {
-          const t = (l.innerText || '').toLowerCase();
-          if (t.includes('inny sposób') || t.includes('another way') || t.includes('inna metoda')) {
-            l.click();
-            break;
-          }
+    // === KROK 4-8: Obsługa 2FA jeśli wymagane ===
+    if (urlAfterLogin.includes('two_step_verification') || urlAfterLogin.includes('two_factor') || urlAfterLogin.includes('checkpoint')) {
+      console.log('[AUTH] Wykryto weryfikację dwuskładnikową (2FA)...');
+
+      if (!totpSecret) {
+        throw new Error('Konto wymaga 2FA, ale nie podano klucza Secret Key ani kodu 6-cyfrowego!');
+      }
+
+      // KROK 4: Kliknij "Spróbuj innej metody"
+      console.log('[AUTH] Szukam przycisku "Spróbuj innej metody"...');
+      await new Promise(r => setTimeout(r, 3000));
+
+      let clickedOther = false;
+      const allElements = await page.$$('div[role="button"], button, a');
+      for (const el of allElements) {
+        const text = await el.evaluate(e => (e.innerText || '').trim());
+        if (text.includes('innej metody') || text.includes('another way') || text.includes('başka')) {
+          console.log(`[AUTH] Znaleziono przycisk: "${text}" - klikam natywnie...`);
+          await el.click();
+          clickedOther = true;
+          break;
         }
-      });
+      }
+
+      if (!clickedOther) {
+        console.log('[AUTH] Nie znaleziono przycisku, próbuję kliknąć po koordynatach...');
+        // Kliknij w obszar gdzie powinien być przycisk (dolna część strony)
+        await page.mouse.click(640, 580);
+      }
+
+      // Poczekaj na pojawienie się modala
+      console.log('[AUTH] Czekam na modal z opcjami 2FA...');
+      await new Promise(r => setTimeout(r, 3000));
+
+      // Sprawdź czy modal się pojawił (radio buttony)
+      const hasRadios = await page.$('input[type="radio"]');
+      if (!hasRadios) {
+        // Może strona się przeładowała i od razu pokazała pole na kod?
+        const directInput = await page.$('input[type="text"], input[type="number"]');
+        if (directInput) {
+          console.log('[AUTH] Znaleziono bezpośrednie pole na kod 2FA (bez modala)');
+        } else {
+          // Zrób screenshot i spróbuj jeszcze raz
+          await page.screenshot({ path: path.join(__dirname, '..', 'data', 'before_modal.png') });
+          console.log('[AUTH] ⚠️ Modal nie pojawił się. Zrzut: data/before_modal.png. Próbuję ponownie...');
+          // Jeszcze jedna próba kliknięcia
+          await page.evaluate(() => {
+            const all = Array.from(document.querySelectorAll('*'));
+            for (const el of all) {
+              const t = (el.innerText || '').trim();
+              if (t === 'Spróbuj innej metody' || t === 'Try another way') {
+                el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                return;
+              }
+            }
+          });
+          await new Promise(r => setTimeout(r, 3000));
+        }
+      }
+
+      // KROK 5: Wybierz "Aplikacja uwierzytelniająca"
+      const radios = await page.$$('input[type="radio"]');
+      if (radios.length >= 3) {
+        console.log(`[AUTH] Znaleziono ${radios.length} opcji 2FA. Klikam 3. (Aplikacja)...`);
+        // Kliknij label zawierający 3. radio button (bardziej niezawodne niż sam input)
+        await radios[2].evaluate(el => {
+          const label = el.closest('label');
+          if (label) label.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+          el.checked = true;
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          el.click();
+        });
+      } else if (radios.length > 0) {
+        console.log(`[AUTH] Tylko ${radios.length} opcji - klikam ostatnią...`);
+        await radios[radios.length - 1].click();
+      }
       await new Promise(r => setTimeout(r, 1500));
 
-      // Wybierz aplikacje uwierzytelniajaca jesli jest lista
+      // KROK 6: Kliknij "Kontynuuj"
+      console.log('[AUTH] Klikam "Kontynuuj"...');
+      const modalBtns = await page.$$('div[role="button"], button');
+      for (const btn of modalBtns) {
+        const btnText = await btn.evaluate(e => (e.innerText || '').trim().toLowerCase());
+        if (btnText === 'kontynuuj' || btnText === 'continue' || btnText === 'devam et') {
+          await btn.click();
+          console.log('[AUTH] Kliknięto "Kontynuuj"');
+          break;
+        }
+      }
+      await new Promise(r => setTimeout(r, 4000));
+
+      // KROK 7: Wygeneruj kod TOTP i wpisz go
+      const cleanSecret = totpSecret.replace(/\s+/g, '').toUpperCase();
+      let codeToType = '';
+      if (/^\d{6}$/.test(cleanSecret)) {
+        // Użytkownik podał gotowy 6-cyfrowy kod
+        codeToType = cleanSecret;
+        console.log(`[AUTH] Użyto podanego kodu 2FA: ${codeToType}`);
+      } else {
+        // Wygeneruj kod z klucza TOTP Secret
+        codeToType = otplib.generateSync({ secret: cleanSecret });
+        console.log(`[AUTH] Wygenerowano kod TOTP: ${codeToType}`);
+      }
+
+      // Szukaj pola na kod (input z id _r_b_ lub input[type=text])
+      const codeInput = await page.waitForSelector('input#_r_b_, input[type="text"], input[type="number"], input[name*="code"], input[autocomplete="one-time-code"]', { timeout: 15000 });
+      await codeInput.type(codeToType, { delay: 35 });
+
+      // KROK 8: Kliknij "Kontynuuj" żeby zatwierdzić kod
+      console.log('[AUTH] Zatwierdzam kod 2FA...');
       await page.evaluate(() => {
-        const items = Array.from(document.querySelectorAll('label, div[role="radio"], [role="button"]'));
-        for (const it of items) {
-          const t = (it.innerText || '').toLowerCase();
-          if (t.includes('aplikacja uwierzytelniająca') || t.includes('authentication app')) {
-            it.click();
+        const btns = Array.from(document.querySelectorAll('div[role="button"], button'));
+        for (const b of btns) {
+          const t = (b.innerText || '').trim().toLowerCase();
+          if (t === 'kontynuuj' || t === 'continue' || t === 'devam et' || t.includes('zatwierdź') || t.includes('submit')) {
+            b.click();
             break;
           }
         }
       });
-      await new Promise(r => setTimeout(r, 1000));
+
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 35000 }).catch(() => {});
+      await new Promise(r => setTimeout(r, 4000));
+      console.log(`[AUTH] URL po 2FA: ${page.url()}`);
+    }
+
+    // === KROK 9: Kliknij przez "Zapisz przeglądarkę" / "Remember browser" ===
+    try {
+      await page.evaluate(() => {
+        const btns = Array.from(document.querySelectorAll('div[role="button"], button'));
+        for (const b of btns) {
+          const t = (b.innerText || '').trim().toLowerCase();
+          if (t === 'kontynuuj' || t === 'continue' || t === 'devam et' || t.includes('zapisz') || t.includes('save') || t.includes('nie teraz') || t.includes('not now')) {
+            b.click();
+            break;
+          }
+        }
+      });
+      await new Promise(r => setTimeout(r, 3000));
     } catch (_) {}
 
-    // Szukaj pola na kod 2FA
-    const twoFaSelector = 'input[name="approvals_code"], input[autocomplete="one-time-code"], input[type="number"], input[name="code"], #approvals_code';
-    let approvalsInput = await page.$(twoFaSelector);
-    if (!approvalsInput) {
-      approvalsInput = await page.waitForSelector(twoFaSelector, { timeout: 5000 }).catch(() => null);
-    }
-
-    if (approvalsInput) {
-      if (!totpSecret) {
-        throw new Error('Konto ma wlaczone 2FA, ale nie wpisano klucza Secret ani kodu w formularzu!');
-      }
-
-      let codeToType = '';
-      const cleanSecret = totpSecret.replace(/\s+/g, '');
-      if (/^\d{6}$/.test(cleanSecret)) {
-        // Uzytkownik wpisal bezposrednio aktualny 6-cyfrowy kod
-        codeToType = cleanSecret;
-        console.log(`[AUTH] Uzywam podanego kodu 2FA: ${codeToType}`);
-      } else {
-        // Uzytkownik podal klucz TOTP Secret Key -> generujemy kod
-        codeToType = authenticator.generate(cleanSecret.toUpperCase());
-        console.log(`[AUTH] Wygenerowano kod z klucza TOTP: ${codeToType}`);
-      }
-
-      await approvalsInput.type(codeToType, { delay: 40 });
-
-      // Zatwierdz kod 2FA
-      await page.evaluate(() => {
-        const btn = document.querySelector('#checkpointSubmitButton, button[type="submit"], [role="button"]');
-        if (btn) btn.click();
-      });
-
-      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
-      await new Promise(r => setTimeout(r, 2500));
-
-      // Kliknij "Zapisz przegladarke" / "Kontynuuj" jesli sie pojawi
-      try {
-        await page.evaluate(() => {
-          const btn = document.querySelector('#checkpointSubmitButton, button[type="submit"], [role="button"]');
-          if (btn) btn.click();
-        });
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {});
-      } catch (_) {}
-    }
-
-    // 5. Pobierz ciasteczka sesyjne
+    // === KROK 10: Pobierz ciasteczka ===
     const cookies = await page.cookies();
     const appstate = cookies
       .filter(c => ['c_user', 'xs', 'fr', 'datr', 'sb'].includes(c.name))
@@ -225,18 +263,17 @@ async function loginViaFacebookAPI(email, password, totpSecret = null, proxyUrl 
         lastAccessed: new Date().toISOString()
       }));
 
-    const hasCUser = appstate.some(c => c.key === 'c_user');
-    const hasXs = appstate.some(c => c.key === 'xs');
+    const cUser = appstate.find(c => c.key === 'c_user');
+    const xs = appstate.find(c => c.key === 'xs');
 
-    if (!hasCUser || !hasXs) {
+    if (!cUser || !xs) {
       const debugPath = path.join(__dirname, '..', 'data', 'login_debug.png');
       await page.screenshot({ path: debugPath }).catch(() => {});
-      console.error(`[AUTH] 📸 Zapisano podglad bledu do ${debugPath}`);
-      throw new Error(`Nie udalo sie pobrac ciasteczek sesji (c_user/xs). Sprawdz dane lub zrzut w data/login_debug.png`);
+      console.error(`[AUTH] 📸 Zrzut ekranu zapisany do ${debugPath}`);
+      throw new Error('Logowanie nie powiodło się — brak ciasteczek c_user/xs. Sprawdź zrzut w data/login_debug.png');
     }
 
-    const cUserVal = appstate.find(c => c.key === 'c_user')?.value;
-    console.log(`[AUTH] ✅ Sukces! Pobrane ciasteczka dla FB UID: ${cUserVal}`);
+    console.log(`[AUTH] ✅ Zalogowano! UID: ${cUser.value}, ciasteczek: ${appstate.length}`);
     return appstate;
   } finally {
     await browser.close().catch(() => {});

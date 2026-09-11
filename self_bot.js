@@ -59,7 +59,10 @@ process.on('unhandledRejection', (reason, promise) => {
     'addUserToGroup',
     'Invalid response data',
     'Not logged in',
-    'Request failed'
+    'Request failed',
+    'Sorry, something went wrong',
+    'error 1357004',
+    'Unexpected response type'
   ];
   const isNonFatal = nonFatalPatterns.some(p => errMsg.includes(p) || errStr.includes(p));
   if (isNonFatal) {
