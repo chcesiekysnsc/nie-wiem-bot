@@ -11,7 +11,7 @@ console.log('=== MOCK WERYFIKACJA CEREBRAS INTEGRACJI (offline) ===\n');
 const cerebrasKey = process.env.CEREBRAS_API_KEY;
 const cerebrasModel = process.env.CEREBRAS_MODEL;
 console.log(`1. .env CEREBRAS_API_KEY: ${cerebrasKey ? cerebrasKey.slice(0,8)+'...'+cerebrasKey.slice(-4)+' ✅' : 'BRAK ❌'}`);
-console.log(`   .env CEREBRAS_MODEL: ${cerebrasModel || '(default qwen-3-32b)'}`);
+console.log(`   .env CEREBRAS_MODEL: ${cerebrasModel || '(default qwen-3.8-27b)'}`);
 if (!cerebrasKey) {
   console.log('   ⚠️  Brak klucza! Ustaw CEREBRAS_API_KEY=csk-... w .env');
 } else if (!cerebrasKey.startsWith('csk-')) {
@@ -23,19 +23,16 @@ if (!cerebrasKey) {
 // 2. Sprawdź normalizację modelu
 function normalizeCerebrasModel(raw) {
   const m = String(raw || '').trim();
-  if (!m) return 'qwen-3-32b';
-  if (m === 'qwen-3.8-27b' || m === 'qwen/qwen3.8-27b' || m === 'qwen/qwen3-32b') return 'qwen-3-32b';
-  if (m.includes('/')) return m.split('/').pop().replace('qwen3-', 'qwen-3-').replace('qwen3', 'qwen-3');
+  if (!m) return 'qwen-3.8-27b';
   return m;
 }
 const tests = [
-  ['qwen-3.8-27b', 'qwen-3-32b'],
-  ['qwen/qwen3.8-27b', 'qwen-3-32b'],
-  ['qwen/qwen3-32b', 'qwen-3-32b'],
+  ['qwen-3.8-27b', 'qwen-3.8-27b'],
   ['qwen-3-32b', 'qwen-3-32b'],
   ['llama-3.3-70b', 'llama-3.3-70b'],
+  ['gpt-oss-120b', 'gpt-oss-120b'],
 ];
-console.log('\n2. Normalizacja modelu (literówka qwen-3.8-27b -> qwen-3-32b):');
+console.log('\n2. Normalizacja modelu (powinien zachować qwen-3.8-27b bez zmian):');
 let normOk = true;
 for (const [input, expected] of tests) {
   const out = normalizeCerebrasModel(input);
@@ -51,20 +48,17 @@ const files = ['commands/analiza.js', 'commands/ai.js', 'apka/server.js'];
 for (const f of files) {
   try {
     require('fs').readFileSync(path.join(__dirname, '..', f), 'utf8');
-    // spróbuj załadować moduł bez uruchamiania (sprawdź syntax)
     require('child_process').execSync(`node -c ${path.join(__dirname, '..', f)}`, {stdio:'pipe'});
     const content = require('fs').readFileSync(path.join(__dirname, '..', f), 'utf8');
     const hasCerebras = content.includes('askCerebras') && content.includes('api.cerebras.ai');
     const hasNormalize = content.includes('normalizeCerebrasModel');
-    const hasModelFix = content.includes('qwen-3-32b');
-    // Stary błędny model powinien występować TYLKO w funkcji normalize jako mapowanie literówki, nie jako hardcoded model w axios.post
-    const hasOldModelAsDefault = content.includes("model: 'qwen/qwen3.8-27b'") || content.includes('model: "qwen/qwen3.8-27b"') || content.includes("model: 'qwen-3.8-27b'") || content.includes('model: "qwen-3.8-27b"');
-    const hasNormalizationMapping = content.includes("'qwen-3.8-27b'") && content.includes('normalizeCerebrasModel');
+    const hasModelFix = content.includes('qwen-3.8-27b');
+    const hasOldModelAsDefault = content.includes("model: 'qwen/qwen3.8-27b'") || content.includes('model: "qwen/qwen3.8-27b"');
     console.log(`   ${hasCerebras && hasNormalize && hasModelFix && !hasOldModelAsDefault ? '✅' : '⚠️ '} ${f}`);
     console.log(`      - askCerebras + cerebras.ai: ${hasCerebras ? 'TAK' : 'BRAK'}`);
     console.log(`      - normalizacja modelu: ${hasNormalize ? 'TAK' : 'BRAK'}`);
-    console.log(`      - brak starego błędnego modelu jako default: ${!hasOldModelAsDefault ? 'TAK ✅' : 'NIE ❌ (został hardcoded stary model!)'}`);
-    if (hasNormalizationMapping) console.log(`      - mapowanie literówki qwen-3.8-27b -> qwen-3-32b: TAK (poprawne)`);
+    console.log(`      - model qwen-3.8-27b obecny: ${hasModelFix ? 'TAK ✅' : 'NIE ❌'}`);
+    console.log(`      - brak starego błędnego modelu: ${!hasOldModelAsDefault ? 'TAK ✅' : 'NIE ❌'}`);
   } catch (e) {
     console.log(`   ❌ ${f}: ${e.message}`);
   }
@@ -78,17 +72,13 @@ try {
   let captured = null;
   axios.post = async (url, data, config) => {
     captured = { url, data, headers: config.headers };
-    // zwróć fake odpowiedź
     return { data: { choices: [{ message: { content: 'Mock: Paryż jest stolicą Francji.' } }], usage: { total_tokens: 42 } }, status: 200 };
   };
 
-  // Załaduj funkcje z analiza.js poprzez dynamiczne require (musimy je wyeksportować)
-  // Zamiast importować, przetestuj bezpośrednio logikę tworząc mini-funkcję jak w kodzie
   const testKey = cerebrasKey || 'csk-test';
   const testPrompt = 'Test prompt';
-  const expectedModel = normalizeCerebrasModel(cerebrasModel || 'qwen-3-32b');
+  const expectedModel = normalizeCerebrasModel(cerebrasModel || 'qwen-3.8-27b');
 
-  // Symuluj askCerebras
   async function mockAskCerebras(apiKey, promptText) {
     const model = expectedModel;
     const response = await axios.post(

@@ -127,23 +127,18 @@ function needsChatContext(question) {
 
 function normalizeCerebrasModel(raw) {
   const m = String(raw || '').trim();
-  if (!m) return 'qwen-3-32b';
-  if (m === 'qwen-3.8-27b' || m === 'qwen/qwen3.8-27b' || m === 'qwen/qwen3-32b') return 'qwen-3-32b';
-  if (m.includes('/')) return m.split('/').pop().replace('qwen3-', 'qwen-3-').replace('qwen3', 'qwen-3');
+  if (!m) return 'qwen-3.8-27b';
   return m;
 }
 
 function normalizeGroqModel(raw) {
   const m = String(raw || '').trim();
   if (!m) return 'qwen/qwen3-32b';
-  if (m === 'qwen-3.8-27b') return 'qwen/qwen3-32b';
-  if (m === 'qwen-3-32b') return 'qwen/qwen3-32b';
-  if (!m.includes('/')) return `qwen/${m.replace('qwen-3-', 'qwen3-')}`;
   return m;
 }
 
 function getCerebrasModel() {
-  return normalizeCerebrasModel(process.env.CEREBRAS_MODEL || 'qwen-3-32b');
+  return normalizeCerebrasModel(process.env.CEREBRAS_MODEL || 'qwen-3.8-27b');
 }
 
 function getGroqModel() {

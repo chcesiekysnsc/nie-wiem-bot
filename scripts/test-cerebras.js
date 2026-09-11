@@ -9,13 +9,11 @@ require('dotenv').config();
 const axios = require('axios');
 
 const key = process.env.CEREBRAS_API_KEY || 'csk-xxx_REPLACE_WITH_YOUR_KEY';
-const modelRaw = process.env.CEREBRAS_MODEL || 'qwen-3-32b';
+const modelRaw = process.env.CEREBRAS_MODEL || 'qwen-3.8-27b';
 
 function normalizeCerebrasModel(raw) {
   const m = String(raw || '').trim();
-  if (!m) return 'qwen-3-32b';
-  if (m === 'qwen-3.8-27b' || m === 'qwen/qwen3.8-27b' || m === 'qwen/qwen3-32b') return 'qwen-3-32b';
-  if (m.includes('/')) return m.split('/').pop().replace('qwen3-', 'qwen-3-').replace('qwen3', 'qwen-3');
+  if (!m) return 'qwen-3.8-27b';
   return m;
 }
 const model = normalizeCerebrasModel(modelRaw);
@@ -30,10 +28,10 @@ console.log('');
 
 async function testModels() {
   // Lista modeli do przetestowania (Cerebras oficjalnie wspiera):
-  // qwen-3-32b, qwen-3-235b-a22b-instruct-2507, llama-3.3-70b, llama3.1-8b, gpt-oss-120b
+  // qwen-3.8-27b, qwen-3-235b-a22b-instruct-2507, llama-3.3-70b, llama3.1-8b, gpt-oss-120b
   const modelsToTest = [
     model, // ten z .env (priorytet)
-    'qwen-3-32b',
+    'qwen-3.8-27b',
     'qwen-3-235b-a22b-instruct-2507',
     'llama-3.3-70b',
     'llama3.1-8b',
@@ -115,6 +113,6 @@ async function testModels() {
 testModels().then(() => {
   console.log('\n--- Sprawdzenie .env ---');
   console.log(`CEREBRAS_API_KEY w .env: ${process.env.CEREBRAS_API_KEY ? 'TAK ✅' : 'BRAK ❌'}`);
-  console.log(`CEREBRAS_MODEL w .env: ${process.env.CEREBRAS_MODEL || '(brak, użyje qwen-3-32b)'}`);
+  console.log(`CEREBRAS_MODEL w .env: ${process.env.CEREBRAS_MODEL || '(brak, użyje qwen-3.8-27b)'}`);
   console.log(`GROQ_API_KEY w .env: ${process.env.GROQ_API_KEY ? 'TAK (fallback)' : 'BRAK (tylko Cerebras)'}`);
 });
