@@ -913,14 +913,45 @@ app.post('/api/permissions/:id', async (req, res) => {
 });
 
 // ===== PODECZANI / AI ANALIZA =====
+function normalizeCerebrasModel(raw) {
+  const m = String(raw || '').trim();
+  if (!m) return 'qwen-3.8-27b';
+  return m;
+}
+function normalizeGroqModel(raw) {
+  const m = String(raw || '').trim();
+  if (!m) return 'qwen/qwen3-32b';
+  return m;
+}
+function getCerebrasModel() { return normalizeCerebrasModel(process.env.CEREBRAS_MODEL || 'qwen-3.8-27b'); }
+function getGroqModel() { return normalizeGroqModel(process.env.GROQ_MODEL || process.env.GROQ_API_MODEL || 'qwen/qwen3-32b'); }
+
+function getCerebrasKeys() {
+  const keys = [];
+  if (process.env.CEREBRAS_API_KEY) {
+    if (process.env.CEREBRAS_API_KEY.includes(',')) keys.push(...process.env.CEREBRAS_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
+    else keys.push(process.env.CEREBRAS_API_KEY.trim());
+  }
+  for (let i = 2; i <= 12; i++) {
+    const val = process.env[`CEREBRAS_API_KEY_${i}`] || process.env[`CEREBRAS_API_KEY${i}`];
+    if (val) keys.push(val.trim());
+  }
+  try {
+    const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
+    if (Array.isArray(aiConfig.CEREBRAS_API_KEYS)) keys.push(...aiConfig.CEREBRAS_API_KEYS.map(k => k.trim()));
+    if (aiConfig.CEREBRAS_API_KEY) keys.push(aiConfig.CEREBRAS_API_KEY.trim());
+    if (Array.isArray(aiConfig.GROQ_API_KEYS)) for (const k of aiConfig.GROQ_API_KEYS) if (String(k).startsWith('csk-')) keys.push(k.trim());
+  } catch (_) {}
+  const unique = [...new Set(keys)].filter(Boolean);
+  if (unique.length > 0) console.log(`[AI-PANEL] Załadowano ${unique.length} kluczy Cerebras (model: ${getCerebrasModel()})`);
+  return unique;
+}
+
 function getGroqApiKeys() {
   const keys = [];
   if (process.env.GROQ_API_KEY) {
-    if (process.env.GROQ_API_KEY.includes(',')) {
-      keys.push(...process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
-    } else {
-      keys.push(process.env.GROQ_API_KEY.trim());
-    }
+    if (process.env.GROQ_API_KEY.includes(',')) keys.push(...process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
+    else keys.push(process.env.GROQ_API_KEY.trim());
   }
   for (let i = 2; i <= 12; i++) {
     const val = process.env[`GROQ_API_KEY_${i}`];
@@ -931,25 +962,29 @@ function getGroqApiKeys() {
     if (Array.isArray(aiConfig.GROQ_API_KEYS)) keys.push(...aiConfig.GROQ_API_KEYS.map(k => k.trim()));
     if (aiConfig.GROQ_API_KEY) keys.push(aiConfig.GROQ_API_KEY.trim());
   } catch (_) {}
-  return [...new Set(keys)].filter(Boolean);
+  const unique = [...new Set(keys)].filter(Boolean);
+  if (unique.length > 0) console.log(`[AI-PANEL] Załadowano ${unique.length} kluczy Groq (model: ${getGroqModel()})`);
+  return unique;
+}
+
+async function askCerebras(apiKey, promptText) {
+  const model = getCerebrasModel();
+  const response = await axios.post(
+    'https://api.cerebras.ai/v1/chat/completions',
+    { model, messages: [{ role: 'user', content: promptText }], max_tokens: 8192, temperature: 0.7, stream: false },
+    { headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, timeout: 240000 }
+  );
+  const replyText = response.data?.choices?.[0]?.message?.content;
+  if (!replyText) throw new Error('Pusta odpowiedź z API Cerebras.');
+  return replyText;
 }
 
 async function askGroq(apiKey, promptText) {
+  const model = getGroqModel();
   const response = await axios.post(
     'https://api.groq.com/openai/v1/chat/completions',
-    {
-      model: 'qwen/qwen3.8-27b',
-      messages: [{ role: 'user', content: promptText }],
-      max_tokens: 8192,
-      temperature: 0.7
-    },
-    {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 240000
-    }
+    { model, messages: [{ role: 'user', content: promptText }], max_tokens: 8192, temperature: 0.7 },
+    { headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, timeout: 240000 }
   );
   const replyText = response.data?.choices?.[0]?.message?.content;
   if (!replyText) throw new Error('Pusta odpowiedź z API Groq.');
@@ -957,23 +992,45 @@ async function askGroq(apiKey, promptText) {
 }
 
 async function askGeminiWithFallback(promptText) {
-  const keys = getGroqApiKeys();
-  if (keys.length === 0) throw new Error('Brak skonfigurowanych kluczy Groq API!');
-  const startIndex = Math.floor(Math.random() * keys.length);
-  let lastError = null;
-  for (let attempt = 0; attempt < keys.length; attempt++) {
-    const idx = (startIndex + attempt) % keys.length;
-    try {
-      return await askGroq(keys[idx], promptText);
-    } catch (err) {
-      const status = err.response?.status;
-      const errorMsg = err.response?.data?.error?.message || err.message;
-      console.warn(`[AI-PANEL] Błąd klucza ${idx + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
-      if (attempt < keys.length - 1) continue;
-      lastError = err;
+  const cerebrasKeys = getCerebrasKeys();
+  const groqKeys = getGroqApiKeys();
+  if (cerebrasKeys.length === 0 && groqKeys.length === 0) throw new Error('Brak skonfigurowanych kluczy AI! Ustaw CEREBRAS_API_KEY lub GROQ_API_KEY w .env');
+
+  if (cerebrasKeys.length > 0) {
+    const startIndex = Math.floor(Math.random() * cerebrasKeys.length);
+    let lastError = null;
+    for (let attempt = 0; attempt < cerebrasKeys.length; attempt++) {
+      const idx = (startIndex + attempt) % cerebrasKeys.length;
+      try {
+        console.log(`[AI-PANEL] Próba Cerebras ${idx + 1}/${cerebrasKeys.length} model=${getCerebrasModel()}`);
+        return await askCerebras(cerebrasKeys[idx], promptText);
+      } catch (err) {
+        const status = err.response?.status;
+        const errorMsg = err.response?.data?.error?.message || err.response?.data?.message || err.message;
+        console.warn(`[AI-PANEL-Cerebras] Błąd klucza ${idx + 1}/${cerebrasKeys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
+        lastError = err;
+      }
     }
+    if (groqKeys.length > 0) console.warn(`[AI-PANEL] Cerebras zawiódł, fallback na Groq...`);
+    else throw lastError;
   }
-  throw lastError;
+
+  if (groqKeys.length > 0) {
+    const startIndex = Math.floor(Math.random() * groqKeys.length);
+    let lastError = null;
+    for (let attempt = 0; attempt < groqKeys.length; attempt++) {
+      const idx = (startIndex + attempt) % groqKeys.length;
+      try { return await askGroq(groqKeys[idx], promptText); } catch (err) {
+        const status = err.response?.status;
+        const errorMsg = err.response?.data?.error?.message || err.message;
+        console.warn(`[AI-PANEL-Groq] Błąd klucza ${idx + 1}/${groqKeys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
+        if (attempt < groqKeys.length - 1) continue;
+        lastError = err;
+      }
+    }
+    throw lastError;
+  }
+  throw new Error('Brak działających kluczy API.');
 }
 
 app.post('/api/suspects/:id/analyze', async (req, res) => {

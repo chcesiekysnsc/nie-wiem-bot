@@ -163,9 +163,55 @@ function needsChatContext(question) {
   return chatKeywords.some(keyword => q.includes(keyword));
 }
 
-function getApiKeys() {
-  const keys = [];
+function normalizeCerebrasModel(raw) {
+  const m = String(raw || '').trim();
+  if (!m) return 'qwen-3.8-27b';
+  return m;
+}
 
+function normalizeGroqModel(raw) {
+  const m = String(raw || '').trim();
+  if (!m) return 'qwen/qwen3-32b';
+  return m;
+}
+
+function getCerebrasModel() {
+  return normalizeCerebrasModel(process.env.CEREBRAS_MODEL || 'qwen-3.8-27b');
+}
+
+function getGroqModel() {
+  return normalizeGroqModel(process.env.GROQ_MODEL || process.env.GROQ_API_MODEL || 'qwen/qwen3-32b');
+}
+
+function getCerebrasKeys() {
+  const keys = [];
+  if (process.env.CEREBRAS_API_KEY) {
+    if (process.env.CEREBRAS_API_KEY.includes(',')) {
+      keys.push(...process.env.CEREBRAS_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
+    } else {
+      keys.push(process.env.CEREBRAS_API_KEY.trim());
+    }
+  }
+  for (let i = 2; i <= 12; i++) {
+    const val = process.env[`CEREBRAS_API_KEY_${i}`] || process.env[`CEREBRAS_API_KEY${i}`];
+    if (val) keys.push(val.trim());
+  }
+  try {
+    const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
+    if (Array.isArray(aiConfig.CEREBRAS_API_KEYS)) keys.push(...aiConfig.CEREBRAS_API_KEYS.map(k => k.trim()));
+    if (aiConfig.CEREBRAS_API_KEY) keys.push(aiConfig.CEREBRAS_API_KEY.trim());
+    // legacy: allow GROQ key as cerebras fallback if starts with csk-
+    if (Array.isArray(aiConfig.GROQ_API_KEYS)) {
+      for (const k of aiConfig.GROQ_API_KEYS) if (String(k).startsWith('csk-')) keys.push(k.trim());
+    }
+  } catch (_) {}
+  const uniqueKeys = [...new Set(keys)].filter(Boolean);
+  if (uniqueKeys.length > 0) console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Cerebras (model: ${getCerebrasModel()}).`);
+  return uniqueKeys;
+}
+
+function getGroqKeys() {
+  const keys = [];
   if (process.env.GROQ_API_KEY) {
     if (process.env.GROQ_API_KEY.includes(',')) {
       keys.push(...process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
@@ -173,42 +219,44 @@ function getApiKeys() {
       keys.push(process.env.GROQ_API_KEY.trim());
     }
   }
-
   for (let i = 2; i <= 12; i++) {
     const val = process.env[`GROQ_API_KEY_${i}`];
-    if (val) {
-      keys.push(val.trim());
-    }
+    if (val) keys.push(val.trim());
   }
-
   try {
     const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
-    if (Array.isArray(aiConfig.GROQ_API_KEYS)) {
-      keys.push(...aiConfig.GROQ_API_KEYS.map(k => k.trim()));
-    }
-    if (aiConfig.GROQ_API_KEY) {
-      keys.push(aiConfig.GROQ_API_KEY.trim());
-    }
+    if (Array.isArray(aiConfig.GROQ_API_KEYS)) keys.push(...aiConfig.GROQ_API_KEYS.map(k => k.trim()));
+    if (aiConfig.GROQ_API_KEY) keys.push(aiConfig.GROQ_API_KEY.trim());
   } catch (_) {}
-
   const uniqueKeys = [...new Set(keys)].filter(Boolean);
-  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Groq.`);
+  if (uniqueKeys.length > 0) console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Groq (model: ${getGroqModel()}).`);
   return uniqueKeys;
 }
 
-async function askGroq(apiKey, promptText) {
+// Backward compatibility: getApiKeys zwraca sumę cerebras + groq (cerebras priorytet)
+function getApiKeys() {
+  const cerebras = getCerebrasKeys();
+  const groq = getGroqKeys();
+  const combined = [...cerebras, ...groq];
+  const unique = [...new Set(combined)].filter(Boolean);
+  if (unique.length > 0 && cerebras.length === 0) {
+    console.log(`[AI] Załadowano ${unique.length} unikalnych kluczy API (tylko Groq).`);
+  } else if (cerebras.length > 0 && groq.length > 0) {
+    console.log(`[AI] Łącznie ${unique.length} kluczy (Cerebras: ${cerebras.length}, Groq: ${groq.length}). Cerebras ma priorytet.`);
+  }
+  return unique;
+}
+
+async function askCerebras(apiKey, promptText) {
+  const model = getCerebrasModel();
   const response = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
+    'https://api.cerebras.ai/v1/chat/completions',
     {
-      model: 'qwen/qwen3.8-27b',
-      messages: [
-        {
-          role: 'user',
-          content: promptText
-        }
-      ],
+      model,
+      messages: [{ role: 'user', content: promptText }],
       max_tokens: 8192,
-      temperature: 0.7
+      temperature: 0.7,
+      stream: false
     },
     {
       headers: {
@@ -218,26 +266,18 @@ async function askGroq(apiKey, promptText) {
       timeout: 300000
     }
   );
-
   const replyText = response.data?.choices?.[0]?.message?.content;
-  if (!replyText) {
-    throw new Error('Pusta odpowiedź z API Groq.');
-  }
-
+  if (!replyText) throw new Error('Pusta odpowiedź z API Cerebras.');
   return replyText;
 }
 
 async function askGroq(apiKey, promptText) {
+  const model = getGroqModel();
   const response = await axios.post(
     'https://api.groq.com/openai/v1/chat/completions',
     {
-      model: 'qwen/qwen3.8-27b',
-      messages: [
-        {
-          role: 'user',
-          content: promptText
-        }
-      ],
+      model,
+      messages: [{ role: 'user', content: promptText }],
       max_tokens: 8192,
       temperature: 0.7
     },
@@ -249,50 +289,122 @@ async function askGroq(apiKey, promptText) {
       timeout: 300000
     }
   );
-
   const replyText = response.data?.choices?.[0]?.message?.content;
-  if (!replyText) {
-    throw new Error('Pusta odpowiedź z API Groq.');
-  }
-
+  if (!replyText) throw new Error('Pusta odpowiedź z API Groq.');
   return replyText;
 }
 
 async function askGeminiWithFallback(promptText) {
-  const keys = getApiKeys();
-  if (keys.length === 0) {
-    throw new Error('Brak skonfigurowanych kluczy Groq API!');
+  const cerebrasKeys = getCerebrasKeys();
+  const groqKeys = getGroqKeys();
+
+  if (cerebrasKeys.length === 0 && groqKeys.length === 0) {
+    throw new Error('Brak skonfigurowanych kluczy API! Ustaw CEREBRAS_API_KEY (csk-...) lub GROQ_API_KEY w .env');
   }
 
-  const startIndex = Math.floor(Math.random() * keys.length);
-
-  let lastError = null;
-  for (let attempt = 0; attempt < keys.length; attempt++) {
-    const idx = (startIndex + attempt) % keys.length;
-    const apiKey = keys[idx];
-    try {
-      return await askGroq(apiKey, promptText);
-    } catch (err) {
-      const status = err.response?.status;
-      const errorMsg = err.response?.data?.error?.message || err.message;
-      console.warn(`[AI] Błąd klucza ${idx + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
-
-      if (attempt < keys.length - 1) {
-        console.warn(`[AI] Próba użycia kolejnego klucza...`);
-        continue;
+  // Najpierw próbuj Cerebras (jeśli dostępne)
+  if (cerebrasKeys.length > 0) {
+    const startIndex = Math.floor(Math.random() * cerebrasKeys.length);
+    let lastError = null;
+    for (let attempt = 0; attempt < cerebrasKeys.length; attempt++) {
+      const idx = (startIndex + attempt) % cerebrasKeys.length;
+      const apiKey = cerebrasKeys[idx];
+      try {
+        console.log(`[AI] Próba Cerebras ${idx + 1}/${cerebrasKeys.length} model=${getCerebrasModel()}`);
+        return await askCerebras(apiKey, promptText);
+      } catch (err) {
+        const status = err.response?.status;
+        const errorMsg = err.response?.data?.error?.message || err.response?.data?.message || err.message;
+        console.warn(`[AI-Cerebras] Błąd klucza ${idx + 1}/${cerebrasKeys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
+        lastError = err;
+        // Jeśli błąd 401/403 to klucz niepoprawny, próbuj kolejny
+        // Jeśli 429 to rate limit, też próbuj kolejny
+        // Dla innych błędów też próbuj kolejny Cerebras przed fallback na Groq
+        if (attempt < cerebrasKeys.length - 1) {
+          console.warn(`[AI-Cerebras] Próba kolejnego klucza Cerebras...`);
+          continue;
+        }
       }
-      lastError = err;
+    }
+    // Jeśli Cerebras zawiódł dla wszystkich kluczy, fallback na Groq jeśli dostępny
+    if (groqKeys.length > 0) {
+      console.warn(`[AI] Cerebras zawiódł dla wszystkich kluczy, fallback na Groq (${groqKeys.length} kluczy)...`);
+    } else {
+      throw lastError;
     }
   }
-  throw lastError;
+
+  // Fallback / primary Groq
+  if (groqKeys.length > 0) {
+    const startIndex = Math.floor(Math.random() * groqKeys.length);
+    let lastError = null;
+    for (let attempt = 0; attempt < groqKeys.length; attempt++) {
+      const idx = (startIndex + attempt) % groqKeys.length;
+      const apiKey = groqKeys[idx];
+      try {
+        return await askGroq(apiKey, promptText);
+      } catch (err) {
+        const status = err.response?.status;
+        const errorMsg = err.response?.data?.error?.message || err.message;
+        console.warn(`[AI-Groq] Błąd klucza ${idx + 1}/${groqKeys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
+        if (attempt < groqKeys.length - 1) {
+          console.warn(`[AI] Próba użycia kolejnego klucza Groq...`);
+          continue;
+        }
+        lastError = err;
+      }
+    }
+    throw lastError;
+  }
+
+  throw new Error('Brak działających kluczy API.');
 }
 
 async function askGeminiForChunk(promptText, keys, chunkIndex) {
+  // keys może być tablicą wszystkich kluczy (cerebras+groq) - rozpoznaj provider po prefiksie
+  // csk- = cerebras, gsk- = groq, inne -> próbuj cerebras potem groq
+  const cerebrasKeys = keys.filter(k => String(k).startsWith('csk-'));
+  const groqKeys = keys.filter(k => !String(k).startsWith('csk-'));
+
+  // Jeśli przekazano już przefiltrowane klucze (np. getApiKeys zwraca mix), używamy logiki prefiksowej
+  // Dla kompatybilności jeśli keys to tylko cerebras lub tylko groq, użyj odpowiedniej funkcji
+  const tryPool = async (pool, fn, label) => {
+    if (pool.length === 0) return null;
+    let lastError = null;
+    for (let attempt = 0; attempt < pool.length; attempt++) {
+      const idx = (chunkIndex + attempt) % pool.length;
+      try {
+        return await fn(pool[idx], promptText);
+      } catch (err) {
+        const status = err.response?.status;
+        const errorMsg = err.response?.data?.error?.message || err.message;
+        console.warn(`[AI-CHUNK-${label}] Błąd klucza ${idx + 1}/${pool.length} dla chunku ${chunkIndex + 1} (Status: ${status}, Błąd: ${errorMsg}).`);
+        lastError = err;
+      }
+    }
+    throw lastError;
+  };
+
+  // Priorytet Cerebras
+  if (cerebrasKeys.length > 0) {
+    try {
+      return await tryPool(cerebrasKeys, askCerebras, 'Cerebras');
+    } catch (e) {
+      if (groqKeys.length === 0) throw e;
+      console.warn(`[AI-CHUNK] Cerebras chunk ${chunkIndex + 1} zawiódł, fallback na Groq...`);
+    }
+  }
+  if (groqKeys.length > 0) {
+    return await tryPool(groqKeys, askGroq, 'Groq');
+  }
+  // Jeśli keys nie miały prefiksów (np. same groq gsk_ ale nie csk-), fallback do prostej pętli groq/cerebras auto-detect
   let lastError = null;
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const idx = (chunkIndex + attempt) % keys.length;
+    const k = keys[idx];
+    const fn = String(k).startsWith('csk-') ? askCerebras : askGroq;
     try {
-      return await askGroq(keys[idx], promptText);
+      return await fn(k, promptText);
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
