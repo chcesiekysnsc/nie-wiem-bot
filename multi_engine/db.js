@@ -61,9 +61,16 @@ async function initDatabase() {
         appstate JSONB,
         proxy_url VARCHAR(255),
         status VARCHAR(32) DEFAULT 'active',
+        login_slot TIMESTAMP,
+        checkpoint_day DATE,
+        checkpoint_attempts INTEGER DEFAULT 0,
         last_login_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT NOW()
       );
+      -- Migracja dla starych instalacji (kolomny harmonogramu logowan / checkpointow)
+      ALTER TABLE bot_accounts ADD COLUMN IF NOT EXISTS login_slot TIMESTAMP;
+      ALTER TABLE bot_accounts ADD COLUMN IF NOT EXISTS checkpoint_day DATE;
+      ALTER TABLE bot_accounts ADD COLUMN IF NOT EXISTS checkpoint_attempts INTEGER DEFAULT 0;
       CREATE TABLE IF NOT EXISTS economy_users (
         user_id VARCHAR(64) PRIMARY KEY,
         balance BIGINT DEFAULT 1000,
@@ -91,28 +98,49 @@ async function initDatabase() {
   }
 }
 
+const ACCOUNT_COLUMNS = 'id, fb_user_id, email, totp_secret, encrypted_password AS password, appstate, proxy_url, status, login_slot, checkpoint_day, checkpoint_attempts, last_login_at, created_at';
+
 async function getActiveAccounts() {
+  // Uwaga: status 'checkpoint' tez zwracamy — takie konto wraca do gry
+  // wedlug swojego login_slot po restarcie klastra.
   if (usePostgres && pool) {
     const res = await pool.query(
-      "SELECT id, fb_user_id, email, appstate, proxy_url, status FROM bot_accounts WHERE status = 'active' ORDER BY id ASC"
+      `SELECT ${ACCOUNT_COLUMNS} FROM bot_accounts WHERE status IN ('active', 'checkpoint') ORDER BY id ASC`
     );
     return res.rows;
   }
   const store = getLocalStore();
-  return (store.accounts || []).filter(a => a.status === 'active');
+  return (store.accounts || []).filter(a => a.status === 'active' || a.status === 'checkpoint');
+}
+
+async function getAccount(id) {
+  if (usePostgres && pool) {
+    const res = await pool.query(`SELECT ${ACCOUNT_COLUMNS} FROM bot_accounts WHERE id = $1`, [id]);
+    return res.rows[0] || null;
+  }
+  return (getLocalStore().accounts || []).find(a => String(a.id) === String(id)) || null;
 }
 
 async function addAccount(accountData) {
   if (usePostgres && pool) {
     const res = await pool.query(
-      `INSERT INTO bot_accounts (email, totp_secret, appstate, proxy_url, status)
-       VALUES ($1, $2, $3, $4, 'active')
-       RETURNING id, email, status`,
-      [accountData.email, accountData.totp_secret || null, JSON.stringify(accountData.appstate), accountData.proxy_url || null]
+      // login_slot moze byc NULL — wtedy startAll przydzieli slot wedlug harmonogramu (rozsypka)
+      `INSERT INTO bot_accounts (email, encrypted_password, totp_secret, appstate, proxy_url, status, login_slot)
+       VALUES ($1, $2, $3, $4, $5, 'active', $6)
+       RETURNING id, email, status, login_slot`,
+      [
+        accountData.email,
+        accountData.password || null, // TODO: zaszyfrowac przed zapisem
+        accountData.totp_secret || null,
+        JSON.stringify(accountData.appstate),
+        accountData.proxy_url || null,
+        accountData.login_slot || null
+      ]
     );
     const row = res.rows[0];
     row.appstate = accountData.appstate;
     row.proxy_url = accountData.proxy_url;
+    row.password = accountData.password || null;
     return row;
   }
 
@@ -124,10 +152,16 @@ async function addAccount(accountData) {
   const newAcc = {
     id: nextId,
     email: accountData.email,
+    password: accountData.password || null, // TODO: zaszyfrowac przed zapisem
     totp_secret: accountData.totp_secret || null,
     appstate: accountData.appstate,
     proxy_url: accountData.proxy_url || null,
     status: 'active',
+    // NULL => startAll przydzieli slot wedlug harmonogramu (rozsypka);
+    // panel add-konta jawnie podaje login_slot=now (onboarding w locie)
+    login_slot: accountData.login_slot || null,
+    checkpoint_day: null,
+    checkpoint_attempts: 0,
     created_at: new Date().toISOString()
   };
 
@@ -151,6 +185,37 @@ async function updateAccountAppstate(accountId, appstate) {
   if (acc) {
     acc.appstate = appstate;
     acc.last_login_at = new Date().toISOString();
+    saveLocalStore(store);
+  }
+}
+
+/**
+ * Aktualizacja metadanych harmonogramu logowan / checkpointow per konto.
+ * Pola: login_slot (ISO), checkpoint_day ('YYYY-MM-DD'), checkpoint_attempts (int), last_login_at (ISO)
+ */
+async function updateAccountLoginMeta(accountId, meta = {}) {
+  const { login_slot, checkpoint_day, checkpoint_attempts, last_login_at } = meta;
+
+  if (usePostgres && pool) {
+    const sets = [];
+    const vals = [];
+    if (login_slot !== undefined) { sets.push(`login_slot = $${vals.length + 1}`); vals.push(login_slot); }
+    if (checkpoint_day !== undefined) { sets.push(`checkpoint_day = $${vals.length + 1}`); vals.push(checkpoint_day); }
+    if (checkpoint_attempts !== undefined) { sets.push(`checkpoint_attempts = $${vals.length + 1}`); vals.push(checkpoint_attempts); }
+    if (last_login_at !== undefined) { sets.push(`last_login_at = $${vals.length + 1}`); vals.push(last_login_at); }
+    if (sets.length === 0) return;
+    vals.push(accountId);
+    await pool.query(`UPDATE bot_accounts SET ${sets.join(', ')} WHERE id = $${vals.length}`, vals);
+    return;
+  }
+
+  const store = getLocalStore();
+  const acc = (store.accounts || []).find(a => String(a.id) === String(accountId));
+  if (acc) {
+    if (login_slot !== undefined) acc.login_slot = login_slot;
+    if (checkpoint_day !== undefined) acc.checkpoint_day = checkpoint_day;
+    if (checkpoint_attempts !== undefined) acc.checkpoint_attempts = checkpoint_attempts;
+    if (last_login_at !== undefined) acc.last_login_at = last_login_at;
     saveLocalStore(store);
   }
 }
@@ -205,8 +270,10 @@ async function adjustUserBalance(userId, amount) {
 module.exports = {
   initDatabase,
   getActiveAccounts,
+  getAccount,
   addAccount,
   updateAccountAppstate,
+  updateAccountLoginMeta,
   updateAccountStatus,
   getUser,
   adjustUserBalance
