@@ -31,6 +31,7 @@ const {
   getAccount
 } = require('./db');
 const { loginWithTotp } = require('./totp_login');
+const { loginWithHttpFirst } = require('./fb_http_login');
 const { renderPayloadToText } = require('../utils/messenger');
 const manualCodeInbox = require('./manual_codes');
 
@@ -244,7 +245,8 @@ class AccountInstance {
     // ===== Sciezka przegladarkowa (onboarding / odswiezanie / odzyskiwanie) =====
     this.puppeteerTriedThisCycle = true;
     this._emit('onboarding',
-      `Konto ${this.account.email} (id ${this.account.id}): logowanie przez przegladarke (Puppeteer, proxy konta)...`);
+      `Konto ${this.account.email} (id ${this.account.id}): logowanie w tle ` +
+      `(najpierw sciana HTTP bez przegladarki, fallback: Puppeteer; proxy konta)...`);
 
     // Dostawca kodu "z reki": gdy przegladarka stoi na monicie 2FA / kodzie
     // z emaila, logowanie czeka, a operator podaje kod w panelu
@@ -262,7 +264,9 @@ class AccountInstance {
     return (async () => {
       let appstate;
       try {
-        appstate = await loginWithTotp(
+        // Najpierw sciana HTTP bez przegladarki (odporniejsza na zmiany FB);
+        // przy bledzie technicznym jest automatyczny fallback na Puppeteer.
+        appstate = await loginWithHttpFirst(
           this.account.email,
           this.account.password,
           this.account.totp_secret || null,

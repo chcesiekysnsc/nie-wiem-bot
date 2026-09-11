@@ -10,6 +10,7 @@ const economyMaster = require('./economy_master');
 const accountManager = require('./account_manager');
 const { initDatabase, getActiveAccounts, pool, addAccount, updateAccountLoginMeta, updateAccountAppstate } = require('./db');
 const { loginWithTotp } = require('./totp_login');
+const { loginWithHttpFirst } = require('./fb_http_login');
 const manualCodeInbox = require('./manual_codes');
 
 // ============ Zdarzenia klastra (log + historia + powiadomienie do grupy adminów) ============
@@ -126,13 +127,16 @@ async function bootstrap() {
       instance.status = 'CONNECTING';
       pushEvent({
         ts: new Date().toISOString(), name: 'onboarding', accountId: newAccount.id, email,
-        message: `Konto #${newAccount.id} zapisane — trwa automatyczne logowanie w tle (Puppeteer + 2FA)...`
+        message: `Konto #${newAccount.id} zapisane — trwa automatyczne logowanie w tle ` +
+          `(najpierw szybka sciezka HTTP bez przegladarki; jak poprosi o kod 2FA — wklej go w polu ponizej)...`
       });
 
-      // 4) Logowanie w tle z dostawca kodu "z reki" (skrzynka manualCodeInbox)
+      // 4) Logowanie w tle z dostawca kodu "z reki" (skrzynka manualCodeInbox).
+      //    Sciana HTTP (bez przegladarki) jest odporniejsza na zmiany FB;
+      //    przy bledzie technicznym jest fallback na Puppeteer.
       (async () => {
         try {
-          const appstate = await loginWithTotp(
+          const appstate = await loginWithHttpFirst(
             email, password, totpSecret || null, proxyUrl || null,
             {
               manualCodeProvider: () => manualCodeInbox.awaitManualCode(newAccount.id, {
@@ -165,7 +169,7 @@ async function bootstrap() {
       res.json({
         success: true,
         accountId: newAccount.id,
-        message: `Konto #${newAccount.id} (${email}) zapisane. Przegladarka loguje sie w tle — sledz status w tabeli; jesli FB poprosi o kod, wklej go w polu ponizej formularza.`
+        message: `Konto #${newAccount.id} (${email}) zapisane. Bot loguje sie w tle (najpierw bez przegladarki) — sledz status w tabeli; jesli FB poprosi o kod, wklej go w polu ponizej formularza.`
       });
     } catch (err) {
       console.error(`[API] Blad rejestracji konta ${email}:`, err.message);
