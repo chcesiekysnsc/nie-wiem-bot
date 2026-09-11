@@ -15,6 +15,53 @@ const puppeteer = require('puppeteer');
 
 const WAIT_MS = (ms) => new Promise(r => setTimeout(r, ms));
 
+// Selektory pola kodu 2FA — FB zmienial markup kilka razy:
+// stary: #approvals_code / name="approvals_code";
+// nowy: dynamiczne ID (np. #_r_b_) + autocomplete="one-time-code".
+// Kladziemy je w kolejosci od najbardziej szczegolowego.
+const TWO_FA_INPUT_SELECTORS = [
+  '#approvals_code',
+  'input[name="approvals_code"]',
+  'input[autocomplete="one-time-code"]',
+  'input[id^="_r_"][type="text"]',
+  'input[name*="code" i]',
+  'input[type="number"]'
+];
+
+/** Znajduje pole kodu 2FA (dowolna znana generacja marku FB) albo zwraca null. */
+async function findTwoFaInput(page) {
+  for (const sel of TWO_FA_INPUT_SELECTORS) {
+    try {
+      const el = await page.$(sel);
+      if (el) return el;
+    } catch (_) { /* nastepny selektor */ }
+  }
+  return null;
+}
+
+function safePageUrl(page) {
+  try { return typeof page.url === 'function' ? page.url() : ''; } catch (_) { return ''; }
+}
+
+// Stan "sciany kontrolnej" FB (czytane w srodowisku strony):
+// - codeSent: tekst FB o wyslaniu kodu na email/telefon (sciana emailowa)
+// - hasUnfilledCodeInput: niedopelnione pole wygladajace na pole kodu
+async function readCheckpointWallState() {
+  const text = (document.body && document.body.innerText) || '';
+  const codeSent = /sent (a |you a |the )?code (to|for)|kod (do )?(weryfikacji|potwierdzenia)/i.test(text);
+  let hasUnfilledCodeInput = false;
+  const inputs = document.querySelectorAll('input:not([type="hidden"])');
+  for (const el of inputs) {
+    if (el.id === 'approvals_code') continue; // pole z monitu 2FA to nie sciana
+    const name = ((el.name || '') + ' ' + (el.id || '')).toLowerCase();
+    const looksLikeCodeField = /code/.test(name)
+      || el.getAttribute('autocomplete') === 'one-time-code'
+      || el.type === 'number';
+    if (looksLikeCodeField && !el.value) { hasUnfilledCodeInput = true; break; }
+  }
+  return { codeSent, hasUnfilledCodeInput };
+}
+
 /**
  * Generowanie kodu TOTP z klucza — kompatybilne z dwoma generacjami otplib:
  * - stary (authenticator.generate(secret))
@@ -40,10 +87,10 @@ async function generateTotpCode(secret) {
 }
 
 /**
- * Wpisuje kod w polu i zatwierdza; zwraca true gdy monit zniknal z ekranu.
+ * Wpisuje kod w znalezionym polu 2FA i zatwierdza; zwraca true gdy monit zniknal.
  */
-async function typeCodeAndSubmit(page, selector, code) {
-  const input = await page.$(selector);
+async function typeCodeAndSubmit(page, code) {
+  const input = await findTwoFaInput(page);
   if (!input) return true; // ekran i tak sie zmienil
   await input.click().catch(() => {});
   await input.type(String(code).trim(), { delay: 30 });
@@ -53,7 +100,7 @@ async function typeCodeAndSubmit(page, selector, code) {
   }
   await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
   await WAIT_MS(2000);
-  return !(await page.$(selector));
+  return !(await findTwoFaInput(page));
 }
 
 /**
@@ -78,13 +125,19 @@ async function handlePostLoginCheckpoint(page, totpSecret, options = {}) {
   // Daj stronie FB chwile na dobicie przekierowan
   await WAIT_MS(2500);
 
-  // ============ 1) Monit 2FA: kod TOTP z klucza, inaczej kod od czlowieka ============
-  if (await page.$('#approvals_code, input[name="approvals_code"]')) {
+  // Wstępny stan ekranu — tekst "wyslalismy kod na email/telefon" pozwala
+  // rozroznic sciane emailową od zwyklego monitu 2FA (oba maja pole kodu).
+  const initialState = await page.evaluate(readCheckpointWallState);
+  const initialCodeInput = await findTwoFaInput(page);
+  const isEmailWall = !!initialState.codeSent;
+
+  // ============ 1) Monit 2FA (kod TOTP / z reki) LUB sciana emailowa od razu ============
+  if (initialCodeInput) {
     let passed = false;
     for (let attempt = 1; attempt <= maxAttempts && !passed; attempt++) {
       let code = null;
 
-      if (totpSecret) {
+      if (!isEmailWall && totpSecret) {
         try {
           code = await generateTotpCode(totpSecret);
           console.log(`[TOTP-LOGIN] Wykryto monit 2FA! Wprowadzam wygenerowany kod: ${code}`);
@@ -94,23 +147,30 @@ async function handlePostLoginCheckpoint(page, totpSecret, options = {}) {
       }
 
       if (!code && manualCodeProvider) {
-        console.log(`[TOTP-LOGIN] Czekam na kod 2FA od użytkownika (próba ${attempt}/${maxAttempts})...`);
+        console.log(isEmailWall
+          ? `[TOTP-LOGIN] FB wyslal kod na email/telefon — czekam na kod od użytkownika (próba ${attempt}/${maxAttempts})...`
+          : `[TOTP-LOGIN] Czekam na kod 2FA od użytkownika (próba ${attempt}/${maxAttempts})...`);
         try {
-          code = await manualCodeProvider({ attempt, context: '2fa' });
+          code = await manualCodeProvider({ attempt, context: isEmailWall ? 'email_code' : '2fa' });
         } catch (e) {
           console.error('[TOTP-LOGIN] Brak kodu od użytkownika:', e.message);
         }
       }
 
       if (!code) break;
-      passed = await typeCodeAndSubmit(page, '#approvals_code, input[name="approvals_code"]', code);
+      passed = await typeCodeAndSubmit(page, code);
       if (!passed) {
-        console.log('[TOTP-LOGIN] Kod 2FA nie zostal zaakceptowany (błędny/przeterminowany).');
+        console.log('[TOTP-LOGIN] Kod nie zostal zaakceptowany (błędny/przeterminowany).');
       }
     }
 
     if (!passed) {
-      const err = new Error('Kod 2FA nie przeszedl: brak klucza TOTP, brak kodu od użytkownika albo kod odrzucony.');
+      const err = new Error(
+        (isEmailWall
+          ? 'Kod z emaila/telefonu nie przeszedl weryfikacji (brak kodu, przeterminowany lub błędny).'
+          : 'Kod 2FA nie przeszedl: brak klucza TOTP, brak kodu od użytkownika albo kod odrzucony.') +
+        ` (Strona: ${safePageUrl(page)})`
+      );
       err.code = 'CHECKPOINT_MANUAL';
       throw err;
     }
@@ -137,19 +197,24 @@ async function handlePostLoginCheckpoint(page, totpSecret, options = {}) {
 
   // 3) Czy doszlo do kodu wyslanego na email/telefon (nie da sie go automatycznie odczytac)?
   const state = await page.evaluate(() => {
-    const inputs = Array.from(document.querySelectorAll('input[type="text"], input[name*="code" i]'));
+    const inputs = Array.from(document.querySelectorAll(
+      'input[type="text"], input[type="number"], input[name*="code" i], input[autocomplete="one-time-code"]'
+    ));
     const body = (document.body && document.body.innerText) || '';
     const codeSent = /sent (a )?code|wys[\u0142l]alism(y|y) kod|kod weryfikacyjny|confirmation code/i.test(body);
     const hasUnfilledCodeInput = inputs.some(i => {
       const name = String(i.name || '').toLowerCase();
-      return !i.value && name.includes('code') && name !== 'approvals_code';
+      const isCodeLike =
+        name.includes('code') ||
+        i.autocomplete === 'one-time-code' ||
+        (i.type === 'number' && name !== 'approvals_code');
+      return !i.value && isCodeLike && name !== 'approvals_code';
     });
     return { codeSent, hasUnfilledCodeInput, onCheckpoint: /checkpoint/i.test(location.href) };
   });
 
   if (state.codeSent || state.hasUnfilledCodeInput) {
-    const codeSelector = 'input[name*="code" i]';
-    const codeInput = await page.$(codeSelector);
+    const codeInput = await findTwoFaInput(page);
 
     if (codeInput && manualCodeProvider) {
       // Czlowiek odczyta kod z emaila/telefonu konta i poda go botowi
@@ -164,21 +229,23 @@ async function handlePostLoginCheckpoint(page, totpSecret, options = {}) {
           break;
         }
         if (!code) break;
-        passed = await typeCodeAndSubmit(page, codeSelector, code);
+        passed = await typeCodeAndSubmit(page, code);
         if (!passed) {
           console.log('[TOTP-LOGIN] Kod z emaila/telefonu nie przeszedl — prosze o aktualny kod.');
         }
       }
 
       if (!passed) {
-        const err = new Error('Kod z emaila/telefonu nie przeszedl weryfikacji (brak kodu, przeterminowany lub błędny).');
+        const err = new Error(
+          `Kod z emaila/telefonu nie przeszedl weryfikacji (brak kodu, przeterminowany lub błędny). (Strona: ${safePageUrl(page)})`
+        );
         err.code = 'CHECKPOINT_MANUAL';
         throw err;
       }
     } else {
       const err = new Error(
-        'Facebook wyslal kod weryfikacyjny na email/telefon konta i nie ma podlaczonego dostawcy kodów ręcznych — ' +
-        'checkpoint trzeba odblokowac recznie (przegl\u0105darka z proxy tego konta), a potem wkleic swiezy appstate przez panel.'
+        `Facebook wyslal kod weryfikacyjny na email/telefon konta i nie ma podlaczonego dostawcy kodów ręcznych — ` +
+        `checkpoint trzeba odblokowac recznie (przegladarka z proxy tego konta), a potem wkleic swiezy appstate przez panel. (Strona: ${safePageUrl(page)})`
       );
       err.code = 'CHECKPOINT_MANUAL';
       throw err;
