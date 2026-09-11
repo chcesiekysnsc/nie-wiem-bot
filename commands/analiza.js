@@ -166,16 +166,16 @@ function needsChatContext(question) {
 function getApiKeys() {
   const keys = [];
 
-  if (process.env.GROQ_API_KEY) {
-    if (process.env.GROQ_API_KEY.includes(',')) {
-      keys.push(...process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
+  if (process.env.CEREBRAS_API_KEY) {
+    if (process.env.CEREBRAS_API_KEY.includes(',')) {
+      keys.push(...process.env.CEREBRAS_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
     } else {
-      keys.push(process.env.GROQ_API_KEY.trim());
+      keys.push(process.env.CEREBRAS_API_KEY.trim());
     }
   }
 
   for (let i = 2; i <= 12; i++) {
-    const val = process.env[`GROQ_API_KEY_${i}`];
+    const val = process.env[`CEREBRAS_API_KEY_${i}`];
     if (val) {
       keys.push(val.trim());
     }
@@ -183,11 +183,11 @@ function getApiKeys() {
 
   try {
     const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
-    if (Array.isArray(aiConfig.GROQ_API_KEYS)) {
-      keys.push(...aiConfig.GROQ_API_KEYS.map(k => k.trim()));
+    if (Array.isArray(aiConfig.CEREBRAS_API_KEYS)) {
+      keys.push(...aiConfig.CEREBRAS_API_KEYS.map(k => k.trim()));
     }
-    if (aiConfig.GROQ_API_KEY) {
-      keys.push(aiConfig.GROQ_API_KEY.trim());
+    if (aiConfig.CEREBRAS_API_KEY) {
+      keys.push(aiConfig.CEREBRAS_API_KEY.trim());
     }
   } catch (_) {}
 
@@ -196,11 +196,11 @@ function getApiKeys() {
   return uniqueKeys;
 }
 
-async function askGroq(apiKey, promptText) {
+async function askCerebras(apiKey, promptText) {
   const response = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
+    'https://api.cerebras.ai/v1/chat/completions',
     {
-      model: 'qwen/qwen3.8-27b',
+      model: 'qwen-3.8-27b',
       messages: [
         {
           role: 'user',
@@ -221,17 +221,17 @@ async function askGroq(apiKey, promptText) {
 
   const replyText = response.data?.choices?.[0]?.message?.content;
   if (!replyText) {
-    throw new Error('Pusta odpowiedź z API Groq.');
+    throw new Error('Pusta odpowiedź z API Cerebras.');
   }
 
   return replyText;
 }
 
-async function askGroq(apiKey, promptText) {
+async function askCerebras(apiKey, promptText) {
   const response = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
+    'https://api.cerebras.ai/v1/chat/completions',
     {
-      model: 'qwen/qwen3.8-27b',
+      model: 'qwen-3.8-27b',
       messages: [
         {
           role: 'user',
@@ -252,7 +252,7 @@ async function askGroq(apiKey, promptText) {
 
   const replyText = response.data?.choices?.[0]?.message?.content;
   if (!replyText) {
-    throw new Error('Pusta odpowiedź z API Groq.');
+    throw new Error('Pusta odpowiedź z API Cerebras.');
   }
 
   return replyText;
@@ -261,7 +261,7 @@ async function askGroq(apiKey, promptText) {
 async function askGeminiWithFallback(promptText) {
   const keys = getApiKeys();
   if (keys.length === 0) {
-    throw new Error('Brak skonfigurowanych kluczy Groq API!');
+    throw new Error('Brak skonfigurowanych kluczy Cerebras API!');
   }
 
   const startIndex = Math.floor(Math.random() * keys.length);
@@ -271,7 +271,7 @@ async function askGeminiWithFallback(promptText) {
     const idx = (startIndex + attempt) % keys.length;
     const apiKey = keys[idx];
     try {
-      return await askGroq(apiKey, promptText);
+      return await askCerebras(apiKey, promptText);
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
@@ -292,7 +292,7 @@ async function askGeminiForChunk(promptText, keys, chunkIndex) {
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const idx = (chunkIndex + attempt) % keys.length;
     try {
-      return await askGroq(keys[idx], promptText);
+      return await askCerebras(keys[idx], promptText);
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
