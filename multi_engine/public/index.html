@@ -260,6 +260,27 @@
 
           <div id="alert-box"></div>
         </form>
+
+        <!-- POLE NA KOD 2FA PODANY Z REKI -->
+        <div style="margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--border);">
+          <h2 style="font-size: 15px;">📲 Kod 2FA (jeśli FB poprosi)</h2>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4;">
+            Gdy logowanie stoi na monicie 2FA albo na "kodzie wysłanym na email",
+            wklej tu 6-cyfrowy kod (z Authenticatora / z maila konta).
+          </p>
+          <div class="form-group">
+            <label for="code-account">Konto:</label>
+            <select id="code-account">
+              <option value="">— wybierz konto —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="code-input">Kod (6 cyfr):</label>
+            <input type="text" id="code-input" maxlength="8" placeholder="np. 123456" style="letter-spacing: 4px; font-size: 16px;">
+          </div>
+          <button type="button" id="btn-code" style="width: 100%;">✅ Podaj kod do logowania</button>
+          <div id="code-alert" style="margin-top: 10px; padding: 10px; border-radius: 8px; font-size: 12px; display: none;"></div>
+        </div>
       </div>
 
       <!-- TABELA AKTYWNYCH KONT -->
@@ -274,17 +295,26 @@
                 <th>Status</th>
                 <th>Proxy</th>
                 <th>Próby</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="accounts-table-body">
               <tr>
-                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
                   Brak zarejestrowanych kont. Dodaj pierwsze konto w formularzu po lewej!
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- FEED ZDARZEN KLAstra -->
+    <div class="card">
+      <h2>📣 Zdarzenia klastra</h2>
+      <div id="events-feed" style="font-size: 13px; line-height: 1.7; max-height: 220px; overflow-y: auto;">
+        <div style="color: var(--text-muted);">Brak zdarzeń.</div>
       </div>
     </div>
   </div>
@@ -311,29 +341,110 @@
           document.getElementById('val-memory-rss').textContent = `${rssMb} MB`;
         }
 
-        // Tabela
+        // Tabela (ze znakiem "czeka na kod" i przyciskiem ponownego logowania)
         const tbody = document.getElementById('accounts-table-body');
         if (!data.activeBots || data.activeBots.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Brak zarejestrowanych kont. Dodaj pierwsze konto w formularzu po lewej!</td></tr>`;
-          return;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">Brak zarejestrowanych kont. Dodaj pierwsze konto w formularzu po lewej!</td></tr>`;
+        } else {
+          tbody.innerHTML = data.activeBots.map(b => `
+            <tr>
+              <td>#${b.id}</td>
+              <td style="font-weight: 500; color: #fff;">${b.email}</td>
+              <td>
+                ${b.waiting_2fa_code ? '<span class="status-badge status-CHECKPOINT" style="margin-right: 4px;">⏳ czeka na kod</span>' : ''}
+                <span class="status-badge status-${b.status}">${b.status}</span>
+              </td>
+              <td>${b.hasProxy ? '✅ Tak' : '❌ Bezpośrednie'}</td>
+              <td>${b.retries || 0}</td>
+              <td><button class="btn-relogin" data-id="${b.id}" style="font-size: 12px;">🔄 Loguj ponownie</button></td>
+            </tr>
+          `).join('');
+          document.querySelectorAll('.btn-relogin').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              btn.disabled = true;
+              try {
+                const r = await fetch(`/api/accounts/${btn.dataset.id}/relogin`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({})
+                });
+                const j = await r.json();
+                if (!r.ok || !j.ok) throw new Error(j.error || 'Nieudany relogin.');
+              } catch (err) {
+                alert('Relogin: ' + err.message);
+              }
+              btn.disabled = false;
+              fetchStatus();
+            });
+          });
         }
 
-        tbody.innerHTML = data.activeBots.map(b => `
-          <tr>
-            <td>#${b.id}</td>
-            <td style="font-weight: 500; color: #fff;">${b.email}</td>
-            <td><span class="status-badge status-${b.status}">${b.status}</span></td>
-            <td>${b.hasProxy ? '✅ Tak' : '❌ Bezpośrednie'}</td>
-            <td>${b.retries || 0}</td>
-          </tr>
-        `).join('');
+        // Lista kont w polu "Kod 2FA"
+        const sel = document.getElementById('code-account');
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">— wybierz konto —</option>' +
+          (data.activeBots || []).map(b =>
+            `<option value="${b.id}">#${b.id} ${b.email}${b.waiting_2fa_code ? '  ⏳' : ''}</option>`
+          ).join('');
+        sel.value = prev;
       } catch (e) {
         console.error('Blad odswiezania statusu:', e);
       }
     }
 
+    async function fetchEvents() {
+      try {
+        const res = await fetch('/api/events');
+        const events = await res.json();
+        const feed = document.getElementById('events-feed');
+        if (!events || events.length === 0) {
+          feed.innerHTML = '<div style="color: var(--text-muted);">Brak zdarzeń.</div>';
+          return;
+        }
+        feed.innerHTML = events.map(ev => {
+          const t = new Date(ev.ts).toLocaleTimeString();
+          const who = ev.email || ('konto #' + ev.accountId);
+          const warn = (ev.name === 'checkpoint' || ev.name === 'login_failed' || ev.name === 'waiting_2fa_code');
+          return `<div ${warn ? 'style="color: #f85149;"' : ''}><span style="color: var(--text-muted);">${t}</span> <b>${who}</b> — ${ev.message}</div>`;
+        }).join('');
+      } catch (e) {
+        console.error('Blad pobierania zdarzen:', e);
+      }
+    }
+
     setInterval(fetchStatus, 4000);
+    setInterval(fetchEvents, 4000);
     fetchStatus();
+    fetchEvents();
+
+    // Podanie kodu 2FA "z reki"
+    document.getElementById('btn-code').addEventListener('click', async () => {
+      const id = document.getElementById('code-account').value;
+      const code = document.getElementById('code-input').value.trim();
+      const box = document.getElementById('code-alert');
+      if (!id || !code) {
+        box.style.display = 'block';
+        box.className = 'alert-error';
+        box.textContent = 'Wybierz konto i podaj kod.';
+        return;
+      }
+      try {
+        const res = await fetch(`/api/accounts/${id}/2fa-code`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        const j = await res.json();
+        box.style.display = 'block';
+        if (!j.ok) throw new Error(j.error || 'Nie udało się podać kodu.');
+        box.className = 'alert-success';
+        box.textContent = '✅ Kod przekazany do logowania — przeglądarka go wpisuje.';
+        document.getElementById('code-input').value = '';
+      } catch (err) {
+        box.className = 'alert-error';
+        box.textContent = '❌ ' + err.message;
+      }
+    });
 
     // Obsluga formularza
     const form = document.getElementById('add-account-form');

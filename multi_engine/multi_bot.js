@@ -8,7 +8,7 @@ const express = require('express');
 const commandRegistry = require('./command_registry');
 const economyMaster = require('./economy_master');
 const accountManager = require('./account_manager');
-const { initDatabase, getActiveAccounts, pool, addAccount, updateAccountLoginMeta } = require('./db');
+const { initDatabase, getActiveAccounts, pool, addAccount, updateAccountLoginMeta, updateAccountAppstate } = require('./db');
 const { loginWithTotp } = require('./totp_login');
 const manualCodeInbox = require('./manual_codes');
 
@@ -93,7 +93,10 @@ async function bootstrap() {
     });
   });
 
-  // Endpoint dodawania nowego konta z 2FA (onboarding przez Puppeteer)
+  // Endpoint dodawania nowego konta.
+  // Model: konto jest zapisywane OD RAZU (otrzymuje ID), a logowanie przegladarkowe
+  // dziala w tle. Dzieki temu, gdy FB poprosi o kod 2FA / kod z emaila, operator
+  // moze NATYCHMIAST podac kod z tej samej strony: POST /api/accounts/:id/2fa-code.
   app.post('/api/accounts/add', async (req, res) => {
     const { email, password, totpSecret, proxyUrl } = req.body;
     if (!email || !password) {
@@ -101,36 +104,72 @@ async function bootstrap() {
     }
 
     try {
-      console.log(`[API] Rozpoczynam automatyczne logowanie dla ${email}...`);
-      const appstate = await loginWithTotp(email, password, totpSecret, proxyUrl);
-
-      // Zapisz konto w bazie (PostgreSQL lub local fallback).
-      // Haslo zostaje w bazie — potrzebne do onboarding/odzyskiwania przez Puppeteer.
-      // TODO: zaszyfrowac (np. AES z kluczem z env) przed produkcyjnym użyciem.
+      // 1) Zapisz konto w bazie (bez appstate) — haslo zostaje dla przyszlego
+      //    onboarding/odzyskiwania. TODO: zaszyfrowac (np. AES z kluczem z env).
       const newAccount = await addAccount({
         email,
         password,
-        totp_secret: totpSecret,
-        appstate,
-        proxy_url: proxyUrl,
-        login_slot: new Date().toISOString() // onboarding juz w locie
+        totp_secret: totpSecret || null,
+        appstate: null,
+        proxy_url: proxyUrl || null,
+        login_slot: null
       });
 
-      // Uruchom nowe konto w locie w klastrze
-      await accountManager.registerAndStart(newAccount);
+      // 2) "Zatrzymaj" slot na 24h — podczas logowania w tle scheduler
+      //    nie ma prawa startowac tego konta podwaznie.
+      const holdSlot = new Date(Date.now() + 24 * 3600e3).toISOString();
+      newAccount.login_slot = holdSlot;
+      await updateAccountLoginMeta(newAccount.id, { login_slot: holdSlot }).catch(() => {});
+
+      // 3) Zarejestruj instancje, zebys widzial ja w panelu od razu
+      const instance = accountManager.register(newAccount);
+      instance.status = 'CONNECTING';
+      pushEvent({
+        ts: new Date().toISOString(), name: 'onboarding', accountId: newAccount.id, email,
+        message: `Konto #${newAccount.id} zapisane — trwa automatyczne logowanie w tle (Puppeteer + 2FA)...`
+      });
+
+      // 4) Logowanie w tle z dostawca kodu "z reki" (skrzynka manualCodeInbox)
+      (async () => {
+        try {
+          const appstate = await loginWithTotp(
+            email, password, totpSecret || null, proxyUrl || null,
+            {
+              manualCodeProvider: () => manualCodeInbox.awaitManualCode(newAccount.id, {
+                timeoutMs: 180000,
+                label: email
+              }),
+              maxCodeAttempts: 2
+            }
+          );
+
+          const nowIso = new Date().toISOString();
+          newAccount.appstate = appstate;
+          newAccount.login_slot = nowIso;
+          await updateAccountAppstate(newAccount.id, appstate);
+          await updateAccountLoginMeta(newAccount.id, { login_slot: nowIso });
+          await accountManager.registerAndStart(newAccount);
+        } catch (err) {
+          instance.status = 'ERROR';
+          console.error(`[API] Tlowe logowanie konta ${email} nie powiodlo sie:`, err.message);
+          pushEvent({
+            ts: new Date().toISOString(), name: 'login_failed', accountId: newAccount.id, email,
+            message: `Tlowe logowanie nie powiodlo sie: ${err.message}` +
+              (err && err.code === 'CHECKPOINT_MANUAL'
+                ? ' — podaj kod w polu "Kod 2FA" na panelu albo kliknij "Loguj ponownie" przy koncie.'
+                : '')
+          });
+        }
+      })();
 
       res.json({
         success: true,
-        message: `Konto #${newAccount.id} (${email}) zostalo pomyslnie zalogowane i uruchomione!`,
-        accountId: newAccount.id
+        accountId: newAccount.id,
+        message: `Konto #${newAccount.id} (${email}) zapisane. Przegladarka loguje sie w tle — sledz status w tabeli; jesli FB poprosi o kod, wklej go w polu ponizej formularza.`
       });
     } catch (err) {
       console.error(`[API] Blad rejestracji konta ${email}:`, err.message);
-      const code = err && err.code;
-      res.status(500).json({
-        error: err.message,
-        ...(code === 'CHECKPOINT_MANUAL' ? { requiresManual: true } : {})
-      });
+      res.status(500).json({ error: err.message });
     }
   });
 
