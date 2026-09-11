@@ -4409,7 +4409,7 @@ loginWithFallback().then(api => {
 
     // Sprawdź tryb maintenance
     if (client.maintenanceMode && senderId !== creatorId) {
-      api.sendMessage('🔧 Bot jest w trybie maintenance. Spróbuj ponownie za kilka sekund.', threadId, () => {}, messageId);
+      api.sendMessage('🔧 Bot jest w trybie maintenance. Spróbuj ponownie za kilka minut.', threadId, () => {}, messageId);
       return;
     }
 
