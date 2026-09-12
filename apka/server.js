@@ -913,32 +913,37 @@ app.post('/api/permissions/:id', async (req, res) => {
 });
 
 // ===== PODECZANI / AI ANALIZA =====
-function getGroqApiKeys() {
+function getMistralApiKeys() {
   const keys = [];
-  if (process.env.GROQ_API_KEY) {
-    if (process.env.GROQ_API_KEY.includes(',')) {
-      keys.push(...process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
-    } else {
-      keys.push(process.env.GROQ_API_KEY.trim());
-    }
+
+  const mistralKey = process.env.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY_2 || process.env.MISTRAL_API_KEY_3;
+  if (mistralKey) {
+    keys.push(mistralKey.trim());
   }
-  for (let i = 2; i <= 12; i++) {
-    const val = process.env[`GROQ_API_KEY_${i}`];
-    if (val) keys.push(val.trim());
+
+  if (process.env.MISTRAL_API_KEY) {
+    keys.push(process.env.MISTRAL_API_KEY.trim());
   }
+  if (process.env.MISTRAL_API_KEY_2) {
+    keys.push(process.env.MISTRAL_API_KEY_2.trim());
+  }
+  if (process.env.MISTRAL_API_KEY_3) {
+    keys.push(process.env.MISTRAL_API_KEY_3.trim());
+  }
+
   try {
     const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
-    if (Array.isArray(aiConfig.GROQ_API_KEYS)) keys.push(...aiConfig.GROQ_API_KEYS.map(k => k.trim()));
-    if (aiConfig.GROQ_API_KEY) keys.push(aiConfig.GROQ_API_KEY.trim());
+    if (Array.isArray(aiConfig.MISTRAL_API_KEYS)) keys.push(...aiConfig.MISTRAL_API_KEYS.map(k => k.trim()));
+    if (aiConfig.MISTRAL_API_KEY) keys.push(aiConfig.MISTRAL_API_KEY.trim());
   } catch (_) {}
   return [...new Set(keys)].filter(Boolean);
 }
 
-async function askGroq(apiKey, promptText) {
+async function askMistral(apiKey, promptText) {
   const response = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
+    'https://api.mistral.ai/v1/chat/completions',
     {
-      model: 'qwen/qwen3.8-27b',
+      model: 'mistral-small-latest',
       messages: [{ role: 'user', content: promptText }],
       max_tokens: 8192,
       temperature: 0.7
@@ -952,22 +957,22 @@ async function askGroq(apiKey, promptText) {
     }
   );
   const replyText = response.data?.choices?.[0]?.message?.content;
-  if (!replyText) throw new Error('Pusta odpowiedź z API Groq.');
+  if (!replyText) throw new Error('Pusta odpowiedź z API Mistral.');
   return replyText;
 }
 
-async function askGeminiWithFallback(promptText) {
-  const keys = getGroqApiKeys();
-  if (keys.length === 0) throw new Error('Brak skonfigurowanych kluczy Groq API!');
+async function askMistralWithFallbackPanel(promptText) {
+  const keys = getMistralApiKeys();
+  if (keys.length === 0) throw new Error('Brak skonfigurowanych kluczy Mistral API!');
   const startIndex = Math.floor(Math.random() * keys.length);
   let lastError = null;
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const idx = (startIndex + attempt) % keys.length;
     try {
-      return await askGroq(keys[idx], promptText);
+      return await askMistral(keys[idx], promptText);
     } catch (err) {
       const status = err.response?.status;
-      const errorMsg = err.response?.data?.error?.message || err.message;
+      const errorMsg = err.response?.data?.message || err.message;
       console.warn(`[AI-PANEL] Błąd klucza ${idx + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
       if (attempt < keys.length - 1) continue;
       lastError = err;
@@ -1061,7 +1066,7 @@ app.post('/api/suspects/:id/analyze', async (req, res) => {
       `${transcriptLines.join('\n') || 'Brak historii.'}\n\n` +
       `Na podstawie powyższych danych odpowiedz na pytanie administratora. Bądź konkretny, odnoś się do konkretnych komend i kwot jeśli to możliwe.`;
 
-    const replyText = await askGeminiWithFallback(promptText);
+    const replyText = await askMistralWithFallbackPanel(promptText);
     res.json({ ok: true, reply: replyText, analyzedLogs: transcriptLines.length, targetName, isGroup });
   } catch (err) {
     console.error('[AI-PANEL] Błąd analizy:', err);

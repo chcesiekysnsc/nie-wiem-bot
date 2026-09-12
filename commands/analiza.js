@@ -166,41 +166,41 @@ function needsChatContext(question) {
 function getApiKeys() {
   const keys = [];
 
-  if (process.env.GROQ_API_KEY) {
-    if (process.env.GROQ_API_KEY.includes(',')) {
-      keys.push(...process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
-    } else {
-      keys.push(process.env.GROQ_API_KEY.trim());
-    }
+  const mistralKey = process.env.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY_2 || process.env.MISTRAL_API_KEY_3;
+  if (mistralKey) {
+    keys.push(mistralKey.trim());
   }
 
-  for (let i = 2; i <= 12; i++) {
-    const val = process.env[`GROQ_API_KEY_${i}`];
-    if (val) {
-      keys.push(val.trim());
-    }
+  if (process.env.MISTRAL_API_KEY) {
+    keys.push(process.env.MISTRAL_API_KEY.trim());
+  }
+  if (process.env.MISTRAL_API_KEY_2) {
+    keys.push(process.env.MISTRAL_API_KEY_2.trim());
+  }
+  if (process.env.MISTRAL_API_KEY_3) {
+    keys.push(process.env.MISTRAL_API_KEY_3.trim());
   }
 
   try {
     const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
-    if (Array.isArray(aiConfig.GROQ_API_KEYS)) {
-      keys.push(...aiConfig.GROQ_API_KEYS.map(k => k.trim()));
+    if (Array.isArray(aiConfig.MISTRAL_API_KEYS)) {
+      keys.push(...aiConfig.MISTRAL_API_KEYS.map(k => k.trim()));
     }
-    if (aiConfig.GROQ_API_KEY) {
-      keys.push(aiConfig.GROQ_API_KEY.trim());
+    if (aiConfig.MISTRAL_API_KEY) {
+      keys.push(aiConfig.MISTRAL_API_KEY.trim());
     }
   } catch (_) {}
 
   const uniqueKeys = [...new Set(keys)].filter(Boolean);
-  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Groq.`);
+  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Mistral.`);
   return uniqueKeys;
 }
 
-async function askGroq(apiKey, promptText) {
+async function askMistral(apiKey, promptText) {
   const response = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
+    'https://api.mistral.ai/v1/chat/completions',
     {
-      model: 'llama-3.3-70b-specdec',
+      model: 'mistral-small-latest',
       messages: [
         {
           role: 'user',
@@ -221,16 +221,16 @@ async function askGroq(apiKey, promptText) {
 
   const replyText = response.data?.choices?.[0]?.message?.content;
   if (!replyText) {
-    throw new Error('Pusta odpowiedź z API Groq.');
+    throw new Error('Pusta odpowiedź z API Mistral.');
   }
 
   return replyText;
 }
 
-async function askGroqWithFallback(promptText) {
+async function askMistralWithFallback(promptText) {
   const keys = getApiKeys();
   if (keys.length === 0) {
-    throw new Error('Brak skonfigurowanych kluczy Groq API!');
+    throw new Error('Brak skonfigurowanych kluczy Mistral API!');
   }
 
   const startIndex = Math.floor(Math.random() * keys.length);
@@ -240,10 +240,10 @@ async function askGroqWithFallback(promptText) {
     const idx = (startIndex + attempt) % keys.length;
     const apiKey = keys[idx];
     try {
-      return await askGroq(apiKey, promptText);
+      return await askMistral(apiKey, promptText);
     } catch (err) {
       const status = err.response?.status;
-      const errorMsg = err.response?.data?.error?.message || err.message;
+      const errorMsg = err.response?.data?.message || err.message;
       console.warn(`[AI] Błąd klucza ${idx + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
 
       if (attempt < keys.length - 1) {
@@ -256,23 +256,23 @@ async function askGroqWithFallback(promptText) {
   throw lastError;
 }
 
-async function askGroqForChunk(promptText, keys, chunkIndex) {
+async function askMistralForChunk(promptText, keys, chunkIndex) {
   // Użyj różnych kluczy dla różnych chunków (round-robin)
   const keyIndex = chunkIndex % keys.length;
   const apiKey = keys[keyIndex];
 
   try {
-    return await askGroq(apiKey, promptText);
+    return await askMistral(apiKey, promptText);
   } catch (err) {
     const status = err.response?.status;
-    const errorMsg = err.response?.data?.error?.message || err.message;
+    const errorMsg = err.response?.data?.message || err.message;
     console.warn(`[AI-CHUNK] Błąd klucza ${keyIndex + 1}/${keys.length} dla chunku ${chunkIndex + 1} (Status: ${status}, Błąd: ${errorMsg}).`);
 
     // Jeśli błąd, spróbuj kolejny klucz
     for (let attempt = 1; attempt < keys.length; attempt++) {
       const nextKeyIndex = (keyIndex + attempt) % keys.length;
       try {
-        return await askGroq(keys[nextKeyIndex], promptText);
+        return await askMistral(keys[nextKeyIndex], promptText);
       } catch (retryErr) {
         console.warn(`[AI-CHUNK] Retry klucza ${nextKeyIndex + 1}/${keys.length} dla chunku ${chunkIndex + 1} (Status: ${retryErr.response?.status})`);
       }
@@ -281,8 +281,8 @@ async function askGroqForChunk(promptText, keys, chunkIndex) {
   }
 }
 
-const CHARS_PER_CHUNK = 50000;
-const MAX_CHUNKS = 20;
+const CHARS_PER_CHUNK = 10000;
+const MAX_CHUNKS = 50;
 const HEARTBEAT_INTERVAL_MS = 30000;
 
 function createHeartbeat(message, getStatusText) {
@@ -548,7 +548,7 @@ async function handleConfirmedGoogleQuery(client, message, pendingAi) {
 
   const apiKeys = getApiKeys();
   if (apiKeys.length === 0) {
-    await safeReply(message, '❌ Brak skonfigurowanego klucza Groq API!');
+    await safeReply(message, '❌ Brak skonfigurowanego klucza Mistral API!');
     return;
   }
 
@@ -564,7 +564,7 @@ async function handleConfirmedGoogleQuery(client, message, pendingAi) {
       `Jesteś pomocnym asystentem. Odpowiadaj po polsku, jasno i konkretnie.\n\n` +
       `PYTANIE: ${pendingAi.question}`;
 
-    let replyText = await askGroqWithFallback(promptText);
+    let replyText = await askMistralWithFallback(promptText);
     replyText = sanitizeAiResponse(replyText);
 
     // Zużyj limit dopiero po pomyślnej odpowiedzi, aby nie tracić limitu przy błędzie API
@@ -819,7 +819,7 @@ module.exports = {
       const apiKeysForChunks = getApiKeys();
 
       if (apiKeysForChunks.length === 0) {
-        await safeReply(message, '❌ Brak skonfigurowanego klucza Groq API!');
+        await safeReply(message, '❌ Brak skonfigurowanego klucza Mistral API!');
         return;
       }
 
@@ -837,7 +837,7 @@ module.exports = {
           `${transcriptLines.join('\n')}\n`;
 
         console.log(`[AI] Wysyłam pojedyncze zapytanie (1 chunk, thread ${threadId})`);
-        finalReplyText = await askGroqWithFallback(promptText);
+        finalReplyText = await askMistralWithFallback(promptText);
         console.log(`[AI] Otrzymano odpowiedź (1 chunk, thread ${threadId})`);
       } else {
         await safeReply(message, `🧩 Historia jest zbyt długa na jedno zapytanie — dzielę na **${chunks.length}** części i analizuję równolegle...`);
@@ -868,7 +868,7 @@ module.exports = {
                 `${chunkLines.join('\n')}\n`;
 
               try {
-                const summary = await askGroqForChunk(chunkPrompt, apiKeysForChunks, idx);
+                const summary = await askMistralForChunk(chunkPrompt, apiKeysForChunks, idx);
                 console.log(`[AI-CHUNK] Ukończono chunk ${idx + 1}/${chunks.length} (thread ${threadId})`);
                 return { idx, summary, error: null };
               } catch (err) {
@@ -910,7 +910,7 @@ module.exports = {
         });
         summaryHeartbeat.start();
         try {
-          finalReplyText = await askGroqWithFallback(finalPrompt);
+          finalReplyText = await askMistralWithFallback(finalPrompt);
           console.log(`[AI] Otrzymano finalną odpowiedź (thread ${threadId})`);
         } finally {
           summaryHeartbeat.stop();
@@ -948,7 +948,7 @@ module.exports = {
   }
 };
 
-module.exports.askGroqWithFallback = askGroqWithFallback;
+module.exports.askMistralWithFallback = askMistralWithFallback;
 module.exports.handleConfirmedGoogleQuery = handleConfirmedGoogleQuery;
 module.exports.checkAiLimits = checkAiLimits;
 module.exports.consumeAiQuota = consumeAiQuota;

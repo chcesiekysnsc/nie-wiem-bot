@@ -128,41 +128,41 @@ function needsChatContext(question) {
 function getApiKeys() {
   const keys = [];
 
-  if (process.env.GROQ_API_KEY) {
-    if (process.env.GROQ_API_KEY.includes(',')) {
-      keys.push(...process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
-    } else {
-      keys.push(process.env.GROQ_API_KEY.trim());
-    }
+  const mistralKey = process.env.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY_2 || process.env.MISTRAL_API_KEY_3;
+  if (mistralKey) {
+    keys.push(mistralKey.trim());
   }
 
-  for (let i = 2; i <= 12; i++) {
-    const val = process.env[`GROQ_API_KEY_${i}`];
-    if (val) {
-      keys.push(val.trim());
-    }
+  if (process.env.MISTRAL_API_KEY) {
+    keys.push(process.env.MISTRAL_API_KEY.trim());
+  }
+  if (process.env.MISTRAL_API_KEY_2) {
+    keys.push(process.env.MISTRAL_API_KEY_2.trim());
+  }
+  if (process.env.MISTRAL_API_KEY_3) {
+    keys.push(process.env.MISTRAL_API_KEY_3.trim());
   }
 
   try {
     const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
-    if (Array.isArray(aiConfig.GROQ_API_KEYS)) {
-      keys.push(...aiConfig.GROQ_API_KEYS.map(k => k.trim()));
+    if (Array.isArray(aiConfig.MISTRAL_API_KEYS)) {
+      keys.push(...aiConfig.MISTRAL_API_KEYS.map(k => k.trim()));
     }
-    if (aiConfig.GROQ_API_KEY) {
-      keys.push(aiConfig.GROQ_API_KEY.trim());
+    if (aiConfig.MISTRAL_API_KEY) {
+      keys.push(aiConfig.MISTRAL_API_KEY.trim());
     }
   } catch (_) {}
 
   const uniqueKeys = [...new Set(keys)].filter(Boolean);
-  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Groq.`);
+  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Mistral.`);
   return uniqueKeys;
 }
 
-async function askGroq(apiKey, promptText) {
+async function askMistral(apiKey, promptText) {
   const response = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
+    'https://api.mistral.ai/v1/chat/completions',
     {
-      model: 'qwen/qwen3.8-27b',
+      model: 'mistral-small-latest',
       messages: [
         {
           role: 'user',
@@ -183,16 +183,16 @@ async function askGroq(apiKey, promptText) {
 
   const replyText = response.data?.choices?.[0]?.message?.content;
   if (!replyText) {
-    throw new Error('Pusta odpowiedź z API Groq.');
+    throw new Error('Pusta odpowiedź z API Mistral.');
   }
 
   return replyText;
 }
 
-async function askGeminiWithFallback(promptText) {
+async function askMistralWithFallback(promptText) {
   const keys = getApiKeys();
   if (keys.length === 0) {
-    throw new Error('Brak skonfigurowanych kluczy Groq API!');
+    throw new Error('Brak skonfigurowanych kluczy Mistral API!');
   }
 
   const startIndex = Math.floor(Math.random() * keys.length);
@@ -202,10 +202,10 @@ async function askGeminiWithFallback(promptText) {
     const idx = (startIndex + attempt) % keys.length;
     const apiKey = keys[idx];
     try {
-      return await askGroq(apiKey, promptText);
+      return await askMistral(apiKey, promptText);
     } catch (err) {
       const status = err.response?.status;
-      const errorMsg = err.response?.data?.error?.message || err.message;
+      const errorMsg = err.response?.data?.message || err.message;
       console.warn(`[AI] Błąd klucza ${idx + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
 
       if (attempt < keys.length - 1) {
@@ -218,15 +218,15 @@ async function askGeminiWithFallback(promptText) {
   throw lastError;
 }
 
-async function askGeminiForChunk(promptText, keys, chunkIndex) {
+async function askMistralForChunk(promptText, keys, chunkIndex) {
   let lastError = null;
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const idx = (chunkIndex + attempt) % keys.length;
     try {
-      return await askGroq(keys[idx], promptText);
+      return await askMistral(keys[idx], promptText);
     } catch (err) {
       const status = err.response?.status;
-      const errorMsg = err.response?.data?.error?.message || err.message;
+      const errorMsg = err.response?.data?.message || err.message;
       console.warn(`[AI-CHUNK] Błąd klucza ${idx + 1}/${keys.length} dla chunku ${chunkIndex + 1} (Status: ${status}, Błąd: ${errorMsg}).`);
       lastError = err;
     }
@@ -453,10 +453,10 @@ async function handleConfirmedGoogleQuery(client, message, pendingAi) {
   }
 
   const apiKeys = getApiKeys();
-  if (apiKeys.length === 0) {
-    await message.reply('❌ Brak skonfigurowanego klucza Gemini API!');
-    return;
-  }
+      if (apiKeys.length === 0) {
+        await message.reply('❌ Brak skonfigurowanego klucza Mistral API!');
+        return;
+      }
 
   const analysisId = `${pendingAi.userId}_${Date.now()}_${Math.random()}`;
   client.activeAnalyses = client.activeAnalyses || new Map();
@@ -470,7 +470,7 @@ async function handleConfirmedGoogleQuery(client, message, pendingAi) {
       `Jesteś pomocnym asystentem. Odpowiadaj po polsku, jasno i konkretnie.\n\n` +
       `PYTANIE: ${pendingAi.question}`;
 
-    let replyText = await askGeminiWithFallback(promptText);
+    let replyText = await askMistralWithFallback(promptText);
     replyText = sanitizeAiResponse(replyText);
 
     // Zużyj limit dopiero po pomyślnej odpowiedzi, aby nie tracić limitu przy błędzie API
@@ -733,7 +733,7 @@ module.exports = {
               `${chunkLines.join('\n')}\n`;
 
             try {
-              const summary = await askGeminiForChunk(chunkPrompt, apiKeysForChunks, idx);
+              const summary = await askMistralForChunk(chunkPrompt, apiKeysForChunks, idx);
               return { idx, summary, error: null };
             } catch (err) {
               console.error(`[AI-CHUNK] Błąd przetwarzania chunku ${idx + 1}:`, err.message);
@@ -763,7 +763,7 @@ module.exports = {
           `Streszczenia fragmentów rozmowy:\n` +
           `${successfulSummaries.join('\n\n')}\n`;
 
-        finalReplyText = await askGeminiWithFallback(finalPrompt);
+        finalReplyText = await askMistralWithFallback(finalPrompt);
 
         if (failedCount > 0) {
           finalReplyText += `\n\n⚠️ *Uwaga: ${failedCount} z ${chunks.length} części rozmowy nie udało się przeanalizować z powodu błędów API — odpowiedź może być niepełna.*`;
@@ -790,7 +790,7 @@ module.exports = {
   }
 };
 
-module.exports.askGeminiWithFallback = askGeminiWithFallback;
+module.exports.askMistralWithFallback = askMistralWithFallback;
 module.exports.handleConfirmedGoogleQuery = handleConfirmedGoogleQuery;
 module.exports.checkAiLimits = checkAiLimits;
 module.exports.consumeAiQuota = consumeAiQuota;
