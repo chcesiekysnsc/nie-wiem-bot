@@ -4325,9 +4325,9 @@ loginWithFallback().then(api => {
 
         if (hasBlockedUser) {
           api.sendMessage(`🔧 Bot nie może działać na tej grupie przez to, że jest na niej zablokowana osoba o nazwie **${blockedName}**. Aby bot zaczął działać poprawnie, usuń tę osobę z grupy lub używaj bota na innej grupie.`, threadId, () => {}, messageId);
+          return;
         }
       })();
-      return;
     }
 
     const economicCommands = [
