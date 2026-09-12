@@ -2838,16 +2838,11 @@ loginWithFallback().then(api => {
       || event.logMessageType === 'unsubscribe';
 
     if (isUnsubscribeEvent) {
-      const threadId = event.threadID || event.thread_id || event.threadId || event.conversationId || event.conversationID || null;
-
-      if (!threadId) {
-        console.warn('[UNSUBSCRIBE] Brak threadId w evencie log:unsubscribe', JSON.stringify(event).slice(0, 200));
-        return;
-      }
-
+      const threadId = event.threadID;
+      
       // Wyciągamy ID usuniętych/wychodzących użytkowników
       const removedUsers = [];
-
+      
       // 1. Jeśli użytkownik wyszedł dobrowolnie (leftParticipantFbId)
       if (event.logMessageData?.leftParticipantFbId) {
         removedUsers.push(String(event.logMessageData.leftParticipantFbId));
@@ -2858,7 +2853,7 @@ loginWithFallback().then(api => {
       if (event.logMessageData?.userFbId) {
         removedUsers.push(String(event.logMessageData.userFbId));
       }
-
+      
       // 2. Jeśli użytkownik został usunięty/wyrzucony (removedParticipants)
       const dataParticipants = event.logMessageData?.removedParticipants || event.logMessageData?.removed_participants;
       if (Array.isArray(dataParticipants)) {
@@ -2871,7 +2866,7 @@ loginWithFallback().then(api => {
           }
         }
       }
-
+      
       // 3. Fallbacki dla innych wersji FCA/Messenger
       if (event.participantID) {
         removedUsers.push(String(event.participantID));
@@ -2890,9 +2885,9 @@ loginWithFallback().then(api => {
 
       const uniqueRemoved = [...new Set(removedUsers.map(u => String(u).trim()).filter(Boolean))];
 
-      console.log(`[UNSUBSCRIBE] threadId=${threadId} removedUsers=${JSON.stringify(uniqueRemoved)}`);
-
       // Ochrona twórcy bota przed wyrzuceniem
+      const creatorId = '100060812419294';
+      
       // Wykrywanie ID sprawcy (kickera) z uwzględnieniem różnych wariantów FCA
       let authorId = '';
       if (event.author) {
@@ -2912,7 +2907,7 @@ loginWithFallback().then(api => {
       }
       authorId = authorId.trim();
       
-      if (threadId && uniqueRemoved.includes('100060812419294') && authorId !== '100060812419294') {
+      if (threadId && uniqueRemoved.includes(creatorId) && authorId !== creatorId) {
         (async () => {
           try {
             const threadInfo = await getThreadInfoCachedAsync(api, threadId);
@@ -3044,32 +3039,19 @@ loginWithFallback().then(api => {
           }
         }
 
-      const BLOCKED_USER_ID = '61592080316179';
-      const blockedUserRemoved = uniqueRemoved.some(uid => String(uid).trim() === BLOCKED_USER_ID);
-      if (blockedUserRemoved && threadId) {
-        setTimeout(async () => {
-          try {
-            const threadInfo = await getThreadInfoCachedAsync(api, threadId);
-            const participantIds = (threadInfo.participantIDs || []).map(id => String(id));
-            const stillPresent = participantIds.includes(BLOCKED_USER_ID);
-
-            if (!stillPresent) {
-              await withData(store => {
-                store.profiles = store.profiles || {};
-                store.profiles.blacklistedGroups = store.profiles.blacklistedGroups || [];
-                const idx = store.profiles.blacklistedGroups.indexOf(threadId);
-                if (idx !== -1) {
-                  store.profiles.blacklistedGroups.splice(idx, 1);
-                  console.log(`[BLOCKED-USER] Usunięto grupę ${threadId} z blacklisty po potwierdzonym wyjściu zablokowanego użytkownika.`);
-                }
-              });
-            } else {
-              console.log(`[BLOCKED-USER] Użytkownik ${BLOCKED_USER_ID} nadal jest na grupie ${threadId}, nie odblokowuję.`);
+        const BLOCKED_USER_ID = '61592080316179';
+        const blockedUserRemoved = uniqueRemoved.some(uid => String(uid).trim() === BLOCKED_USER_ID);
+        if (blockedUserRemoved && threadId) {
+          await withData(store => {
+            store.profiles = store.profiles || {};
+            store.profiles.blacklistedGroups = store.profiles.blacklistedGroups || [];
+            const idx = store.profiles.blacklistedGroups.indexOf(threadId);
+            if (idx !== -1) {
+              store.profiles.blacklistedGroups.splice(idx, 1);
+              console.log(`[BLOCKED-USER] Usunięto grupę ${threadId} z blacklisty po wyjściu zablokowanego użytkownika.`);
             }
-          } catch (err) {
-            console.error(`[BLOCKED-USER] Błąd podczas sprawdzania uczestników grupy ${threadId}:`, err);
-          }
-        }, 3000);
+          });
+        }
       }
       return;
     }
