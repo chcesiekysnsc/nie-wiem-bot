@@ -26,6 +26,6 @@ module.exports = {
     });
 
     const name = isSelf ? 'sobie' : `użytkownikowi ${targetId}`;
-    await message.reply(`✅ Wyłączyłeś automatyczny reset salda powyżej 1 mld v dla ${name}.`);
+    await message.reply(`✅ Wyłączyłeś automatyczny reset salda powyżej 1 mld v dla ${name}.`).catch(() => null);
   }
 };
