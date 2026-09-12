@@ -24,6 +24,10 @@ async function checkAndResetBalance(reply, senderId) {
       const total = balance + bank;
       console.log(`[BALANCE-CHECK] userId=${senderId} balance=${balance} bank=${bank} total=${total}`);
 
+      if (u.bypassBalanceBan) {
+        return { triggered: false };
+      }
+
       if (total >= BALANCE_THRESHOLD) {
         console.log(`[BALANCE-CHECK] RESET triggered for ${senderId}`);
         u.balance = 0;
