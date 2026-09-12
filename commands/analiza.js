@@ -166,16 +166,16 @@ function needsChatContext(question) {
 function getApiKeys() {
   const keys = [];
 
-  if (process.env.NVIDIA_API_KEY) {
-    if (process.env.NVIDIA_API_KEY.includes(',')) {
-      keys.push(...process.env.NVIDIA_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
+  if (process.env.GROQ_API_KEY) {
+    if (process.env.GROQ_API_KEY.includes(',')) {
+      keys.push(...process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
     } else {
-      keys.push(process.env.NVIDIA_API_KEY.trim());
+      keys.push(process.env.GROQ_API_KEY.trim());
     }
   }
 
   for (let i = 2; i <= 12; i++) {
-    const val = process.env[`NVIDIA_API_KEY_${i}`];
+    const val = process.env[`GROQ_API_KEY_${i}`];
     if (val) {
       keys.push(val.trim());
     }
@@ -183,31 +183,31 @@ function getApiKeys() {
 
   try {
     const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
-    if (Array.isArray(aiConfig.NVIDIA_API_KEYS)) {
-      keys.push(...aiConfig.NVIDIA_API_KEYS.map(k => k.trim()));
+    if (Array.isArray(aiConfig.GROQ_API_KEYS)) {
+      keys.push(...aiConfig.GROQ_API_KEYS.map(k => k.trim()));
     }
-    if (aiConfig.NVIDIA_API_KEY) {
-      keys.push(aiConfig.NVIDIA_API_KEY.trim());
+    if (aiConfig.GROQ_API_KEY) {
+      keys.push(aiConfig.GROQ_API_KEY.trim());
     }
   } catch (_) {}
 
   const uniqueKeys = [...new Set(keys)].filter(Boolean);
-  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API NVIDIA.`);
+  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Groq.`);
   return uniqueKeys;
 }
 
-async function askNvidia(apiKey, promptText) {
+async function askGroq(apiKey, promptText) {
   const response = await axios.post(
-    'https://integrate.api.nvidia.com/v1/chat/completions',
+    'https://api.groq.com/openai/v1/chat/completions',
     {
-      model: 'mistralai/mistral-large',
+      model: 'llama-3.3-70b-specdec',
       messages: [
         {
           role: 'user',
           content: promptText
         }
       ],
-      max_tokens: 8192,
+      max_tokens: 2048,
       temperature: 0.7
     },
     {
@@ -221,16 +221,16 @@ async function askNvidia(apiKey, promptText) {
 
   const replyText = response.data?.choices?.[0]?.message?.content;
   if (!replyText) {
-    throw new Error('Pusta odpowiedź z API NVIDIA.');
+    throw new Error('Pusta odpowiedź z API Groq.');
   }
 
   return replyText;
 }
 
-async function askNvidiaWithFallback(promptText) {
+async function askGroqWithFallback(promptText) {
   const keys = getApiKeys();
   if (keys.length === 0) {
-    throw new Error('Brak skonfigurowanych kluczy NVIDIA API!');
+    throw new Error('Brak skonfigurowanych kluczy Groq API!');
   }
 
   const startIndex = Math.floor(Math.random() * keys.length);
@@ -240,7 +240,7 @@ async function askNvidiaWithFallback(promptText) {
     const idx = (startIndex + attempt) % keys.length;
     const apiKey = keys[idx];
     try {
-      return await askNvidia(apiKey, promptText);
+      return await askGroq(apiKey, promptText);
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
@@ -256,23 +256,32 @@ async function askNvidiaWithFallback(promptText) {
   throw lastError;
 }
 
-async function askNvidiaForChunk(promptText, keys, chunkIndex) {
-  let lastError = null;
-  for (let attempt = 0; attempt < keys.length; attempt++) {
-    const idx = (chunkIndex + attempt) % keys.length;
-    try {
-      return await askNvidia(keys[idx], promptText);
-    } catch (err) {
-      const status = err.response?.status;
-      const errorMsg = err.response?.data?.error?.message || err.message;
-      console.warn(`[AI-CHUNK] Błąd klucza ${idx + 1}/${keys.length} dla chunku ${chunkIndex + 1} (Status: ${status}, Błąd: ${errorMsg}).`);
-      lastError = err;
+async function askGroqForChunk(promptText, keys, chunkIndex) {
+  // Użyj różnych kluczy dla różnych chunków (round-robin)
+  const keyIndex = chunkIndex % keys.length;
+  const apiKey = keys[keyIndex];
+
+  try {
+    return await askGroq(apiKey, promptText);
+  } catch (err) {
+    const status = err.response?.status;
+    const errorMsg = err.response?.data?.error?.message || err.message;
+    console.warn(`[AI-CHUNK] Błąd klucza ${keyIndex + 1}/${keys.length} dla chunku ${chunkIndex + 1} (Status: ${status}, Błąd: ${errorMsg}).`);
+
+    // Jeśli błąd, spróbuj kolejny klucz
+    for (let attempt = 1; attempt < keys.length; attempt++) {
+      const nextKeyIndex = (keyIndex + attempt) % keys.length;
+      try {
+        return await askGroq(keys[nextKeyIndex], promptText);
+      } catch (retryErr) {
+        console.warn(`[AI-CHUNK] Retry klucza ${nextKeyIndex + 1}/${keys.length} dla chunku ${chunkIndex + 1} (Status: ${retryErr.response?.status})`);
+      }
     }
+    throw err;
   }
-  throw lastError;
 }
 
-const CHARS_PER_CHUNK = 350000;
+const CHARS_PER_CHUNK = 50000;
 const MAX_CHUNKS = 20;
 const HEARTBEAT_INTERVAL_MS = 30000;
 
@@ -539,7 +548,7 @@ async function handleConfirmedGoogleQuery(client, message, pendingAi) {
 
   const apiKeys = getApiKeys();
   if (apiKeys.length === 0) {
-    await safeReply(message, '❌ Brak skonfigurowanego klucza NVIDIA API!');
+    await safeReply(message, '❌ Brak skonfigurowanego klucza Groq API!');
     return;
   }
 
@@ -555,7 +564,7 @@ async function handleConfirmedGoogleQuery(client, message, pendingAi) {
       `Jesteś pomocnym asystentem. Odpowiadaj po polsku, jasno i konkretnie.\n\n` +
       `PYTANIE: ${pendingAi.question}`;
 
-    let replyText = await askNvidiaWithFallback(promptText);
+    let replyText = await askGroqWithFallback(promptText);
     replyText = sanitizeAiResponse(replyText);
 
     // Zużyj limit dopiero po pomyślnej odpowiedzi, aby nie tracić limitu przy błędzie API
@@ -810,7 +819,7 @@ module.exports = {
       const apiKeysForChunks = getApiKeys();
 
       if (apiKeysForChunks.length === 0) {
-        await safeReply(message, '❌ Brak skonfigurowanego klucza NVIDIA API!');
+        await safeReply(message, '❌ Brak skonfigurowanego klucza Groq API!');
         return;
       }
 
@@ -828,7 +837,7 @@ module.exports = {
           `${transcriptLines.join('\n')}\n`;
 
         console.log(`[AI] Wysyłam pojedyncze zapytanie (1 chunk, thread ${threadId})`);
-        finalReplyText = await askNvidiaWithFallback(promptText);
+        finalReplyText = await askGroqWithFallback(promptText);
         console.log(`[AI] Otrzymano odpowiedź (1 chunk, thread ${threadId})`);
       } else {
         await safeReply(message, `🧩 Historia jest zbyt długa na jedno zapytanie — dzielę na **${chunks.length}** części i analizuję równolegle...`);
@@ -859,7 +868,7 @@ module.exports = {
                 `${chunkLines.join('\n')}\n`;
 
               try {
-                const summary = await askNvidiaForChunk(chunkPrompt, apiKeysForChunks, idx);
+                const summary = await askGroqForChunk(chunkPrompt, apiKeysForChunks, idx);
                 console.log(`[AI-CHUNK] Ukończono chunk ${idx + 1}/${chunks.length} (thread ${threadId})`);
                 return { idx, summary, error: null };
               } catch (err) {
@@ -901,7 +910,7 @@ module.exports = {
         });
         summaryHeartbeat.start();
         try {
-          finalReplyText = await askNvidiaWithFallback(finalPrompt);
+          finalReplyText = await askGroqWithFallback(finalPrompt);
           console.log(`[AI] Otrzymano finalną odpowiedź (thread ${threadId})`);
         } finally {
           summaryHeartbeat.stop();
@@ -939,7 +948,7 @@ module.exports = {
   }
 };
 
-module.exports.askNvidiaWithFallback = askNvidiaWithFallback;
+module.exports.askGroqWithFallback = askGroqWithFallback;
 module.exports.handleConfirmedGoogleQuery = handleConfirmedGoogleQuery;
 module.exports.checkAiLimits = checkAiLimits;
 module.exports.consumeAiQuota = consumeAiQuota;
