@@ -166,16 +166,16 @@ function needsChatContext(question) {
 function getApiKeys() {
   const keys = [];
 
-  if (process.env.GROQ_API_KEY) {
-    if (process.env.GROQ_API_KEY.includes(',')) {
-      keys.push(...process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
+  if (process.env.NVIDIA_API_KEY) {
+    if (process.env.NVIDIA_API_KEY.includes(',')) {
+      keys.push(...process.env.NVIDIA_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
     } else {
-      keys.push(process.env.GROQ_API_KEY.trim());
+      keys.push(process.env.NVIDIA_API_KEY.trim());
     }
   }
 
   for (let i = 2; i <= 12; i++) {
-    const val = process.env[`GROQ_API_KEY_${i}`];
+    const val = process.env[`NVIDIA_API_KEY_${i}`];
     if (val) {
       keys.push(val.trim());
     }
@@ -183,24 +183,24 @@ function getApiKeys() {
 
   try {
     const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
-    if (Array.isArray(aiConfig.GROQ_API_KEYS)) {
-      keys.push(...aiConfig.GROQ_API_KEYS.map(k => k.trim()));
+    if (Array.isArray(aiConfig.NVIDIA_API_KEYS)) {
+      keys.push(...aiConfig.NVIDIA_API_KEYS.map(k => k.trim()));
     }
-    if (aiConfig.GROQ_API_KEY) {
-      keys.push(aiConfig.GROQ_API_KEY.trim());
+    if (aiConfig.NVIDIA_API_KEY) {
+      keys.push(aiConfig.NVIDIA_API_KEY.trim());
     }
   } catch (_) {}
 
   const uniqueKeys = [...new Set(keys)].filter(Boolean);
-  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Groq.`);
+  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API NVIDIA.`);
   return uniqueKeys;
 }
 
-async function askGroq(apiKey, promptText) {
+async function askNvidia(apiKey, promptText) {
   const response = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
+    'https://integrate.api.nvidia.com/v1/chat/completions',
     {
-      model: 'qwen/qwen3.8-27b',
+      model: 'mistralai/mistral-large',
       messages: [
         {
           role: 'user',
@@ -221,47 +221,16 @@ async function askGroq(apiKey, promptText) {
 
   const replyText = response.data?.choices?.[0]?.message?.content;
   if (!replyText) {
-    throw new Error('Pusta odpowiedź z API Groq.');
+    throw new Error('Pusta odpowiedź z API NVIDIA.');
   }
 
   return replyText;
 }
 
-async function askGroq(apiKey, promptText) {
-  const response = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
-    {
-      model: 'qwen/qwen3.8-27b',
-      messages: [
-        {
-          role: 'user',
-          content: promptText
-        }
-      ],
-      max_tokens: 8192,
-      temperature: 0.7
-    },
-    {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 300000
-    }
-  );
-
-  const replyText = response.data?.choices?.[0]?.message?.content;
-  if (!replyText) {
-    throw new Error('Pusta odpowiedź z API Groq.');
-  }
-
-  return replyText;
-}
-
-async function askGeminiWithFallback(promptText) {
+async function askNvidiaWithFallback(promptText) {
   const keys = getApiKeys();
   if (keys.length === 0) {
-    throw new Error('Brak skonfigurowanych kluczy Groq API!');
+    throw new Error('Brak skonfigurowanych kluczy NVIDIA API!');
   }
 
   const startIndex = Math.floor(Math.random() * keys.length);
@@ -271,7 +240,7 @@ async function askGeminiWithFallback(promptText) {
     const idx = (startIndex + attempt) % keys.length;
     const apiKey = keys[idx];
     try {
-      return await askGroq(apiKey, promptText);
+      return await askNvidia(apiKey, promptText);
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
@@ -287,12 +256,12 @@ async function askGeminiWithFallback(promptText) {
   throw lastError;
 }
 
-async function askGeminiForChunk(promptText, keys, chunkIndex) {
+async function askNvidiaForChunk(promptText, keys, chunkIndex) {
   let lastError = null;
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const idx = (chunkIndex + attempt) % keys.length;
     try {
-      return await askGroq(keys[idx], promptText);
+      return await askNvidia(keys[idx], promptText);
     } catch (err) {
       const status = err.response?.status;
       const errorMsg = err.response?.data?.error?.message || err.message;
@@ -570,7 +539,7 @@ async function handleConfirmedGoogleQuery(client, message, pendingAi) {
 
   const apiKeys = getApiKeys();
   if (apiKeys.length === 0) {
-    await safeReply(message, '❌ Brak skonfigurowanego klucza Gemini API!');
+    await safeReply(message, '❌ Brak skonfigurowanego klucza NVIDIA API!');
     return;
   }
 
@@ -586,7 +555,7 @@ async function handleConfirmedGoogleQuery(client, message, pendingAi) {
       `Jesteś pomocnym asystentem. Odpowiadaj po polsku, jasno i konkretnie.\n\n` +
       `PYTANIE: ${pendingAi.question}`;
 
-    let replyText = await askGeminiWithFallback(promptText);
+    let replyText = await askNvidiaWithFallback(promptText);
     replyText = sanitizeAiResponse(replyText);
 
     // Zużyj limit dopiero po pomyślnej odpowiedzi, aby nie tracić limitu przy błędzie API
@@ -841,7 +810,7 @@ module.exports = {
       const apiKeysForChunks = getApiKeys();
 
       if (apiKeysForChunks.length === 0) {
-        await safeReply(message, '❌ Brak skonfigurowanego klucza Gemini API!');
+        await safeReply(message, '❌ Brak skonfigurowanego klucza NVIDIA API!');
         return;
       }
 
@@ -859,7 +828,7 @@ module.exports = {
           `${transcriptLines.join('\n')}\n`;
 
         console.log(`[AI] Wysyłam pojedyncze zapytanie (1 chunk, thread ${threadId})`);
-        finalReplyText = await askGeminiWithFallback(promptText);
+        finalReplyText = await askNvidiaWithFallback(promptText);
         console.log(`[AI] Otrzymano odpowiedź (1 chunk, thread ${threadId})`);
       } else {
         await safeReply(message, `🧩 Historia jest zbyt długa na jedno zapytanie — dzielę na **${chunks.length}** części i analizuję równolegle...`);
@@ -890,7 +859,7 @@ module.exports = {
                 `${chunkLines.join('\n')}\n`;
 
               try {
-                const summary = await askGeminiForChunk(chunkPrompt, apiKeysForChunks, idx);
+                const summary = await askNvidiaForChunk(chunkPrompt, apiKeysForChunks, idx);
                 console.log(`[AI-CHUNK] Ukończono chunk ${idx + 1}/${chunks.length} (thread ${threadId})`);
                 return { idx, summary, error: null };
               } catch (err) {
@@ -932,7 +901,7 @@ module.exports = {
         });
         summaryHeartbeat.start();
         try {
-          finalReplyText = await askGeminiWithFallback(finalPrompt);
+          finalReplyText = await askNvidiaWithFallback(finalPrompt);
           console.log(`[AI] Otrzymano finalną odpowiedź (thread ${threadId})`);
         } finally {
           summaryHeartbeat.stop();
@@ -970,7 +939,7 @@ module.exports = {
   }
 };
 
-module.exports.askGeminiWithFallback = askGeminiWithFallback;
+module.exports.askNvidiaWithFallback = askNvidiaWithFallback;
 module.exports.handleConfirmedGoogleQuery = handleConfirmedGoogleQuery;
 module.exports.checkAiLimits = checkAiLimits;
 module.exports.consumeAiQuota = consumeAiQuota;
