@@ -128,71 +128,64 @@ function needsChatContext(question) {
 function getApiKeys() {
   const keys = [];
 
-  const mistralKey = process.env.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY_2 || process.env.MISTRAL_API_KEY_3;
-  if (mistralKey) {
-    keys.push(mistralKey.trim());
+  if (process.env.GEMINI_API_KEY) {
+    if (process.env.GEMINI_API_KEY.includes(',')) {
+      keys.push(...process.env.GEMINI_API_KEY.split(',').map(k => k.trim()).filter(Boolean));
+    } else {
+      keys.push(process.env.GEMINI_API_KEY.trim());
+    }
   }
 
-  if (process.env.MISTRAL_API_KEY) {
-    keys.push(process.env.MISTRAL_API_KEY.trim());
-  }
-  if (process.env.MISTRAL_API_KEY_2) {
-    keys.push(process.env.MISTRAL_API_KEY_2.trim());
-  }
-  if (process.env.MISTRAL_API_KEY_3) {
-    keys.push(process.env.MISTRAL_API_KEY_3.trim());
+  for (let i = 2; i <= 12; i++) {
+    const val = process.env[`GEMINI_API_KEY_${i}`];
+    if (val) {
+      keys.push(val.trim());
+    }
   }
 
   try {
     const aiConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config_ai.json'), 'utf8'));
-    if (Array.isArray(aiConfig.MISTRAL_API_KEYS)) {
-      keys.push(...aiConfig.MISTRAL_API_KEYS.map(k => k.trim()));
+    if (Array.isArray(aiConfig.GEMINI_API_KEYS)) {
+      keys.push(...aiConfig.GEMINI_API_KEYS.map(k => k.trim()));
     }
-    if (aiConfig.MISTRAL_API_KEY) {
-      keys.push(aiConfig.MISTRAL_API_KEY.trim());
+    if (aiConfig.GEMINI_API_KEY) {
+      keys.push(aiConfig.GEMINI_API_KEY.trim());
     }
   } catch (_) {}
 
   const uniqueKeys = [...new Set(keys)].filter(Boolean);
-  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Mistral.`);
+  console.log(`[AI] Załadowano ${uniqueKeys.length} unikalnych kluczy API Gemini.`);
   return uniqueKeys;
 }
 
-async function askMistral(apiKey, promptText) {
+async function askGemini(apiKey, promptText) {
   const response = await axios.post(
-    'https://api.mistral.ai/v1/chat/completions',
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
-      model: 'mistral-small-latest',
-      messages: [
+      contents: [
         {
-          role: 'user',
-          content: promptText
+          parts: [{ text: promptText }]
         }
-      ],
-      max_tokens: 8192,
-      temperature: 0.7
+      ]
     },
     {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       timeout: 240000
     }
   );
 
-  const replyText = response.data?.choices?.[0]?.message?.content;
+  const replyText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!replyText) {
-    throw new Error('Pusta odpowiedź z API Mistral.');
+    throw new Error('Pusta odpowiedź z API Gemini.');
   }
 
   return replyText;
 }
 
-async function askMistralWithFallback(promptText) {
+async function askGeminiWithFallback(promptText) {
   const keys = getApiKeys();
   if (keys.length === 0) {
-    throw new Error('Brak skonfigurowanych kluczy Mistral API!');
+    throw new Error('Brak skonfigurowanych kluczy Gemini API!');
   }
 
   const startIndex = Math.floor(Math.random() * keys.length);
@@ -202,10 +195,10 @@ async function askMistralWithFallback(promptText) {
     const idx = (startIndex + attempt) % keys.length;
     const apiKey = keys[idx];
     try {
-      return await askMistral(apiKey, promptText);
+      return await askGemini(apiKey, promptText);
     } catch (err) {
       const status = err.response?.status;
-      const errorMsg = err.response?.data?.message || err.message;
+      const errorMsg = err.response?.data?.error?.message || err.message;
       console.warn(`[AI] Błąd klucza ${idx + 1}/${keys.length} (Status: ${status}, Błąd: ${errorMsg}).`);
 
       if (attempt < keys.length - 1) {
@@ -218,15 +211,15 @@ async function askMistralWithFallback(promptText) {
   throw lastError;
 }
 
-async function askMistralForChunk(promptText, keys, chunkIndex) {
+async function askGeminiForChunk(promptText, keys, chunkIndex) {
   let lastError = null;
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const idx = (chunkIndex + attempt) % keys.length;
     try {
-      return await askMistral(keys[idx], promptText);
+      return await askGemini(keys[idx], promptText);
     } catch (err) {
       const status = err.response?.status;
-      const errorMsg = err.response?.data?.message || err.message;
+      const errorMsg = err.response?.data?.error?.message || err.message;
       console.warn(`[AI-CHUNK] Błąd klucza ${idx + 1}/${keys.length} dla chunku ${chunkIndex + 1} (Status: ${status}, Błąd: ${errorMsg}).`);
       lastError = err;
     }
@@ -453,10 +446,10 @@ async function handleConfirmedGoogleQuery(client, message, pendingAi) {
   }
 
   const apiKeys = getApiKeys();
-      if (apiKeys.length === 0) {
-        await message.reply('❌ Brak skonfigurowanego klucza Mistral API!');
-        return;
-      }
+  if (apiKeys.length === 0) {
+    await message.reply('❌ Brak skonfigurowanego klucza Gemini API!');
+    return;
+  }
 
   const analysisId = `${pendingAi.userId}_${Date.now()}_${Math.random()}`;
   client.activeAnalyses = client.activeAnalyses || new Map();
@@ -470,7 +463,7 @@ async function handleConfirmedGoogleQuery(client, message, pendingAi) {
       `Jesteś pomocnym asystentem. Odpowiadaj po polsku, jasno i konkretnie.\n\n` +
       `PYTANIE: ${pendingAi.question}`;
 
-    let replyText = await askMistralWithFallback(promptText);
+    let replyText = await askGeminiWithFallback(promptText);
     replyText = sanitizeAiResponse(replyText);
 
     // Zużyj limit dopiero po pomyślnej odpowiedzi, aby nie tracić limitu przy błędzie API
@@ -733,7 +726,7 @@ module.exports = {
               `${chunkLines.join('\n')}\n`;
 
             try {
-              const summary = await askMistralForChunk(chunkPrompt, apiKeysForChunks, idx);
+              const summary = await askGeminiForChunk(chunkPrompt, apiKeysForChunks, idx);
               return { idx, summary, error: null };
             } catch (err) {
               console.error(`[AI-CHUNK] Błąd przetwarzania chunku ${idx + 1}:`, err.message);
@@ -763,7 +756,7 @@ module.exports = {
           `Streszczenia fragmentów rozmowy:\n` +
           `${successfulSummaries.join('\n\n')}\n`;
 
-        finalReplyText = await askMistralWithFallback(finalPrompt);
+        finalReplyText = await askGeminiWithFallback(finalPrompt);
 
         if (failedCount > 0) {
           finalReplyText += `\n\n⚠️ *Uwaga: ${failedCount} z ${chunks.length} części rozmowy nie udało się przeanalizować z powodu błędów API — odpowiedź może być niepełna.*`;
@@ -790,7 +783,7 @@ module.exports = {
   }
 };
 
-module.exports.askMistralWithFallback = askMistralWithFallback;
+module.exports.askGeminiWithFallback = askGeminiWithFallback;
 module.exports.handleConfirmedGoogleQuery = handleConfirmedGoogleQuery;
 module.exports.checkAiLimits = checkAiLimits;
 module.exports.consumeAiQuota = consumeAiQuota;
