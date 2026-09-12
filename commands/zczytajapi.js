@@ -7,8 +7,8 @@ const { DATA_DIR } = require('../utils/storage');
 const PROGRESS_FILE = path.join(DATA_DIR, 'zczytajapi_progress.json');
 const RAW_FILE = path.join(DATA_DIR, 'zczytajapi_raw.json');
 
-const STRICT_SCAN_FROM = 1788386400000; // 03.09.2026, 00:00:00
-const STRICT_SCAN_TO = 1788723600000;   // 06.09.2026, 21:40:00
+const STRICT_SCAN_FROM = 1788739200000; // 07.09.2026, 00:00:00
+const STRICT_SCAN_TO = 1789171200000;   // 13.09.2026, 00:00:00
 
 function isWithinScanWindow(ts) {
   const n = Number(ts);
