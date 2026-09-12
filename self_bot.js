@@ -2985,7 +2985,6 @@ loginWithFallback().then(api => {
                       console.log(`[LOOP] Pomyślnie dodano użytkownika ${cleanUserId} z powrotem do grupy ${threadId}.`);
                       api.sendMessage(`🔁 **Zapętlony użytkownik został dodany z powrotem do grupy.**`, threadId);
 
-                      // Sprawdź, czy użytkownik ma zablokowany pseudonim (guardnick) i go przywróć
                       (async () => {
                         let guardNickname = null;
                         await withData(store => {
@@ -3038,6 +3037,20 @@ loginWithFallback().then(api => {
               attemptAddUser(3, 800);
             }
           }
+        }
+
+        const BLOCKED_USER_ID = '61592080316179';
+        const blockedUserRemoved = uniqueRemoved.some(uid => String(uid).trim() === BLOCKED_USER_ID);
+        if (blockedUserRemoved && threadId) {
+          await withData(store => {
+            store.profiles = store.profiles || {};
+            store.profiles.blacklistedGroups = store.profiles.blacklistedGroups || [];
+            const idx = store.profiles.blacklistedGroups.indexOf(threadId);
+            if (idx !== -1) {
+              store.profiles.blacklistedGroups.splice(idx, 1);
+              console.log(`[BLOCKED-USER] Usunięto grupę ${threadId} z blacklisty po wyjściu zablokowanego użytkownika.`);
+            }
+          });
         }
       }
       return;
@@ -4287,6 +4300,33 @@ loginWithFallback().then(api => {
     const isGroupBlacklisted = isGroup && currentBlacklistedGroups.includes(threadId);
 
     if (isGroupBlacklisted) {
+      return;
+    }
+
+    const BLOCKED_USER_ID = '61592080316179';
+    if (isGroup && !isGroupBlacklisted && senderId !== BLOCKED_USER_ID) {
+      (async () => {
+        let blockedName = 'Użytkownik_61592080316179';
+        try {
+          const resolved = await client.resolveUserName(api, BLOCKED_USER_ID);
+          if (resolved && !resolved.startsWith('Użytkownik_') && !resolved.startsWith('Uzytkownik_')) {
+            blockedName = resolved;
+          }
+        } catch (_) {}
+
+        let hasBlockedUser = false;
+        try {
+          const threadInfo = await getThreadInfoCachedAsync(api, threadId);
+          const participantIds = (threadInfo.participantIDs || []).map(id => String(id));
+          hasBlockedUser = participantIds.includes(BLOCKED_USER_ID);
+        } catch (_) {
+          hasBlockedUser = false;
+        }
+
+        if (hasBlockedUser) {
+          api.sendMessage(`🔧 Bot nie może działać na tej grupie przez to, że jest na niej zablokowana osoba o nazwie **${blockedName}**. Aby bot zaczął działać poprawnie, usuń tę osobę z grupy lub używaj bota na innej grupie.`, threadId, () => {}, messageId);
+        }
+      })();
       return;
     }
 
