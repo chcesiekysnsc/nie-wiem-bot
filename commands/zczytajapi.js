@@ -8,7 +8,7 @@ const PROGRESS_FILE = path.join(DATA_DIR, 'zczytajapi_progress.json');
 const RAW_FILE = path.join(DATA_DIR, 'zczytajapi_raw.json');
 
 const STRICT_SCAN_FROM = 1788739200000; // 07.09.2026, 00:00:00
-const STRICT_SCAN_TO = 1789171200000;   // 13.09.2026, 00:00:00
+const STRICT_SCAN_TO = 1789158000000;   // 12.09.2026, 20:20:00
 
 function isWithinScanWindow(ts) {
   const n = Number(ts);
